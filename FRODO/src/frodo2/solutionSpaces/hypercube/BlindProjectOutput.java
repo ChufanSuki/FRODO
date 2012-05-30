@@ -32,7 +32,6 @@ import java.util.Arrays;
 import java.util.Map;
 
 import frodo2.solutionSpaces.Addable;
-import frodo2.solutionSpaces.AddableReal;
 import frodo2.solutionSpaces.BasicUtilitySolutionSpace;
 import frodo2.solutionSpaces.ProblemInterface;
 import frodo2.solutionSpaces.SolutionSpace;
@@ -691,7 +690,7 @@ public class BlindProjectOutput < V extends Addable<V>, U extends Addable<U> > e
 	/** @see frodo2.solutionSpaces.UtilitySolutionSpace#consensus(java.lang.String, java.util.Map, boolean) */
 	public frodo2.solutionSpaces.UtilitySolutionSpace.ProjOutput<V, U> consensus(
 			String varOut,
-			Map<String, UtilitySolutionSpace<V, AddableReal>> distributions,
+			Map<String, UtilitySolutionSpace<V, U>> distributions,
 			boolean maximum) {
 		/// @todo Auto-generated method stub
 		assert false : "Not yet implemented";
@@ -701,7 +700,7 @@ public class BlindProjectOutput < V extends Addable<V>, U extends Addable<U> > e
 	/** @see frodo2.solutionSpaces.UtilitySolutionSpace#consensusAllSols(java.lang.String, java.util.Map, boolean) */
 	public frodo2.solutionSpaces.UtilitySolutionSpace.ProjOutput<V, U> consensusAllSols(
 			String varOut,
-			Map<String, UtilitySolutionSpace<V, AddableReal>> distributions,
+			Map<String, UtilitySolutionSpace<V, U>> distributions,
 			boolean maximum) {
 		/// @todo Auto-generated method stub
 		assert false : "Not yet implemented";

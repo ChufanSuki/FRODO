@@ -30,8 +30,8 @@ import junit.extensions.RepeatedTest;
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
 
-import org.jdom.Document;
-import org.jdom.Element;
+import org.jdom2.Document;
+import org.jdom2.Element;
 
 import frodo2.algorithms.AgentFactory;
 import frodo2.algorithms.Solution;
@@ -307,7 +307,6 @@ public class TestSDPOP < V extends Addable<V>, U extends Addable<U> > extends Te
 	 * @param nodeRatio probability of changing any given relation
 	 * @return the modified problem
 	 */
-	@SuppressWarnings("unchecked")
 	public static Document modifyProblemRandomly(Document problem, double nodeRatio)
 	{
 		Random rnd = new Random();

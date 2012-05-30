@@ -29,9 +29,9 @@ import junit.extensions.RepeatedTest;
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
 
-import org.jdom.Document;
-import org.jdom.Element;
-import org.jdom.JDOMException;
+import org.jdom2.Document;
+import org.jdom2.Element;
+import org.jdom2.JDOMException;
 
 import frodo2.algorithms.Solution;
 import frodo2.algorithms.XCSPparser;
@@ -118,7 +118,6 @@ public class P_DPOPagentTest <V extends Addable<V> > extends TestCase {
 	 * @throws IOException is thrown if an I/O exception occur when accessing to the description of P-DPOP or DPOP algorithm
 	 * @throws JDOMException is thrown if a parsing error occurs
 	 */
-	@SuppressWarnings("unchecked")
 	public void testP_DPOPvsDPOP () throws JDOMException, IOException {
 		
 		//Create new random problem

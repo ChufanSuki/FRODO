@@ -23,7 +23,7 @@ How to contact the authors:
 package frodo2.benchmarks.auctions.xcsp;
 
 
-import org.jdom.Element;
+import org.jdom2.Element;
 
 import frodo2.benchmarks.auctions.cats.Auction;
 

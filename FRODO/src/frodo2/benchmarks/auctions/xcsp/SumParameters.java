@@ -22,7 +22,7 @@ How to contact the authors:
 
 package frodo2.benchmarks.auctions.xcsp;
 
-import org.jdom.Element;
+import org.jdom2.Element;
 
 /**
  * This class is used to represent the parameters of an intensional sum constraint

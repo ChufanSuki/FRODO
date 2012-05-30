@@ -32,7 +32,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
-import org.jdom.Element;
+import org.jdom2.Element;
 
 import frodo2.algorithms.AgentInterface;
 import frodo2.algorithms.StatsReporter;
@@ -43,7 +43,6 @@ import frodo2.communication.Message;
 import frodo2.communication.MessageWith2Payloads;
 import frodo2.communication.Queue;
 import frodo2.solutionSpaces.Addable;
-import frodo2.solutionSpaces.AddableReal;
 import frodo2.solutionSpaces.DCOPProblemInterface;
 import frodo2.solutionSpaces.UtilitySolutionSpace;
 
@@ -54,9 +53,10 @@ import frodo2.solutionSpaces.UtilitySolutionSpace;
  * 
  * @author Thomas Leaute
  * @param <V> the type used for random variable values
+ * @param <U> the type used for probabilities
  * @todo Improve garbage collection. 
  */
-public class SamplingPhase < V extends Addable<V> > extends LowestCommonAncestors implements StatsReporter {
+public class SamplingPhase < V extends Addable<V>, U extends Addable<U> > extends LowestCommonAncestors implements StatsReporter {
 	
 	/** The type of the start message */
 	public static String START_MSG_TYPE = AgentInterface.START_AGENT;
@@ -90,7 +90,7 @@ public class SamplingPhase < V extends Addable<V> > extends LowestCommonAncestor
 	}
 	
 	/** The problem */
-	protected DCOPProblemInterface<V, AddableReal> problem;
+	protected DCOPProblemInterface<V, U> problem;
 	
 	/** Whether the execution of the algorithm has started */
 	protected boolean started = false;
@@ -99,7 +99,7 @@ public class SamplingPhase < V extends Addable<V> > extends LowestCommonAncestor
 	protected int nbrSamples;
 	
 	/** For each random variable, its non-sampled probability law */
-	protected HashMap< String, UtilitySolutionSpace<V, AddableReal> > probLaws = new HashMap< String, UtilitySolutionSpace<V, AddableReal> > ();
+	protected HashMap< String, UtilitySolutionSpace<V, U> > probLaws = new HashMap< String, UtilitySolutionSpace<V, U> > ();
 
 	/** The total number messages to expect in "statistics gatherer" mode */
 	private int nbrStatsMsgs;
@@ -142,9 +142,8 @@ public class SamplingPhase < V extends Addable<V> > extends LowestCommonAncestor
 	 * @param problem 		this agent's problem
 	 * @param parameters 	the parameters for SamplingPhase
 	 */
-	public SamplingPhase (DCOPProblemInterface<V, AddableReal> problem, Element parameters) {
+	public SamplingPhase (DCOPProblemInterface<V, U> problem, Element parameters) {
 		this.problem = problem;
-		problem.setUtilClass(AddableReal.class);
 		this.nbrSamples = Integer.parseInt(parameters.getAttributeValue("nbrSamples"));
 		
 		// Parse and record where to project
@@ -170,8 +169,8 @@ public class SamplingPhase < V extends Addable<V> > extends LowestCommonAncestor
 			super.infos.put(var, new NodeInfo (new HashSet<String> ()));
 		
 		// Parse all non-sampled probability spaces
-		List< ? extends UtilitySolutionSpace<V, AddableReal> > probSpaces = problem.getProbabilitySpaces();
-		for (UtilitySolutionSpace<V, AddableReal> probSpace : probSpaces) 
+		List< ? extends UtilitySolutionSpace<V, U> > probSpaces = problem.getProbabilitySpaces();
+		for (UtilitySolutionSpace<V, U> probSpace : probSpaces) 
 			this.probLaws.put(probSpace.getVariable(0), probSpace);
 		
 		this.started = true;
@@ -181,7 +180,7 @@ public class SamplingPhase < V extends Addable<V> > extends LowestCommonAncestor
 	public void reset () {
 		super.owners = null;
 		super.infos = new HashMap<String, NodeInfo> ();
-		probLaws = new HashMap< String, UtilitySolutionSpace<V, AddableReal> > ();
+		probLaws = new HashMap< String, UtilitySolutionSpace<V, U> > ();
 		this.started = false;
 		
 		// Only used in stats gatherer mode
@@ -197,7 +196,7 @@ public class SamplingPhase < V extends Addable<V> > extends LowestCommonAncestor
 	 * @param problem 		the overall problem
 	 * @param parameters 	parameters of the stats gatherer
 	 */
-	public SamplingPhase (Element parameters, DCOPProblemInterface<V, AddableReal> problem)  {
+	public SamplingPhase (Element parameters, DCOPProblemInterface<V, U> problem)  {
 		this.problem = problem;
 		
 		// Parse the number of variables in the problem
@@ -318,7 +317,7 @@ public class SamplingPhase < V extends Addable<V> > extends LowestCommonAncestor
 			
 			// For each space that var is responsible for enforcing, add the random variables in the scope to var's flags
 			HashSet<String> flags = new HashSet<String> ();
-			for (UtilitySolutionSpace<V, AddableReal> space : this.problem.getSolutionSpaces(var, true, allChildren)) {
+			for (UtilitySolutionSpace<V, U> space : this.problem.getSolutionSpaces(var, true, allChildren)) {
 				
 				// Add all random variables in the scope to var's flags
 				for (String randVar : space.getVariables()) 
@@ -347,8 +346,9 @@ public class SamplingPhase < V extends Addable<V> > extends LowestCommonAncestor
 	
 	/** The version of the SamplingPhase that samples at the leaves
 	 * @param <V> 	the type used for variable values
+	 * @param <U> 	the type used for utility values
 	 */
-	public static class AtLeaves < V extends Addable<V> > extends SamplingPhase<V> {
+	public static class AtLeaves < V extends Addable<V>, U extends Addable<U> > extends SamplingPhase<V, U> {
 		
 		/** The set of random variables that have already been sampled */
 		private HashSet<String> sampledVars = new HashSet<String> ();
@@ -357,7 +357,7 @@ public class SamplingPhase < V extends Addable<V> > extends LowestCommonAncestor
 		 * @param problem 		the overall problem
 		 * @param parameters 	the parameters
 		 */
-		public AtLeaves (Element parameters, DCOPProblemInterface<V, AddableReal> problem) {
+		public AtLeaves (Element parameters, DCOPProblemInterface<V, U> problem) {
 			super(parameters, problem);
 			if (this.proj != null && this.proj != WhereToProject.LEAVES) 
 				System.err.println("Warning! Incorrect value for option `whereToProject' for module SamplingPhase$AtLeaves being overridden with default value `leaves'");
@@ -368,7 +368,7 @@ public class SamplingPhase < V extends Addable<V> > extends LowestCommonAncestor
 		 * @param problem 		the problem
 		 * @param parameters 	the parameters
 		 */
-		public AtLeaves (DCOPProblemInterface<V, AddableReal> problem, Element parameters) {
+		public AtLeaves (DCOPProblemInterface<V, U> problem, Element parameters) {
 			super(problem, parameters);
 			if (this.proj != null && this.proj != WhereToProject.LEAVES) 
 				System.err.println("Warning! Incorrect value for option `whereToProject' for module SamplingPhase$AtLeaves being overridden with default value `leaves'");
@@ -417,8 +417,9 @@ public class SamplingPhase < V extends Addable<V> > extends LowestCommonAncestor
 	
 	/** The version of the SamplingPhase that samples at the lcas
 	 * @param <V> 	the type used for variable values
+	 * @param <U> 	the type used for utility values
 	 */
-	public static class AtLCAs < V extends Addable<V> > extends SamplingPhase<V> {
+	public static class AtLCAs < V extends Addable<V>, U extends Addable<U> > extends SamplingPhase<V, U> {
 		
 		/** The random variables in the problem */
 		protected Collection<String> allRandVars;
@@ -439,7 +440,7 @@ public class SamplingPhase < V extends Addable<V> > extends LowestCommonAncestor
 		 * @param problem 		the overall problem
 		 * @param parameters 	the parameters
 		 */
-		public AtLCAs (Element parameters, DCOPProblemInterface<V, AddableReal> problem) {
+		public AtLCAs (Element parameters, DCOPProblemInterface<V, U> problem) {
 			this(parameters, problem, true);
 		}
 
@@ -448,7 +449,7 @@ public class SamplingPhase < V extends Addable<V> > extends LowestCommonAncestor
 		 * @param parameters 	the parameters
 		 * @param parseProj 	whether to parse where random variables should be projected out
 		 */
-		protected AtLCAs (Element parameters, DCOPProblemInterface<V, AddableReal> problem, boolean parseProj) {
+		protected AtLCAs (Element parameters, DCOPProblemInterface<V, U> problem, boolean parseProj) {
 			super(parameters, problem);
 			
 			if (! parseProj) 
@@ -466,7 +467,7 @@ public class SamplingPhase < V extends Addable<V> > extends LowestCommonAncestor
 		 * @param problem 		the problem
 		 * @param parameters 	the parameters
 		 */
-		public AtLCAs (DCOPProblemInterface<V, AddableReal> problem, Element parameters) {
+		public AtLCAs (DCOPProblemInterface<V, U> problem, Element parameters) {
 			super(problem, parameters);
 			if (this.proj != null && this.proj == WhereToProject.ROOTS) {
 				System.err.println("Warning! Incorrect value `roots' for option `whereToProject' for module SamplingPhase$AtLCAs being overridden with default value `lcas'");
@@ -609,7 +610,7 @@ public class SamplingPhase < V extends Addable<V> > extends LowestCommonAncestor
 				// Get the proposed samples that may have already been received, and add new proposed samples
 				Map<V, Double> proposed = mySamples.get(randVar);
 				Map<V, Double> newProposed;
-				UtilitySolutionSpace<V, AddableReal> probLaw = this.probLaws.get(randVar);
+				UtilitySolutionSpace<V, U> probLaw = this.probLaws.get(randVar);
 				assert probLaw != null : "Unknown probability distribution for variable `" + randVar + "'";
 				if (proposed != null) {
 					newProposed = this.combineSamples(probLaw.sample(this.nbrSamples), proposed);
@@ -793,14 +794,15 @@ public class SamplingPhase < V extends Addable<V> > extends LowestCommonAncestor
 	
 	/** A version of the SamplingPhase in which the sampling for all random variables is performed at the roots
 	 * @param <V> 	the type used for variable values
+	 * @param <U> 	the type used for utility values
 	 */
-	public static class AtRoots < V extends Addable<V> > extends AtLCAs<V> {
+	public static class AtRoots < V extends Addable<V>, U extends Addable<U> > extends AtLCAs<V, U> {
 		
 		/** Constructor in statistics gatherer mode
 		 * @param problem 		the overall problem
 		 * @param parameters 	the parameters
 		 */
-		public AtRoots(Element parameters, DCOPProblemInterface<V, AddableReal> problem) {
+		public AtRoots(Element parameters, DCOPProblemInterface<V, U> problem) {
 			super(parameters, problem, false);
 			String whereToProj = parameters.getAttributeValue("whereToProject");
 			if (whereToProj != null && ! whereToProj.equals("roots")) 
@@ -814,9 +816,8 @@ public class SamplingPhase < V extends Addable<V> > extends LowestCommonAncestor
 		 * @param problem 		this agent's problem
 		 * @param parameters 	the parameters
 		 */
-		public AtRoots(DCOPProblemInterface<V, AddableReal> problem, Element parameters) {
+		public AtRoots(DCOPProblemInterface<V, U> problem, Element parameters) {
 			this.problem = problem;
-			problem.setUtilClass(AddableReal.class);
 			this.nbrSamples = Integer.parseInt(parameters.getAttributeValue("nbrSamples"));
 			
 			// Parse and record where to project

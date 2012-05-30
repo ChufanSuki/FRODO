@@ -36,8 +36,8 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.jdom.Document;
-import org.jdom.Element;
+import org.jdom2.Document;
+import org.jdom2.Element;
 
 import JaCoP.constraints.Alldifferent;
 import JaCoP.constraints.ExtensionalConflictVA;
@@ -56,7 +56,6 @@ import JaCoP.core.Store;
 import frodo2.algorithms.XCSPparser;
 import frodo2.solutionSpaces.Addable;
 import frodo2.solutionSpaces.AddableInteger;
-import frodo2.solutionSpaces.AddableReal;
 import frodo2.solutionSpaces.DCOPProblemInterface;
 import frodo2.solutionSpaces.ProblemInterface;
 import frodo2.solutionSpaces.UtilitySolutionSpace;
@@ -109,7 +108,7 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 
 	}
 
-	/** @see XCSPparser#newInstance(java.lang.String, org.jdom.Element) */
+	/** @see XCSPparser#newInstance(java.lang.String, org.jdom2.Element) */
 	protected JaCoPxcspParser<U> newInstance (String agent, Element instance) {
 		return new JaCoPxcspParser<U> (agent, instance, this.countNCCCs, this.spacesToIgnoreNcccs, super.mpc);
 	}
@@ -122,12 +121,8 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 	}
 
 	/** @see XCSPparser#getSpaces(Set, boolean, boolean, Set) */
-	@SuppressWarnings("unchecked")
 	@Override
 	protected List< JaCoPutilSpace<U> > getSpaces (Set<String> vars, final boolean withAnonymVars, final boolean getProbs, Set<String> forbiddenVars) {
-
-		// If we are parsing the probability spaces, make sure we are using AddableReal's for utilities and probabilities
-		assert !getProbs || utilClass.equals(AddableReal.class) : "Cannot parse probability spaces if the utility class is not AddableReal";
 
 		U infeasibleUtil = (super.maximize() ? super.getMinInfUtility() : super.getPlusInfUtility());
 
@@ -138,7 +133,7 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 		final boolean debugLoad = false;
 
 		// First important element of XCSP format is the specification of the domains.		
-		org.jdom.Element domains = root.getChild("domains");
+		org.jdom2.Element domains = root.getChild("domains");
 
 		// domain is represented as a list of integers. Potentially a problem 
 		// if a domain is large. However, the hypercubes will have problems too
@@ -146,7 +141,7 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 		HashMap<String, AddableInteger[]> domainsHashMap = new HashMap<String, AddableInteger[]>();
 
 		// Reads information about variables domains.
-		for (org.jdom.Element domain : (List<org.jdom.Element>) domains.getChildren()) {
+		for (org.jdom2.Element domain : (List<org.jdom2.Element>) domains.getChildren()) {
 
 			String name = domain.getAttributeValue("name");
 
@@ -158,12 +153,12 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 			System.out.println(domainsHashMap);
 
 		// Second important element in XCSP format is describing variables.
-		org.jdom.Element variables = root.getChild("variables");
+		org.jdom2.Element variables = root.getChild("variables");
 
 		// Each variable has its list of values in their domain. 
 		HashMap<String, AddableInteger[]> variablesHashMap = new HashMap<String, AddableInteger[]>();
 
-		for (org.jdom.Element variable : (List<org.jdom.Element>) variables.getChildren()) {
+		for (org.jdom2.Element variable : (List<org.jdom2.Element>) variables.getChildren()) {
 
 			String name = variable.getAttributeValue("name");
 			String domName = variable.getAttributeValue("domain");
@@ -180,9 +175,9 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 			System.out.println(variablesHashMap);
 
 		// All the relations
-		org.jdom.Element relations;
-		org.jdom.Element predicates;
-		org.jdom.Element functions;
+		org.jdom2.Element relations;
+		org.jdom2.Element predicates;
+		org.jdom2.Element functions;
 		relations = root.getChild("relations");
 		predicates = root.getChild("predicates");
 		functions = root.getChild("functions");
@@ -194,7 +189,7 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 			predAndFunc.addAll(functions.getChildren());
 
 		// This element actually describes all the constraints.
-		org.jdom.Element constraints = root.getChild("constraints");
+		org.jdom2.Element constraints = root.getChild("constraints");
 
 		for (Element constraint : (List<Element>) constraints.getChildren()){
 
@@ -265,7 +260,7 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 		//int arity = Integer.valueOf(constraint.getAttributeValue("arity"));
 		String scope = constraint.getAttributeValue("scope");
 
-		Pattern pattern = Pattern.compile(" ");
+		Pattern pattern = Pattern.compile("\\s+");
 
 		String[] varNames = pattern.split(scope);
 
@@ -381,7 +376,7 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 		// Extract the variables in the constraint
 		String scope = constraint.getAttributeValue("scope");
 
-		Pattern pattern = Pattern.compile(" ");
+		Pattern pattern = Pattern.compile("\\s+");
 		String[] varNames = pattern.split(scope);
 		int nbTuples = Integer.valueOf(relation.getAttributeValue("nbTuples"));
 		String name = relation.getAttributeValue("name");
@@ -394,7 +389,7 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 		assert nbTuples == 0 || tuples.length == nbTuples : "Relation `" + name + "' has nbTuples == " + nbTuples + 
 		" but its description actually contains " + tuples.length + " tuples";
 
-		pattern = Pattern.compile(" ");
+		pattern = Pattern.compile("\\s+");
 
 		// The relation defines a soft extensional constraint
 		if(semantics.equals("soft")){
@@ -420,7 +415,7 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 			}
 			
 			Pattern patternColon = Pattern.compile(":");
-			pattern = Pattern.compile(" ");
+			pattern = Pattern.compile("\\s+");
 
 			// The domain of the utility variable
 			IntervalDomain utilDom = new IntervalDomain (nbTuples);
@@ -697,7 +692,7 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 
 		// Extract the variables in the constraint
 		String scope = constraint.getAttributeValue("scope");
-		Pattern pattern = Pattern.compile(" ");
+		Pattern pattern = Pattern.compile("\\s+");
 		String[] varNames = pattern.split(scope);
 
 		int arity = Integer.valueOf(constraint.getAttributeValue("arity"));
@@ -825,7 +820,6 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 	}
 
 	/** @see DCOPProblemInterface#rescale(Addable, Addable) */
-	@SuppressWarnings("unchecked")
 	public void rescale(U multiply, U add) {
 
 		Element relations = this.root.getChild("relations");
@@ -876,7 +870,6 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 
 
 	/** @see XCSPparser#getSubProblem(String) */
-	@SuppressWarnings("unchecked")
 	@Override
 	public JaCoPxcspParser<U> getSubProblem (String agent) {
 

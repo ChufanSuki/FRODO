@@ -28,8 +28,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-import org.jdom.Document;
-import org.jdom.Element;
+import org.jdom2.Document;
+import org.jdom2.Element;
 
 import frodo2.algorithms.AbstractDCOPsolver;
 import frodo2.algorithms.Solution;
@@ -37,28 +37,29 @@ import frodo2.algorithms.StatsReporter;
 import frodo2.algorithms.dpop.UTILpropagation;
 import frodo2.algorithms.dpop.stochastic.robust.WorstCaseUTIL;
 import frodo2.solutionSpaces.Addable;
-import frodo2.solutionSpaces.AddableReal;
 
 /** A StochDCOP solver using E[DPOP]
  * @author Thomas Leaute
  * @param <V> type used for variable values
+ * @param <U> type used for utility values
  */
-public class E_DPOPsolver < V extends Addable<V> > extends AbstractDCOPsolver< V, AddableReal, E_DPOPsolver.StochSolution<V> > {
+public class E_DPOPsolver < V extends Addable<V>, U extends Addable<U> > extends AbstractDCOPsolver< V, U, E_DPOPsolver.StochSolution<V, U> > {
 	
 	/** A solution to a StochDCOP, including the expected and worst-case utilities
 	 * @author Thomas Leaute
 	 * @param <V> type used for variable values
+	 * @param <U> type used for utility values
 	 */
-	public static class StochSolution <V> extends Solution <V, AddableReal> {
+	public static class StochSolution <V, U> extends Solution <V, U> {
 		
 		/** The worst-case utility */
-		private AddableReal worstUtil;
+		private U worstUtil;
 		
 		/** The expected utility */
-		private AddableReal expectedUtil;
+		private U expectedUtil;
 		
 		/** The total probability of the scenarios for which this solution is optimal */
-		private AddableReal probOfOptimality;
+		private U probOfOptimality;
 		
 		/** The level of centralization */
 		private double centralization;
@@ -80,7 +81,7 @@ public class E_DPOPsolver < V extends Addable<V> > extends AbstractDCOPsolver< V
 		 * @param moduleEndTimes 	each module's end time
 		 * @param treeWidth 		the width of the tree on which the algorithm has run
 		 */
-		public StochSolution (int nbrVariables, AddableReal reportedUtil, AddableReal expectedUtil, AddableReal worstUtil, AddableReal probOfOptimality, double centralization, Map<String, V> assignments, 
+		public StochSolution (int nbrVariables, U reportedUtil, U expectedUtil, U worstUtil, U probOfOptimality, double centralization, Map<String, V> assignments, 
 				int nbrMsgs, TreeMap<String, Integer> msgNbrs, long totalMsgSize, TreeMap<String, Long> msgSizes, 
 				long ncccCount, long timeNeeded, HashMap<String, Long> moduleEndTimes, int treeWidth) {
 			super(nbrVariables, reportedUtil, null, assignments, nbrMsgs, msgNbrs, totalMsgSize, msgSizes, ncccCount, timeNeeded, moduleEndTimes, treeWidth);
@@ -91,17 +92,17 @@ public class E_DPOPsolver < V extends Addable<V> > extends AbstractDCOPsolver< V
 		}
 		
 		/** @return the expected utility */
-		public AddableReal getExpUtil () {
+		public U getExpUtil () {
 			return this.expectedUtil;
 		}
 		
 		/** @return the worst-case utility */
-		public AddableReal getWorstUtil () {
+		public U getWorstUtil () {
 			return this.worstUtil;
 		}
 		
 		/** @return the total probability of the scenarios for which this solution is optimal */
-		public AddableReal getProbOfOptimality () {
+		public U getProbOfOptimality () {
 			return this.probOfOptimality;
 		}
 		
@@ -117,17 +118,17 @@ public class E_DPOPsolver < V extends Addable<V> > extends AbstractDCOPsolver< V
 			builder.append("\n");
 			builder.append("\n\t- expectedUtil:     " + this.expectedUtil);
 			builder.append("\n\t- worstUtil:        " + this.worstUtil);
-			builder.append("\n\t- probOfOptimality: " + (this.probOfOptimality == null ? null : (this.probOfOptimality.getValue() * 100) + " %"));
+			builder.append("\n\t- probOfOptimality: " + this.probOfOptimality);
 			builder.append("\n\t- level of centralization: " + (this.centralization * 100) + " %");
 			return builder.toString();
 		}
 	}
 
 	/** The ExpectedUTIL module */
-	private ExpectedUTIL<V> utilModule;
+	private ExpectedUTIL<V, U> utilModule;
 	
 	/** The SamplingPhase module, used to display the DFS */
-	protected SamplingPhase<V> samplingModule;
+	protected SamplingPhase<V, U> samplingModule;
 	
 	/** A DOT representation of the DFS used */
 	protected String dfsString;
@@ -168,8 +169,14 @@ public class E_DPOPsolver < V extends Addable<V> > extends AbstractDCOPsolver< V
 		super.setDomClass(domClass);
 	}
 
+	/** Constructor
+	 * @param agentDesc 	the path to the agent description file
+	 */
+	public E_DPOPsolver(String agentDesc) {
+		super(agentDesc);
+	}
+
 	/** @see AbstractDCOPsolver#getSolGatherers() */
-	@SuppressWarnings("unchecked")
 	@Override
 	public ArrayList<StatsReporter> getSolGatherers() {
 
@@ -179,13 +186,13 @@ public class E_DPOPsolver < V extends Addable<V> > extends AbstractDCOPsolver< V
 			String className = elmt.getAttributeValue("className");
 			
 			if (className.equals(UTILpropagation.class.getName()) || className.equals(ExpectedUTIL.class.getName()) || className.equals(WorstCaseUTIL.class.getName()) || className.equals(CompleteUTIL.class.getName())) {
-				utilModule = new ExpectedUTIL<V> (elmt, problem);
+				utilModule = new ExpectedUTIL<V, U> (elmt, problem);
 				utilModule.setSilent(true);
 				solGatherers.add(utilModule);
 							
 			} else if (className.endsWith("AtLCAs")) { // to display the DFS
 //				elmt.setAttribute("DOTrenderer", DOTrenderer.class.getName());
-				samplingModule = new SamplingPhase<V> (elmt, problem);
+				samplingModule = new SamplingPhase<V, U> (elmt, problem);
 				samplingModule.setSilent(true); // comment this to display the DFS
 				solGatherers.add(samplingModule);
 			}
@@ -197,11 +204,11 @@ public class E_DPOPsolver < V extends Addable<V> > extends AbstractDCOPsolver< V
 		
 	/** @see AbstractDCOPsolver#buildSolution() */
 	@Override
-	public StochSolution<V> buildSolution() {
+	public StochSolution<V, U> buildSolution() {
 		
 		this.dfsString = (this.samplingModule == null ? "" : this.samplingModule.dfsToString());
 		
-		return new StochSolution<V> (problem.getNbrVars(), utilModule.getOptUtil(), utilModule.getExpectedUtil(), utilModule.getWorstUtil(), utilModule.getProbOfOptimality(), 0.0, utilModule.getSolution(), 
+		return new StochSolution<V, U> (problem.getNbrVars(), utilModule.getOptUtil(), utilModule.getExpectedUtil(), utilModule.getWorstUtil(), utilModule.getProbOfOptimality(), 0.0, utilModule.getSolution(), 
 				factory.getNbrMsgs(), factory.getMsgNbrs(), factory.getTotalMsgSize(), factory.getMsgSizes(), factory.getNcccs(), factory.getTime(), null, utilModule.getMaxMsgDim());
 	}
 	

@@ -33,10 +33,10 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 
-import org.jdom.Document;
-import org.jdom.Element;
-import org.jdom.output.Format;
-import org.jdom.output.XMLOutputter;
+import org.jdom2.Document;
+import org.jdom2.Element;
+import org.jdom2.output.Format;
+import org.jdom2.output.XMLOutputter;
 
 import frodo2.solutionSpaces.AddableInteger;
 import frodo2.solutionSpaces.AddableReal;
@@ -400,7 +400,7 @@ public class CordeauToXCSP {
 		// Create the root element
 		Element probElement = new Element ("instance");
 		probElement.setAttribute("noNamespaceSchemaLocation", "src/frodo2/algorithms/XCSPschemaVRP.xsd", 
-				org.jdom.Namespace.getNamespace("xsi", "http://www.w3.org/2001/XMLSchema-instance"));
+				org.jdom2.Namespace.getNamespace("xsi", "http://www.w3.org/2001/XMLSchema-instance"));
 
 		// Create the "presentation" element
 		Element presElmt = new Element ("presentation");

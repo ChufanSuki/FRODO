@@ -26,8 +26,8 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.util.List;
 
-import org.jdom.Document;
-import org.jdom.Element;
+import org.jdom2.Document;
+import org.jdom2.Element;
 
 import frodo2.algorithms.Solution;
 import frodo2.algorithms.XCSPparser;
@@ -231,7 +231,7 @@ public class VRPtests extends TestCase {
 		
 		// Compare with P2-DPOP
 		agentDoc = XCSPparser.parse("src/frodo2/algorithms/dpop/privacy/P2-DPOPagentVRP.xml", false);
-		solReal = new P2_DPOPsolver<AddableInteger, AddableReal> (agentDoc).solve(problem, timeout * 12, (int) dpopSolReal.getUtility().getValue() + 1);
+		solReal = new P2_DPOPsolver<AddableInteger, AddableReal> (agentDoc).solve(problem, timeout * 12, (int) dpopSolReal.getUtility().doubleValue() + 1);
 		assertNotNull("P2-DPOP failed to find a solution", solReal);
 		utilReal = solReal.getUtility();
 //		assertTrue( "DPOP and P2-DPOP disagree: " + dpopUtil + " != " + p2dpopUtil, dpopUtil.equals(synchBButil, 1E-6));

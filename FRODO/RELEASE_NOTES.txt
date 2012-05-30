@@ -1,3 +1,22 @@
+CHANGES IN VERSION 2.10.5 SINCE VERSION 2.10.4
+
+Major changes: 
+	- Upgraded to JDOM version 2.0.1; the new JAR file must be manually downloaded from the JDOM website and put in FRODO's lib folder. 
+	- Upgraded to JaCoP version 3.2; the new JAR file must be manually downloaded from the JDOM website and put in FRODO's lib folder. 
+	- When simulated time is enabled, the timeout is now specified in simulated time rather than wall clock time. 
+
+Minor changes: 
+	- Fixed multiple bugs with multi-space separators in the XCSP parsers (bug 3528897 reported by Samuele Granata). 
+	- Addressed a rare bug in distributed mode (bug 3515517 reported by Alessandro Bellemo).
+	- Max-Sum now always rescales messages, but ignores infinite entries (improvement suggested by Ruben Stranders). 
+	- Max-Sum: when they have exhausted their numbers of iterations, variable nodes now keep updating and reporting their optimal values. 
+	- Max-Sum: fixed a bug following which function nodes were counting twice each iteration. 
+	- Extended E[DPOP] to support other utilities than AddableReal. 
+	- Performance improvements to the JUnit tests by removing busy waits. 
+	- Minor refactoring in the Solution Spaces layer. 
+	- Other minor bugfixes. 
+	
+
 CHANGES IN VERSION 2.10.4 SINCE VERSION 2.10.3
 
 Major changes: 
@@ -398,7 +417,7 @@ Minor changes:
 	- Added a timeout to the simple mode. 
 	- Changes in the handling of NCCCs. NCCCs are currently only supported for O-DPOP and ADOPT. 
 	- Trashed DPOP's DomainSharing module. 
-	- Now provides an XML schema file for the XCSP format (ch/epfl/lia/frodo/algorithms/XCSPschema.xsd). 
+	- Now provides an XML schema file for the XCSP format (frodo2/algorithms/XCSPschema.xsd). 
 	- The simple mode now properly displays the number of messages and total information sent. 
 	- Changes in the required constructor signature for StatsReporters. 
 	- Removed busy waits in the unit tests. 

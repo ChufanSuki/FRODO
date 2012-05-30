@@ -24,8 +24,8 @@ package frodo2.algorithms.asodpop;
 
 import java.util.List;
 
-import org.jdom.Document;
-import org.jdom.Element;
+import org.jdom2.Document;
+import org.jdom2.Element;
 
 import frodo2.solutionSpaces.Addable;
 
@@ -131,7 +131,6 @@ public class ASODPOPBinarysolver < V extends Addable<V>, U extends Addable<U> > 
 	 * Set the convergence parameter to the desired value
 	 * @param convergence	\c true when convergence must be measured, and false otherwise
 	 */
-	@SuppressWarnings("unchecked")
 	public void setConvergence(boolean convergence) {
 		for (Element module : (List<Element>) agentDesc.getRootElement().getChild("modules").getChildren()) 
 			if (module.getAttributeValue("className").equals(ASODPOPBinaryDomains.class.getName())) 

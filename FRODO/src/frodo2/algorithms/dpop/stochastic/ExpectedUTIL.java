@@ -32,18 +32,17 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.jdom.Element;
+import org.jdom2.Element;
 
 import frodo2.algorithms.dpop.UTILmsg;
 import frodo2.algorithms.dpop.UTILpropagation;
 import frodo2.algorithms.dpop.VALUEpropagation.AssignmentsMessage;
 import frodo2.algorithms.dpop.stochastic.SamplingPhase.RandVarsProjMsg;
-import frodo2.algorithms.odpop.VALUEpropagation;
+import frodo2.algorithms.dpop.VALUEpropagation;
 import frodo2.algorithms.varOrdering.dfs.DFSgeneration;
 import frodo2.communication.Message;
 import frodo2.communication.Queue;
 import frodo2.solutionSpaces.Addable;
-import frodo2.solutionSpaces.AddableReal;
 import frodo2.solutionSpaces.BasicUtilitySolutionSpace;
 import frodo2.solutionSpaces.DCOPProblemInterface;
 import frodo2.solutionSpaces.UtilitySolutionSpace;
@@ -54,12 +53,13 @@ import frodo2.solutionSpaces.hypercube.ScalarHypercube;
  * 
  * The difference with the normal UTILpropagation phase is that it "projects out" the random variables by computing the expectation over these variables.
  * @author Thomas Leaute
- * @param <Val> 	the type used for variable values
+ * @param <Val> the type used for variable values
+ * @param <U> 	the type used for utility values
  * @warning This implementation currently assumes all variables owned by any given agent belong to the same component of the overall constraint graph, 
  * and might not work properly if this assumption is violated. 
  */
-public class ExpectedUTIL < Val extends Addable<Val> > 
-extends UTILpropagation<Val, AddableReal> {
+public class ExpectedUTIL < Val extends Addable<Val>, U extends Addable<U> > 
+extends UTILpropagation<Val, U> {
 	
 	/** The type of the messages containing information about the where random variables should be projected out */
 	public static String RAND_VARS_PROJ_MSG_TYPE = SamplingPhase.RAND_VARS_PROJ_MSG_TYPE;
@@ -91,29 +91,40 @@ extends UTILpropagation<Val, AddableReal> {
 	private int remainingVars;
 
 	/** The worst-case utility */
-	private AddableReal worstUtil;
+	private U worstUtil;
 
 	/** The expected utility */
-	private AddableReal expectedUtil;
+	private U expectedUtil;
+	
+	/** The utility 0 */
+	private U zero;
+	
+	/** The utility 1 */
+	private U one;
 	
 	/** Whether to measure the probability of optimality */
 	private boolean measureProbOfOpt = false;
 	
 	/** The total probability of the scenarios for which the chosen solution is optimal */
-	private AddableReal probOfOptimality = new AddableReal (-1.0);
+	private U probOfOptimality;
 
-	/** Empty constructor */
-	protected ExpectedUTIL () { }
-		
 	/** Constructor 
 	 * @param problem 		the agent's subproblem
 	 * @param parameters 	the parameters for the module
 	 */
-	public ExpectedUTIL (DCOPProblemInterface<Val, AddableReal> problem, Element parameters) {
-		this.problem = problem;
-		problem.setUtilClass(AddableReal.class);
+	public ExpectedUTIL (DCOPProblemInterface<Val, U> problem, Element parameters) {
+		super (problem, parameters);
+		this.zero = problem.getZeroUtility();
+		this.one = this.zero.fromString("1");
 		withAnonymVars = true;
+		this.parseMethod(parameters);
+	}
 	
+	/** Parses the method to use
+	 * @param parameters 	the parameters for the module
+	 */
+	protected void parseMethod (Element parameters) {
+		
 		// Parse the method to use, if it is specified
 		String methodName = parameters.getAttributeValue("method");
 		if (methodName != null) {
@@ -134,11 +145,12 @@ extends UTILpropagation<Val, AddableReal> {
 	 * @param problem 		the overall problem
 	 * @param parameters 	the description of what statistics should be reported
 	 */
-	public ExpectedUTIL (Element parameters, DCOPProblemInterface<Val, AddableReal> problem) {
+	public ExpectedUTIL (Element parameters, DCOPProblemInterface<Val, U> problem) {
 		super (parameters, problem);
 		this.remainingVars = problem.getNbrVars();
 		this.problem = problem;
-		this.problem.setUtilClass(AddableReal.class);
+		this.zero = problem.getZeroUtility();
+		this.one = this.zero.fromString("1");
 		if (parameters != null) 
 			this.measureProbOfOpt = Boolean.parseBoolean(parameters.getAttributeValue("probOfOptimality"));
 	}
@@ -169,17 +181,17 @@ extends UTILpropagation<Val, AddableReal> {
 	}
 
 	/** @return the worst-case utility */
-	public AddableReal getWorstUtil() {
+	public U getWorstUtil() {
 		return worstUtil;
 	}
 
 	/** @return the expected utility */
-	public AddableReal getExpectedUtil() {
+	public U getExpectedUtil() {
 		return this.expectedUtil;
 	}
 
 	/** @return the total probability of the scenarios for which the chosen solution is optimal */
-	public AddableReal getProbOfOptimality () {
+	public U getProbOfOptimality () {
 		return this.probOfOptimality;
 	}
 	
@@ -192,11 +204,11 @@ extends UTILpropagation<Val, AddableReal> {
 		
 		if (type.equals(OPT_UTIL_MSG_TYPE)) { // we are in stats gatherer mode
 			
-			OptUtilMessage<AddableReal> msgCast = (OptUtilMessage<AddableReal>) msg;
+			OptUtilMessage<U> msgCast = (OptUtilMessage<U>) msg;
 			if (this.optUtil == null) {
 				this.optUtil = msgCast.getUtility();
 			} else 
-				this.optUtil = (AddableReal) this.optUtil.add(msgCast.getUtility());
+				this.optUtil = (U) this.optUtil.add(msgCast.getUtility());
 
 			return;
 		}
@@ -209,9 +221,8 @@ extends UTILpropagation<Val, AddableReal> {
 			for (int i = 0; i < vars.length; i++) {
 				String var = vars[i];
 				Val val = vals.get(i);
-				if (!silent) 
+				if (val != null && solution.put(var, val) == null && !silent) 
 					System.out.println("var `" + var + "' = " + val);
-				solution.put(var, val);
 			}
 			
 			// When we have received all messages, print out the corresponding utility. 
@@ -225,55 +236,54 @@ extends UTILpropagation<Val, AddableReal> {
 					System.out.println("Total expected " + (this.maximize ? "utility: " : "cost: ") + this.expectedUtil);
 
 				// Compute the worst-case utility
-				UtilitySolutionSpace<Val, AddableReal> paramUtil = this.problem.getUtility(this.solution, true);
+				UtilitySolutionSpace<Val, U> paramUtil = this.problem.getUtility(this.solution, true);
 				this.worstUtil = paramUtil.blindProjectAll(! this.maximize);
 				if (! this.silent) 
 					System.out.println("Total worst-case " + (this.maximize ? "utility: " : "cost: ") + this.worstUtil);
 				
 				if (this.measureProbOfOpt) { // Compute the probability of optimality
 
-					List< ? extends UtilitySolutionSpace<Val, AddableReal> > allSpaces = this.problem.getSolutionSpaces(true);
+					List< ? extends UtilitySolutionSpace<Val, U> > allSpaces = this.problem.getSolutionSpaces(true);
 					if (! allSpaces.isEmpty()) {
 
 						// Join all spaces
 						Class<? extends Val[]> classOfDom = (Class<? extends Val[]>) this.problem.getDomain(vars[0]).getClass();
-						UtilitySolutionSpace<Val, AddableReal> join = new ScalarHypercube<Val, AddableReal> (new AddableReal (0.0), 
+						UtilitySolutionSpace<Val, U> join = new ScalarHypercube<Val, U> (this.zero, 
 								this.problem.maximize() ? this.problem.getMinInfUtility() : this.problem.getPlusInfUtility(), classOfDom);
-						for (UtilitySolutionSpace<Val, AddableReal> space : allSpaces) 
+						for (UtilitySolutionSpace<Val, U> space : allSpaces) 
 							join = join.join(space);
 
 						// Go through all scenarios, summing up the probabilities of those for which the solution found is optimal
-						this.probOfOptimality = new AddableReal (0.0);
-						UtilitySolutionSpace<Val, AddableReal> probSpace = new ScalarHypercube<Val, AddableReal> (new AddableReal (1.0), null, classOfDom);
-						for (UtilitySolutionSpace<Val, AddableReal> space : this.problem.getProbabilitySpaces()) 
+						this.probOfOptimality = this.zero;
+						UtilitySolutionSpace<Val, U> probSpace = new ScalarHypercube<Val, U> (this.one, null, classOfDom);
+						for (UtilitySolutionSpace<Val, U> space : this.problem.getProbabilitySpaces()) 
 							probSpace = probSpace.multiply(space);
 
 						if (probSpace.getVariables().length == 0) { // no random variables; only one scenario
 
 							// Check whether we can find a better solution than the one output by the algorithm
-							AddableReal utilFound = paramUtil.getUtility(0);
-							AddableReal betterUtil = join.iterator().nextUtility(utilFound, ! this.problem.maximize());
+							U utilFound = paramUtil.getUtility(0);
+							U betterUtil = join.iterator().nextUtility(utilFound, ! this.problem.maximize());
 							if (betterUtil == null) // no better solution found
-								this.probOfOptimality = new AddableReal (1.0);
+								this.probOfOptimality = this.one;
 
 						} else { // more than one scenario
 
-							UtilitySolutionSpace.Iterator<Val, AddableReal> probIter = probSpace.iterator();
-							UtilitySolutionSpace.Iterator<Val, AddableReal> utilIter = paramUtil.iterator(probSpace.getVariables(), probSpace.getDomains());
+							UtilitySolutionSpace.Iterator<Val, U> probIter = probSpace.iterator();
+							UtilitySolutionSpace.Iterator<Val, U> utilIter = paramUtil.iterator(probSpace.getVariables(), probSpace.getDomains());
 							while (probIter.hasNext()) {
 
 								// Check whether we can find a better solution than the one output by the algorithm
-								AddableReal utilFound = utilIter.nextUtility();
-								UtilitySolutionSpace<Val, AddableReal> candidates = join.slice(probSpace.getVariables(), probIter.nextSolution());
-								AddableReal betterUtil = candidates.iterator().nextUtility(utilFound, ! this.problem.maximize());
+								U utilFound = utilIter.nextUtility();
+								UtilitySolutionSpace<Val, U> candidates = join.slice(probSpace.getVariables(), probIter.nextSolution());
+								U betterUtil = candidates.iterator().nextUtility(utilFound, ! this.problem.maximize());
 								if (betterUtil == null) // no better solution found
 									this.probOfOptimality = this.probOfOptimality.add(probIter.getCurrentUtility());
 							}
 						}
 					}
 					if (!silent) 
-						System.out.println("Probability of optimality: " + (this.probOfOptimality == null ? null : 
-							(this.probOfOptimality.getValue() * 100) + " %"));
+						System.out.println("Probability of optimality: " + this.probOfOptimality);
 				}
 			}
 
@@ -319,7 +329,7 @@ extends UTILpropagation<Val, AddableReal> {
 				init();
 			
 			// Retrieve the information from the message
-			UTILmsg<Val, AddableReal> msgCast = (UTILmsg<Val, AddableReal>) msg;
+			UTILmsg<Val, U> msgCast = (UTILmsg<Val, U>) msg;
 			String dest = msgCast.getDestination();
 
 			// Obtain the info on the destination variable
@@ -341,7 +351,7 @@ extends UTILpropagation<Val, AddableReal> {
 				init();
 			
 			// Retrieve the information from the message 
-			DFSgeneration.MessageDFSoutput<Val, AddableReal> msgCast = (DFSgeneration.MessageDFSoutput<Val, AddableReal>) msg;
+			DFSgeneration.MessageDFSoutput<Val, U> msgCast = (DFSgeneration.MessageDFSoutput<Val, U>) msg;
 			String dest = msgCast.getVar();
 
 			// Obtain the info on the destination variable
@@ -367,7 +377,7 @@ extends UTILpropagation<Val, AddableReal> {
 		
 		// Look up the neighboring random variables 
 		HashSet<String> randNeigh = new HashSet<String> ();
-		for (UtilitySolutionSpace<Val, AddableReal> space : varInfo.spaces) 
+		for (UtilitySolutionSpace<Val, U> space : varInfo.spaces) 
 			for (String neigh : space.getVariables()) 
 				if (this.problem.isRandom(neigh)) 
 					randNeigh.add(neigh);
@@ -385,9 +395,9 @@ extends UTILpropagation<Val, AddableReal> {
 			randDoms[i] = this.problem.getDomain(randNeighArray[i]);
 		
 		// Slice all spaces along the random variables
-		LinkedList< UtilitySolutionSpace<Val, AddableReal> > slicedSpaces = new LinkedList< UtilitySolutionSpace<Val, AddableReal> > ();
-		for (Iterator< UtilitySolutionSpace<Val, AddableReal> > iter = varInfo.spaces.iterator(); iter.hasNext(); ) {
-			UtilitySolutionSpace<Val, AddableReal> space = iter.next();
+		LinkedList< UtilitySolutionSpace<Val, U> > slicedSpaces = new LinkedList< UtilitySolutionSpace<Val, U> > ();
+		for (Iterator< UtilitySolutionSpace<Val, U> > iter = varInfo.spaces.iterator(); iter.hasNext(); ) {
+			UtilitySolutionSpace<Val, U> space = iter.next();
 			iter.remove();
 			slicedSpaces.add(space.slice(randNeighArray, randDoms));
 		}
@@ -402,7 +412,7 @@ extends UTILpropagation<Val, AddableReal> {
 
 	/** @see UTILpropagation#project(UtilitySolutionSpace, java.lang.String[]) */
 	@Override 
-	protected ProjOutput<Val, AddableReal> project (UtilitySolutionSpace<Val, AddableReal> space, String[] vars) {
+	protected ProjOutput<Val, U> project (UtilitySolutionSpace<Val, U> space, String[] vars) {
 		
 		/// @todo Add support for clusters
 		assert vars.length == 1 : "Clusters unsupported";
@@ -414,13 +424,13 @@ extends UTILpropagation<Val, AddableReal> {
 		if (this.method == Method.CONSENSUS) {
 			
 			// Parse the probability distributions for the random variables in the input space
-			HashMap< String, UtilitySolutionSpace<Val, AddableReal> > distributions = 
-				new HashMap< String, UtilitySolutionSpace<Val, AddableReal> > ();
+			HashMap< String, UtilitySolutionSpace<Val, U> > distributions = 
+				new HashMap< String, UtilitySolutionSpace<Val, U> > ();
 			for (String randVar : space.getVariables()) {
 				if (! this.problem.isRandom(randVar)) // skip non-random variables 
 					continue;
 				
-				List< ? extends UtilitySolutionSpace<Val, AddableReal> > probSpaces = this.problem.getProbabilitySpaces(randVar);
+				List< ? extends UtilitySolutionSpace<Val, U> > probSpaces = this.problem.getProbabilitySpaces(randVar);
 				distributions.put(randVar, probSpaces.get(0));
 			}
 			
@@ -430,13 +440,13 @@ extends UTILpropagation<Val, AddableReal> {
 		else if (this.method == Method.CONSENSUS_ALL_SOLS) { // advanced consensus for all solutions
 			
 			// Parse the probability distributions for the random variables in the input space
-			HashMap< String, UtilitySolutionSpace<Val, AddableReal> > distributions = 
-				new HashMap< String, UtilitySolutionSpace<Val, AddableReal> > ();
+			HashMap< String, UtilitySolutionSpace<Val, U> > distributions = 
+				new HashMap< String, UtilitySolutionSpace<Val, U> > ();
 			for (String randVar : space.getVariables()) {
 				if (! this.problem.isRandom(randVar)) // skip non-random variables 
 					continue;
 				
-				List< ? extends UtilitySolutionSpace<Val, AddableReal> > probSpaces = this.problem.getProbabilitySpaces(randVar);
+				List< ? extends UtilitySolutionSpace<Val, U> > probSpaces = this.problem.getProbabilitySpaces(randVar);
 				distributions.put(randVar, probSpaces.get(0));
 			}
 			
@@ -447,13 +457,13 @@ extends UTILpropagation<Val, AddableReal> {
 		assert this.method == Method.EXPECTATION || this.method == Method.EXPECTATION_MONOTONE;
 		
 		// Retrieve the relevant probability spaces, and check whether all random variables must be projected out here
-		HashMap< String, UtilitySolutionSpace<Val, AddableReal> > distributions = 
-			new HashMap< String, UtilitySolutionSpace<Val, AddableReal> > ();
+		HashMap< String, UtilitySolutionSpace<Val, U> > distributions = 
+			new HashMap< String, UtilitySolutionSpace<Val, U> > ();
 		HashSet<String> projHere = this.randVarsProj.get(var);
 		boolean projectAll = true;
 		for (String randVar : space.getVariables()) {
 			if (this.problem.isRandom(randVar)) {
-				List< ? extends UtilitySolutionSpace<Val, AddableReal> > thisVarProbSpaces = super.problem.getProbabilitySpaces(randVar);
+				List< ? extends UtilitySolutionSpace<Val, U> > thisVarProbSpaces = super.problem.getProbabilitySpaces(randVar);
 				distributions.put(randVar, thisVarProbSpaces.get(0));
 				if (! projHere.contains(randVar)) 
 					projectAll = false;
@@ -485,7 +495,7 @@ extends UTILpropagation<Val, AddableReal> {
 		
 		// Report the corresponding true utilities, as a function of all random variables
 		String[] varsOut = new String[] {var};
-		return new ProjOutput<Val, AddableReal> (space.compose(varsOut, assignments), varsOut, assignments);
+		return new ProjOutput<Val, U> (space.compose(varsOut, assignments), varsOut, assignments);
 
 	}
 	
@@ -493,11 +503,11 @@ extends UTILpropagation<Val, AddableReal> {
 	 * @see UTILpropagation#sendToParent(java.lang.String, java.lang.String, String, UtilitySolutionSpace)
 	 */
 	@Override 
-	protected void sendToParent (String var, String parentVar, String parentAgent, UtilitySolutionSpace<Val, AddableReal> space) {
+	protected void sendToParent (String var, String parentVar, String parentAgent, UtilitySolutionSpace<Val, U> space) {
 		
 		// Before sending the UTIL message, we need to project out the random variables
-		HashMap< String, UtilitySolutionSpace<Val, AddableReal> > distributions = 
-			new HashMap< String, UtilitySolutionSpace<Val, AddableReal> > ();
+		HashMap< String, UtilitySolutionSpace<Val, U> > distributions = 
+			new HashMap< String, UtilitySolutionSpace<Val, U> > ();
 		for (String randVar : this.randVarsProj.get(var)) 
 			if (space.getDomain(randVar) != null) 
 				distributions.put(randVar, this.problem.getProbabilitySpaces(randVar).get(0));
@@ -509,11 +519,11 @@ extends UTILpropagation<Val, AddableReal> {
 	
 	/** @see UTILpropagation#sendOutput(UtilitySolutionSpace, java.lang.String) */
 	@Override
-	protected void sendOutput(UtilitySolutionSpace<Val, AddableReal> space, String root) {
+	protected void sendOutput(UtilitySolutionSpace<Val, U> space, String root) {
 
 		// Then compute the expectation of the space over all random variables
-		HashMap< String, UtilitySolutionSpace<Val, AddableReal> > distributions = 
-			new HashMap< String, UtilitySolutionSpace<Val, AddableReal> > ();
+		HashMap< String, UtilitySolutionSpace<Val, U> > distributions = 
+			new HashMap< String, UtilitySolutionSpace<Val, U> > ();
 		for (String randVar : space.getVariables()) 
 			if (this.problem.isRandom(randVar)) 
 				distributions.put(randVar, this.problem.getProbabilitySpaces(randVar).get(0));

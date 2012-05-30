@@ -25,8 +25,8 @@ package frodo2.algorithms.dpop.memory.tests;
 
 import java.util.List;
 
-import org.jdom.Document;
-import org.jdom.Element;
+import org.jdom2.Document;
+import org.jdom2.Element;
 
 import frodo2.algorithms.Solution;
 import frodo2.algorithms.XCSPparser;
@@ -107,7 +107,6 @@ public class MB_DPOPagentTest extends TestCase {
 	/** The test method 
 	 * @throws Exception if an error occurs
 	 */
-	@SuppressWarnings("unchecked")
 	public void test () throws Exception {
 		
 		// Set the maxDim

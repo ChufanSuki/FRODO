@@ -23,19 +23,23 @@ How to contact the authors:
 /** Classes implementing the Param-DPOP algorithm, able to solve DCOP involving free parameters */
 package frodo2.algorithms.dpop.param;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.jdom.Document;
+import org.jdom2.Document;
+import org.jdom2.Element;
 
 import frodo2.algorithms.AgentFactory;
 import frodo2.algorithms.StatsReporter;
 import frodo2.algorithms.XCSPparser;
 import frodo2.algorithms.dpop.DPOPsolver;
+import frodo2.algorithms.varOrdering.dfs.DFSgeneration;
+import frodo2.gui.DOTrenderer;
 import frodo2.solutionSpaces.Addable;
 import frodo2.solutionSpaces.AddableInteger;
-import frodo2.solutionSpaces.AddableReal;
 import frodo2.solutionSpaces.BasicUtilitySolutionSpace;
 import frodo2.solutionSpaces.DCOPProblemInterface;
 import frodo2.solutionSpaces.UtilitySolutionSpace;
@@ -114,7 +118,16 @@ public class ParamDPOPsolver< V extends Addable<V>, U extends Addable<U> > exten
 		/** @see java.lang.Object#toString() */
 		@Override
 		public String toString () {
-			return "Optimal utility: " + this.utility + "\nAssignments:\t " + this.assignments;
+			
+			StringBuilder builder = new StringBuilder ("Optimal utility: " + this.utility + "\nAssignments:\n");
+			for (Map.Entry< String[], BasicUtilitySolutionSpace< V, ArrayList<V> > > entry : this.assignments.entrySet()) {
+				builder.append(Arrays.toString(entry.getKey()));
+				builder.append("\t=\t");
+				builder.append(entry.getValue());
+				builder.append("\n");
+			}
+			
+			return builder.toString();
 		}
 		
 	}
@@ -137,6 +150,13 @@ public class ParamDPOPsolver< V extends Addable<V>, U extends Addable<U> > exten
 	@SuppressWarnings("unchecked")
 	public ParamDPOPsolver (boolean useTCP) {
 		this((Class<V>) AddableInteger.class, (Class<U>) AddableInteger.class, useTCP);
+	}
+	
+	/** Constructor
+	 * @param agentDescription	Description of the Param-DPOP agent
+	 */
+	public ParamDPOPsolver(String agentDescription) {
+		super(agentDescription);
 	}
 	
 	/** Constructor 
@@ -162,8 +182,27 @@ public class ParamDPOPsolver< V extends Addable<V>, U extends Addable<U> > exten
 	 * @return 			an optimal solution
 	 */
 	public ParamSolution<V, U> solveParam (Document problem) {
-		this.agentDesc.getRootElement().getChild("parser").setAttribute("displayGraph", "false");
-		return this.solveParam(new XCSPparser<V, U> (problem, this.agentDesc.getRootElement().getChild("parser")));
+
+		// Instantiate the parser
+		Element parserElmt = this.agentDesc.getRootElement().getChild("parser");
+		parserElmt.setAttribute("displayGraph", "false");
+		try {
+			return this.solveParam ((DCOPProblemInterface<V, U>) this.parserClass.getConstructor(Document.class, Element.class).newInstance(problem, parserElmt));
+		} catch (InstantiationException e) {
+			System.err.println("The parser class " + this.parserClass + " is abstract");
+			e.printStackTrace();
+		} catch (IllegalAccessException e) {
+			System.err.println("The constructor for " + this.parserClass + " is inaccessible");
+			e.printStackTrace();
+		} catch (InvocationTargetException e) {
+			System.err.println("The constructor for " + this.parserClass + " threw an exception");
+			e.printStackTrace();
+		} catch (NoSuchMethodException e) {
+			System.err.println("The parser class " + this.parserClass + " does not have a constructor that takes in a Document and an Element");
+			e.printStackTrace();
+		}
+		
+		return null;
 	}
 	
 	/** Solves the input problem
@@ -189,7 +228,7 @@ public class ParamDPOPsolver< V extends Addable<V>, U extends Addable<U> > exten
 	@Override
 	public ArrayList<StatsReporter> getSolGatherers() {
 
-		ArrayList<StatsReporter> solGatherers = new ArrayList<StatsReporter> (2);
+		ArrayList<StatsReporter> solGatherers = new ArrayList<StatsReporter> (3);
 		
 		utilModule = new ParamUTIL<V, U> (null, problem);
 		utilModule.setSilent(true);
@@ -199,6 +238,12 @@ public class ParamDPOPsolver< V extends Addable<V>, U extends Addable<U> > exten
 		valueModule.setSilent(true);
 		solGatherers.add(valueModule);
 		
+		Element params = new Element ("module");
+		params.setAttribute("DOTrenderer", DOTrenderer.class.getName());
+		dfsModule = new DFSgeneration<V, U> (params, problem);
+		dfsModule.setSilent(true);
+		solGatherers.add(dfsModule);
+		
 		return solGatherers;
 	}
 	
@@ -207,19 +252,17 @@ public class ParamDPOPsolver< V extends Addable<V>, U extends Addable<U> > exten
 	 * @return 				the expected optimal utility
 	 * @warning This method will only work if the class used for utilities is AddableReal. 
 	 */
-	@SuppressWarnings("unchecked")
-	public UtilitySolutionSpace<V, AddableReal> getExpectedOptUtil (Document problem) {
+	public UtilitySolutionSpace<V, U> getExpectedOptUtil (Document problem) {
 				
 		// Solve the problem
-		UtilitySolutionSpace<V, AddableReal> util = (UtilitySolutionSpace<V, AddableReal>) this.solveParam(problem).getUtility();
+		UtilitySolutionSpace<V, U> util = this.solveParam(problem).getUtility();
 		
 		// Compute the expectation of the optimal parametric utility 
 		this.agentDesc.getRootElement().getChild("parser").setAttribute("displayGraph", "false");
-		XCSPparser<V, AddableReal> parser = new XCSPparser<V, AddableReal> (problem, this.agentDesc.getRootElement().getChild("parser"));
-		parser.setUtilClass(AddableReal.class);
-		HashMap< String, UtilitySolutionSpace<V, AddableReal> > distributions = 
-			new HashMap< String, UtilitySolutionSpace<V, AddableReal> > ();
-		for (UtilitySolutionSpace<V, AddableReal> probSpace : parser.getProbabilitySpaces()) 
+		XCSPparser<V, U> parser = new XCSPparser<V, U> (problem, this.agentDesc.getRootElement().getChild("parser"));
+		HashMap< String, UtilitySolutionSpace<V, U> > distributions = 
+			new HashMap< String, UtilitySolutionSpace<V, U> > ();
+		for (UtilitySolutionSpace<V, U> probSpace : parser.getProbabilitySpaces()) 
 			distributions.put(probSpace.getVariable(0), probSpace);
 		if (! distributions.isEmpty()) 
 			util = util.expectation(distributions);

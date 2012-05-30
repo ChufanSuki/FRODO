@@ -30,7 +30,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 
-import org.jdom.Element;
+import org.jdom2.Element;
 
 import frodo2.algorithms.AgentInterface;
 import frodo2.algorithms.StatsReporterWithConvergence;
@@ -79,8 +79,8 @@ public class MaxSum < V extends Addable<V>, U extends Addable<U> > implements St
 		/** The last marginal utility received from each function node */     
 		private HashMap< String, UtilitySolutionSpace<V, U> > lastMsgsIn = new HashMap< String, UtilitySolutionSpace<V, U> > ();
 		
-		/** The remaining number of cycles for this node */
-		private int nbrCycles;
+		/** The remaining number of iterations for this node */
+		private int nbrIter;
 		
 		/** The current optimal value for this variable */
 		private V optVal;
@@ -95,7 +95,7 @@ public class MaxSum < V extends Addable<V>, U extends Addable<U> > implements St
 
 			if (agent.equals(problem.getAgent())) { // I control this variable node
 				
-				this.nbrCycles = maxNbrCycles;
+				this.nbrIter = maxNbrIter;
 				
 				// Pick the first possible value for the variable
 				this.optVal = this.dom[0];
@@ -161,8 +161,8 @@ public class MaxSum < V extends Addable<V>, U extends Addable<U> > implements St
 		/** The last marginal utility received from each variable node */     
 		private HashMap< String, UtilitySolutionSpace<V, U> > lastMsgsIn = new HashMap< String, UtilitySolutionSpace<V, U> > ();
 		
-		/** The remaining number of cycles for this node */
-		private int nbrCycles;
+		/** The remaining number of iterations for this node */
+		private int nbrIter;
 		
 		/** Constructor
 		 * @param name 		The name of the constraint
@@ -172,7 +172,7 @@ public class MaxSum < V extends Addable<V>, U extends Addable<U> > implements St
 		private FunctionInfo (String name, UtilitySolutionSpace<V, U> space, String agent) {
 			super(name, space, agent);
 			
-			this.nbrCycles = maxNbrCycles;
+			this.nbrIter = maxNbrIter;
 			
 			if (space != null) 
 				for (String var : space.getVariables()) 
@@ -193,8 +193,8 @@ public class MaxSum < V extends Addable<V>, U extends Addable<U> > implements St
 	/** For each constraint in the agent's subproblem, its FunctionInfo */
 	private HashMap<String, FunctionInfo> functionInfos;
 
-	/** The algorithm will terminate when ALL function nodes have gone through that many cycles */
-	private final int maxNbrCycles;
+	/** The algorithm will terminate when ALL function nodes have gone through that many iterations */
+	private final int maxNbrIter;
 
 	/** This module's queue */
 	private Queue queue;
@@ -222,9 +222,6 @@ public class MaxSum < V extends Addable<V>, U extends Addable<U> > implements St
 
 	/** The infeasible utility */
 	private final U infeasibleUtil;
-	
-	/** Whether to rescale the messages sent by variable nodes */
-	private final boolean rescale;
 	
 	/** Whether to initialize the algorithm with random messages, or with messages full of zeros */
 	private final boolean randomInit;
@@ -256,13 +253,11 @@ public class MaxSum < V extends Addable<V>, U extends Addable<U> > implements St
 			this.convergence = false;
 		this.assignmentHistoriesMap = (this.convergence ? new HashMap< String, ArrayList< CurrentAssignment<V> > >() : null);
 
-		String nbrCycles = parameters.getAttributeValue("nbrCycles");
-		if(nbrCycles == null)
-			this.maxNbrCycles = 200;
+		String maxNbrIter = parameters.getAttributeValue("maxNbrIter");
+		if(maxNbrIter == null)
+			this.maxNbrIter = 200;
 		else
-			this.maxNbrCycles = Integer.parseInt(nbrCycles);
-		
-		this.rescale = Boolean.parseBoolean(parameters.getAttributeValue("rescale"));
+			this.maxNbrIter = Integer.parseInt(maxNbrIter);
 		
 		String randomInitStr = parameters.getAttributeValue("randomInit");
 		if (randomInitStr != null) 
@@ -283,8 +278,7 @@ public class MaxSum < V extends Addable<V>, U extends Addable<U> > implements St
 		this.started = true;
 		this.maximize = this.problem.maximize();
 		this.infeasibleUtil = (this.maximize ? problem.getMinInfUtility() : problem.getPlusInfUtility());
-		this.maxNbrCycles = 0;
-		this.rescale = false;
+		this.maxNbrIter = 0;
 		this.randomInit = false;
 		this.convergence = false;
 		this.assignmentHistoriesMap = new HashMap< String, ArrayList< CurrentAssignment<V> > > ();
@@ -313,7 +307,7 @@ public class MaxSum < V extends Addable<V>, U extends Addable<U> > implements St
 					queue.sendMessage(AgentInterface.STATS_MONITOR, new StatsReporterWithConvergence.ConvStatMessage<V>(CONV_STATS_MSG_TYPE, varInfo.getVarName(), history));
 				}
 				
-				varInfo.nbrCycles = 0;
+				varInfo.nbrIter = 0;
 				this.checkForTermination();
 			}
 				
@@ -447,23 +441,20 @@ public class MaxSum < V extends Addable<V>, U extends Addable<U> > implements St
 			assert varInfo.optVal != null : "Received a message for a variable node I do not control";
 			String functionNode = msgCast.getFunctionNode();
 			
-			if (--varInfo.nbrCycles == 0) {
-				this.queue.sendMessage(AgentInterface.STATS_MONITOR, new MessageWith2Payloads<String, V> (SOLUTION_MSG_TYPE, varInfo.getVarName(), varInfo.optVal));
-				if(convergence)
-					queue.sendMessage(AgentInterface.STATS_MONITOR, new StatsReporterWithConvergence.ConvStatMessage<V>(CONV_STATS_MSG_TYPE, var, assignmentHistoriesMap.get(varInfo.getVarName())));
+			// If this message hasn't changed since the last message received from this function node, don't respond 
+			if (marginalUtil.equivalent(varInfo.lastMsgsIn.put(functionNode, marginalUtil))) {
 				
-				this.checkForTermination();
-				
-			} else if (varInfo.nbrCycles < 0) // stop sending messages once I have exhausted my cycles
-				return;
-			
-			// If this message hasn't changed since the last message received from this function node, re-send the same messages 
-			if (marginalUtil.equivalent(varInfo.lastMsgsIn.get(functionNode))) 
-				return;
+				if (--varInfo.nbrIter == 0) {
+					this.queue.sendMessage(AgentInterface.STATS_MONITOR, new MessageWith2Payloads<String, V> (SOLUTION_MSG_TYPE, varInfo.getVarName(), varInfo.optVal));
+					if(convergence)
+						queue.sendMessage(AgentInterface.STATS_MONITOR, new StatsReporterWithConvergence.ConvStatMessage<V>(CONV_STATS_MSG_TYPE, var, assignmentHistoriesMap.get(varInfo.getVarName())));
+					
+					this.checkForTermination();
+				}
 
-			// Store the received message
-			varInfo.lastMsgsIn.put(functionNode, marginalUtil);
-			
+				return;
+			}
+
 			// Compute the new optimal assignment to the destination variable, as the argmax of the join of the marginal utilities received from all function nodes
 			int newOptIndex = 0;
 			U newOpt = this.infeasibleUtil;
@@ -490,30 +481,58 @@ public class MaxSum < V extends Addable<V>, U extends Addable<U> > implements St
 				
 				if (this.convergence) 
 					assignmentHistoriesMap.get(var).add(new CurrentAssignment<V>(queue.getCurrentTime(), 0, newOptVal));
-			}
+				
+				if (--varInfo.nbrIter <= 0) {
+					this.queue.sendMessage(AgentInterface.STATS_MONITOR, new MessageWith2Payloads<String, V> (SOLUTION_MSG_TYPE, varInfo.getVarName(), varInfo.optVal));
+					if(convergence)
+						queue.sendMessage(AgentInterface.STATS_MONITOR, new StatsReporterWithConvergence.ConvStatMessage<V>(CONV_STATS_MSG_TYPE, var, assignmentHistoriesMap.get(varInfo.getVarName())));
+					
+					if (varInfo.nbrIter == 0) 
+						this.checkForTermination();
+					
+					return;
+				}
+				
+			} else if (--varInfo.nbrIter == 0) {
+				this.queue.sendMessage(AgentInterface.STATS_MONITOR, new MessageWith2Payloads<String, V> (SOLUTION_MSG_TYPE, varInfo.getVarName(), varInfo.optVal));
+				if(convergence)
+					queue.sendMessage(AgentInterface.STATS_MONITOR, new StatsReporterWithConvergence.ConvStatMessage<V>(CONV_STATS_MSG_TYPE, var, assignmentHistoriesMap.get(varInfo.getVarName())));
+				this.checkForTermination();
+				
+				return;
+			} else if (varInfo.nbrIter < 0) 
+				return;
 			
 			// Compute and send a new message to each neighboring function node
 			for (FunctionNode<V, U> function : varInfo.getFunctions()) {
 				
 				// Join all last marginal utilities received from all neighboring function nodes except the current one
 				marginalUtil = this.zeroSpace(varInfo.getVarName(), varInfo.getDom());
-				AddableDelayed<U> scalarDelayed = this.zero.addDelayed();
 				for (Map.Entry< String, UtilitySolutionSpace<V, U> > entry : varInfo.lastMsgsIn.entrySet()) {
 					if (! function.getName().equals(entry.getKey())) {
 						UtilitySolutionSpace<V, U> space = entry.getValue();
 						for (int i = 0; i < domSize; i++) {
 							U util = space.getUtility(i);
 							marginalUtil.setUtility(i, marginalUtil.getUtility(i).add(util));
-							if (this.rescale) 
-								scalarDelayed.addDelayed(util);
 						}
 					}
 				}
-						
-				if (this.rescale) { // rescale the join such that its utilities sum up to zero
-					
+				
+				// Look up the number of feasible utilities
+				AddableDelayed<U> scalarDelayed = this.zero.addDelayed();
+				int nbrNonINFutils = 0;
+				U util;
+				for (int i = 0; i < domSize; i++) {
+					if (! this.infeasibleUtil.equals(util = marginalUtil.getUtility(i))) {
+						scalarDelayed.addDelayed(util);
+						nbrNonINFutils++;
+					}
+				}
+				
+				// Rescale the join such that its utilities sum up to zero (ignoring infeasible ones)
+				if (nbrNonINFutils > 0) {
 					U scalar = scalarDelayed.resolve();
-					scalar = scalar.divide(scalar.fromString(Integer.toString(domSize)));
+					scalar = scalar.divide(scalar.fromString(Integer.toString(nbrNonINFutils)));
 					for (int i = 0; i < domSize; i++) 
 						marginalUtil.setUtility(i, marginalUtil.getUtility(i).subtract(scalar));
 				}
@@ -543,18 +562,15 @@ public class MaxSum < V extends Addable<V>, U extends Addable<U> > implements St
 			
 			if (! "start".equals(marginalUtil.getName())) { // not the foo message sent at startup
 				
-				// If this message hasn't changed since the last message received from this function node, re-send the same messages
-				functionInfo.nbrCycles--;
-				if (marginalUtil.equivalent(functionInfo.lastMsgsIn.get(senderVar))) 
+				// If this message hasn't changed since the last message received from this function node, don't react
+				functionInfo.nbrIter--;
+				if (marginalUtil.equivalent(functionInfo.lastMsgsIn.put(senderVar, marginalUtil))) 
 					return;
 			}
 			
-			// Store the received message
-			functionInfo.lastMsgsIn.put(senderVar, marginalUtil);
-			
-			// If I have exhausted all my cycles, only respond to variable nodes
+			// If I have exhausted all my iterations, only respond to variable nodes
 			ArrayList<String> destinations = new ArrayList<String> (functionInfo.lastMsgsIn.keySet());
-			if (--functionInfo.nbrCycles <= 0) 
+			if (functionInfo.nbrIter <= 0) 
 				destinations.retainAll(Arrays.asList(senderVar));
 			
 			// Compute and send a message to each neighboring variable node
@@ -590,7 +606,7 @@ public class MaxSum < V extends Addable<V>, U extends Addable<U> > implements St
 			
 			// Send the stats
 			for (VarInfo varInfo : this.varInfos.values()) {
-				if (varInfo.nbrCycles > 0 && ! varInfo.getFunctions().isEmpty()) { // unconstrained variables and variables with exhausted cycles have already been terminated
+				if (varInfo.nbrIter > 0 && ! varInfo.getFunctions().isEmpty()) { // unconstrained variables and variables with exhausted iterations have already been terminated
 					
 					assert varInfo.optVal != null;
 					this.queue.sendMessage(AgentInterface.STATS_MONITOR, new MessageWith2Payloads<String, V> (SOLUTION_MSG_TYPE, varInfo.getVarName(), varInfo.optVal));
@@ -608,11 +624,10 @@ public class MaxSum < V extends Addable<V>, U extends Addable<U> > implements St
 	private void checkForTermination() {
 		
 		for (VarInfo info : this.varInfos.values()) 
-			if (info.nbrCycles > 0) 
+			if (info.nbrIter > 0) 
 				return;
 				
 		this.queue.sendMessageToSelf(new Message (AgentInterface.AGENT_FINISHED));
-		this.varInfos = null;
 	}
 
 	/** @return for each variable in the problem, its chosen value */

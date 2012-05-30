@@ -41,12 +41,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-import org.jdom.Document;
-import org.jdom.Element;
-import org.jdom.JDOMException;
-import org.jdom.input.SAXBuilder;
-import org.jdom.output.Format;
-import org.jdom.output.XMLOutputter;
+import org.jdom2.Document;
+import org.jdom2.Element;
+import org.jdom2.JDOMException;
+import org.jdom2.input.SAXBuilder;
+import org.jdom2.input.sax.XMLReaders;
+import org.jdom2.output.Format;
+import org.jdom2.output.XMLOutputter;
 
 import frodo2.solutionSpaces.Addable;
 import frodo2.solutionSpaces.AddableInteger;
@@ -77,7 +78,7 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 	 * @note The input file will be checked against the XCSP schema file
 	 */
 	public static Document parse (File file) throws JDOMException, IOException {
-		SAXBuilder builder = new SAXBuilder(true);
+		SAXBuilder builder = new SAXBuilder(XMLReaders.XSDVALIDATING);
 		builder.setFeature("http://apache.org/xml/features/validation/schema", true);
 		return builder.build(file);
 	}
@@ -90,7 +91,7 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 	 * @throws IOException 		if an I/O error occurs while accessing the file
 	 */
 	public static Document parse (File file, boolean checkXCSP) throws JDOMException, IOException {
-		SAXBuilder builder = new SAXBuilder(checkXCSP); 
+		SAXBuilder builder = new SAXBuilder(checkXCSP ? XMLReaders.XSDVALIDATING : XMLReaders.NONVALIDATING); 
 		if (checkXCSP) 
 			builder.setFeature("http://apache.org/xml/features/validation/schema", true);
 		return builder.build(file);
@@ -124,7 +125,7 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 	 * @note The input stream will be checked against the XCSP schema file
 	 */
 	public static Document parse (InputStream stream) throws JDOMException, IOException {
-		SAXBuilder builder = new SAXBuilder(true);
+		SAXBuilder builder = new SAXBuilder(XMLReaders.XSDVALIDATING);
 		builder.setFeature("http://apache.org/xml/features/validation/schema", true);
 		return builder.build(stream);
 	}
@@ -137,7 +138,7 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 	 * @throws IOException 		if an I/O error occurs while accessing the file
 	 */
 	public static Document parse (InputStream stream, boolean checkXCSP) throws JDOMException, IOException {
-		SAXBuilder builder = new SAXBuilder(checkXCSP);
+		SAXBuilder builder = new SAXBuilder(checkXCSP ? XMLReaders.XSDVALIDATING : XMLReaders.NONVALIDATING);
 		if (checkXCSP) 
 			builder.setFeature("http://apache.org/xml/features/validation/schema", true);
 		return builder.build(stream);
@@ -723,9 +724,6 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 		
 		assert vars == null || !vars.isEmpty(): "The set of variables is empty";
 
-		// If we are parsing the probability spaces, make sure we are using AddableReal's for utilities and probabilities
-		assert !getProbs || utilClass.equals(AddableReal.class) : "Cannot parse probability spaces if the utility class is not AddableReal";
-
 		// Create an instance of U used to parse a utility value from a String
 		U utilInstance = this.getZeroUtility();
 
@@ -735,7 +733,7 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 		final boolean debugLoad = false;
 
 		// First important element of XCSP format is the specification of the domains.		
-		org.jdom.Element domains = root.getChild("domains");
+		org.jdom2.Element domains = root.getChild("domains");
 
 		// domain is represented as a list of integers. Potentially a problem 
 		// if a domain is large. However, the hypercubes will have problems too
@@ -743,7 +741,7 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 		HashMap<String, V[]> domainsHashMap = new HashMap<String, V[]>();
 
 		// Reads information about variables domains.
-		for (org.jdom.Element domain : (List<org.jdom.Element>) domains.getChildren()) {
+		for (org.jdom2.Element domain : (List<org.jdom2.Element>) domains.getChildren()) {
 
 			String name = domain.getAttributeValue("name");
 
@@ -755,12 +753,12 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 			System.out.println(domainsHashMap);
 
 		// Second important element in XCSP format is describing variables.
-		org.jdom.Element variables = root.getChild("variables");
+		org.jdom2.Element variables = root.getChild("variables");
 
 		// Each variable has its list of values in their domain. 
 		HashMap<String, V[]> variablesHashMap = new HashMap<String, V[]>();
 
-		for (org.jdom.Element variable : (List<org.jdom.Element>) variables.getChildren()) {
+		for (org.jdom2.Element variable : (List<org.jdom2.Element>) variables.getChildren()) {
 
 			String name = variable.getAttributeValue("name");
 			String domName = variable.getAttributeValue("domain");
@@ -778,7 +776,7 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 
 		// Part responsible for reading the specification of relations or probabilities (depending on the getProbs flag)
 
-		org.jdom.Element relations;
+		org.jdom2.Element relations;
 		if (!getProbs) {
 			relations = root.getChild("relations");
 		} else 
@@ -787,7 +785,7 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 
 		if (relations != null) {
 
-			for (org.jdom.Element relation : (List<org.jdom.Element>) relations.getChildren()) {
+			for (org.jdom2.Element relation : (List<org.jdom2.Element>) relations.getChildren()) {
 
 				String name = relation.getAttributeValue("name");
 				Relation<V, U> relationInfo = new Relation<V, U> ();
@@ -832,7 +830,7 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 							" but its description actually contains " + tuples.length + " tuples: " + Arrays.toString(tuples));
 
 				Pattern patternColon = Pattern.compile(":");
-				pattern = Pattern.compile(" ");
+				pattern = Pattern.compile("\\s+");
 
 				U currentUtility = null;
 
@@ -872,11 +870,11 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 		}
 
 		// This element actually describes all the constraints.
-		org.jdom.Element constraints = root.getChild("constraints");
+		org.jdom2.Element constraints = root.getChild("constraints");
 
 		U infeasibleUtil = this.getInfeasibleUtil();
 
-		for (org.jdom.Element constraint : (List<org.jdom.Element>) constraints.getChildren()) 
+		for (org.jdom2.Element constraint : (List<org.jdom2.Element>) constraints.getChildren()) 
 			this.parseConstraint(result, constraint, variablesHashMap, relationInfos, vars, getProbs, withAnonymVars, infeasibleUtil, forbiddenVars);
 
 		return result;		
@@ -907,7 +905,7 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 		Relation<V, U> relationInfo = relationInfos.get(reference);
 		if (relationInfo != null) {
 
-			Pattern pattern = Pattern.compile(" ");
+			Pattern pattern = Pattern.compile("\\s+");
 
 			String[] varNames = pattern.split(scope);
 
@@ -1039,7 +1037,7 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 				return varElmt.getAttributeValue("agent");
 
 		// The variable was not found
-		assert false : "Unknown variable " + var;
+		assert false : "Unknown variable '" + var + "'";
 		return null;
 	}
 
@@ -2380,11 +2378,11 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 			return null;
 		}
 
-		org.jdom.Element relations = root.getChild("relations");
+		org.jdom2.Element relations = root.getChild("relations");
 
 		if (relations != null) {
 
-			for (org.jdom.Element relation : (List<org.jdom.Element>) relations.getChildren()) {
+			for (org.jdom2.Element relation : (List<org.jdom2.Element>) relations.getChildren()) {
 
 				String semantics = relation.getAttributeValue("semantics");
 				int nbTuples = Integer.valueOf(relation.getAttributeValue("nbTuples"));
@@ -2416,7 +2414,7 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 					String[] tuples = pattern.split(tuplesString);
 
 					Pattern patternColon = Pattern.compile(":");
-					pattern = Pattern.compile(" ");
+					pattern = Pattern.compile("\\s+");
 
 					U currentUtility = null;
 					int counter = -1;

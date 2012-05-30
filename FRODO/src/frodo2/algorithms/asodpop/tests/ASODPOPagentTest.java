@@ -32,10 +32,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.ReentrantLock;
 
-import org.jdom.Document;
-import org.jdom.Element;
-import org.jdom.JDOMException;
+import org.jdom2.Document;
+import org.jdom2.Element;
+import org.jdom2.JDOMException;
 
 import frodo2.algorithms.AgentFactory;
 import frodo2.algorithms.AgentInterface;
@@ -48,6 +51,7 @@ import frodo2.algorithms.test.AllTests;
 import frodo2.communication.IncomingMsgPolicyInterface;
 import frodo2.communication.Message;
 import frodo2.communication.MessageWith2Payloads;
+import frodo2.communication.MessageWrapper;
 import frodo2.communication.Queue;
 import frodo2.communication.QueueOutputPipeInterface;
 import frodo2.communication.mailer.CentralMailer;
@@ -105,8 +109,11 @@ public class ASODPOPagentTest < V extends Addable<V>, U extends Addable<U> > ext
 	/** Number of agents finished */
 	private int nbrAgentsFinished;
 	
-	/** Used to synchronize access to \a nbrAgentsFinished */
-	private Object nbrAgentsFinished_lock = new Object ();
+	/** Used to make the test thread wait */
+	private final ReentrantLock finished_lock = new ReentrantLock ();
+	
+	/** Used to wake up the test thread when all agents have finished */
+	private final Condition finished = finished_lock.newCondition();
 
 	/** The ADOPT stats gatherer listening for the solution */
 	private ASODPOP<V, U> statsGatherer;
@@ -216,7 +223,6 @@ public class ASODPOPagentTest < V extends Addable<V>, U extends Addable<U> > ext
 	}
 	
 	/** @see junit.framework.TestCase#setUp() */
-	@SuppressWarnings("unchecked")
 	public void setUp () throws Exception {
 		nbrMsgsReceived = 0;
 		nbrAgentsFinished = 0;
@@ -349,18 +355,25 @@ public class ASODPOPagentTest < V extends Addable<V>, U extends Addable<U> > ext
 			}
 		}
 		
-		if (this.useCentralMailer) 
-			mailman.start();
+		long timeout = 10000; // in ms
 		
-		// Wait for all agents to finish
-		long start = System.currentTimeMillis();
-		while (true) {
-			synchronized (nbrAgentsFinished_lock) {
-				if (nbrAgentsFinished >= nbrAgents) {
+		if (this.useCentralMailer) 
+			assertTrue("Timeout", this.mailman.execute(timeout));
+			
+		else {
+			// Wait for all agents to finish
+			while (true) {
+				this.finished_lock.lock();
+				try {
+					if (nbrAgentsFinished >= nbrAgents) {
+						break;
+					} else if (! this.finished.await(timeout, TimeUnit.MILLISECONDS)) {
+						fail("Timeout");
+					}
+				} catch (InterruptedException e) {
 					break;
-				} else if (System.currentTimeMillis() - start > 10000) {
-					fail("Timeout");
 				}
+				this.finished_lock.unlock();
 			}
 		}
 		
@@ -432,11 +445,13 @@ public class ASODPOPagentTest < V extends Addable<V>, U extends Addable<U> > ext
 		}
 		
 		else if (msg.getType().equals(AgentInterface.AGENT_FINISHED)) {
-			synchronized (nbrAgentsFinished_lock) {
-				nbrAgentsFinished++;
-				if (this.useCentralMailer) // the granularity of the timer is such that the > test sometimes fails
-					assertTrue (queue.getCurrentMessageWrapper().getTime() >= 0);
-			}
+			this.finished_lock.lock();
+			MessageWrapper msgWrap = queue.getCurrentMessageWrapper();
+			if (++nbrAgentsFinished >= this.nbrAgents) 
+				this.finished.signal();
+			if (this.useCentralMailer) 
+				assertTrue (msgWrap.getTime() >= 0);
+			this.finished_lock.unlock();
 		}
 		
 	}

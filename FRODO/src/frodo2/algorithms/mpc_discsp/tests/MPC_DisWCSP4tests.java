@@ -27,8 +27,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-import org.jdom.Document;
-import org.jdom.Element;
+import org.jdom2.Document;
+import org.jdom2.Element;
 
 import frodo2.algorithms.Solution;
 import frodo2.algorithms.XCSPparser;
@@ -99,7 +99,6 @@ public class MPC_DisWCSP4tests extends TestCase {
 	}
 	
 	/** The test method */
-	@SuppressWarnings("unchecked")
 	public void test () {
 		
 		// Solve the problem using DPOP

@@ -31,13 +31,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.jdom.Element;
+import org.jdom2.Element;
 
 import frodo2.algorithms.AgentInterface;
 import frodo2.algorithms.dpop.UTILpropagation;
 import frodo2.algorithms.dpop.VALUEpropagation.AssignmentsMessage;
 import frodo2.algorithms.dpop.stochastic.ExpectedUTIL.Method;
-import frodo2.algorithms.odpop.VALUEpropagation;
+import frodo2.algorithms.dpop.VALUEpropagation;
 import frodo2.algorithms.varOrdering.dfs.DFSgeneration;
 import frodo2.algorithms.varOrdering.dfs.DFSgeneration.DFSview;
 import frodo2.algorithms.varOrdering.dfs.DFSgeneration.MessageDFSoutput;
@@ -45,7 +45,6 @@ import frodo2.communication.Message;
 import frodo2.communication.MessageWith2Payloads;
 import frodo2.communication.Queue;
 import frodo2.solutionSpaces.Addable;
-import frodo2.solutionSpaces.AddableReal;
 import frodo2.solutionSpaces.DCOPProblemInterface;
 import frodo2.solutionSpaces.UtilitySolutionSpace;
 import frodo2.solutionSpaces.UtilitySolutionSpace.ProjOutput;
@@ -56,8 +55,9 @@ import frodo2.solutionSpaces.hypercube.ScalarHypercube;
  * Assigns each random variable to its lowest neighbor in the DFS, which is responsible for minimizing over it.
  * @author Thomas Leaute
  * @param <Val> type used for variable values
+ * @param <U> 	type used for utility values
  */
-public class CompleteUTIL < Val extends Addable<Val> > extends UTILpropagation<Val, AddableReal> {
+public class CompleteUTIL < Val extends Addable<Val>, U extends Addable<U> > extends UTILpropagation<Val, U> {
 	
 	/** The type of the messages telling what random variables should be projected out at given decision variable */
 	public static final String RAND_VARS_PROJ_MSG_TYPE = "Where to project random variables";
@@ -100,16 +100,22 @@ public class CompleteUTIL < Val extends Addable<Val> > extends UTILpropagation<V
 	private int remainingVars;
 
 	/** The worst-case utility */
-	private AddableReal worstUtil;
+	private U worstUtil;
 
 	/** The expected utility */
-	private AddableReal expectedUtil;
+	private U expectedUtil;
+	
+	/** A utility of 0 */
+	private final U zero;
+	
+	/** A utility of 1 */
+	private final U one;
 	
 	/** Whether to measure the probability of optimality */
 	private boolean measureProbOfOpt = false;
 	
 	/** The total probability of the scenarios for which the chosen solution is optimal */
-	private AddableReal probOfOptimality = new AddableReal (-1.0);
+	private U probOfOptimality;
 	
 	/** The percentage of centralization imposed by the consistent DFS */
 	private double centralization = -1.0;
@@ -118,7 +124,7 @@ public class CompleteUTIL < Val extends Addable<Val> > extends UTILpropagation<V
 	 * 
 	 * Used only in stats gatherer mode. 
 	 */
-	private HashMap< String, DFSview<Val, AddableReal> > relationships;
+	private HashMap< String, DFSview<Val, U> > relationships;
 
 	/** The total number messages to expect in "statistics gatherer" mode */
 	private int nbrStatsMsgs;
@@ -136,13 +142,14 @@ public class CompleteUTIL < Val extends Addable<Val> > extends UTILpropagation<V
 	 * @param parameters 	the description of what statistics should be reported
 	 * @param problem 		the overall problem
 	 */
-	public CompleteUTIL (Element parameters, DCOPProblemInterface<Val, AddableReal> problem) {
+	public CompleteUTIL (Element parameters, DCOPProblemInterface<Val, U> problem) {
 		super (parameters, problem);
 		this.remainingVars = problem.getNbrVars();
 		this.problem = problem;
-		problem.setUtilClass(AddableReal.class);
+		this.zero = problem.getZeroUtility();
+		this.one = this.zero.fromString("1");
 		super.withAnonymVars = true;
-		relationships = new HashMap< String, DFSview<Val, AddableReal> > ();
+		relationships = new HashMap< String, DFSview<Val, U> > ();
 		this.nbrStatsMsgs = 2 * problem.getNbrVars(); // one DFS message and one RandVarsProjMsg message
 		this.nbrSamples = 0;
 		this.method = null;
@@ -159,9 +166,10 @@ public class CompleteUTIL < Val extends Addable<Val> > extends UTILpropagation<V
 	 * @param parameters 				description of the parameters of CompleteUTIL
 	 * @throws ClassNotFoundException 	if the module parameters specify an unknown class for utility values
 	 */
-	public CompleteUTIL (DCOPProblemInterface<Val, AddableReal> problem, Element parameters) throws ClassNotFoundException {
-		this.problem = problem;
-		problem.setUtilClass(AddableReal.class);
+	public CompleteUTIL (DCOPProblemInterface<Val, U> problem, Element parameters) throws ClassNotFoundException {
+		super (problem, parameters);
+		this.zero = problem.getZeroUtility();
+		this.one = this.zero.fromString("1");
 		super.withAnonymVars = true;
 		
 		// Parse the method to use, if it is specified
@@ -214,22 +222,22 @@ public class CompleteUTIL < Val extends Addable<Val> > extends UTILpropagation<V
 		
 		// Sample all random variables I know
 		if (this.nbrSamples > 0) 
-			for (UtilitySolutionSpace<Val, AddableReal> probDist : this.problem.getProbabilitySpaces()) 
+			for (UtilitySolutionSpace<Val, U> probDist : this.problem.getProbabilitySpaces()) 
 				this.problem.setProbSpace(probDist.getVariable(0), probDist.sample(nbrSamples));
 	}
 
 	/** @return the worst-case utility */
-	public AddableReal getWorstUtil() {
+	public U getWorstUtil() {
 		return worstUtil;
 	}
 
 	/** @return the expected utility */
-	public AddableReal getExpectedUtil() {
+	public U getExpectedUtil() {
 		return this.expectedUtil;
 	}
 
 	/** @return the total probability of the scenarios for which the chosen solution is optimal */
-	public AddableReal getProbOfOptimality () {
+	public U getProbOfOptimality () {
 		return this.probOfOptimality;
 	}
 	
@@ -255,7 +263,7 @@ public class CompleteUTIL < Val extends Addable<Val> > extends UTILpropagation<V
 			// If we receive this message, it means we are actually running in "statistics gatherer" mode
 			
 			// Retrieve and store the information from the message
-			MessageDFSoutput<Val, AddableReal> msgCast = (MessageDFSoutput<Val, AddableReal>) msg;
+			MessageDFSoutput<Val, U> msgCast = (MessageDFSoutput<Val, U>) msg;
 			relationships.put(msgCast.getVar(), msgCast.getNeighbors());
 			
 			// If all information has been received from all variables, print it
@@ -315,11 +323,11 @@ public class CompleteUTIL < Val extends Addable<Val> > extends UTILpropagation<V
 		
 		if (type.equals(OPT_UTIL_MSG_TYPE)) { // we are in stats gatherer mode
 			
-			OptUtilMessage<AddableReal> msgCast = (OptUtilMessage<AddableReal>) msg;
+			OptUtilMessage<U> msgCast = (OptUtilMessage<U>) msg;
 			if (this.optUtil == null) {
 				this.optUtil = msgCast.getUtility();
 			} else 
-				this.optUtil = (AddableReal) this.optUtil.add(msgCast.getUtility());
+				this.optUtil = this.optUtil.add(msgCast.getUtility());
 
 			return;
 		}
@@ -348,55 +356,54 @@ public class CompleteUTIL < Val extends Addable<Val> > extends UTILpropagation<V
 					System.out.println("Total expected " + (this.maximize ? "utility: " : "cost: ") + this.expectedUtil);
 
 				// Compute the worst-case utility
-				UtilitySolutionSpace<Val, AddableReal> paramUtil = this.problem.getUtility(this.solution, true);
+				UtilitySolutionSpace<Val, U> paramUtil = this.problem.getUtility(this.solution, true);
 				this.worstUtil = paramUtil.blindProjectAll(! this.maximize);;
 				if (! this.silent) 
 					System.out.println("Total worst-case " + (this.maximize ? "utility: " : "cost: ") + this.worstUtil);
 
 				if (this.measureProbOfOpt) { // Compute the probability of optimality
 
-					List< ? extends UtilitySolutionSpace<Val, AddableReal> > allSpaces = this.problem.getSolutionSpaces(true);
+					List< ? extends UtilitySolutionSpace<Val, U> > allSpaces = this.problem.getSolutionSpaces(true);
 					if (! allSpaces.isEmpty()) {
 
 						// Join all spaces
 						Class<? extends Val[]> classOfDom = (Class<? extends Val[]>) this.problem.getDomain(vars[0]).getClass();
-						UtilitySolutionSpace<Val, AddableReal> join = new ScalarHypercube<Val, AddableReal> (new AddableReal (0.0), 
+						UtilitySolutionSpace<Val, U> join = new ScalarHypercube<Val, U> (this.zero, 
 								this.problem.maximize() ? this.problem.getMinInfUtility() : this.problem.getPlusInfUtility(), classOfDom);
-						for (UtilitySolutionSpace<Val, AddableReal> space : allSpaces) 
+						for (UtilitySolutionSpace<Val, U> space : allSpaces) 
 							join = join.join(space);
 
 						// Go through all scenarios, summing up the probabilities of those for which the solution found is optimal
-						this.probOfOptimality = new AddableReal (0.0);
-						UtilitySolutionSpace<Val, AddableReal> probSpace = new ScalarHypercube<Val, AddableReal> (new AddableReal (1.0), null, classOfDom);
-						for (UtilitySolutionSpace<Val, AddableReal> space : this.problem.getProbabilitySpaces()) 
+						this.probOfOptimality = this.zero;
+						UtilitySolutionSpace<Val, U> probSpace = new ScalarHypercube<Val, U> (this.one, null, classOfDom);
+						for (UtilitySolutionSpace<Val, U> space : this.problem.getProbabilitySpaces()) 
 							probSpace = probSpace.multiply(space);
 
 						if (probSpace.getVariables().length == 0) { // no random variables; only one scenario
 
 							// Check whether we can find a better solution than the one output by the algorithm
-							AddableReal utilFound = paramUtil.getUtility(0);
-							AddableReal betterUtil = join.iterator().nextUtility(utilFound, ! this.problem.maximize());
+							U utilFound = paramUtil.getUtility(0);
+							U betterUtil = join.iterator().nextUtility(utilFound, ! this.problem.maximize());
 							if (betterUtil == null) // no better solution found
-								this.probOfOptimality = new AddableReal (1.0);
+								this.probOfOptimality = this.one;
 
 						} else { // more than one scenario
 
-							UtilitySolutionSpace.Iterator<Val, AddableReal> probIter = probSpace.iterator();
-							UtilitySolutionSpace.Iterator<Val, AddableReal> utilIter = paramUtil.iterator(probSpace.getVariables(), probSpace.getDomains());
+							UtilitySolutionSpace.Iterator<Val, U> probIter = probSpace.iterator();
+							UtilitySolutionSpace.Iterator<Val, U> utilIter = paramUtil.iterator(probSpace.getVariables(), probSpace.getDomains());
 							while (probIter.hasNext()) {
 
 								// Check whether we can find a better solution than the one output by the algorithm
-								AddableReal utilFound = utilIter.nextUtility();
-								UtilitySolutionSpace<Val, AddableReal> candidates = join.slice(probSpace.getVariables(), probIter.nextSolution());
-								AddableReal betterUtil = candidates.iterator().nextUtility(utilFound, ! this.problem.maximize());
+								U utilFound = utilIter.nextUtility();
+								UtilitySolutionSpace<Val, U> candidates = join.slice(probSpace.getVariables(), probIter.nextSolution());
+								U betterUtil = candidates.iterator().nextUtility(utilFound, ! this.problem.maximize());
 								if (betterUtil == null) // no better solution found
 									this.probOfOptimality = this.probOfOptimality.add(probIter.getCurrentUtility());
 							}
 						}
 					}
 					if (!silent) 
-						System.out.println("Probability of optimality: " + (this.probOfOptimality == null ? null : 
-							(this.probOfOptimality.getValue() * 100) + " %"));
+						System.out.println("Probability of optimality: " + this.probOfOptimality);
 				}
 
 				if (!silent) 
@@ -409,9 +416,9 @@ public class CompleteUTIL < Val extends Addable<Val> > extends UTILpropagation<V
 		else if (type.equals(this.getDFSMsgType())) {
 			
 			// Retrieve the information from the message about children, pseudo-children... 
-			DFSgeneration.MessageDFSoutput<Val, AddableReal> msgCast = (DFSgeneration.MessageDFSoutput<Val, AddableReal>) msg;
+			DFSgeneration.MessageDFSoutput<Val, U> msgCast = (DFSgeneration.MessageDFSoutput<Val, U>) msg;
 			String var = msgCast.getVar();
-			DFSview<Val, AddableReal> myRelationships = msgCast.getNeighbors();
+			DFSview<Val, U> myRelationships = msgCast.getNeighbors();
 
 			// Compute the set of (pseudo-)children
 			HashSet<String> below = new HashSet<String> (myRelationships.getChildren());
@@ -442,7 +449,7 @@ public class CompleteUTIL < Val extends Addable<Val> > extends UTILpropagation<V
 		
 		// Compute the total number of utility values
 		long total = 0;
-		for (UtilitySolutionSpace<Val, AddableReal> space : this.problem.getSolutionSpaces(true)) 
+		for (UtilitySolutionSpace<Val, U> space : this.problem.getSolutionSpaces(true)) 
 			total += space.getNumberOfSolutions();
 		
 		// Compute the amount of knowledge of the most knowledgeable agent
@@ -452,10 +459,10 @@ public class CompleteUTIL < Val extends Addable<Val> > extends UTILpropagation<V
 			
 			long newBaseline = 0;
 			long newMax = 0;
-			DCOPProblemInterface<Val, AddableReal> subProb = this.problem.getSubProblem(agent);
+			DCOPProblemInterface<Val, U> subProb = this.problem.getSubProblem(agent);
 			
 			// Loop over the spaces in the agent's subproblem
-			spaceLoop: for (UtilitySolutionSpace<Val, AddableReal> space : subProb.getSolutionSpaces(true)) {
+			spaceLoop: for (UtilitySolutionSpace<Val, U> space : subProb.getSolutionSpaces(true)) {
 				
 				// If the constraint involves any of my variables, then I am supposed to know the space
 				List<String> scope = Arrays.asList(space.getVariables());
@@ -488,7 +495,7 @@ public class CompleteUTIL < Val extends Addable<Val> > extends UTILpropagation<V
 
 	/** @see UTILpropagation#record(String, UtilitySolutionSpace, ClusterInfo) */
 	@Override
-	protected void record(String senderVar, UtilitySolutionSpace<Val, AddableReal> space, ClusterInfo info) {
+	protected void record(String senderVar, UtilitySolutionSpace<Val, U> space, ClusterInfo info) {
 
 		if (info.vars != null) { // this is not a UTIL message received before the DFSoutput
 			
@@ -517,7 +524,7 @@ public class CompleteUTIL < Val extends Addable<Val> > extends UTILpropagation<V
 			
 			// Iterate through all spaces involving randVar and not involving my own variable 
 			// (the spaces involving my own variable are already in info.spaces)
-			spaceLoop: for (UtilitySolutionSpace<Val, AddableReal> space : this.problem.getSolutionSpaces(randVar, true, new HashSet<String> (Arrays.asList(self)))) {
+			spaceLoop: for (UtilitySolutionSpace<Val, U> space : this.problem.getSolutionSpaces(randVar, true, new HashSet<String> (Arrays.asList(self)))) {
 				
 				// Skip this space if it involves any of the random variables we have already got the spaces for
 				for (int j = 0; j < i; j++) 
@@ -535,11 +542,11 @@ public class CompleteUTIL < Val extends Addable<Val> > extends UTILpropagation<V
 		}
 		
 		// Join all resulting spaces
-		UtilitySolutionSpace<Val, AddableReal> join = info.spaces.removeFirst().join(info.spaces.toArray(new UtilitySolutionSpace [info.spaces.size()]));
+		UtilitySolutionSpace<Val, U> join = info.spaces.removeFirst().join(info.spaces.toArray(new UtilitySolutionSpace [info.spaces.size()]));
 		info.spaces = null;
 		
 		// Project out the random variables and my own decision variable
-		ProjOutput<Val, AddableReal> projOutput = this.project(join, randVars, self);
+		ProjOutput<Val, U> projOutput = this.project(join, randVars, self);
 		join = null;
 
 		// Send the optimal assignments to the VALUE propagation protocol
@@ -558,7 +565,7 @@ public class CompleteUTIL < Val extends Addable<Val> > extends UTILpropagation<V
 	 * @param myVar 	the decision variable
 	 * @return the output of the projection
 	 */
-	private ProjOutput<Val, AddableReal> project (UtilitySolutionSpace<Val, AddableReal> space, ArrayList<String> randVars, String myVar) {
+	private ProjOutput<Val, U> project (UtilitySolutionSpace<Val, U> space, ArrayList<String> randVars, String myVar) {
 		
 		if (! randVars.isEmpty()) {
 			
@@ -566,19 +573,19 @@ public class CompleteUTIL < Val extends Addable<Val> > extends UTILpropagation<V
 				return space.blindProject(randVars.toArray(new String [randVars.size()]), ! this.maximize).project(myVar, this.maximize);
 			
 			// Retrieve the probability spaces
-			HashMap< String, UtilitySolutionSpace<Val, AddableReal> > distributions = new HashMap< String, UtilitySolutionSpace<Val, AddableReal> > ();
+			HashMap< String, UtilitySolutionSpace<Val, U> > distributions = new HashMap< String, UtilitySolutionSpace<Val, U> > ();
 			for (String randVar : randVars) 
 				distributions.put(randVar, this.problem.getProbabilitySpaces(randVar).get(0));
 
 			if (this.method == Method.CONSENSUS) {
 				
-				ProjOutput<Val, AddableReal> projOutput = space.consensus(myVar, distributions, this.maximize);
+				ProjOutput<Val, U> projOutput = space.consensus(myVar, distributions, this.maximize);
 				projOutput.space = projOutput.space.expectation(distributions);
 				return projOutput;
 
 			} else if (this.method == Method.CONSENSUS_ALL_SOLS) {
 
-				ProjOutput<Val, AddableReal> projOutput = space.consensusAllSols(myVar, distributions, this.maximize);
+				ProjOutput<Val, U> projOutput = space.consensusAllSols(myVar, distributions, this.maximize);
 				projOutput.space = projOutput.space.expectation(distributions);
 				return projOutput;
 
@@ -601,9 +608,9 @@ public class CompleteUTIL < Val extends Addable<Val> > extends UTILpropagation<V
 		StringBuilder out = new StringBuilder ("digraph {\n\tnode [shape = \"circle\"];\n\n");
 		
 		// For each variable:
-		for (Map.Entry< String, DFSview<Val, AddableReal> > entry : this.relationships.entrySet()) {
+		for (Map.Entry< String, DFSview<Val, U> > entry : this.relationships.entrySet()) {
 			String var = entry.getKey();
-			DFSview<Val, AddableReal> relationships = entry.getValue();
+			DFSview<Val, U> relationships = entry.getValue();
 						
 			// First print the variable
 			ArrayList<String> myRandVarsProj = this.randVarsToProject.get(var);

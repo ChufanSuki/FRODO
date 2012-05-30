@@ -33,7 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.jdom.Element;
+import org.jdom2.Element;
 
 import frodo2.algorithms.AgentInterface;
 import frodo2.algorithms.StatsReporter;
@@ -67,7 +67,7 @@ public class UTILpropagationFullDomain < Val extends Addable<Val>, U extends Add
 	public static String START_MSG_TYPE = AgentInterface.START_AGENT;
 
 	/** The type of the UTIL message*/
-	public static final String UTIL_MSG = "UTIL";
+	public static final String UTIL_MSG = "ODPOP_UTIL";
 
 	/** The type of a UTIL message with variables */
 	public static final String UTIL_MSG_VARS = "UTIL_VARS";
@@ -85,7 +85,7 @@ public class UTILpropagationFullDomain < Val extends Addable<Val>, U extends Add
 	public static final String DONE_MSG	= "Done message";
 
 	/** The type of the messages containing optimal utility values sent by roots */
-	public static final String OPT_UTIL_MSG_TYPE = "OptUtilMessage";
+	public static final String OPT_UTIL_MSG_TYPE = "ODPOP_OptUtilMessage";
 
 	/** The type of the message used to start the value propagation */
 	protected static final String VALUE_PROP_START_MSG_TYPE = "Start VALUE propagation";
@@ -94,7 +94,7 @@ public class UTILpropagationFullDomain < Val extends Addable<Val>, U extends Add
 	protected static final String GOODS_TREE_MSG_TYPE = "Goods tree message";
 
 	/** The type of messages sent to the statistics monitor */
-	protected static final String UTIL_STATS_MSG_TYPE = "UTILstatsMessage";
+	protected static final String UTIL_STATS_MSG_TYPE = "ODPOP_UTILstatsMessage";
 
 	// Variables used to collect statistics
 	

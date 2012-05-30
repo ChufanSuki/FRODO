@@ -36,8 +36,8 @@ import junit.extensions.RepeatedTest;
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
 
-import org.jdom.Document;
-import org.jdom.Element;
+import org.jdom2.Document;
+import org.jdom2.Element;
 
 import JaCoP.core.IntVar;
 import JaCoP.core.Store;
@@ -447,7 +447,6 @@ public class JaCoPtests extends TestCase {
 	 * @param problemDoc	the description file of the problem
 	 * @param maxAgent		the maximum number of possible agents
 	 */
-	@SuppressWarnings("unchecked")
 	private void addRandomOwners(Document problemDoc, int maxAgent){
 		Random rand = new Random(System.currentTimeMillis());
 		assert maxAgent > 0;
@@ -479,7 +478,6 @@ public class JaCoPtests extends TestCase {
 	 * @param problemDoc	the description file of the pure intensional problem
 	 * @return				the solution of the CSP
 	 */
-	@SuppressWarnings("unchecked")
 	private AddableInteger solveCentralizedProblem(Document problemDoc){
 
 		Store store = new Store();
@@ -590,7 +588,6 @@ public class JaCoPtests extends TestCase {
 	 * @param problemDoc	the description file of the pure intensional problem
 	 * @return				true if the assignment is a solution of the CSP
 	 */
-	@SuppressWarnings("unchecked")
 	private boolean checkSolutionCentralizedProblem(Map<String, AddableInteger> assignment, Document problemDoc){
 		Store store = new Store();
 

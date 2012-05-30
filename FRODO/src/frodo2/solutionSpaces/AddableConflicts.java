@@ -229,7 +229,16 @@ public class AddableConflicts < U extends Addable<U>> implements Addable<Addable
 	 * @see frodo2.solutionSpaces.Addable#intValue()
 	 */
 	public int intValue() {
-		// @todo Auto-generated method stub
+		/// @todo Auto-generated method stub
+		assert false : "Not yet implemented";
+		return 0;
+	}
+
+	/** @see frodo2.solutionSpaces.Addable#doubleValue() */
+	@Override
+	public double doubleValue() {
+		/// @todo Auto-generated method stub
+		assert false : "Not yet implemented";
 		return 0;
 	}
 

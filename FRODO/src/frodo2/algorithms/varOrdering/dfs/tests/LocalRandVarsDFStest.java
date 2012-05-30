@@ -24,8 +24,8 @@ package frodo2.algorithms.varOrdering.dfs.tests;
 
 import java.util.List;
 
-import org.jdom.Document;
-import org.jdom.Element;
+import org.jdom2.Document;
+import org.jdom2.Element;
 
 import frodo2.algorithms.AgentFactory;
 import frodo2.algorithms.XCSPparser;
@@ -75,7 +75,6 @@ public class LocalRandVarsDFStest extends TestCase {
 	 * @throws Exception 	if an error occurs while creating the agent description file 
 	 * @todo Test that the heuristic is properly implemented. 
 	 */
-	@SuppressWarnings("unchecked")
 	public void test () throws Exception {
 		
 		Document problem = AllTests.createRandProblem(maxNbrVars, maxNbrEdges, maxNbrAgents, maxNbrVars, false);

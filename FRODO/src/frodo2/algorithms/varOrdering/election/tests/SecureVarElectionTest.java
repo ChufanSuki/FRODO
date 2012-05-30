@@ -27,7 +27,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.Map;
 import java.util.List;
 
-import org.jdom.Element;
+import org.jdom2.Element;
 
 import frodo2.algorithms.XCSPparser;
 import frodo2.algorithms.heuristics.ScoringHeuristic;

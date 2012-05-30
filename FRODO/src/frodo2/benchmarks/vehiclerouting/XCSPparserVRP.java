@@ -30,8 +30,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.jdom.Document;
-import org.jdom.Element;
+import org.jdom2.Document;
+import org.jdom2.Element;
 
 import frodo2.algorithms.XCSPparser;
 import frodo2.solutionSpaces.Addable;
@@ -88,7 +88,7 @@ public class XCSPparserVRP < U extends Addable<U> > extends XCSPparser<AddableIn
 		super (agent, instance, countNCCCs, extendedRandNeighborhoods, spacesToIgnoreNcccs, mpc);
 	}
 	
-	/** @see XCSPparser#newInstance(java.lang.String, org.jdom.Element) */
+	/** @see XCSPparser#newInstance(java.lang.String, org.jdom2.Element) */
 	@Override
 	protected XCSPparserVRP<U> newInstance (String agent, Element instance) {
 		return new XCSPparserVRP<U> (agent, instance, this.countNCCCs, super.extendedRandNeighborhoods, this.spacesToIgnoreNcccs, super.mpc);
@@ -122,7 +122,6 @@ public class XCSPparserVRP < U extends Addable<U> > extends XCSPparser<AddableIn
 	}
 
 	/** @see XCSPparser#parseConstraint(ArrayList, Element, HashMap, HashMap, Set, boolean, boolean, Addable, Set) */
-	@SuppressWarnings("unchecked")
 	@Override
 	protected void parseConstraint(ArrayList< UtilitySolutionSpace<AddableInteger, U> > spaces, Element constraint, 
 			HashMap<String, AddableInteger[]> variablesHashMap, HashMap< String, Relation<AddableInteger, U> > relationInfos, 

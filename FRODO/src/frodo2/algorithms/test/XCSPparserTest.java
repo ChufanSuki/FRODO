@@ -34,9 +34,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
-import org.jdom.Document;
-import org.jdom.Element;
-import org.jdom.JDOMException;
+import org.jdom2.Document;
+import org.jdom2.Element;
+import org.jdom2.JDOMException;
 
 import frodo2.algorithms.RandGraphFactory;
 import frodo2.algorithms.XCSPparser;
@@ -781,7 +781,6 @@ public class XCSPparserTest extends TestCase {
 	/** Test method for frodo2.algorithms.XCSPparser#getDomain(java.lang.String).
 	 * @throws JDOMException 	if an error occurs while reading the problem description 
 	 */
-	@SuppressWarnings("unchecked")
 	public void testGetDomain() throws JDOMException {
 		
 		// Parse all the correct domains
@@ -943,7 +942,6 @@ public class XCSPparserTest extends TestCase {
 	/** Test method for frodo2.algorithms.XCSPparser#isRandom(java.lang.String).
 	 * @throws JDOMException 	if an error occurred when reading the problem description
 	 */
-	@SuppressWarnings("unchecked")
 	public void testIsRandom () throws JDOMException {
 		
 		// For each variable

@@ -25,7 +25,7 @@ package frodo2.algorithms.heuristics;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.jdom.Element;
+import org.jdom2.Element;
 
 import frodo2.solutionSpaces.DCOPProblemInterface;
 

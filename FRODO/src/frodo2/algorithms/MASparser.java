@@ -29,10 +29,11 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.jdom.Document;
-import org.jdom.Element;
-import org.jdom.JDOMException;
-import org.jdom.input.SAXBuilder;
+import org.jdom2.Document;
+import org.jdom2.Element;
+import org.jdom2.JDOMException;
+import org.jdom2.input.SAXBuilder;
+import org.jdom2.input.sax.XMLReaders;
 
 import frodo2.solutionSpaces.Addable;
 import frodo2.solutionSpaces.AddableInteger;
@@ -82,7 +83,7 @@ public class MASparser <V extends Addable<V>, U extends Addable<U>> implements M
 	 * @author Thomas Leaute
 	 */
 	public static Document parse (File file) throws JDOMException, IOException {
-		SAXBuilder builder = new SAXBuilder(false);
+		SAXBuilder builder = new SAXBuilder(XMLReaders.NONVALIDATING);
 		builder.setFeature("http://apache.org/xml/features/xinclude", true);
 		return builder.build(file);
 	}
@@ -105,7 +106,7 @@ public class MASparser <V extends Addable<V>, U extends Addable<U>> implements M
 	 * @author Thomas Leaute
 	 */
 	public static Document parse (InputStream stream) throws JDOMException, IOException {
-		SAXBuilder builder = new SAXBuilder(false);
+		SAXBuilder builder = new SAXBuilder(XMLReaders.NONVALIDATING);
 		builder.setFeature("http://apache.org/xml/features/xinclude", true);
 		return builder.build(stream);
 	}

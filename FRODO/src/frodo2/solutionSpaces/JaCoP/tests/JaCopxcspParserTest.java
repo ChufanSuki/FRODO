@@ -25,7 +25,7 @@ package frodo2.solutionSpaces.JaCoP.tests;
 import java.util.ArrayList;
 import java.util.regex.Pattern;
 
-import org.jdom.Element;
+import org.jdom2.Element;
 
 import JaCoP.core.IntVar;
 import JaCoP.core.Store;
@@ -1628,7 +1628,7 @@ public class JaCopxcspParserTest extends TestCase {
 	 */
 	private void createConstraint(String scope, String parameters, String predicate){
 		
-		Pattern pattern = Pattern.compile(" ");
+		Pattern pattern = Pattern.compile("\\s+");
 		String[] varNames = pattern.split(scope);
 		
 		Element cons = new Element("constraint");
@@ -1640,7 +1640,7 @@ public class JaCopxcspParserTest extends TestCase {
 		param.setText(parameters);
 		cons.addContent(param);
 		
-		pattern = Pattern.compile(" ");
+		pattern = Pattern.compile("\\s+");
 		String[] params = pattern.split(parameters);
 		StringBuilder builder = new StringBuilder("int X0");
 		for(int i = 1; i < params.length; i++){

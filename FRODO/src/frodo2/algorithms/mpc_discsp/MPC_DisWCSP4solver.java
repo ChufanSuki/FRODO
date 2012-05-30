@@ -28,8 +28,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-import org.jdom.Document;
-import org.jdom.Element;
+import org.jdom2.Document;
+import org.jdom2.Element;
 
 import frodo2.algorithms.AbstractDCOPsolver;
 import frodo2.algorithms.Solution;
@@ -135,7 +135,6 @@ public class MPC_DisWCSP4solver < V extends Addable<V>, U extends Addable<U> > e
 	 * @param infiniteCost 	private constraints are only allowed to be soft constraints; infeasibility is identified by a cost of infiniteCost
 	 * @param maxTotalCost 	maximum total cost of any solution; should be greater than (infiniteCost * number of agents) to guarantee correctness
 	 */
-	@SuppressWarnings("unchecked")
 	private void setMaxCost(int infiniteCost, int maxTotalCost) {
 		
 		for (Element elmt : (List<Element>) super.agentDesc.getRootElement().getChild("modules").getChildren()) {

@@ -45,7 +45,6 @@ import com.orllc.orobjects.lib.graph.vrp.VRPException;
 
 import frodo2.solutionSpaces.Addable;
 import frodo2.solutionSpaces.AddableInteger;
-import frodo2.solutionSpaces.AddableReal;
 import frodo2.solutionSpaces.BasicUtilitySolutionSpace;
 import frodo2.solutionSpaces.ProblemInterface;
 import frodo2.solutionSpaces.SolutionSpace;
@@ -893,7 +892,7 @@ public class VehicleRoutingSpace < U extends Addable<U> > implements UtilitySolu
 	/** @see frodo2.solutionSpaces.UtilitySolutionSpace#consensus(java.lang.String, java.util.Map, boolean) */
 	public frodo2.solutionSpaces.UtilitySolutionSpace.ProjOutput<AddableInteger, U> consensus(
 			String varOut,
-			Map<String, UtilitySolutionSpace<AddableInteger, AddableReal>> distributions,
+			Map<String, UtilitySolutionSpace<AddableInteger, U>> distributions,
 			boolean maximum) {
 		/// @todo Auto-generated method stub
 		assert false : "Not yet implemented";
@@ -903,7 +902,7 @@ public class VehicleRoutingSpace < U extends Addable<U> > implements UtilitySolu
 	/** @see frodo2.solutionSpaces.UtilitySolutionSpace#consensusAllSols(java.lang.String, java.util.Map, boolean) */
 	public frodo2.solutionSpaces.UtilitySolutionSpace.ProjOutput<AddableInteger, U> consensusAllSols(
 			String varOut,
-			Map<String, UtilitySolutionSpace<AddableInteger, AddableReal>> distributions,
+			Map<String, UtilitySolutionSpace<AddableInteger, U>> distributions,
 			boolean maximum) {
 		/// @todo Auto-generated method stub
 		assert false : "Not yet implemented";
@@ -1826,6 +1825,16 @@ public class VehicleRoutingSpace < U extends Addable<U> > implements UtilitySolu
 	/** @see SolutionSpace#setOwner(java.lang.String) */
 	public void setOwner(String owner) {
 		this.owner = owner;
+	}
+	
+	/** 
+	 * @see frodo2.solutionSpaces.UtilitySolutionSpace#rescale(frodo2.solutionSpaces.Addable, frodo2.solutionSpaces.Addable)
+	 */
+	@Override
+	public UtilitySolutionSpace<AddableInteger, U> rescale(U add, U multiply) {
+		// TODO Auto-generated method stub
+		assert false : "Not yet implemented";
+		return null;
 	}
 
 }

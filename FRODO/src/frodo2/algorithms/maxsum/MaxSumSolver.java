@@ -25,8 +25,8 @@ package frodo2.algorithms.maxsum;
 import java.util.Arrays;
 import java.util.List;
 
-import org.jdom.Document;
-import org.jdom.Element;
+import org.jdom2.Document;
+import org.jdom2.Element;
 
 import frodo2.algorithms.AbstractDCOPsolver;
 import frodo2.algorithms.AbstractSolver;

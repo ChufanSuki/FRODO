@@ -37,7 +37,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
-import org.jdom.Element;
+import org.jdom2.Element;
 
 
 import frodo2.algorithms.AgentInterface;

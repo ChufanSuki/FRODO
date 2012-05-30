@@ -90,6 +90,7 @@ public class Good < Val extends Addable<Val>, U extends Addable<U> > extends fro
 	/**
 	 * @see frodo2.algorithms.odpop.Good#toString()
 	 */
+	@Override
 	public String toString() {
 		String str = "";
 		str = "<[";

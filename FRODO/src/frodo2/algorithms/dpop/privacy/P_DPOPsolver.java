@@ -25,8 +25,8 @@ package frodo2.algorithms.dpop.privacy;
 
 import java.util.List;
 
-import org.jdom.Document;
-import org.jdom.Element;
+import org.jdom2.Document;
+import org.jdom2.Element;
 
 import frodo2.algorithms.XCSPparser;
 import frodo2.algorithms.dpop.DPOPsolver;
@@ -154,7 +154,6 @@ public class P_DPOPsolver< V extends Addable<V>, U extends Addable<U> > extends 
 	}
 	
 	/** @see DPOPsolver#setNbrElectionRounds(int) */
-	@SuppressWarnings("unchecked")
 	@Override
 	protected void setNbrElectionRounds (int nbrElectionRounds) {
 		

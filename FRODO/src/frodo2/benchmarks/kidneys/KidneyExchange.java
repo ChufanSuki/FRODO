@@ -30,11 +30,11 @@ import java.util.Map;
 import java.util.Random;
 import java.util.TreeSet;
 
-import org.jdom.Document;
-import org.jdom.Element;
-import org.jdom.Namespace;
-import org.jdom.output.Format;
-import org.jdom.output.XMLOutputter;
+import org.jdom2.Document;
+import org.jdom2.Element;
+import org.jdom2.Namespace;
+import org.jdom2.output.Format;
+import org.jdom2.output.XMLOutputter;
 
 /** Creates a sample population of kidney donor-patient pairs and generates a graph which is then written into a DCOP problem statement.
  * 

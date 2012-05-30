@@ -37,7 +37,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Map.Entry;
 
-import org.jdom.Element;
+import org.jdom2.Element;
 
 import frodo2.algorithms.AgentInterface;
 import frodo2.algorithms.StatsReporterWithConvergence;
@@ -757,7 +757,7 @@ public class MGM2 <V extends Addable<V>, U extends Addable<U>> implements StatsR
 			}
 
 			if(++this.variables_finished == infos.size())
-				queue.sendMessage(AgentInterface.STATS_MONITOR, new Message(AgentInterface.AGENT_FINISHED));
+				queue.sendMessageToSelf(new Message(AgentInterface.AGENT_FINISHED));
 
 			return;
 		}

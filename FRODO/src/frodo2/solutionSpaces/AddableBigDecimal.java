@@ -211,8 +211,15 @@ public class AddableBigDecimal implements Addable<AddableBigDecimal> {
 	}
 
 	/** @see Addable#intValue() */
+	@Override
 	public int intValue() {
 		return this.val.intValue();
+	}
+
+	/** @see Addable#doubleValue() */
+	@Override
+	public double doubleValue() {
+		return this.val.doubleValue();
 	}
 
 	/** @see AddableLimited#max(AddableLimited) */
@@ -286,6 +293,18 @@ public class AddableBigDecimal implements Addable<AddableBigDecimal> {
 			super();
 		}
 	
+		/** @see AddableBigDecimal#intValue() */
+		@Override
+		public int intValue() {
+			return Integer.MIN_VALUE;
+		}
+
+		/** @see AddableBigDecimal#doubleValue() */
+		@Override
+		public double doubleValue() {
+			return Double.NEGATIVE_INFINITY;
+		}
+
 		/** @see AddableBigDecimal#add(AddableBigDecimal) */
 		@Override
 		public MinInfinity add(final AddableBigDecimal o) {
@@ -410,6 +429,18 @@ public class AddableBigDecimal implements Addable<AddableBigDecimal> {
 			super();
 		}
 	
+		/** @see AddableBigDecimal#intValue() */
+		@Override
+		public int intValue() {
+			return Integer.MAX_VALUE;
+		}
+
+		/** @see AddableBigDecimal#doubleValue() */
+		@Override
+		public double doubleValue() {
+			return Double.POSITIVE_INFINITY;
+		}
+
 		/** @see AddableBigDecimal#add(AddableBigDecimal) */
 		@Override
 		public PlusInfinity add(final AddableBigDecimal o) {		

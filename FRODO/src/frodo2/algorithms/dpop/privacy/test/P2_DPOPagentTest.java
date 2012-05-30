@@ -25,9 +25,9 @@ package frodo2.algorithms.dpop.privacy.test;
 import java.io.IOException;
 import java.util.List;
 
-import org.jdom.Document;
-import org.jdom.Element;
-import org.jdom.JDOMException;
+import org.jdom2.Document;
+import org.jdom2.Element;
+import org.jdom2.JDOMException;
 
 import junit.extensions.RepeatedTest;
 import junit.framework.TestCase;
@@ -157,7 +157,6 @@ public class P2_DPOPagentTest < V extends Addable<V>, E extends AddableLimited<A
 	 * @throws IOException is thrown if an I/O exception occur when accessing to the description of P-DPOP or DPOP algorithm
 	 * @throws JDOMException is thrown if a parsing error occurs
 	 */
-	@SuppressWarnings("unchecked")
 	public void testP2DPOPvsDPOP () throws JDOMException, IOException {
 		
 		//Create new random problem

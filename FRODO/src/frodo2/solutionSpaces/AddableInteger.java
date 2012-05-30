@@ -100,8 +100,15 @@ public class AddableInteger implements Addable<AddableInteger> {
 	}
 	
 	/** @return the value as an int */
+	@Override
 	public int intValue() {
 		return integer;
+	}
+	
+	/** @see Addable#doubleValue() */
+	@Override
+	public double doubleValue() {
+		return this.integer;
 	}
 	
 	/** @see java.lang.Object#toString() */

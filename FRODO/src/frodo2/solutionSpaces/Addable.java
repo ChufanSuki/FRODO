@@ -35,6 +35,9 @@ public interface Addable< T extends Addable<T> > extends Comparable<T>, AddableL
 	/** @return the value of this Addable as an int, when this makes sense */
 	public int intValue ();
 	
+	/** @return the value of this Addable as a double, when this makes sense */
+	public double doubleValue ();
+	
 	/** Parses a string to construct a new instance 
 	 * @param str 	the string
 	 * @return 		a new instance

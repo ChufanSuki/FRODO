@@ -38,7 +38,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import frodo2.solutionSpaces.Addable;
-import frodo2.solutionSpaces.AddableReal;
 import frodo2.solutionSpaces.BasicUtilitySolutionSpace;
 import frodo2.solutionSpaces.SolutionSpace;
 import frodo2.solutionSpaces.UtilitySolutionSpace;
@@ -72,6 +71,13 @@ extends Hypercube <V, U> {
 		this.infeasibleUtil = infeasibleUtil;
 	}
 	
+	/** @see Hypercube#scalarHypercube(Addable) */
+	@SuppressWarnings("unchecked")
+	@Override
+	protected ScalarHypercube<V, U> scalarHypercube(U utility) {
+		return new ScalarHypercube<V, U> (utility, this.infeasibleUtil, (Class<? extends V[]>) this.domains.getClass().getComponentType());
+	}
+
 	/** @see java.io.Externalizable#writeExternal(java.io.ObjectOutput) */
 	public void writeExternal(ObjectOutput out) throws IOException {
 		out.writeObject(this.infeasibleUtil);
@@ -245,6 +251,9 @@ extends Hypercube <V, U> {
 		if (! this.knows(space.getClass()) && space.knows(this.getClass())) 
 			return ((Hypercube< V, U >) space).join(this, total_variables, addition, minNCCCs);
 		
+		else if (minNCCCs && space.getNumberOfSolutions() == 1) 
+			return this.scalarHypercube(addition ? this.getUtility(0).add(space.getUtility(0)) : this.getUtility(0).multiply(space.getUtility(0)));
+		
 		else
 			return new JoinOutputHypercube<V, U> (this, space, space.getVariables(), space.getDomains(), addition, this.infeasibleUtil, space.getNumberOfSolutions());
 	}
@@ -271,7 +280,7 @@ extends Hypercube <V, U> {
 	 */
 	@SuppressWarnings("unchecked")
 	@Override
-	protected ProjOutput< V, U > consensus (String varOut, Map< String, UtilitySolutionSpace<V, AddableReal> > distributions, boolean maximum, boolean allSolutions) {
+	protected ProjOutput< V, U > consensus (String varOut, Map< String, UtilitySolutionSpace<V, U> > distributions, boolean maximum, boolean allSolutions) {
 		return new ProjOutput<V, U> (clone(), new String [0], NullHypercube.NULL);
 	}
 	
@@ -524,7 +533,7 @@ extends Hypercube <V, U> {
 	
 	/** @see Hypercube#join(UtilitySolutionSpace, boolean, boolean) */
 	@Override
-	protected UtilitySolutionSpace< V, U > join( UtilitySolutionSpace< V, U > space, boolean addition, boolean minNCCCs)  {
+	public UtilitySolutionSpace< V, U > join( UtilitySolutionSpace< V, U > space, boolean addition, boolean minNCCCs)  {
 		return this.join(space, space.getVariables(), addition, minNCCCs);
 	}
 

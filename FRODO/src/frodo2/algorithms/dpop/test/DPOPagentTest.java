@@ -40,9 +40,9 @@ import junit.extensions.RepeatedTest;
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
 
-import org.jdom.Document;
-import org.jdom.Element;
-import org.jdom.JDOMException;
+import org.jdom2.Document;
+import org.jdom2.Element;
+import org.jdom2.JDOMException;
 
 import frodo2.algorithms.AgentFactory;
 import frodo2.algorithms.AgentInterface;
@@ -284,7 +284,6 @@ public class DPOPagentTest< V extends Addable<V>, U extends Addable<U> > extends
 	 * @param startMsgType 		the new type for the start message
 	 * @throws JDOMException 	if parsing the agent configuration file failed
 	 */
-	@SuppressWarnings("unchecked")
 	protected void setStartMsgType (String startMsgType) throws JDOMException {
 		this.startMsgType = AgentInterface.START_AGENT;
 		if (startMsgType != null) {
@@ -383,7 +382,6 @@ public class DPOPagentTest< V extends Addable<V>, U extends Addable<U> > extends
 	}
 	
 	/** @see junit.framework.TestCase#setUp() */
-	@SuppressWarnings("unchecked")
 	public void setUp () throws Exception {
 		
 		agentConfig = XCSPparser.parse(this.dpopPath, false);
@@ -517,22 +515,26 @@ public class DPOPagentTest< V extends Addable<V>, U extends Addable<U> > extends
 			}
 		}
 		
-		if (this.useCentralMailer) 
-			mailman.start();
+		long timeout = 60000; // in ms
 		
-		// Wait for all agents to finish
-		while (true) {
-			this.finished_lock.lock();
-			try {
-				if (nbrAgentsFinished >= nbrAgents) {
+		if (this.useCentralMailer) 
+			assertTrue("Timeout", this.mailman.execute(timeout));
+			
+		else {
+			// Wait for all agents to finish
+			while (true) {
+				this.finished_lock.lock();
+				try {
+					if (nbrAgentsFinished >= nbrAgents) {
+						break;
+					} else if (! this.finished.await(timeout, TimeUnit.MILLISECONDS)) {
+						fail("Timeout");
+					}
+				} catch (InterruptedException e) {
 					break;
-				} else if (! this.finished.await(60, TimeUnit.SECONDS)) {
-					fail("Timeout");
 				}
-			} catch (InterruptedException e) {
-				break;
+				this.finished_lock.unlock();
 			}
-			this.finished_lock.unlock();
 		}
 		
 		if (this.useCentralMailer) 
@@ -544,7 +546,6 @@ public class DPOPagentTest< V extends Addable<V>, U extends Addable<U> > extends
 	/** Checks that the output of the algorithm is correct 
 	 * @throws Exception if an error occurs
 	 */
-	@SuppressWarnings("unchecked")
 	protected void checkOutput() throws Exception {
 		
 		U optUtil = this.utilModule.getOptUtil();

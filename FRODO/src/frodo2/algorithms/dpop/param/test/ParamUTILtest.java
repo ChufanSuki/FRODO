@@ -30,7 +30,7 @@ import java.util.Map;
 import junit.extensions.RepeatedTest;
 import junit.framework.TestSuite;
 
-import org.jdom.Element;
+import org.jdom2.Element;
 
 import frodo2.algorithms.RandGraphFactory;
 import frodo2.algorithms.dpop.param.ParamUTIL;

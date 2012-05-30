@@ -31,7 +31,7 @@ import java.util.Map;
 import junit.extensions.RepeatedTest;
 import junit.framework.TestSuite;
 
-import org.jdom.Element;
+import org.jdom2.Element;
 
 import frodo2.algorithms.RandGraphFactory;
 import frodo2.algorithms.dpop.UTILmsg;
@@ -206,7 +206,7 @@ public class ExpectedUTILtest extends UTILpropagationTest<AddableReal> {
 			// Set up the SamplingPhase module
 			Element params = new Element ("module");
 			params.setAttribute("nbrSamples", Integer.toString(nbrSamples));
-			queue.addIncomingMessagePolicy(new SamplingPhase.AtLCAs<AddableInteger> (subProblem, params));
+			queue.addIncomingMessagePolicy(new SamplingPhase.AtLCAs<AddableInteger, AddableReal> (subProblem, params));
 		}
 
 		/** @see frodo2.algorithms.dpop.test.UTILpropagationTest.Listener#checkOutput() */

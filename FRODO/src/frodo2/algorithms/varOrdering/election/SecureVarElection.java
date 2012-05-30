@@ -24,7 +24,7 @@ package frodo2.algorithms.varOrdering.election;
 
 import java.util.Collection;
 
-import org.jdom.Element;
+import org.jdom2.Element;
 
 import frodo2.algorithms.heuristics.RandScoringHeuristic;
 import frodo2.solutionSpaces.DCOPProblemInterface;

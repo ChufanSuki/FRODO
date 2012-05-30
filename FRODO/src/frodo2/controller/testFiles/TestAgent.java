@@ -22,7 +22,7 @@ How to contact the authors:
 
 package frodo2.controller.testFiles;
 
-import org.jdom.Document;
+import org.jdom2.Document;
 
 import frodo2.algorithms.SingleQueueAgent;
 import frodo2.communication.Message;

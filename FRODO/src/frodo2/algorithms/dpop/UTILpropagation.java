@@ -29,7 +29,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
 
-import org.jdom.Element;
+import org.jdom2.Element;
 
 import frodo2.algorithms.AgentInterface;
 import frodo2.algorithms.StatsReporter;
@@ -126,11 +126,6 @@ implements StatsReporter {
 	
 	/** Whether to minimize the NCCC count, at the expense of an increase in runtime */
 	private final boolean minNCCCs;
-	
-	/** Empty constructor */
-	protected UTILpropagation () {
-		this.minNCCCs = false;
-	}
 	
 	/** Constructor
 	 * @param problem 	the problem description

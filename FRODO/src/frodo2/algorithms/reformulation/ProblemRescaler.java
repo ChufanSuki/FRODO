@@ -25,7 +25,7 @@ package frodo2.algorithms.reformulation;
 import java.util.Arrays;
 import java.util.Collection;
 
-import org.jdom.Element;
+import org.jdom2.Element;
 
 import frodo2.algorithms.AgentInterface;
 import frodo2.communication.IncomingMsgPolicyInterface;

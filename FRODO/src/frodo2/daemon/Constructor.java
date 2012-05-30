@@ -28,7 +28,7 @@ package frodo2.daemon;
 import java.util.ArrayList;
 import java.util.Collection;
 
-import org.jdom.Document;
+import org.jdom2.Document;
 
 import frodo2.algorithms.AgentFactory;
 import frodo2.algorithms.AgentInterface;

@@ -26,7 +26,7 @@ import java.math.BigInteger;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 
-import org.jdom.Element;
+import org.jdom2.Element;
 
 import frodo2.solutionSpaces.AddableInteger;
 
