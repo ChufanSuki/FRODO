@@ -29,7 +29,7 @@ import java.util.List;
 import junit.extensions.RepeatedTest;
 import junit.framework.TestSuite;
 
-import org.jdom.Element;
+import org.jdom2.Element;
 
 import frodo2.algorithms.AgentInterface;
 import frodo2.algorithms.RandGraphFactory;
@@ -404,7 +404,6 @@ public class Robust_E_DPOPagentTest < V extends Addable<V> > extends E_DPOPagent
 	}
 
 	/** @see E_DPOPagentTest#setUp() */
-	@SuppressWarnings("unchecked")
 	@Override
 	public void setUp () throws Exception {
 		
@@ -459,7 +458,7 @@ public class Robust_E_DPOPagentTest < V extends Addable<V> > extends E_DPOPagent
 		problem.setDomClass(domClass);
 		problem.setUtilClass(AddableReal.class);
 
-		utilModule = new ExpectedUTIL<V> (null, problem);
+		utilModule = new ExpectedUTIL<V, AddableReal> (null, problem);
 		utilModule.setSilent(true);
 		utilModule.getStatsFromQueue(queue);
 	}
@@ -471,12 +470,12 @@ public class Robust_E_DPOPagentTest < V extends Addable<V> > extends E_DPOPagent
 		if (this.agentFile.contains("Complete-") && this.nbrSamples == 0) {
 			
 			if (this.method == Method.EXPECTATION) 
-				assertTrue (this.utilModule.getOptUtil() + " != " + ((ExpectedUTIL<V>) this.utilModule).getExpectedUtil() + 
+				assertTrue (this.utilModule.getOptUtil() + " != " + ((ExpectedUTIL<V, AddableReal>) this.utilModule).getExpectedUtil() + 
 						(this.problem.maximize() ? " (maximizing)" : " (minimizing)"), 
-						this.utilModule.getOptUtil().compareTo(((ExpectedUTIL<V>) this.utilModule).getExpectedUtil(), 1E-6) == 0);
+						this.utilModule.getOptUtil().compareTo(((ExpectedUTIL<V, AddableReal>) this.utilModule).getExpectedUtil(), 1E-6) == 0);
 			
 			else if (this.method == Method.ROBUST) 
-				assertEquals (this.utilModule.getOptUtil(), ((ExpectedUTIL<V>) this.utilModule).getWorstUtil());
+				assertEquals (this.utilModule.getOptUtil(), ((ExpectedUTIL<V, AddableReal>) this.utilModule).getWorstUtil());
 		}
 	}
 	

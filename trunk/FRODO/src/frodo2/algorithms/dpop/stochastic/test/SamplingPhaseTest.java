@@ -33,8 +33,8 @@ import java.util.Map;
 import junit.extensions.RepeatedTest;
 import junit.framework.TestSuite;
 
-import org.jdom.Document;
-import org.jdom.Element;
+import org.jdom2.Document;
+import org.jdom2.Element;
 
 import frodo2.algorithms.XCSPparser;
 import frodo2.algorithms.dpop.stochastic.SamplesMsg2;

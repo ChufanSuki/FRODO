@@ -28,8 +28,8 @@ import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-import org.jdom.Document;
-import org.jdom.JDOMException;
+import org.jdom2.Document;
+import org.jdom2.JDOMException;
 
 import frodo2.algorithms.AgentFactory;
 import frodo2.algorithms.StatsReporter;

@@ -26,7 +26,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import org.jdom.Document;
+import org.jdom2.Document;
 
 import frodo2.algorithms.RandGraphFactory;
 import frodo2.algorithms.XCSPparser;

@@ -34,9 +34,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
-import org.jdom.Document;
-import org.jdom.Element;
-import org.jdom.JDOMException;
+import org.jdom2.Document;
+import org.jdom2.Element;
+import org.jdom2.JDOMException;
 
 import frodo2.algorithms.AgentFactory;
 import frodo2.algorithms.AgentInterface;
@@ -190,7 +190,6 @@ public class ADOPTagentTest < V extends Addable<V>, U extends Addable<U> > exten
 	 * @param startMsgType 		the new type for the start message
 	 * @throws JDOMException 	if parsing the agent configuration file failed
 	 */
-	@SuppressWarnings("unchecked")
 	private void setStartMsgType (String startMsgType) throws JDOMException {
 		if (startMsgType != null) {
 			this.startMsgType = startMsgType;
@@ -282,7 +281,6 @@ public class ADOPTagentTest < V extends Addable<V>, U extends Addable<U> > exten
 	}
 	
 	/** @see junit.framework.TestCase#setUp() */
-	@SuppressWarnings("unchecked")
 	public void setUp () throws Exception {
 		
 		// Create the problem
@@ -384,22 +382,26 @@ public class ADOPTagentTest < V extends Addable<V>, U extends Addable<U> > exten
 			}
 		}
 		
-		if (this.useCentralMailer) 
-			mailman.start();
+		long timeout = 240000; // in ms
 		
-		// Wait for all agents to finish
-		while (true) {
-			this.finished_lock.lock();
-			try {
-				if (nbrAgentsFinished >= nbrAgents) {
+		if (this.useCentralMailer) 
+			assertTrue("Timeout", this.mailman.execute(timeout));
+			
+		else {
+			// Wait for all agents to finish
+			while (true) {
+				this.finished_lock.lock();
+				try {
+					if (nbrAgentsFinished >= nbrAgents) {
+						break;
+					} else if (! this.finished.await(timeout, TimeUnit.MILLISECONDS)) {
+						fail("Timeout");
+					}
+				} catch (InterruptedException e) {
 					break;
-				} else if (! this.finished.await(240, TimeUnit.SECONDS)) {
-					fail("Timeout");
 				}
-			} catch (InterruptedException e) {
-				break;
+				this.finished_lock.unlock();
 			}
-			this.finished_lock.unlock();
 		}
 		
 		U totalOptUtil = statsGatherer.getTotalOptUtil();

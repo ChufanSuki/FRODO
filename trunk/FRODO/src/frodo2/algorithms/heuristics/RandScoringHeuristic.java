@@ -28,7 +28,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Random;
 
-import org.jdom.Element;
+import org.jdom2.Element;
 
 import frodo2.solutionSpaces.DCOPProblemInterface;
 

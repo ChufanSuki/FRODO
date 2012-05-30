@@ -39,7 +39,7 @@ import java.util.TreeMap;
 import java.lang.reflect.Array;
 import java.util.Iterator;
 
-import org.jdom.Element;
+import org.jdom2.Element;
 
 import frodo2.algorithms.AgentInterface;
 import frodo2.algorithms.StatsReporterWithConvergence;

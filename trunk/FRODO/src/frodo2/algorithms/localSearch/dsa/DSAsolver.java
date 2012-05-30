@@ -25,8 +25,8 @@ package frodo2.algorithms.localSearch.dsa;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.jdom.Document;
-import org.jdom.Element;
+import org.jdom2.Document;
+import org.jdom2.Element;
 
 import frodo2.algorithms.AbstractDCOPsolver;
 import frodo2.algorithms.StatsReporter;
@@ -145,7 +145,6 @@ public class DSAsolver < V extends Addable<V>, U extends Addable<U> > extends Ab
 	 * Sets the convergence parameter to the desired value
 	 * @param convergence	\c true when convergence must be measured, and false otherwise
 	 */
-	@SuppressWarnings("unchecked")
 	public void setConvergence(boolean convergence) {
 		for (Element module : (List<Element>) agentDesc.getRootElement().getChild("modules").getChildren()) 
 			if (module.getAttributeValue("className").equals(DSA.class.getName())) 

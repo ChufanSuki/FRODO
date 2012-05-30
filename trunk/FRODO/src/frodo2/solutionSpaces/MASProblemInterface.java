@@ -22,7 +22,7 @@ How to contact the authors:
 
 package frodo2.solutionSpaces;
 
-import org.jdom.Element;
+import org.jdom2.Element;
 
 /**
  * @author Brammert Ottens, 8 jun 2010

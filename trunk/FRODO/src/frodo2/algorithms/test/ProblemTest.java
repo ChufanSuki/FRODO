@@ -31,7 +31,7 @@ import junit.extensions.RepeatedTest;
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
 
-import org.jdom.Document;
+import org.jdom2.Document;
 
 import frodo2.algorithms.Problem;
 import frodo2.algorithms.RandGraphFactory;

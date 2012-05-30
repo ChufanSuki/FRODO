@@ -219,8 +219,15 @@ public class AddableBigInteger implements Addable<AddableBigInteger> {
 	}
 	
 	/** @see Addable#intValue() */
+	@Override
 	public int intValue() {
 		return this.val.intValue();
+	}
+
+	/** @see Addable#doubleValue() */
+	@Override
+	public double doubleValue() {
+		return this.intValue();
 	}
 
 	/**
@@ -290,6 +297,18 @@ public class AddableBigInteger implements Addable<AddableBigInteger> {
 			super("-infinity");
 		}
 	
+		/** @see AddableBigInteger#intValue() */
+		@Override
+		public int intValue() {
+			return Integer.MIN_VALUE;
+		}
+
+		/** @see AddableBigInteger#doubleValue() */
+		@Override
+		public double doubleValue() {
+			return Double.NEGATIVE_INFINITY;
+		}
+
 		/** @see AddableBigInteger#add(AddableBigInteger) */
 		@Override
 		public MinInfinity add(final AddableBigInteger o) {
@@ -405,6 +424,18 @@ public class AddableBigInteger implements Addable<AddableBigInteger> {
 			super("infinity");
 		}
 	
+		/** @see AddableBigInteger#intValue() */
+		@Override
+		public int intValue() {
+			return Integer.MAX_VALUE;
+		}
+
+		/** @see AddableBigInteger#doubleValue() */
+		@Override
+		public double doubleValue() {
+			return Double.POSITIVE_INFINITY;
+		}
+
 		/** @see AddableBigInteger#add(AddableBigInteger) */
 		@Override
 		public PlusInfinity add(final AddableBigInteger o) {		

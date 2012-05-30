@@ -24,7 +24,7 @@ package frodo2.algorithms.dpop.param;
 
 import java.util.ArrayList;
 
-import org.jdom.Element;
+import org.jdom2.Element;
 
 import frodo2.algorithms.AgentInterface;
 import frodo2.algorithms.dpop.UTILpropagation;

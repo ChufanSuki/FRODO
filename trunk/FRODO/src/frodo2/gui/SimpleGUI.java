@@ -62,10 +62,10 @@ import javax.swing.JTextPane;
 import javax.swing.WindowConstants;
 import javax.swing.text.DefaultEditorKit;
 
-import org.jdom.Document;
-import org.jdom.Element;
-import org.jdom.output.Format;
-import org.jdom.output.XMLOutputter;
+import org.jdom2.Document;
+import org.jdom2.Element;
+import org.jdom2.output.Format;
+import org.jdom2.output.XMLOutputter;
 
 import frodo2.algorithms.AgentFactory;
 import frodo2.algorithms.XCSPparser;

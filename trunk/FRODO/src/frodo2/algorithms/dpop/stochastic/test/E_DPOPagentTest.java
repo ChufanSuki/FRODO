@@ -28,8 +28,8 @@ import java.util.List;
 import junit.extensions.RepeatedTest;
 import junit.framework.TestSuite;
 
-import org.jdom.Document;
-import org.jdom.Element;
+import org.jdom2.Document;
+import org.jdom2.Element;
 
 import frodo2.algorithms.AgentInterface;
 import frodo2.algorithms.RandGraphFactory;
@@ -356,7 +356,6 @@ public class E_DPOPagentTest < V extends Addable<V> > extends DPOPagentTest<V, A
 	}
 	
 	/** @see DPOPagentTest#setUp() */
-	@SuppressWarnings("unchecked")
 	@Override
 	public void setUp () throws Exception {
 
@@ -398,7 +397,7 @@ public class E_DPOPagentTest < V extends Addable<V> > extends DPOPagentTest<V, A
 		problem = new XCSPparser<V, AddableReal> (problemDoc);
 		problem.setDomClass(super.domClass);
 		problem.setUtilClass(AddableReal.class);
-		utilModule = new ExpectedUTIL<V> (null, problem);
+		utilModule = new ExpectedUTIL<V, AddableReal> (null, problem);
 		utilModule.setSilent(true);
 		utilModule.getStatsFromQueue(queue);
 		valueModule = new VALUEpropagation<V> (null, problem);
@@ -412,7 +411,6 @@ public class E_DPOPagentTest < V extends Addable<V> > extends DPOPagentTest<V, A
 	 * Also checks that all versions (expectation-based) E[DPOP] without sampling agree. 
 	 * @see DPOPagentTest#checkOutput() 
 	 */
-	@SuppressWarnings("unchecked")
 	@Override
 	protected void checkOutput() throws Exception {
 		
@@ -424,8 +422,8 @@ public class E_DPOPagentTest < V extends Addable<V> > extends DPOPagentTest<V, A
 		// If we are not doing any sampling, we can compare exactly against an equivalent algorithm
 		if (this.nbrSamples == 0) {
 			
-			E_DPOPsolver<V> solver = 
-				new E_DPOPsolver<V> (XCSPparser.parse("src/frodo2/algorithms/dpop/stochastic/E-DPOP.xml", false), super.domClass);
+			E_DPOPsolver<V, AddableReal> solver = 
+				new E_DPOPsolver<V, AddableReal> (XCSPparser.parse("src/frodo2/algorithms/dpop/stochastic/E-DPOP.xml", false), super.domClass);
 			AddableReal otherUtil = solver.solve(this.problemDoc).getReportedUtil();
 			assertTrue(optUtil + " != " + otherUtil, optUtil.equals(otherUtil, 1E-6)); /// @bug Very rarely fails. 
 		}
@@ -447,8 +445,8 @@ public class E_DPOPagentTest < V extends Addable<V> > extends DPOPagentTest<V, A
 					module.setAttribute("nbrSamples", "50000000");
 
 			// Solve the problem again
-			E_DPOPsolver<V> solver2 = new E_DPOPsolver<V> (agentConfig2, super.domClass);
-			StochSolution<V> sol2 = solver2.solve(problemDoc);
+			E_DPOPsolver<V, AddableReal> solver2 = new E_DPOPsolver<V, AddableReal> (agentConfig2, super.domClass);
+			StochSolution<V, AddableReal> sol2 = solver2.solve(problemDoc);
 
 			assertTrue (expOptUtil.getUtility(0) + " != " + sol2.getReportedUtil(), 
 					expOptUtil.getUtility(0).compareTo(sol2.getReportedUtil(), 1E-2) >= 0); // 1E-2 to account for rare floating point errors

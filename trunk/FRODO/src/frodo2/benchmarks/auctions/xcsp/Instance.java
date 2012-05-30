@@ -27,8 +27,8 @@ import java.util.List;
 import java.util.TreeSet;
 
 
-import org.jdom.Document;
-import org.jdom.Element;
+import org.jdom2.Document;
+import org.jdom2.Element;
 
 import frodo2.benchmarks.auctions.cats.Auction;
 import frodo2.benchmarks.auctions.cats.Bid;
@@ -66,10 +66,10 @@ public class Instance extends Element {
 		//Adding the attribute for the name space
 		if (sumDecomposition || intensional) 
 			this.setAttribute("noNamespaceSchemaLocation", "src/frodo2/algorithms/XCSPschemaJaCoP.xsd", 
-					org.jdom.Namespace.getNamespace("xsi", "http://www.w3.org/2001/XMLSchema-instance"));
+					org.jdom2.Namespace.getNamespace("xsi", "http://www.w3.org/2001/XMLSchema-instance"));
 		else 
 			this.setAttribute("noNamespaceSchemaLocation", "src/frodo2/algorithms/XCSPschema.xsd", 
-					org.jdom.Namespace.getNamespace("xsi", "http://www.w3.org/2001/XMLSchema-instance"));
+					org.jdom2.Namespace.getNamespace("xsi", "http://www.w3.org/2001/XMLSchema-instance"));
 
 		//Initialize sub-elements
 		Presentation presentation = new Presentation();

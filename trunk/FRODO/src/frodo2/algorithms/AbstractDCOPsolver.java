@@ -25,8 +25,8 @@ package frodo2.algorithms;
 import java.lang.reflect.Field;
 import java.util.List;
 
-import org.jdom.Document;
-import org.jdom.Element;
+import org.jdom2.Document;
+import org.jdom2.Element;
 
 import frodo2.algorithms.varOrdering.election.VariableElection;
 import frodo2.communication.MessageListener;
@@ -106,7 +106,7 @@ public abstract class AbstractDCOPsolver < V extends Addable<V>, U extends Addab
 		this.overrideMsgTypes();
 	}
 	
-	/** @see AbstractSolver#solve(org.jdom.Document, int, boolean, java.lang.Long, boolean) */
+	/** @see AbstractSolver#solve(org.jdom2.Document, int, boolean, java.lang.Long, boolean) */
 	@Override
 	public S solve (Document problem, int nbrElectionRounds, boolean measureMsgs, Long timeout, boolean cleanAfterwards) {
 		
@@ -127,7 +127,6 @@ public abstract class AbstractDCOPsolver < V extends Addable<V>, U extends Addab
 	/** Sets the number of rounds of VariableElection
 	 * @param nbrElectionRounds 	the number of rounds of VariableElection (must be greater than the diameter of the constraint graph)
 	 */
-	@SuppressWarnings("unchecked")
 	protected void setNbrElectionRounds (int nbrElectionRounds) {
 		for (Element module : (List<Element>) agentDesc.getRootElement().getChild("modules").getChildren()) 
 			if (module.getAttributeValue("className").equals(VariableElection.class.getName())) 

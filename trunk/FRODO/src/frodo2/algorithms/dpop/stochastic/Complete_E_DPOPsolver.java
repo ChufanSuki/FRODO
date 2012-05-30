@@ -25,8 +25,8 @@ package frodo2.algorithms.dpop.stochastic;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.jdom.Document;
-import org.jdom.Element;
+import org.jdom2.Document;
+import org.jdom2.Element;
 
 import frodo2.algorithms.StatsReporter;
 import frodo2.solutionSpaces.Addable;
@@ -34,11 +34,12 @@ import frodo2.solutionSpaces.Addable;
 /** The solver for Comp-E[DPOP]
  * @author Thomas Leaute
  * @param <V> type used for variable values
+ * @param <U> type used for utility values
  */
-public class Complete_E_DPOPsolver < V extends Addable<V> > extends E_DPOPsolver<V> {
+public class Complete_E_DPOPsolver < V extends Addable<V>, U extends Addable<U> > extends E_DPOPsolver<V, U> {
 	
 	/** The UTIL propagation module */
-	private CompleteUTIL<V> utilModule;
+	private CompleteUTIL<V, U> utilModule;
 
 	/** Constructor 
 	 * @param agentDesc 	description of the agent to be used
@@ -75,7 +76,6 @@ public class Complete_E_DPOPsolver < V extends Addable<V> > extends E_DPOPsolver
 	}
 
 	/** @see E_DPOPsolver#getSolGatherers() */
-	@SuppressWarnings("unchecked")
 	@Override
 	public ArrayList<StatsReporter> getSolGatherers() {
 
@@ -85,13 +85,13 @@ public class Complete_E_DPOPsolver < V extends Addable<V> > extends E_DPOPsolver
 			String className = elmt.getAttributeValue("className");
 			
 			if (className.equals(CompleteUTIL.class.getName())) {
-				utilModule = new CompleteUTIL<V> (elmt, problem);
+				utilModule = new CompleteUTIL<V, U> (elmt, problem);
 				utilModule.setSilent(true);
 				solGatherers.add(utilModule);
 							
 			} else if (className.endsWith("AtLCAs")) { // to display the DFS
 //				elmt.setAttribute("DOTrenderer", DOTrenderer.class.getName());
-				samplingModule = new SamplingPhase<V> (elmt, problem);
+				samplingModule = new SamplingPhase<V, U> (elmt, problem);
 				samplingModule.setSilent(true); // comment this to display the DFS
 				solGatherers.add(samplingModule);
 			}
@@ -102,11 +102,11 @@ public class Complete_E_DPOPsolver < V extends Addable<V> > extends E_DPOPsolver
 
 	/** @see E_DPOPsolver#buildSolution() */
 	@Override
-	public StochSolution<V> buildSolution() {
+	public StochSolution<V, U> buildSolution() {
 		
 		this.dfsString = (this.samplingModule == null ? "" : this.samplingModule.dfsToString());
 		
-		return new StochSolution<V> (problem.getNbrVars(), utilModule.getOptUtil(), utilModule.getExpectedUtil(), utilModule.getWorstUtil(), utilModule.getProbOfOptimality(), utilModule.getCentralization(), 
+		return new StochSolution<V, U> (problem.getNbrVars(), utilModule.getOptUtil(), utilModule.getExpectedUtil(), utilModule.getWorstUtil(), utilModule.getProbOfOptimality(), utilModule.getCentralization(), 
 				utilModule.getSolution(), factory.getNbrMsgs(), factory.getMsgNbrs(), factory.getTotalMsgSize(), factory.getMsgSizes(), factory.getNcccs(), factory.getTime(), null, utilModule.getMaxMsgDim());
 	}
 	

@@ -33,7 +33,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.jdom.Element;
+import org.jdom2.Element;
 
 import frodo2.algorithms.AgentInterface;
 import frodo2.algorithms.StatsReporter;
@@ -60,13 +60,13 @@ public class VALUEpropagation < Val extends Addable<Val>, U extends Addable<U> >
 	public static String START_MSG_TYPE = AgentInterface.START_AGENT;
 	
 	/** The type of the value message */
-	public static final String VALUE_MSG_TYPE = frodo2.algorithms.dpop.VALUEpropagation.VALUE_MSG_TYPE;
+	public static final String VALUE_MSG_TYPE = "ODPOP_VALUE";
 	
 	/** The type of the message used to request the GoodsTree from the UTIL propagation module */
 	public static final String GOODS_TREE_REQUEST_MESSAGE = "Goodstree request message";
 	
 	/** The type of the output messages containing the optimal assignment to a variable */
-	public static final String OUTPUT_MSG_TYPE = "OutputMessageVALUEpropagation";
+	public static final String OUTPUT_MSG_TYPE = "ODPOP_OutputMessageVALUEpropagation";
 	
 	// Variables used to collect statistics
 

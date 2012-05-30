@@ -214,7 +214,7 @@ public class QueueIOPipeTest extends TestCase {
 		if (this.measureTime) {
 			// Give some time to the sender before starting the CentralMailer
 			Thread.sleep(100);
-			mailman.start();
+			mailman.execute();
 		}
 		
 		// Get the message from the second queue and check for equality
@@ -240,7 +240,7 @@ public class QueueIOPipeTest extends TestCase {
 		if (this.measureTime) {
 			// Give some time to the sender before starting the CentralMailer
 			Thread.sleep(100);
-			mailman.start();
+			mailman.execute();
 		}
 		
 		// Get the message from the second queue and check for equality
@@ -280,7 +280,7 @@ public class QueueIOPipeTest extends TestCase {
 		if (this.measureTime) {
 			// Give some time to the sender before starting the CentralMailer
 			Thread.sleep(100);
-			mailman.start();
+			mailman.execute();
 		}
 		
 		// Get the messages from the second queue and check for equality and order

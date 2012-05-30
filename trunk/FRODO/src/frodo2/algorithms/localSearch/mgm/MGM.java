@@ -34,7 +34,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.jdom.Element;
+import org.jdom2.Element;
 
 import frodo2.algorithms.AgentInterface;
 import frodo2.algorithms.StatsReporterWithConvergence;
@@ -159,6 +159,12 @@ public class MGM <V extends Addable<V>, U extends Addable<U>> implements StatsRe
 			this.convergence = Boolean.parseBoolean(convergence);
 		else
 			this.convergence = false;
+		
+		String nbrCycles = parameters.getAttributeValue("nbrCycles");
+		if(nbrCycles == null)
+			this.max_distance = 200;
+		else
+			this.max_distance = Integer.parseInt(nbrCycles);
 	}
 
 	/** 
@@ -252,13 +258,13 @@ public class MGM <V extends Addable<V>, U extends Addable<U>> implements StatsRe
 		
 		else if (type.equals(AgentInterface.STOP_AGENT)) {
 			if(!terminated) {
-			for(VariableInfo<V,U> varInfo : infos.values()) {
-				varInfo.terminated = true;
-				queue.sendMessage(AgentInterface.STATS_MONITOR, new AssignmentMessage<V>(varInfo.variableID, varInfo.currentValue));
-			}
+				for(VariableInfo<V,U> varInfo : infos.values()) {
+					varInfo.terminated = true;
+					queue.sendMessage(AgentInterface.STATS_MONITOR, new AssignmentMessage<V>(varInfo.variableID, varInfo.currentValue));
+				}
 			
-			queue.sendMessageToSelf(new Message(AgentInterface.AGENT_FINISHED));
-		}
+				queue.sendMessageToSelf(new Message(AgentInterface.AGENT_FINISHED));
+			}
 		}
 
 	}
@@ -273,11 +279,12 @@ public class MGM <V extends Addable<V>, U extends Addable<U>> implements StatsRe
 		started = true;
 		owners = problem.getOwners();
 		Set<String> variables = problem.getVariables(problem.getAgent());
+		infos = new HashMap<String, VariableInfo<V, U>>(variables.size());
 		if (variables.isEmpty()) { // empty agent
 			this.queue.sendMessageToSelf(new Message (AgentInterface.AGENT_FINISHED));
+			terminated = true;
 			return;
 		}
-		infos = new HashMap<String, VariableInfo<V, U>>(variables.size());
 		assignmentHistoriesMap = new HashMap<String, ArrayList<CurrentAssignment<V>>>();
 		List<? extends UtilitySolutionSpace<V,U>> spaces = problem.getSolutionSpaces();
 

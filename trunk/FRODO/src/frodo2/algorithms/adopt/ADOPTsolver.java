@@ -25,7 +25,7 @@ package frodo2.algorithms.adopt;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-import org.jdom.Document;
+import org.jdom2.Document;
 
 import frodo2.algorithms.AbstractDCOPsolver;
 import frodo2.algorithms.StatsReporter;

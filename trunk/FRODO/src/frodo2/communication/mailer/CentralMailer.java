@@ -34,8 +34,9 @@ import java.util.PriorityQueue;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
-import org.jdom.Element;
+import org.jdom2.Element;
 
+import frodo2.algorithms.AgentFactory;
 import frodo2.algorithms.AgentInterface;
 import frodo2.communication.IncomingMsgPolicyInterface;
 import frodo2.communication.Message;
@@ -354,9 +355,6 @@ public class CentralMailer extends Thread {
 	/** Each agent's queue */
 	protected HashMap<String, FakeQueue> queues;
 
-	/** Used to signal that the thread has stopped */
-	public boolean notFinished = true;
-
 	/** A comparator used in the PriorityQueue to order messages according to their timestamps
 	 * @author Thomas Leaute
 	 */
@@ -401,20 +399,26 @@ public class CentralMailer extends Thread {
 	/** Whether to measure the number of messages and the total amount of information sent */
 	protected final boolean measuringMsgs;
 
-	/** The lock used for warm restarts */
+	/** The lock used for synchronization */
 	protected ReentrantLock lock = new ReentrantLock();
 
-	/** The condition on which the CentralMailer awaits to do restart */
-	protected Condition restart = lock.newCondition();
+	/** The condition on which the timed thread awaits to deliver a message */
+	protected Condition msgReady = this.lock.newCondition();
 
-	/** The condition on which the CentralMailer awaits before exiting end()*/
-	protected Condition runFinished = lock.newCondition();
+	/** The condition on which execute() awaits to proceed to the next message */
+	protected Condition msgDone = this.lock.newCondition();
+
+	/** The currently active queue */
+	protected FakeQueue currentQueue;
+	
+	/** The message delivered to the currently active Queue */
+	protected volatile MessageWrapper currentMsg;
 
 	/** Flag used to tell the CentralMailer that it should terminate */
-	protected boolean stop;
+	protected boolean stop = true;
 
 	/** Whether the agents have already been notified that they are all idle */
-	private boolean idleMsgsSent = false;
+	protected boolean idleMsgsSent = false;
 
 	/**
 	 * Constructor
@@ -442,18 +446,42 @@ public class CentralMailer extends Thread {
 		this.setDaemon(true);
 		super.start();
 	}
+	
+	/** Executes the algorithm
+	 * @return true if the algorithm correctly terminated; false if it timed out
+	 */
+	public boolean execute () {
+		return this.execute(AgentFactory.DEFAULT_TIMEOUT);
+	}
 
-	/** @see java.lang.Thread#run() */
-	public void run() {
+	/** Executes the algorithm
+	 * @param timeout 	the timeout in milliseconds
+	 * @return true if the algorithm correctly terminated; false if it timed out
+	 */
+	public boolean execute (long timeout) {
+		
+		// Convert the timeout to nanoseconds
+		if (timeout < Long.MAX_VALUE / 1000000L) 
+			timeout *= 1000000L;
+		else 
+			timeout = Long.MAX_VALUE;
+		
+		if (! this.isAlive()) 
+			this.start();
 
 		try {
+			this.lock.lock();
+			
+			if (this.stop) // run() isn't ready yet
+				this.msgDone.await();
+
 			int nbrAgentsLeft = this.queues.size() - 2; // -2 to not count the stats monitor nor the daemon
 			
 			// Initially, the outbox contains only messages sent by the controller
 			Object agent = AgentInterface.STATS_MONITOR;
 			FakeQueue queue = this.queues.get(agent);
 
-			while (! stop) {
+			while (true) {
 
 				// Process the messages in the outbox
 				for (MessageWrapper outWrap : this.outbox) {
@@ -514,34 +542,23 @@ public class CentralMailer extends Thread {
 				// Retrieve the next message to be delivered
 				MessageWrapper wrap = this.orderedQueue.peek();
 
-				if (wrap == null) { // no more messages; go to sleep
-					lock.lock();
-					try {
-						if (stop) // actually, we can stop
-							break;
-						
-						// Notify all agents that they are all idle, unless they have all terminated already
-						if (! this.idleMsgsSent && nbrAgentsLeft > 0) {
-							this.orderedQueue.add(new MessageWrapper (new Message (AgentInterface.ALL_AGENTS_IDLE), 0, lastTimeStamp, new HashSet<Object> (this.queues.keySet()), 0));
-							this.idleMsgsSent = true;
-							
-						} else { // go to sleep
-							restart.await();
+				if (wrap == null) { // no more messages: all agents are idle
+					
+					// Notify all agents that they are all idle, unless they have all terminated already
+					if (! this.idleMsgsSent && nbrAgentsLeft > 0) {
+						this.orderedQueue.add(new MessageWrapper (new Message (
+								AgentInterface.ALL_AGENTS_IDLE), 0, lastTimeStamp, new HashSet<Object> (this.queues.keySet()), 0));
+						this.idleMsgsSent = true;
+						continue; // let the agents process the ALL_AGENTS_IDLE message
 
-							// Reset the last timestamp seen, and process the next message
-							lastTimeStamp = Long.MIN_VALUE;
-							this.idleMsgsSent = false;
-							nbrAgentsLeft = this.queues.size() - 2; // -2 to not count the stats monitor nor the daemon
-						}
+					} else { // all agents have been notified of the idleness 
 						
-					} catch (InterruptedException e) {
-						e.printStackTrace();
-						break;
-					} finally {
-						lock.unlock();
+						// Reset the last timestamp seen and return
+						this.lastTimeStamp = Long.MIN_VALUE;
+						this.idleMsgsSent = false;
+						this.lock.unlock();
+						return true; // correct termination
 					}
-
-					continue;
 				}
 
 				Collection<Object> destinations = wrap.getDestinations();
@@ -557,30 +574,43 @@ public class CentralMailer extends Thread {
 					this.orderedQueue.poll();
 
 				assert this.orderedQueue.size() == 0 || this.orderedQueue.peek().getDestinations().size() > 0;
-
-				// Update the recipient's NCCC counter if necessary
-				queue.updateNCCCs(wrap.getNCCCs());
-
-				// Update the recipient's timestamp and start time if necessary
-				assert this.checkTimestamp(wrap.getTime()) : 
-					"Attempting to release the following message, which has a timestamp lower than " +
-					"the timetamp of the last released message (" + this.lastTimeStamp + "):\n" + wrap;
-				queue.updateTime(wrap.getTime());
-				// Notify the recipient's modules
-				queue.notifyInListeners(wrap.getMessage()); /// @bug Store the message if required
-				// Stop measuring time
-				queue.freezeTime();
+				
+				// Deliver the message and wait until it has been processed or a timeout has occurred
+				this.currentMsg = wrap;
+				this.currentQueue = queue;
+				this.msgReady.signal(); // tells run() to wake up as soon as I have released the lock by entering await()
+				long timeLeft = timeout - Math.max(0, Math.max(wrap.getTime(), queue.getCurrentTime()));
+				while (true) {
+					
+					// Wait until the agent is done processing the message
+					if ((timeLeft = this.msgDone.awaitNanos(timeLeft)) <= 0) { // timeout
+						this.stop = true;
+						this.lock.unlock();
+						return false;
+					}
+					
+					if (this.currentMsg != null)  // spurious wakeup
+						continue;
+					else if (this.stop) { // exception in the other thread
+						this.lock.unlock();
+						return false;
+					} else 
+						break;
+				}
 				
 				if (!agent.equals(AgentInterface.STATS_MONITOR) && wrap.getMessage().getType().equals(AgentInterface.AGENT_FINISHED)) 
 					nbrAgentsLeft--;
-
 			}
+			
 		} catch (OutOfMemoryError e) {
 			MessageWrapper wrap = new MessageWrapper(new Message(OutOfMemMsg));
 			FakeQueue queue = this.queues.get(Daemon.DAEMON);
 			stop = true;
 			// Notify the recipient's modules
 			queue.notifyInListeners(wrap.getMessage());
+			this.lock.unlock();
+			return false;
+			
 		} catch (Throwable e) {
 			System.err.println("The CentralMailer was interrupted due to the following exception:");
 			e.printStackTrace();
@@ -588,32 +618,93 @@ public class CentralMailer extends Thread {
 			FakeQueue queue = this.queues.get(Daemon.DAEMON);
 			stop = true;
 			queue.notifyInListeners(wrap.getMessage());
-		} finally {
-			notFinished = false;
-			lock.lock();
-			this.runFinished.signalAll();
-			lock.unlock();
+			this.lock.unlock();
+			return false;
 		}
 	}
 
-	/** Wakes up the CentralMailer after it went to sleep because its message queue was empty */
-	public void restart () {
-		lock.lock();
-		stop = false;
-		restart.signal();
-		lock.unlock();
+	/** Waits for a message to be available and then delivers it
+	 * @see java.lang.Thread#run() 
+	 */
+	@Override
+	public void run () {
+		
+		this.lock.lock();
+		this.stop = false;
+		this.msgDone.signal(); // in case execute() got the lock first
+		
+		try {
+			while (! this.stop) {
+				
+				// Wait for a message to be available for delivery
+				while (this.currentMsg == null) { // handles spurious wakeups
+					this.msgReady.await();
+					if (this.stop) {
+						this.msgDone.signal();
+						this.lock.unlock();
+						
+						return;
+					}
+				}
+				
+				this.lock.unlock();
+				
+				// Update the recipient's NCCC counter if necessary
+				assert this.currentMsg != null;
+				this.currentQueue.updateNCCCs(this.currentMsg.getNCCCs());
+
+				// Update the recipient's timestamp and start time if necessary
+				assert this.checkTimestamp(this.currentMsg.getTime()) : 
+					"Attempting to release the following message, which has a timestamp lower than " +
+					"the timetamp of the last released message (" + this.lastTimeStamp + "):\n" + this.currentMsg;
+				this.currentQueue.updateTime(this.currentMsg.getTime());
+
+				// Notify the recipient's modules
+				this.currentQueue.notifyInListeners(this.currentMsg.getMessage()); /// @bug Store the message if required
+
+				// Stop measuring time
+				this.currentQueue.freezeTime();
+				
+				// Return the control to the main thread
+				this.lock.lock();
+				this.currentMsg = null;
+				this.msgDone.signal();
+
+			}
+			
+			this.lock.unlock();
+			
+		} catch (OutOfMemoryError e) {
+			MessageWrapper wrap = new MessageWrapper(new Message(OutOfMemMsg));
+			FakeQueue queue = this.queues.get(Daemon.DAEMON);
+			// Notify the recipient's modules
+			queue.notifyInListeners(wrap.getMessage());
+		} catch (Throwable e) {
+			System.err.println("The CentralMailer was interrupted due to the following exception:");
+			e.printStackTrace();
+			MessageWrapper wrap = new MessageWrapper(new Message(ERROR_MSG));
+			FakeQueue queue = this.queues.get(Daemon.DAEMON);
+			queue.notifyInListeners(wrap.getMessage());
+		} finally {
+			lock.lock();
+			this.stop = true;
+			this.currentMsg = null;
+			this.msgDone.signal();
+			lock.unlock();
+		}
 	}
 
 	/** Kills the CentralMailer */
 	public void end () {
 		try {
+			lock.lock();
 			if(!stop) {
-				lock.lock();
 				stop = true;
-				restart.signal();
-				runFinished.await();
-				lock.unlock();
+				this.msgReady.signal();
+				this.msgDone.await();
 			}
+			lock.unlock();
+			
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}

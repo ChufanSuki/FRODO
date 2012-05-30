@@ -29,7 +29,7 @@ import java.util.List;
 import junit.extensions.RepeatedTest;
 import junit.framework.TestSuite;
 
-import org.jdom.Element;
+import org.jdom2.Element;
 
 import frodo2.algorithms.Problem;
 import frodo2.algorithms.Solution;
@@ -168,7 +168,6 @@ public class SynchBBagentTest <V extends Addable<V>, U extends Addable<U> > exte
 	}
 	
 	/** @see DPOPagentTest#setUp() */
-	@SuppressWarnings("unchecked")
 	@Override
 	public void setUp () throws Exception {
 		super.setUp();

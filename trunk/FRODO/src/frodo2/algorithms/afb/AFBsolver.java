@@ -24,7 +24,7 @@ package frodo2.algorithms.afb;
 
 import java.util.ArrayList;
 
-import org.jdom.Document;
+import org.jdom2.Document;
 
 import frodo2.algorithms.AbstractDCOPsolver;
 import frodo2.algorithms.StatsReporter;

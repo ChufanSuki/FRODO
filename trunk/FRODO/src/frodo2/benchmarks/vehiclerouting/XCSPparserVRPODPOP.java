@@ -27,8 +27,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.jdom.Document;
-import org.jdom.Element;
+import org.jdom2.Document;
+import org.jdom2.Element;
 
 import frodo2.solutionSpaces.Addable;
 import frodo2.solutionSpaces.AddableInteger;
@@ -111,7 +111,7 @@ public class XCSPparserVRPODPOP <U extends Addable<U>> extends XCSPparserVRP<U> 
 	}
 	
 	/**
-	 * @see frodo2.benchmarks.vehiclerouting.XCSPparserVRP#newInstance(java.lang.String, org.jdom.Element)
+	 * @see frodo2.benchmarks.vehiclerouting.XCSPparserVRP#newInstance(java.lang.String, org.jdom2.Element)
 	 */
 	@Override
 	protected XCSPparserVRPODPOP<U> newInstance (String agent, Element instance) {

@@ -39,9 +39,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
-import org.jdom.Document;
-import org.jdom.Element;
-import org.jdom.JDOMException;
+import org.jdom2.Document;
+import org.jdom2.Element;
+import org.jdom2.JDOMException;
 
 import frodo2.algorithms.AgentInterface.AgentFinishedMessage;
 import frodo2.algorithms.test.AllTests;
@@ -64,7 +64,6 @@ import frodo2.solutionSpaces.ProblemInterface;
  * @author Thomas Leaute
  * @author Brammert Ottens
  * @param <V> the type used for variable values
- * @todo Make possible to specify a timeout in simulated time. 
  */
 public class AgentFactory < V extends Addable<V> > implements IncomingMsgPolicyInterface<String> {
 	
@@ -311,9 +310,12 @@ public class AgentFactory < V extends Addable<V> > implements IncomingMsgPolicyI
 
 	/** The nccc stamp of the AGENT_FINISHED message with the highest nccc stamp*/
 	private long finalNCCCcount = -1;
+	
+	/** The default timeout in milliseconds */
+	public static long DEFAULT_TIMEOUT = 600000;
 
 	/** The timeout in milliseconds */
-	private long timeout = 600000;
+	private long timeout = DEFAULT_TIMEOUT;
 
 	/** \c true when the agent factory timed out before all the agents finished*/
 	private boolean timedOut = false;
@@ -585,10 +587,11 @@ public class AgentFactory < V extends Addable<V> > implements IncomingMsgPolicyI
 	private void waitForEnd () {
 
 		if (this.measureTime) {
-			if (mailman.isAlive()) 
-				mailman.restart();
-			else 
-				mailman.start();
+			if (! this.mailman.execute(timeout)) {
+				timedOut = true;
+				System.err.println("Timed out after " + this.timeout + " ms (simulated time)");
+			}
+			return;
 		}
 
 		synchronized (agents) {

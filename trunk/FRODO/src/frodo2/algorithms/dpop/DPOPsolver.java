@@ -28,8 +28,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
 
-import org.jdom.Document;
-import org.jdom.Element;
+import org.jdom2.Document;
+import org.jdom2.Element;
 
 import frodo2.algorithms.AbstractDCOPsolver;
 import frodo2.algorithms.Solution;

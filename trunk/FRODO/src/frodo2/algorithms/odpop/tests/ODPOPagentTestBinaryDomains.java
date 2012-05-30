@@ -36,9 +36,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
-import org.jdom.Document;
-import org.jdom.Element;
-import org.jdom.JDOMException;
+import org.jdom2.Document;
+import org.jdom2.Element;
+import org.jdom2.JDOMException;
 
 import frodo2.algorithms.AgentFactory;
 import frodo2.algorithms.AgentInterface;
@@ -166,7 +166,6 @@ public class ODPOPagentTestBinaryDomains < V extends Addable<V>, U extends Addab
 	 * @param startMsgType 		the new type for the start message
 	 * @throws JDOMException 	if parsing the agent configuration file failed
 	 */
-	@SuppressWarnings("unchecked")
 	private void setStartMsgType (String startMsgType) throws JDOMException {
 		startMsgType = AgentInterface.START_AGENT;
 		if (startMsgType != null) {
@@ -346,22 +345,26 @@ public class ODPOPagentTestBinaryDomains < V extends Addable<V>, U extends Addab
 			}
 		}
 		
-		if (this.useCentralMailer) 
-			mailman.start();
+		long timeout = 15000; // in ms
 		
-		// Wait for all agents to finish
-		while (true) {
-			this.finished_lock.lock();
-			try {
-				if (nbrAgentsFinished >= nbrAgents) {
+		if (this.useCentralMailer) 
+			assertTrue("Timeout", this.mailman.execute(timeout));
+			
+		else {
+			// Wait for all agents to finish
+			while (true) {
+				this.finished_lock.lock();
+				try {
+					if (nbrAgentsFinished >= nbrAgents) {
+						break;
+					} else if (! this.finished.await(timeout, TimeUnit.MILLISECONDS)) {
+						fail("Timeout");
+					}
+				} catch (InterruptedException e) {
 					break;
-				} else if (! this.finished.await(15, TimeUnit.SECONDS)) {
-					fail("Timeout");
 				}
-			} catch (InterruptedException e) {
-				break;
+				this.finished_lock.unlock();
 			}
-			this.finished_lock.unlock();
 		}
 		
 		// Check that ODPOP and DPOP agree on the total optimal utility

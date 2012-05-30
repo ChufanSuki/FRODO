@@ -28,10 +28,11 @@ import java.util.List;
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
 
-import org.jdom.Document;
-import org.jdom.Element;
-import org.jdom.JDOMException;
-import org.jdom.input.SAXBuilder;
+import org.jdom2.Document;
+import org.jdom2.Element;
+import org.jdom2.JDOMException;
+import org.jdom2.input.SAXBuilder;
+import org.jdom2.input.sax.XMLReaders;
 
 import frodo2.algorithms.MASparser;
 import frodo2.solutionSpaces.AddableInteger;
@@ -78,7 +79,6 @@ public class MASparserTest extends TestCase {
 	 * 
 	 * It simply reads in an xml file that links to two other xml files
 	 */
-	@SuppressWarnings("unchecked")
 	public void testParseString() {
 		try {
 			Document parsedDescription = MASparser.parse("src/frodo2/algorithms/test/testXInclude.xml");
@@ -110,7 +110,7 @@ public class MASparserTest extends TestCase {
 	 */
 	public void testGetSubProblemString() {
 		try {
-			SAXBuilder builder = new SAXBuilder(false);
+			SAXBuilder builder = new SAXBuilder(XMLReaders.NONVALIDATING);
 			Document agentDescription = builder.build("src/frodo2/algorithms/test/agentDescription.xml");
 			MASparser<AddableInteger, AddableInteger> parser = new MASparser<AddableInteger, AddableInteger> (agentDescription);
 			MASparser<AddableInteger, AddableInteger> subProblem1 = parser.getSubProblem("agent1");

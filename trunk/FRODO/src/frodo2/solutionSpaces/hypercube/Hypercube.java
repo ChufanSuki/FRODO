@@ -42,11 +42,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.StringTokenizer;
 
-import org.jdom.Document;
-import org.jdom.Element;
-import org.jdom.input.SAXBuilder;
-import org.jdom.output.Format;
-import org.jdom.output.XMLOutputter;
+import org.jdom2.Document;
+import org.jdom2.Element;
+import org.jdom2.input.SAXBuilder;
+import org.jdom2.output.Format;
+import org.jdom2.output.XMLOutputter;
 
 import frodo2.solutionSpaces.Addable;
 import frodo2.solutionSpaces.AddableReal;
@@ -607,7 +607,7 @@ extends HypercubeLimited<V, U, U> implements UtilitySolutionSpace<V, U> {
 	 * @see Hypercube#union(String[], String[])
 	 * @author Thomas Leaute
 	 */
-	protected UtilitySolutionSpace< V, U > join( UtilitySolutionSpace< V, U > space, boolean addition, boolean minNCCCs ) {
+	public UtilitySolutionSpace< V, U > join( UtilitySolutionSpace< V, U > space, boolean addition, boolean minNCCCs ) {
 		return this.join(space, union(this.variables, space.getVariables()), addition, minNCCCs);
 	}
 	
@@ -1037,12 +1037,12 @@ extends HypercubeLimited<V, U, U> implements UtilitySolutionSpace<V, U> {
 	
 	
 	/** @see UtilitySolutionSpace#consensus(java.lang.String, java.util.Map, boolean) */
-	public ProjOutput< V, U > consensus (final String varOut, final Map< String, UtilitySolutionSpace<V, AddableReal> > distributions, final boolean maximum) {
+	public ProjOutput< V, U > consensus (final String varOut, final Map< String, UtilitySolutionSpace<V, U> > distributions, final boolean maximum) {
 		return this.consensus(varOut, distributions, maximum, false);
 	}
 	
 	/** @see UtilitySolutionSpace#consensusAllSols(java.lang.String, java.util.Map, boolean) */
-	public ProjOutput<V, U> consensusAllSols (String varOut, Map< String, UtilitySolutionSpace<V, AddableReal> > distributions, boolean maximum) {
+	public ProjOutput<V, U> consensusAllSols (String varOut, Map< String, UtilitySolutionSpace<V, U> > distributions, boolean maximum) {
 		return this.consensus(varOut, distributions, maximum, true);
 	}
 	
@@ -1055,7 +1055,7 @@ extends HypercubeLimited<V, U, U> implements UtilitySolutionSpace<V, U> {
 	 * @todo Test when the distributions and the caller do not agree on the domains. 
 	 */
 	@SuppressWarnings("unchecked")
-	protected ProjOutput< V, U > consensus (final String varOut, final Map< String, UtilitySolutionSpace<V, AddableReal> > distributions, final boolean maximum, final boolean allSolutions) {
+	protected ProjOutput< V, U > consensus (final String varOut, final Map< String, UtilitySolutionSpace<V, U> > distributions, final boolean maximum, final boolean allSolutions) {
 		
 		assert ! distributions.containsKey(varOut) : "The provided distributions contain the variable " + varOut + " to be projected out";
 
@@ -1079,7 +1079,7 @@ extends HypercubeLimited<V, U, U> implements UtilitySolutionSpace<V, U> {
 		final int indexVarOut = nbrVarsKept;
 		ArrayList<String> varsKept = new ArrayList<String> (nbrVarsKept);
 		for (String var : this.variables) {
-			UtilitySolutionSpace<V, AddableReal> prob = distributions.get(var);
+			UtilitySolutionSpace<V, U> prob = distributions.get(var);
 			if (prob != null) { // random variable with a provided distribution
 				iterOrder[--nbrVarsKept] = var;
 				iterDomsNotOut[nbrVarsKept] = intersection(this.getDomain(var), prob.getDomain(var));
@@ -1185,7 +1185,7 @@ extends HypercubeLimited<V, U, U> implements UtilitySolutionSpace<V, U> {
 				// Compute the probability of the current assignment to the randVars
 				prob = 1.0;
 				for (UtilitySolutionSpace.Iterator<V, AddableReal> iter : iters) 
-					prob *= iter.nextUtility().getValue();
+					prob *= iter.nextUtility().doubleValue();
 				probLeft -= prob;
 				
 				// Record the best solution(s) found
@@ -2060,25 +2060,19 @@ extends HypercubeLimited<V, U, U> implements UtilitySolutionSpace<V, U> {
 	
 	/** 
 	 * @see UtilitySolutionSpace#sample(int) 
-	 * @warning Assumes that the hypercube contains a single variable, and that utilities are AddableReal and sum up to 1.0. 
+	 * @warning Assumes that the hypercube contains a single variable, and that utilities sum up to 1.0. 
 	 */
-	@SuppressWarnings("unchecked")
 	public Map<V, Double> sample(int nbrSamples) {
 		
 		assert this.variables.length == 1 : "Sampling of multi-variable spaces not yet implemented";
 		
-		assert this.values.getClass().getComponentType().equals(AddableReal.class) : "Sampling only supports AddableReal utilities";
-		Hypercube<V, AddableReal> this2 = (Hypercube<V, AddableReal>) this;
-		
-		assert this2.sumUtils().equals(new AddableReal (1.0), 1E-6) : "Probabilities do not add up to 1.0";
-		
 		HashMap<V, Double> out = new HashMap<V, Double> ();
-		V[] dom = this2.domains[0];
+		V[] dom = this.domains[0];
 		
 		// If nbrSamples == 0, this means we should return the true weights, without sampling
 		if (nbrSamples == 0) {
-			for (int i = 0; i < this2.number_of_utility_values; i++) {
-				double prob = this2.values[i].getValue();
+			for (int i = 0; i < this.number_of_utility_values; i++) {
+				double prob = this.values[i].doubleValue();
 				if (prob > 0) 
 					out.put(dom[i], prob);
 			}
@@ -2086,10 +2080,10 @@ extends HypercubeLimited<V, U, U> implements UtilitySolutionSpace<V, U> {
 		}
 		
 		// Aggregate all probabilities to form the cumulative law
-		AddableReal[] cumul = this2.values.clone();
-		AddableReal sum = this2.values[0];
+		U[] cumul = this.values.clone();
+		U sum = this.values[0];
 		for (int i = 1; i < number_of_utility_values; i++) {
-			sum = sum.add(this2.values[i]);
+			sum = sum.add(this.values[i]);
 			cumul[i] = sum;
 		}
 		
@@ -2097,7 +2091,7 @@ extends HypercubeLimited<V, U, U> implements UtilitySolutionSpace<V, U> {
 		for (int i = 0; i < nbrSamples; i++) {
 			
 			// Generate a random cumulated probability
-			AddableReal rand = new AddableReal (Math.random());
+			U rand = this.infeasibleUtil.fromString(Double.toString(Math.random()));
 			
 			// Find the first value for the random variable whose cumulated probability is higher 
 			for (int j = 0; j < dom.length; j++) {
@@ -2117,17 +2111,6 @@ extends HypercubeLimited<V, U, U> implements UtilitySolutionSpace<V, U> {
 		}
 		
 		return out;
-	}
-	
-	/** @return the sum of all utilities */
-	@SuppressWarnings("unchecked")
-	private AddableReal sumUtils () {
-		Hypercube<V, AddableReal> this2 = (Hypercube<V, AddableReal>) this;
-		AddableReal sum = new AddableReal (0.0);
-		for (int i = 0; i < this2.number_of_utility_values; i++) 
-			sum = sum.add(this2.values[i]);
-		this.incrNCCCs(this2.number_of_utility_values);
-		return sum;
 	}
 	
 	/** @see BasicHypercube#changeVariablesOrder(java.lang.String[]) */
@@ -2312,7 +2295,7 @@ extends HypercubeLimited<V, U, U> implements UtilitySolutionSpace<V, U> {
 	/** @see BasicHypercube#scalarHypercube(java.io.Serializable) */
 	@SuppressWarnings("unchecked")
 	@Override
-	protected Hypercube<V, U> scalarHypercube(U utility) {
+	protected ScalarHypercube<V, U> scalarHypercube(U utility) {
 		return new ScalarHypercube<V, U> (utility, this.infeasibleUtil, (Class<? extends V[]>) this.assignment.getClass());
 	}
 
@@ -2557,7 +2540,7 @@ extends HypercubeLimited<V, U, U> implements UtilitySolutionSpace<V, U> {
 		 * @see Hypercube#join(UtilitySolutionSpace, boolean, boolean)
 		 */
 		@Override
-		protected Hypercube.NullHypercube<V, U> join( UtilitySolutionSpace< V, U> hypercube, boolean addition, boolean minNCCCs ) {
+		public Hypercube.NullHypercube<V, U> join( UtilitySolutionSpace< V, U> hypercube, boolean addition, boolean minNCCCs ) {
 			return NULL;
 		}
 		
@@ -2614,7 +2597,7 @@ extends HypercubeLimited<V, U, U> implements UtilitySolutionSpace<V, U> {
 		 * @see Hypercube#consensus(java.lang.String, java.util.Map, boolean, boolean) 
 		 */
 		@Override
-		protected ProjOutput< V, U > consensus (String varOut, Map< String, UtilitySolutionSpace<V, AddableReal> > distributions, boolean maximum, boolean allSolutions) {
+		protected ProjOutput< V, U > consensus (String varOut, Map< String, UtilitySolutionSpace<V, U> > distributions, boolean maximum, boolean allSolutions) {
 			return new ProjOutput<V, U> (NULL, new String [0], NULL);
 		}
 
@@ -2873,6 +2856,16 @@ extends HypercubeLimited<V, U, U> implements UtilitySolutionSpace<V, U> {
 			boolean maximize, String[] fixedVariables, V[] fixedValues) {
 		/// @todo Auto-generated method stub
 		assert false : "NotImplemented";
+		return null;
+	}
+	
+	/** 
+	 * @see frodo2.solutionSpaces.UtilitySolutionSpace#rescale(frodo2.solutionSpaces.Addable, frodo2.solutionSpaces.Addable)
+	 */
+	@Override
+	public UtilitySolutionSpace<V, U> rescale(U add, U multiply) {
+		// TODO Auto-generated method stub
+		assert false : "Not yet implemented";
 		return null;
 	}
 	

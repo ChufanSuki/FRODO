@@ -28,7 +28,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.jdom.Element;
+import org.jdom2.Element;
 
 import frodo2.algorithms.AgentInterface;
 import frodo2.algorithms.varOrdering.election.LeaderElectionMaxID;

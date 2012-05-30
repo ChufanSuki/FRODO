@@ -270,8 +270,9 @@ public class AddableReal implements Addable<AddableReal> {
 		return (int) this.value;
 	}
 	
-	/** @return the value */
-	public double getValue() {
+	/** @see Addable#doubleValue() */
+	@Override
+	public double doubleValue() {
 		return this.value;
 	}
 	

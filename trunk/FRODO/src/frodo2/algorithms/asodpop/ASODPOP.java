@@ -40,7 +40,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.jdom.Element;
+import org.jdom2.Element;
 
 import frodo2.algorithms.AgentInterface;
 import frodo2.algorithms.StatsReporterWithConvergence;
@@ -111,7 +111,7 @@ implements StatsReporterWithConvergence<Val> {
 	public static final String VALUE_MSG_TYPE_PSEUDO = "VALUEtoPseudo";
 	
 	/** The type of the output messages containing the optimal assignment to a variable */
-	public static final String OUTPUT_MSG_TYPE = "OutputMessageVALUEpropagation";
+	public static final String OUTPUT_MSG_TYPE = VALUEpropagation.OUTPUT_MSG_TYPE;
 	
 	/** The type of an acknowledge message*/
 	public static final String ACK_MSG_TYPE = "Ack";

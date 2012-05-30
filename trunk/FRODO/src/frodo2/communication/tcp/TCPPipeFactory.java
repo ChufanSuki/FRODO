@@ -66,7 +66,7 @@ public class TCPPipeFactory implements PipeFactory {
 	/** @see frodo2.communication.PipeFactory#getSelfAddress(int) */
 	public AgentAddress getSelfAddress(int idx) {
 		try {
-			return new TCPAddress(InetAddress.getLocalHost().getHostName(),idx);
+			return new TCPAddress(InetAddress.getLocalHost().getCanonicalHostName(),idx);
 		} catch (UnknownHostException e) {
 			e.printStackTrace();
 		}

@@ -31,7 +31,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
-import org.jdom.Element;
+import org.jdom2.Element;
 
 import junit.extensions.RepeatedTest;
 import junit.framework.TestSuite;
@@ -77,7 +77,7 @@ public class DFSgenerationWithOrderTest extends DFSgenerationTest {
 		this.minIncr = minIncr;
 	}
 	
-	/** @see DFSgenerationTest#createDFSparams(org.jdom.Element) */
+	/** @see DFSgenerationTest#createDFSparams(org.jdom2.Element) */
 	@Override
 	protected Element createDFSparams(Element heuristicParams) {
 

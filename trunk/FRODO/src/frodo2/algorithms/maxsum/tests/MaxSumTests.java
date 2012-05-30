@@ -25,8 +25,8 @@ package frodo2.algorithms.maxsum.tests;
 
 import java.util.List;
 
-import org.jdom.Document;
-import org.jdom.Element;
+import org.jdom2.Document;
+import org.jdom2.Element;
 
 import frodo2.algorithms.RandGraphFactory;
 import frodo2.algorithms.Solution;
@@ -152,7 +152,6 @@ public class MaxSumTests< V extends Addable<V>, U extends Addable<U> > extends T
 	/** The test method 
 	 * @throws Exception if an error occurs
 	 */
-	@SuppressWarnings("unchecked")
 	public void test () throws Exception {
 		
 		// Construct a random problem instance
@@ -166,11 +165,13 @@ public class MaxSumTests< V extends Addable<V>, U extends Addable<U> > extends T
 		// Get the agent configuration file
 		Document agentConfig = XCSPparser.parse("src/frodo2/algorithms/maxsum/MaxSumAgent.xml", false);
 		for (Element module : (List<Element>) agentConfig.getRootElement().getChild("modules").getChildren()) {
-			if (module.getAttributeValue("className").equals(MaxSum.class.getName())) {
-				module.setAttribute("rescale", Boolean.toString(this.p2 == 0.0));
+			String moduleClass = module.getAttributeValue("className");
+			
+			if (moduleClass.equals(MaxSum.class.getName())) {
 				if (acyclic) 
-					module.setAttribute("nbrCycles", "50000");
+					module.setAttribute("maxNbrIter", "50000");
 				module.setAttribute("randomInit", Boolean.toString(this.randomInit));
+				
 			}
 		}
 		

@@ -24,8 +24,8 @@ package frodo2.algorithms.synchbb;
 
 import java.util.ArrayList;
 
-import org.jdom.Document;
-import org.jdom.Element;
+import org.jdom2.Document;
+import org.jdom2.Element;
 
 import frodo2.algorithms.AbstractDCOPsolver;
 import frodo2.algorithms.StatsReporter;

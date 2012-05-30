@@ -246,7 +246,7 @@ extends UtilitySolutionSpaceLimited<V, U, U> {
 	 * @param maximum 			\c true if we should maximize the utility; \c false if it should be minimized
 	 * @return a ProjOutput object that represents the pair resulting space - conditional optimal assignments
 	 */
-	public ProjOutput< V, U > consensus (String varOut, Map< String, UtilitySolutionSpace<V, AddableReal> > distributions, boolean maximum);
+	public ProjOutput< V, U > consensus (String varOut, Map< String, UtilitySolutionSpace<V, U> > distributions, boolean maximum);
 	
 	/** A projection operation that uses the advanced consensus approach
 	 * 
@@ -259,7 +259,7 @@ extends UtilitySolutionSpaceLimited<V, U, U> {
 	 * @return a ProjOutput object that represents the pair resulting space - conditional optimal assignments
 	 * @see UtilitySolutionSpace#consensus(String, Map, boolean)
 	 */
-	public ProjOutput< V, U > consensusAllSols (String varOut, Map< String, UtilitySolutionSpace<V, AddableReal> > distributions, boolean maximum);
+	public ProjOutput< V, U > consensusAllSols (String varOut, Map< String, UtilitySolutionSpace<V, U> > distributions, boolean maximum);
 	
 	
 	/** Projects variables out of this UtilitySolutionSpace
@@ -355,6 +355,17 @@ extends UtilitySolutionSpaceLimited<V, U, U> {
 	 * @return weighted samples for this space's single variable 
 	 */
 	public Map<V, Double> sample (int nbrSamples);
+	
+	/**
+	 * Rescales the utilities in this space
+	 * 
+	 * @author Brammert Ottens, 9 mrt. 2012
+	 * @param add		add this value to all utilities
+	 * @param multiply	multiply all utilities with this value
+	 * @return a rescaled utility space
+	 * @note The multiplication is performed after the addition. 
+	 */
+	public UtilitySolutionSpace<V, U> rescale(U add, U multiply);
 	
 	/** Sets the problem that should be notified of constraint checks
 	 * @param problem 	the problem

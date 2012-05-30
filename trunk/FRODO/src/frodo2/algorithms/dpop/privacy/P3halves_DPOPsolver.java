@@ -26,7 +26,7 @@ import java.util.ArrayList;
 import java.util.Map;
 import java.util.TreeMap;
 
-import org.jdom.Document;
+import org.jdom2.Document;
 
 import frodo2.algorithms.Solution;
 import frodo2.algorithms.StatsReporter;

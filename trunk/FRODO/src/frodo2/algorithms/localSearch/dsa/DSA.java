@@ -37,7 +37,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Map.Entry;
 
-import org.jdom.Element;
+import org.jdom2.Element;
 
 import frodo2.algorithms.AgentInterface;
 import frodo2.algorithms.StatsReporterWithConvergence;
@@ -482,22 +482,22 @@ implements StatsReporterWithConvergence<Val> {
 		} else if(type.equals(AgentInterface.STOP_AGENT)) {
 
 			if(!terminated) {
-			for(DSA.VariableInfo<Val, U> varInfo : infos.values()) {
-				Val value = varInfo.currentValue;
-				String var = varInfo.variableID;
+				for(DSA.VariableInfo<Val, U> varInfo : infos.values()) {
+					Val value = varInfo.currentValue;
+					String var = varInfo.variableID;
 				
-				// check if we want to measure convergence
-				if(convergence) {
-					ArrayList<CurrentAssignment<Val>> history = assignmentHistoriesMap.get(var);
-					history.add(new CurrentAssignment<Val>(queue.getCurrentTime(), varInfo.cycleCounter, value));
-					queue.sendMessage(AgentInterface.STATS_MONITOR, new StatsReporterWithConvergence.ConvStatMessage<Val>(CONV_STATS_MSG_TYPE, var, history));
+					// check if we want to measure convergence
+					if(convergence) {
+						ArrayList<CurrentAssignment<Val>> history = assignmentHistoriesMap.get(var);
+						history.add(new CurrentAssignment<Val>(queue.getCurrentTime(), varInfo.cycleCounter, value));
+						queue.sendMessage(AgentInterface.STATS_MONITOR, new StatsReporterWithConvergence.ConvStatMessage<Val>(CONV_STATS_MSG_TYPE, var, history));
+					}
+
+					queue.sendMessage(AgentInterface.STATS_MONITOR, new AssignmentMessage<Val, U>(var, varInfo.currentValue, varInfo.currentUtility));
 				}
 
-				queue.sendMessage(AgentInterface.STATS_MONITOR, new AssignmentMessage<Val, U>(var, varInfo.currentValue, varInfo.currentUtility));
+				queue.sendMessageToSelf(new Message (AgentInterface.AGENT_FINISHED));
 			}
-
-			queue.sendMessageToSelf(new Message (AgentInterface.AGENT_FINISHED));
-		}
 		}
 
 	}

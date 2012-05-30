@@ -26,7 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.jdom.Element;
+import org.jdom2.Element;
 
 /**
  * This class is used to generate the 'relation' tags in the XML output file

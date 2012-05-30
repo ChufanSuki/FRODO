@@ -1312,7 +1312,7 @@ public class HypercubeTest extends TestCase {
 			AddableReal sum = new AddableReal(0.0);
 			for (Iterator<AddableInteger, AddableReal> iter = probSpace.iterator(); iter.hasNext(); ) 
 				sum = sum.add(iter.nextUtility());
-			assert sum.getValue() > 0.0;
+			assert sum.doubleValue() > 0.0;
 			for (Iterator<AddableInteger, AddableReal> iter = probSpace.iterator(); iter.hasNext(); ) 
 				iter.setCurrentUtility(iter.nextUtility().divide(sum));
 			randVars = new String[] { probSpace.getVariable(0) };
@@ -1581,7 +1581,7 @@ public class HypercubeTest extends TestCase {
 			vals[i] = new AddableInteger (i);
 		
 		Hypercube<AddableInteger, AddableReal> probSpace = 
-			new Hypercube<AddableInteger, AddableReal> (new String[] {"var"}, new AddableInteger[][] {vals}, probs, null);
+			new Hypercube<AddableInteger, AddableReal> (new String[] {"var"}, new AddableInteger[][] {vals}, probs, AddableReal.PlusInfinity.PLUS_INF);
 		
 		// Sample the probability space
 		int nbrSamples = nbrProbs * 10000;
@@ -1599,7 +1599,7 @@ public class HypercubeTest extends TestCase {
 	/** Tests the consensus() operation with weighted samples */
 	public void testConsensusWeighted () {
 		
-		Hypercube<AddableInteger, AddableInteger> h1 = random_hypercube();
+		Hypercube<AddableInteger, AddableReal> h1 = random_hypercube(0.1, AddableReal.class);
 		
 		// Choose one variable to be projected out (most probably, one of the hypercube's variables)
 		String varOut = "X" + (int)(7 * Math.random());
@@ -1637,7 +1637,7 @@ public class HypercubeTest extends TestCase {
 		}
 		
 		// Perform the normal consensus operation
-		ProjOutput<AddableInteger, AddableInteger> projOutput1 = h1.consensus(varOut, distributions, maximize);
+		ProjOutput<AddableInteger, AddableReal> projOutput1 = h1.consensus(varOut, distributions, maximize);
 		
 		// Check the variables in the projOutput
 		if (h1.getDomain(varOut) != null) {
@@ -1650,7 +1650,7 @@ public class HypercubeTest extends TestCase {
 				h1.compose(new String[] { varOut }, projOutput1.assignments).equivalent(projOutput1.space));
 		
 		// Perform the advanced consensus operation
-		ProjOutput<AddableInteger, AddableInteger> projOutput2 = h1.consensusAllSols(varOut, distributions, maximize);
+		ProjOutput<AddableInteger, AddableReal> projOutput2 = h1.consensusAllSols(varOut, distributions, maximize);
 		BasicUtilitySolutionSpace< AddableInteger, ArrayList<AddableInteger> > sol = projOutput2.assignments;
 		
 		// Check the variables in the projOutput
@@ -1697,7 +1697,7 @@ public class HypercubeTest extends TestCase {
 		while (true) {
 			
 			// Slice h1 over the current assignments, if any variable remains
-			UtilitySolutionSpace<AddableInteger, AddableInteger> h1Sliced = h1;
+			UtilitySolutionSpace<AddableInteger, AddableReal> h1Sliced = h1;
 			if (nbrRemainingVars != 0) 
 				h1Sliced = h1.slice(sol.getVariables(), assignments);
 			
@@ -1705,7 +1705,7 @@ public class HypercubeTest extends TestCase {
 			AddableInteger chosen = sol.slice(sol.getVariables(), assignments).getUtility(0).get(0);
 			
 			// For each scenario, compute the optimal utility
-			UtilitySolutionSpace<AddableInteger, AddableInteger> optUtil = h1Sliced.blindProject(varOut, maximize).resolve();
+			UtilitySolutionSpace<AddableInteger, AddableReal> optUtil = h1Sliced.blindProject(varOut, maximize).resolve();
 			
 			// For each possible value of varOut, compute the number of (weighted) times it is optimal
 			HashMap<AddableInteger, AddableReal> counts = new HashMap<AddableInteger, AddableReal> ();
@@ -1714,7 +1714,7 @@ public class HypercubeTest extends TestCase {
 			for (AddableInteger val : h1.getDomain(varOut)) {
 				
 				// Slice h1Sliced over varOut = val
-				BasicUtilitySolutionSpace<AddableInteger, AddableInteger> h1Sliced2 = h1Sliced.slice(varOut, val);
+				BasicUtilitySolutionSpace<AddableInteger, AddableReal> h1Sliced2 = h1Sliced.slice(varOut, val);
 				
 				// For each scenario, if val is optimal, increment its counter with the probability of the scenario
 				for (int i = 0; i < h1Sliced2.getNumberOfSolutions(); i++) 

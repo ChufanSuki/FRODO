@@ -29,7 +29,7 @@ import java.io.Serializable;
 import java.math.BigInteger;
 import java.text.NumberFormat;
 
-import org.jdom.Element;
+import org.jdom2.Element;
 
 import frodo2.solutionSpaces.Addable;
 import frodo2.solutionSpaces.AddableInteger;

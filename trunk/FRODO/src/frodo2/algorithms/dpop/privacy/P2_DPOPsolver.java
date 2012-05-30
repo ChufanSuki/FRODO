@@ -28,8 +28,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-import org.jdom.Document;
-import org.jdom.Element;
+import org.jdom2.Document;
+import org.jdom2.Element;
 
 import frodo2.algorithms.Solution;
 import frodo2.algorithms.StatsReporter;
@@ -170,7 +170,6 @@ public class P2_DPOPsolver< V extends Addable<V>, U extends Addable<U> > extends
 	 * @param useTCP 		Whether to use TCP pipes or shared memory pipes
 	 * @warning Using TCP pipes automatically disables simulated time. 
 	 */
-	@SuppressWarnings("unchecked")
 	public < UL extends AddableLimited<U, UL> > P2_DPOPsolver (String agentDescFile, Class<V> domClass, Class<U> utilClass, Class<UL> eUtilClass, boolean useTCP) {
 		super (agentDescFile, domClass, utilClass, useTCP);
 		
@@ -201,7 +200,6 @@ public class P2_DPOPsolver< V extends Addable<V>, U extends Addable<U> > extends
 	 * @param useTCP 		Whether to use TCP pipes or shared memory pipes
 	 * @warning Using TCP pipes automatically disables simulated time. 
 	 */
-	@SuppressWarnings("unchecked")
 	public < UL extends AddableLimited<U, UL> > P2_DPOPsolver (Document agentDesc, Class<V> domClass, Class<U> utilClass, Class<UL> eUtilClass, boolean useTCP) {
 		super (agentDesc, useTCP);
 		super.setDomClass(domClass);
@@ -287,7 +285,6 @@ public class P2_DPOPsolver< V extends Addable<V>, U extends Addable<U> > extends
 	}
 
 	/** @see DPOPsolver#setNbrElectionRounds(int) */
-	@SuppressWarnings("unchecked")
 	@Override
 	protected void setNbrElectionRounds (int nbrElectionRounds) {
 		
@@ -299,7 +296,6 @@ public class P2_DPOPsolver< V extends Addable<V>, U extends Addable<U> > extends
 	/** Sets the value of infinity used by the CryptoScheme
 	 * @param infinity 	costs greater than or equal to this value will be considered infinite
 	 */
-	@SuppressWarnings("unchecked")
 	private void setInfinity (int infinity) {
 		
 		for (Element module : (List<Element>) this.agentDesc.getRootElement().getChild("modules").getChildren()) {

@@ -26,9 +26,9 @@ import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 
-import org.jdom.Document;
-import org.jdom.Element;
-import org.jdom.JDOMException;
+import org.jdom2.Document;
+import org.jdom2.Element;
+import org.jdom2.JDOMException;
 
 import frodo2.solutionSpaces.Addable;
 import frodo2.solutionSpaces.ProblemInterface;
@@ -397,8 +397,9 @@ public abstract class AbstractSolver < P extends ProblemInterface<V, U>, V exten
 	 * @param cleanAfterwards 	if \c true, cleans all the agents and the queue when they're done
 	 * @param timeout 			timeout in ms, if \c null, no timeout is used
 	 * @return 					an optimal solution
+	 * @throws OutOfMemoryError thrown when an out of memory exception is encountered in the agent factory
 	 */
-	public S solve (P problem, boolean cleanAfterwards, Long timeout) {
+	public S solve (P problem, boolean cleanAfterwards, Long timeout) throws OutOfMemoryError {
 		
 		this.problem = problem;
 		timedOut = false;
@@ -434,6 +435,28 @@ public abstract class AbstractSolver < P extends ProblemInterface<V, U>, V exten
 			this.clear();
 
 		return solution;
+	}
+	
+	/**
+	 * Puts the statistics in a format that can easily be processed after the experiments
+	 * @author Brammert Ottens, Dec 29, 2011
+	 * @param sol the solution to be printed
+	 * @return string representation of the statistics
+	 */
+	public String plotStats(Solution<V, U> sol) {
+		String str = sol.getTimeNeeded() + "\t" + sol.getUtility() + "\t" + sol.getNcccCount() + "\t" + sol.getNbrMsgs() + "\t" + sol.getTotalMsgSize() + "\t" + sol.getTreeWidth(); 
+		return str;
+	}
+	
+	/**
+	 * Used when the solver was not able to solve the problem
+	 * 
+	 * @author Brammert Ottens, Dec 29, 2011
+	 * @param maximize	\c true when maximizing, \c false otherwise
+	 * @return dummy stats
+	 */
+	public String plotDummyStats(boolean maximize) {
+		return Long.MAX_VALUE + "\t" + (maximize ? Integer.MIN_VALUE : Integer.MAX_VALUE) + "\t" + Integer.MAX_VALUE + "\t" + Integer.MAX_VALUE + "\t" + Integer.MAX_VALUE + "\t" + -1; 
 	}
 
 	/** Clears the parser */

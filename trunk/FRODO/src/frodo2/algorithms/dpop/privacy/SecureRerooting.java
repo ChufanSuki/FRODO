@@ -31,7 +31,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Random;
 
-import org.jdom.Element;
+import org.jdom2.Element;
 
 import frodo2.algorithms.dpop.UTILpropagation;
 import frodo2.algorithms.varOrdering.dfs.DFSgenerationWithOrder;

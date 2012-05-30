@@ -31,11 +31,11 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
 
-import org.jdom.Document;
-import org.jdom.Element;
-import org.jdom.Namespace;
-import org.jdom.output.Format;
-import org.jdom.output.XMLOutputter;
+import org.jdom2.Document;
+import org.jdom2.Element;
+import org.jdom2.Namespace;
+import org.jdom2.output.Format;
+import org.jdom2.output.XMLOutputter;
 
 import frodo2.algorithms.RandGraphFactory;
 import frodo2.algorithms.RandGraphFactory.Graph;
@@ -318,7 +318,7 @@ public class PartyGame {
 					HashMap<String, Double> jointStratMap = new HashMap<String, Double> (jointStrat.length);
 					domain[i] = jointStratMap;
 					for (int p = 0; p < jointStrat.length; p++) 
-						jointStratMap.put(players.get(p), jointStrat[p].getValue());
+						jointStratMap.put(players.get(p), jointStrat[p].doubleValue());
 				}
 				
 //				System.out.println("p" + player + "'s domain: ");
@@ -559,21 +559,21 @@ public class PartyGame {
 					for (int i = 0; i < nbrNeighbors; i++) {
 						
 						AddableReal strat = strategies[i];
-						if (strat.getValue() == 0.0) 
+						if (strat.doubleValue() == 0.0) 
 							neighTuple.append(0);
-						else if (strat.getValue() == 1.0) 
+						else if (strat.doubleValue() == 1.0) 
 							neighTuple.append(1);
 						else 
 							neighTuple.append(strat);
 						
 						neighTuple.append(" ");
-						cost += strategies[i].getValue() * likes.get(i);
+						cost += strategies[i].doubleValue() * likes.get(i);
 					}
 
 					// Loop through the probabilities of attendance for the current player, looking for the expected cost of the best response
 					double bestCost = 0.0; // this is the expected cost of attending with 0% probability
 					for (AddableReal prob : dom) {
-						double cost2 = prob.getValue() * cost;
+						double cost2 = prob.doubleValue() * cost;
 						if (cost2 < bestCost) 
 							bestCost = cost2;
 					}
@@ -582,14 +582,14 @@ public class PartyGame {
 					bestCost += epsilon; // makes it harder by a margin of epsilon to reject a strategy
 					int oldNbrTuples = nbrTuples;
 					for (AddableReal prob : dom) {
-						if (prob.getValue() * cost > bestCost) {
+						if (prob.doubleValue() * cost > bestCost) {
 							if (++nbrTuples == oldNbrTuples + 1) 
 								builder.append("\n");
 							builder.append(neighTuple.toString());
 							
-							if (prob.getValue() == 0.0) 
+							if (prob.doubleValue() == 0.0) 
 								builder.append(0);
-							else if (prob.getValue() == 1.0) 
+							else if (prob.doubleValue() == 1.0) 
 								builder.append(1);
 							else 
 								builder.append(prob.toString());

@@ -22,7 +22,7 @@ How to contact the authors:
 
 package frodo2.benchmarks.auctions.xcsp;
 
-import org.jdom.Element;
+import org.jdom2.Element;
 
 /**
  * This class is used to generate the 'domain' tags in the output XML file

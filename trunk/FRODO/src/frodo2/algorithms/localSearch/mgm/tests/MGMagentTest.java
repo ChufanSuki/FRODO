@@ -31,10 +31,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.ReentrantLock;
 
-import org.jdom.Document;
-import org.jdom.Element;
-import org.jdom.JDOMException;
+import org.jdom2.Document;
+import org.jdom2.Element;
+import org.jdom2.JDOMException;
 
 import frodo2.algorithms.AgentFactory;
 import frodo2.algorithms.AgentInterface;
@@ -101,8 +104,11 @@ public class MGMagentTest < V extends Addable<V>, U extends Addable<U> > extends
 	/** Number of agents finished */
 	private int nbrAgentsFinished;
 	
-	/** Used to synchronize access to \a nbrAgentsFinished */
-	private final Object nbrAgentsFinished_lock = new Object ();
+	/** Used to make the test thread wait */
+	protected final ReentrantLock finished_lock = new ReentrantLock ();
+	
+	/** Used to wake up the test thread when all agents have finished */
+	protected final Condition finished = finished_lock.newCondition();
 
 	/** Whether to use XCSP */
 	private boolean useXCSP;
@@ -161,7 +167,6 @@ public class MGMagentTest < V extends Addable<V>, U extends Addable<U> > extends
 	 * @param startMsgType 		the new type for the start message
 	 * @throws JDOMException 	if parsing the agent configuration file failed
 	 */
-	@SuppressWarnings("unchecked")
 	private void setStartMsgType (String startMsgType) throws JDOMException {
 		if (startMsgType != null) {
 			this.startMsgType = startMsgType;
@@ -340,18 +345,25 @@ public class MGMagentTest < V extends Addable<V>, U extends Addable<U> > extends
 			}
 		}
 		
-		if (this.useCentralMailer) 
-			mailman.start();
+		long timeout = 60000; // in ms
 		
-		// Wait for all agents to finish
-		long start = System.currentTimeMillis();
-		while (true) {
-			synchronized (nbrAgentsFinished_lock) {
-				if (nbrAgentsFinished >= nbrAgents) {
+		if (this.useCentralMailer) 
+			assertTrue("Timeout", this.mailman.execute(timeout));
+			
+		else {
+			// Wait for all agents to finish
+			while (true) {
+				this.finished_lock.lock();
+				try {
+					if (nbrAgentsFinished >= nbrAgents) {
+						break;
+					} else if (! this.finished.await(timeout, TimeUnit.MILLISECONDS)) {
+						fail("Timeout");
+					}
+				} catch (InterruptedException e) {
 					break;
-				} else if (System.currentTimeMillis() - start > 60000) {
-					fail("Timeout");
 				}
+				this.finished_lock.unlock();
 			}
 		}
 	}
@@ -415,11 +427,12 @@ public class MGMagentTest < V extends Addable<V>, U extends Addable<U> > extends
 		}
 		
 		else if (msgType.equals(AgentInterface.AGENT_FINISHED)) {
-			synchronized (nbrAgentsFinished_lock) {
-				nbrAgentsFinished++;
-				if (this.useCentralMailer) 
-					assertTrue (queue.getCurrentMessageWrapper().getTime() >= 0);
-			}
+			this.finished_lock.lock();
+			if (++nbrAgentsFinished >= this.nbrAgents) 
+				this.finished.signal();
+			this.finished_lock.unlock();
+			if (this.useCentralMailer) 
+				assertTrue (queue.getCurrentMessageWrapper().getTime() >= 0);
 		}
 		
 		else if (msgType.equals(MGM.OUTPUT_MSG_TYPE)) {

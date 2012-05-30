@@ -51,12 +51,6 @@ public class testCentralMailer extends TestCase implements IncomingMsgPolicyInte
 	/** The last message received */
 	private MessageWrapper last;
 	
-	/** lock used for synchronisation */
-	private final Object readyLock = new Object();
-	
-	/** Whether we have received all the messages we were waiting for */
-	private boolean ready;
-	
 	/** Count the number of messages received */
 	private int messagesReceived;
 	
@@ -75,7 +69,7 @@ public class testCentralMailer extends TestCase implements IncomingMsgPolicyInte
 	public static TestSuite suite () {
 		TestSuite testSuite = new TestSuite ("Tests for Central Mailer");
 		
-		testSuite.addTest(new RepeatedTest (new testCentralMailer (), 100));
+		testSuite.addTest(new RepeatedTest (new testCentralMailer (), 100000));
 		
 		return testSuite;
 	}
@@ -88,7 +82,6 @@ public class testCentralMailer extends TestCase implements IncomingMsgPolicyInte
 		super.setUp();
 		mailman = new CentralMailer (false, false, null);
 		messagesReceived = 0;
-		ready = false;
 	}
 
 	/** 
@@ -97,6 +90,7 @@ public class testCentralMailer extends TestCase implements IncomingMsgPolicyInte
 	@Override
 	protected void tearDown() throws Exception {
 		super.tearDown();
+		mailman.end();
 		mailman = null;
 		this.last = null;
 	}
@@ -117,7 +111,8 @@ public class testCentralMailer extends TestCase implements IncomingMsgPolicyInte
 		
 		
 		// generate a set of random messages
-		for(int i = 0; i < 25; i++) {
+		final int nbrMsgs = 25;
+		for(int i = 0; i < nbrMsgs; i++) {
 			MessageWrapper rand = new MessageWrapper(new Message(RANDOM_MSG_TYPE));
 			rand.setTime((long)(Math.random() * 1000));
 			rand.setDestination(destination);
@@ -125,19 +120,8 @@ public class testCentralMailer extends TestCase implements IncomingMsgPolicyInte
 		}
 		
 		// Start the CentralMailer
-		mailman.start();
-		
-		synchronized(readyLock) {
-			while(!ready){
-				try {
-					readyLock.wait();
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
-			}
-		}
-		
-		mailman.end();
+		assertTrue("Timeout after " + this.messagesReceived + " messages", this.mailman.execute(2000));
+		assertEquals(nbrMsgs, this.messagesReceived);
 	}
 	
 	/** 
@@ -163,12 +147,7 @@ public class testCentralMailer extends TestCase implements IncomingMsgPolicyInte
 			if(last != null)
 				assertTrue(last.getTime() <= msgWrap.getTime());
 
-			if(++messagesReceived == 25) {
-				synchronized(readyLock) {
-					ready = true;
-					readyLock.notify();
-				}
-			}
+			++messagesReceived;
 			last = msgWrap;
 		} 
 	}

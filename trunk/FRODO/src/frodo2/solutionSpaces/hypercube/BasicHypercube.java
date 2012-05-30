@@ -669,7 +669,9 @@ implements BasicUtilitySolutionSpace<V, U>, Externalizable {
 
 	/** @see java.lang.Object#toString() */
 	public String toString() {
-		StringBuilder hypercube = new StringBuilder( "- Hypercube" );
+		StringBuilder hypercube = new StringBuilder();
+		
+		hypercube.append("- " + this.getClass().getSimpleName());
 		
 		// Display the name of the hypercube
 		if (this.name != null) 

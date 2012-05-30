@@ -26,11 +26,10 @@ package frodo2.algorithms.dpop.stochastic.robust;
 import java.util.ArrayList;
 import java.util.HashSet;
 
-import org.jdom.Element;
+import org.jdom2.Element;
 
 import frodo2.algorithms.dpop.stochastic.ExpectedUTIL;
 import frodo2.solutionSpaces.Addable;
-import frodo2.solutionSpaces.AddableReal;
 import frodo2.solutionSpaces.BasicUtilitySolutionSpace;
 import frodo2.solutionSpaces.DCOPProblemInterface;
 import frodo2.solutionSpaces.UtilitySolutionSpace;
@@ -38,15 +37,16 @@ import frodo2.solutionSpaces.UtilitySolutionSpace.ProjOutput;
 
 /** A UTIL propagation phase that maximizes worst-case utility with respect to the random variables
  * @author Thomas Leaute
- * @param <Val> 	the type used for variable values
+ * @param <Val> the type used for variable values
+ * @param <U> 	the type used for utility values
  */
-public class WorstCaseUTIL < Val extends Addable<Val> > extends ExpectedUTIL<Val> {
+public class WorstCaseUTIL < Val extends Addable<Val>, U extends Addable<U> > extends ExpectedUTIL<Val, U> {
 	
 	/** The constructor called in "statistics gatherer" mode
 	 * @param problem 		the overall problem
 	 * @param parameters 	the description of what statistics should be reported
 	 */
-	public WorstCaseUTIL(Element parameters, DCOPProblemInterface<Val, AddableReal> problem) {
+	public WorstCaseUTIL(Element parameters, DCOPProblemInterface<Val, U> problem) {
 		super(parameters, problem);
 	}
 
@@ -54,16 +54,19 @@ public class WorstCaseUTIL < Val extends Addable<Val> > extends ExpectedUTIL<Val
 	 * @param problem 		the agent's subproblem
 	 * @param parameters 	the parameters for the module
 	 */
-	public WorstCaseUTIL(DCOPProblemInterface<Val, AddableReal> problem, Element parameters) {
-		super.problem = problem;
-		problem.setUtilClass(AddableReal.class);
-		super.withAnonymVars = true;
+	public WorstCaseUTIL(DCOPProblemInterface<Val, U> problem, Element parameters) {
+		super(problem, parameters);
+	}
+	
+	/** @see ExpectedUTIL#parseMethod(Element) */
+	@Override
+	protected void parseMethod (Element parameters) {
 		super.method = null;
 	}
 
 	/** @see ExpectedUTIL#project(UtilitySolutionSpace, String[]) */
 	@Override 
-	protected ProjOutput<Val, AddableReal> project (UtilitySolutionSpace<Val, AddableReal> space, String[] vars) {
+	protected ProjOutput<Val, U> project (UtilitySolutionSpace<Val, U> space, String[] vars) {
 		
 		// Look up all random variables, and check whether they must all be projected out here
 		ArrayList<String> allRandVars = new ArrayList<String> (space.getNumberOfVariables());
@@ -80,7 +83,7 @@ public class WorstCaseUTIL < Val extends Addable<Val> > extends ExpectedUTIL<Val
 		}
 		
 		// Then compute the worst case for the space over all random variables
-		UtilitySolutionSpace<Val, AddableReal> worst = space;
+		UtilitySolutionSpace<Val, U> worst = space;
 		switch (allRandVars.size()) {
 		case 0: 
 			return space.project(vars, this.maximize); // no random variable; we can simply project
@@ -100,12 +103,12 @@ public class WorstCaseUTIL < Val extends Addable<Val> > extends ExpectedUTIL<Val
 		worst = null;
 
 		// Report the corresponding true utilities, as a function of all random variables
-		return new ProjOutput<Val, AddableReal> (space.compose(vars, assignments), vars, assignments);
+		return new ProjOutput<Val, U> (space.compose(vars, assignments), vars, assignments);
 	}
 	
 	/** @see ExpectedUTIL#sendToParent(String, String, String, UtilitySolutionSpace) */
 	@Override 
-	protected void sendToParent (String var, String parentVar, String parentAgent, UtilitySolutionSpace<Val, AddableReal> space) {
+	protected void sendToParent (String var, String parentVar, String parentAgent, UtilitySolutionSpace<Val, U> space) {
 		
 		// Before sending the UTIL message, we need to project out the random variables
 		ArrayList<String> randVars = new ArrayList<String> ();
@@ -120,7 +123,7 @@ public class WorstCaseUTIL < Val extends Addable<Val> > extends ExpectedUTIL<Val
 	
 	/** @see ExpectedUTIL#sendOutput(UtilitySolutionSpace, java.lang.String) */
 	@Override
-	protected void sendOutput(UtilitySolutionSpace<Val, AddableReal> space, String root) {
+	protected void sendOutput(UtilitySolutionSpace<Val, U> space, String root) {
 		
 		// First project out all random variables
 		ArrayList<String> randVars = new ArrayList<String> (space.getNumberOfVariables());

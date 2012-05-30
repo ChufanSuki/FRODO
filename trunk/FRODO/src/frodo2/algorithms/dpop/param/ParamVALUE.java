@@ -31,7 +31,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import org.jdom.Element;
+import org.jdom2.Element;
 
 import frodo2.algorithms.AgentInterface;
 import frodo2.algorithms.dpop.VALUEpropagation;
@@ -44,9 +44,7 @@ import frodo2.communication.Queue;
 import frodo2.solutionSpaces.Addable;
 import frodo2.solutionSpaces.BasicUtilitySolutionSpace;
 import frodo2.solutionSpaces.DCOPProblemInterface;
-import frodo2.solutionSpaces.hypercube.BasicHypercube;
 import frodo2.solutionSpaces.hypercube.Hypercube;
-import frodo2.solutionSpaces.hypercube.ScalarBasicHypercube;
 
 /** VALUE propagation protocol
  * @author Thomas Leaute
@@ -214,27 +212,28 @@ extends VALUEpropagation<Val> {
 			String parent = msgCast.getParent();
 			
 			// Check whether we have already computed the optimal assignment to this variable
-			BasicUtilitySolutionSpace< Val, ArrayList<Val> > opt = solution.get(parent);
-			if (opt != null) {
-				String child = msgCast.getChild();
-				
-				// Compute and send the VALUE message
-				sendVALUEmessage(child, msgCast.getSeparator(), parent, opt, valueMessages.remove(parent));
-				
-				// Remove the child from the list of children
-				List<String> children = allChildren.get(parent);
-				children.remove(child);
-				
-				// Check if the agent can terminate
-				if (children.isEmpty() && ++super.nbrVarsDone >= super.problem.getNbrIntVars()) 
-					this.queue.sendMessageToSelf(new Message (AgentInterface.AGENT_FINISHED));
+			for (Map.Entry< String[], BasicUtilitySolutionSpace< Val, ArrayList<Val> > > entry : this.solution.entrySet()) {
+				String[] vars = entry.getKey();
+				if (vars[0].equals(parent)) { // found the optimal assignment
+					String child = msgCast.getChild();
+					
+					// Compute and send the VALUE message
+					sendVALUEmessage(child, msgCast.getSeparator(), vars, entry.getValue(), valueMessages.remove(parent));
+					
+					// Remove the child from the list of children
+					List<String> children = allChildren.get(parent);
+					children.remove(child);
+					
+					// Check if the agent can terminate
+					if (children.isEmpty() && ++super.nbrVarsDone >= super.problem.getNbrIntVars()) 
+						this.queue.sendMessageToSelf(new Message (AgentInterface.AGENT_FINISHED));
+					
+					return;
+				}
 			}
 			
-			else { // we haven't be able to compute the optimal assignment to the parent yet
-				
-				// Store the separator until we have enough information to compute the corresponding VALUE message
-				separators.put(msgCast.getChild(), msgCast.getSeparator());
-			}			
+			// Store the separator until we have enough information to compute the corresponding VALUE message
+			separators.put(msgCast.getChild(), msgCast.getSeparator());
 		}
 		
 		else if (type.equals(PARAM_VALUE_MSG_TYPE)) { // the VALUE message
@@ -284,17 +283,17 @@ extends VALUEpropagation<Val> {
 	/** Instantiates a VALUE message and sends it
 	 * @param child 		destination variable of the message
 	 * @param separator 	separator of \a child, parameters included
-	 * @param var 			sender of the message
-	 * @param opt 			optimal value for variable \a var, conditioned on the values of the parameters (if any)
+	 * @param vars 			the variables whose optimal values have just been computed
+	 * @param opt 			optimal values for variables in \a vars, conditioned on the values of the parameters (if any)
 	 * @param valueMsg 		VALUE message received from parent 
 	 */
-	private void sendVALUEmessage(String child, String[] separator, String var, BasicUtilitySolutionSpace< Val, ArrayList<Val> > opt, VALUEmsg<Val> valueMsg) {
+	private void sendVALUEmessage(String child, String[] separator, String[] vars, BasicUtilitySolutionSpace< Val, ArrayList<Val> > opt, VALUEmsg<Val> valueMsg) {
 		
 		String[] variablesIn = valueMsg.getVariables();
 		BasicUtilitySolutionSpace< Val, ArrayList<Val> > valuesIn = valueMsg.getValues();
 		
-		if (valuesIn == null) { // var is a root
-			queue.sendMessage(this.problem.getOwner(child), new VALUEmsg<Val>(child, new String[] { var }, opt));
+		if (valuesIn == null) { // we are at the root
+			queue.sendMessage(this.problem.getOwner(child), new VALUEmsg<Val>(child, new String[] { vars[0] }, opt));
 			return;
 		}
 		
@@ -310,21 +309,29 @@ extends VALUEpropagation<Val> {
 		long nbrParamCases = valuesOut.getNumberOfSolutions();
 		for (long k = 0; k < nbrParamCases; k++) {
 			
-			// Get the optimal assignments to variable var's separator for the current parametric values
+			// Get the optimal assignments to the parent's separator for the current parametric values
 			ArrayList<Val> optVarSep = valuesIn.getUtility(k);
 			
 			// Fill in the array of assignments
 			ArrayList<Val> assign = new ArrayList<Val> (separator.length);
-			for (int i = 0; i < separator.length; i++) {
+			loopI: for (int i = 0; i < separator.length; i++) {
 				String sepVar = separator[i];
-				if (sepVar.equals(var)) {
-					assign.add(opt.getUtility(k).get(0));
-				} else {
-					for (int j = 0; j < variablesIn.length; j++) {
-						if (variablesIn[j].equals(sepVar)) {
-							assign.add(optVarSep.get(j));
-							break;
-						}
+				
+				// Look for this variable in vars
+				/// @todo Performance improvement: do this before entering the for loop on k
+				for (int j = vars.length - 1; j >= 0; j--) {
+					if (sepVar.equals(vars[j])) {
+						ArrayList<Val> best = opt.getUtility(k);
+						assign.add(best != null ? best.get(j) : null);
+						continue loopI;
+					}
+				}
+				
+				// Look for this variable in the parent's separator
+				for (int j = variablesIn.length - 1; j >= 0; j--) {
+					if (variablesIn[j].equals(sepVar)) {
+						assign.add(optVarSep.get(j));
+						break;
 					}
 				}
 			}
@@ -341,7 +348,6 @@ extends VALUEpropagation<Val> {
 	 * @param optAssignments the conditional optimal assignments to variable \a var
 	 * @param valueMsg the VALUE message received for variable \a var
 	 */
-	@SuppressWarnings("unchecked")
 	private void computeOptValAndSendVALUEmsgs(String[] vars, BasicUtilitySolutionSpace< Val, ArrayList<Val> > optAssignments, 
 			VALUEmsg<Val> valueMsg) {
 		
@@ -356,36 +362,16 @@ extends VALUEpropagation<Val> {
 		solution.put(vars, optVals);
 		queue.sendMessage(AgentInterface.STATS_MONITOR, new AssignmentMessage<Val> (vars, optVals));
 		
-		// Compute the optimal conditional assignments to the first variable only
-		BasicUtilitySolutionSpace< Val, ArrayList<Val> > myOpt;
-		String[] params = optVals.getVariables();
-		if (params.length == 0) { // no parameters
-			ArrayList<Val> value = new ArrayList<Val> (1);
-			value.add(optVals.getUtility(0).get(0));
-			myOpt = new ScalarBasicHypercube< Val, ArrayList<Val> > (value, null);
-		} else {
-			assert optVals.getNumberOfSolutions() < Integer.MAX_VALUE : "A BasicHypercube can only contain up to 2^31-1 solutions";
-			ArrayList<Val>[] values = new ArrayList [(int) optVals.getNumberOfSolutions()];
-			int i = 0;
-			for (BasicUtilitySolutionSpace.Iterator< Val, ArrayList<Val> > iter = optVals.iterator(); iter.hasNext(); ) {
-				ArrayList<Val> value = new ArrayList<Val> (1);
-				value.add(iter.nextUtility().get(0));
-				values[i++] = value;
-			}
-			myOpt = new BasicHypercube< Val, ArrayList<Val> > (params, optVals.getDomains(), values, null);
-		}
-			
 		// Go through the list of children of the first variable 
 		// For each child, check if we already know its separator 
-		String myVar = vars[0];
-		List<String> children = allChildren.get(myVar);
+		List<String> children = allChildren.get(vars[0]);
 		for (Iterator<String> iterator = children.iterator(); iterator.hasNext(); ) {
 			String child = iterator.next();
 			separator = separators.remove(child);
 			if (separator != null) {
 
 				// Send VALUE message to this child
-				sendVALUEmessage(child, separator, myVar, myOpt, valueMsg);
+				sendVALUEmessage(child, separator, vars, optVals, valueMsg);
 
 				// Remove the child from the list of children
 				iterator.remove();

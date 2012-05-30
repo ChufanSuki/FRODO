@@ -27,7 +27,7 @@ import java.util.Map;
 import junit.extensions.RepeatedTest;
 import junit.framework.TestSuite;
 
-import org.jdom.Element;
+import org.jdom2.Element;
 
 import frodo2.algorithms.heuristics.LeastConnectedHeuristic;
 import frodo2.algorithms.heuristics.MostConnectedHeuristic;
@@ -96,7 +96,7 @@ public class DFSgenerationParallelTest extends DFSgenerationTest {
 	@Override
 	protected void sendLEoutputs(int i, Map<String, String> rootForVar) { }
 	
-	/** @see DFSgenerationTest#createDFSparams(org.jdom.Element) */
+	/** @see DFSgenerationTest#createDFSparams(org.jdom2.Element) */
 	@Override
 	protected Element createDFSparams(Element heuristicParams) {
 		
