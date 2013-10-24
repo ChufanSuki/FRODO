@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2012  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -169,7 +169,7 @@ public class SynchBB < V extends Addable<V>, U extends Addable<U> > implements S
 		private V[][] lastPath;
 
 		/** The current Iterator over the solutions of the space associated with this cluster */
-		private UtilitySolutionSpace.Iterator<V, U> iterator = null;
+		private UtilitySolutionSpace.SparseIterator<V, U> iterator = null;
 		
 		/** Constructor
 		 * @param vars		The variables contained in the cluster
@@ -924,7 +924,7 @@ public class SynchBB < V extends Addable<V>, U extends Addable<U> > implements S
 				}
 			}
 		
-			info.iterator = info.space.iterator(vars.toArray(new String[vars.size()]), domains.toArray((V[][]) Array.newInstance(valArrayClass, domains.size())));
+			info.iterator = info.space.sparseIter(vars.toArray(new String[vars.size()]), domains.toArray((V[][]) Array.newInstance(valArrayClass, domains.size())));
 		}
 		
 		// We get the next assignment

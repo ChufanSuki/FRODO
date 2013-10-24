@@ -1,6 +1,6 @@
 <!-- 
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2012  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -17,13 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 How to contact the authors: 
-<http://lia.epfl.ch/>
-
-EPFL / IC / IIF / LIA
-Batiment IN 
-Station 14 
-CH - 1015 Lausanne 
-Switzerland
+<http://frodo2.sourceforge.net/>
 -->
 
 <instance>

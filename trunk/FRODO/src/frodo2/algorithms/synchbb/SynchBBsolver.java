@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2012  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -157,7 +157,7 @@ public class SynchBBsolver< V extends Addable<V>, U extends Addable<U> > extends
 	@Override
 	public SynchBBsolution<V, U> buildSolution () {
 		return new SynchBBsolution<V, U> (0, module.getOptCost(), super.problem.getUtility(this.module.getOptAssignments(), true).getUtility(0), module.getOptAssignments(), 
-				factory.getNbrMsgs(), factory.getMsgNbrs(), factory.getTotalMsgSize(), factory.getMsgSizes(), 
+				factory.getNbrMsgs(), factory.getMsgNbrs(), factory.getTotalMsgSize(), factory.getMsgSizes(), factory.getOverallMaxMsgSize(), factory.getMaxMsgSizes(), 
 				factory.getNcccs(), factory.getTime(), null, module.getAssignmentHistories());
 	}
 	

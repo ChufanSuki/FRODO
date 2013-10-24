@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2012  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -554,6 +554,29 @@ public class CompoundSpace < U extends Addable<U> > implements UtilitySolutionSp
 			boolean maximum) {
 		// @todo Auto-generated method stub
 		assert false : "not implemented";
+		return null;
+	}
+
+	/** @see frodo2.solutionSpaces.UtilitySolutionSpace#consensusExpect(java.lang.String, java.util.Map, boolean) */
+	@Override
+	public frodo2.solutionSpaces.UtilitySolutionSpace.ProjOutput<AddableInteger, U> consensusExpect(
+			String varOut,
+			Map<String, UtilitySolutionSpace<AddableInteger, U>> distributions,
+			boolean maximum) {
+		/// @todo Auto-generated method stub
+		assert false : "Not yet implemented";
+		return null;
+	}
+
+
+	/** @see frodo2.solutionSpaces.UtilitySolutionSpace#consensusAllSolsExpect(java.lang.String, java.util.Map, boolean) */
+	@Override
+	public frodo2.solutionSpaces.UtilitySolutionSpace.ProjOutput<AddableInteger, U> consensusAllSolsExpect(
+			String varOut,
+			Map<String, UtilitySolutionSpace<AddableInteger, U>> distributions,
+			boolean maximum) {
+		/// @todo Auto-generated method stub
+		assert false : "Not yet implemented";
 		return null;
 	}
 
@@ -1250,6 +1273,46 @@ public class CompoundSpace < U extends Addable<U> > implements UtilitySolutionSp
 	public UtilitySolutionSpace<AddableInteger, U> rescale(U add, U multiply) {
 		// TODO Auto-generated method stub
 		assert false : "Not yet implemented";
+		return null;
+	}
+
+
+	/** @see frodo2.solutionSpaces.UtilitySolutionSpace#sparseIter() */
+	@Override
+	public frodo2.solutionSpaces.UtilitySolutionSpace.SparseIterator<AddableInteger, U> sparseIter() {
+		/// @todo Auto-generated method stub
+		assert false : "Not implemented";
+		return null;
+	}
+
+
+	/** @see frodo2.solutionSpaces.UtilitySolutionSpace#sparseIter(java.lang.String[]) */
+	@Override
+	public frodo2.solutionSpaces.UtilitySolutionSpace.SparseIterator<AddableInteger, U> sparseIter(
+			String[] order) {
+		/// @todo Auto-generated method stub
+		assert false : "Not implemented";
+		return null;
+	}
+
+
+	/** @see frodo2.solutionSpaces.UtilitySolutionSpace#sparseIter(java.lang.String[], Addable[][]) */
+	@Override
+	public frodo2.solutionSpaces.UtilitySolutionSpace.SparseIterator<AddableInteger, U> sparseIter(
+			String[] variables, AddableInteger[][] domains) {
+		/// @todo Auto-generated method stub
+		assert false : "Not implemented";
+		return null;
+	}
+
+
+	/** @see frodo2.solutionSpaces.UtilitySolutionSpace#sparseIter(java.lang.String[], Addable[][], Addable[]) */
+	@Override
+	public frodo2.solutionSpaces.UtilitySolutionSpace.SparseIterator<AddableInteger, U> sparseIter(
+			String[] variables, AddableInteger[][] domains,
+			AddableInteger[] assignment) {
+		/// @todo Auto-generated method stub
+		assert false : "Not implemented";
 		return null;
 	}
 }

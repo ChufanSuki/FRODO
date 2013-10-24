@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2012  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -652,6 +652,7 @@ public class DPOPagentTest< V extends Addable<V>, U extends Addable<U> > extends
 				AgentFinishedMessage msgCast = (AgentFinishedMessage) msg;
 				assertFalse (msgCast.getMsgNbrs() == null);
 				assertFalse (msgCast.getMsgSizes() == null);
+				assertFalse (msgCast.getMaxMsgSizes() == null);
 			}
 
 			this.finished_lock.lock();

@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2012  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -49,6 +49,7 @@ import frodo2.algorithms.AbstractDCOPsolver;
 import frodo2.algorithms.Solution;
 import frodo2.algorithms.XCSPparser;
 import frodo2.algorithms.adopt.ADOPTsolver;
+import frodo2.algorithms.afb.AFBsolver;
 import frodo2.algorithms.asodpop.ASODPOPsolver;
 import frodo2.algorithms.dpop.DPOPsolver;
 import frodo2.algorithms.dpop.privacy.P2_DPOPsolver;
@@ -134,7 +135,10 @@ public class JaCoPtests extends TestCase {
 	    MAXSUM, 
 	    
 	    /** MB-DPOP */
-	    MB_DPOP
+	    MB_DPOP, 
+	    
+	    /** AFB */
+	    AFB
 	}
 	
 	/** The algorithm being tested */
@@ -227,7 +231,8 @@ public class JaCoPtests extends TestCase {
 		suite.addTest(createSuite(Algorithm.MB_DPOP, (Class<? extends AbstractDCOPsolver<AddableInteger, AddableInteger, ?>>) DPOPsolver.class
 				, "src/frodo2/algorithms/dpop/memory/MB-DPOPagentJaCoP.xml"));
 		
-		/// @todo Add tests for: AFB (once iterators support projection)
+		suite.addTest(createSuite(Algorithm.AFB, (Class<? extends AbstractDCOPsolver<AddableInteger, AddableInteger, ?>>) AFBsolver.class
+				, "src/frodo2/algorithms/afb/AFBagentJaCoP.xml"));
 
 		return suite;
 	}
@@ -355,6 +360,9 @@ public class JaCoPtests extends TestCase {
 		    	break;
 		    case MAXSUM:
 		    	problemDoc = AllTests.createRandProblem(5, 10, 5, maximize, 0);
+		    	break;
+		    case AFB:
+		    	problemDoc = AllTests.createRandProblem(7, 20, 5, maximize, 0);
 		    	break;
 		    default:
 		    	problemDoc = AllTests.createRandProblem(7, 20, 5, maximize, 0);   
@@ -695,7 +703,7 @@ public class JaCoPtests extends TestCase {
 		}
 
 		if (algorithm == Algorithm.DPOP || algorithm == Algorithm.MB_DPOP || algorithm == Algorithm.P_DPOP || algorithm == Algorithm.P3halves_DPOP 
-				|| algorithm == Algorithm.P2_DPOP || algorithm == Algorithm.ADOPT) {
+				|| algorithm == Algorithm.P2_DPOP || algorithm == Algorithm.ADOPT || algorithm == Algorithm.AFB) {
 			tmp = new TestSuite ("Minimization problems with extensional constraints and TCP pipes");
 			tmp.addTest(new RepeatedTest (new JaCoPtests("testRandomExtensionalProblem", algorithm, AgentDescFile, solverClass, true, false), 200));
 			algoTestSuite.addTest(tmp);
@@ -919,6 +927,16 @@ public class JaCoPtests extends TestCase {
 		    	allIntProblems.remove("cc-8-8-2.xml");
 		    	allIntProblems.remove("cc-8-8-3.xml");
 		    	break;
+		    case AFB:
+		    	allIntProblems.remove("queenAttacking-3.xml");
+		    	allIntProblems.remove("queenAttacking-4.xml");
+		    	allIntProblems.remove("cc-6-6-2.xml");
+		    	allIntProblems.remove("cc-7-7-2.xml");
+		    	allIntProblems.remove("cc-7-7-3.xml");
+		    	allIntProblems.remove("cc-8-8-2.xml");
+		    	allIntProblems.remove("cc-8-8-3.xml");
+		    	
+		    	break;
 		    default:	 
 		}
 		
@@ -929,7 +947,7 @@ public class JaCoPtests extends TestCase {
 		algoTestSuite.addTest(tmp);
 
 		if (algorithm == Algorithm.DPOP || algorithm == Algorithm.MB_DPOP || algorithm == Algorithm.P_DPOP || algorithm == Algorithm.P3halves_DPOP 
-				|| algorithm == Algorithm.P2_DPOP || algorithm == Algorithm.ADOPT) {
+				|| algorithm == Algorithm.P2_DPOP || algorithm == Algorithm.ADOPT || algorithm == Algorithm.AFB) {
 			tmp = new TestSuite ("Problems with intensional constraints and TCP pipes");
 			for (File probFile : allIntProblems.values())
 				if (probFile.isFile()) 
@@ -1002,6 +1020,9 @@ public class JaCoPtests extends TestCase {
 		    case MB_DPOP: 
 		    	
 		    	break;
+		    case AFB:
+		    	
+		    	break;
 		    default:	 
 		}
 
@@ -1012,7 +1033,7 @@ public class JaCoPtests extends TestCase {
 		algoTestSuite.addTest(tmp);
 
 		if (algorithm == Algorithm.DPOP || algorithm == Algorithm.MB_DPOP || algorithm == Algorithm.P_DPOP || algorithm == Algorithm.P3halves_DPOP 
-				|| algorithm == Algorithm.P2_DPOP || algorithm == Algorithm.ADOPT) {
+				|| algorithm == Algorithm.P2_DPOP || algorithm == Algorithm.ADOPT || algorithm == Algorithm.AFB) {
 			tmp = new TestSuite ("Problems with global constraints and TCP pipes");
 			for (File probFile : allGlbProblems.values())
 				if (probFile.isFile()) 

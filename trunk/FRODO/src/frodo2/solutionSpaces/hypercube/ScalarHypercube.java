@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2012  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -27,6 +27,10 @@ How to contact the authors:
 package frodo2.solutionSpaces.hypercube;
 
 
+import frodo2.solutionSpaces.Addable;
+import frodo2.solutionSpaces.BasicUtilitySolutionSpace;
+import frodo2.solutionSpaces.SolutionSpace;
+import frodo2.solutionSpaces.UtilitySolutionSpace;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -36,11 +40,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
-
-import frodo2.solutionSpaces.Addable;
-import frodo2.solutionSpaces.BasicUtilitySolutionSpace;
-import frodo2.solutionSpaces.SolutionSpace;
-import frodo2.solutionSpaces.UtilitySolutionSpace;
 
 /** A hypercube that contains no variables, but a single utility value
  * @author Thomas Leaute
@@ -276,11 +275,12 @@ extends Hypercube <V, U> {
 	
 	
 	/** Returns a clone of this ScalarHypercube as the return hypercube, and NullHypercube.NULL as the optimal assignments
-	 * @see Hypercube#consensus(java.lang.String, java.util.Map, boolean, boolean) 
+	 * @see Hypercube#consensus(java.lang.String, java.util.Map, boolean, boolean, boolean) 
 	 */
 	@SuppressWarnings("unchecked")
 	@Override
-	protected ProjOutput< V, U > consensus (String varOut, Map< String, UtilitySolutionSpace<V, U> > distributions, boolean maximum, boolean allSolutions) {
+	protected ProjOutput< V, U > consensus (String varOut, Map< String, UtilitySolutionSpace<V, U> > distributions, 
+			boolean maximum, boolean allSolutions, final boolean expect) {
 		return new ProjOutput<V, U> (clone(), new String [0], NullHypercube.NULL);
 	}
 	
@@ -556,7 +556,7 @@ extends Hypercube <V, U> {
 	@Override
 	public UtilitySolutionSpace.Iterator<V, U> iterator() {
 		this.incrNCCCs(1);
-		return new ScalarSpaceIter<V, U> (this.values[0]);
+		return new ScalarSpaceIter<V, U> (this.values[0], this.infeasibleUtil, null);
 	}
 	
 	/** @see BasicHypercube#iterator(String[]) */
@@ -564,21 +564,50 @@ extends Hypercube <V, U> {
 	public UtilitySolutionSpace.Iterator<V, U> iterator(String[] variables) {
 		assert variables.length == 0;
 		this.incrNCCCs(1);
-		return new ScalarSpaceIter<V, U> (values[0]);
+		return new ScalarSpaceIter<V, U> (values[0], this.infeasibleUtil, null);
 	}
 
 	/** @see BasicHypercube#iterator(String[], V[][]) */
 	@Override
 	public UtilitySolutionSpace.Iterator<V, U> iterator(String[] variables, V[][] domains) {
 		this.incrNCCCs(1);
-		return new ScalarSpaceIter<V, U> (values[0], variables, domains, null);
+		return new ScalarSpaceIter<V, U> (values[0], variables, domains, null, this.infeasibleUtil, null);
 	}
 
 	/** @see Hypercube#iterator(java.lang.String[], V[][], V[]) */
 	@Override
 	public UtilitySolutionSpace.Iterator<V, U> iterator(String[] variables, V[][] domains, V[] assignment) {
 		this.incrNCCCs(1);
-		return new ScalarSpaceIter<V, U> (values[0], variables, domains, assignment);
+		return new ScalarSpaceIter<V, U> (values[0], variables, domains, assignment, this.infeasibleUtil, null);
+	}
+
+	/** @see Hypercube#sparseIter() */
+	@Override
+	public UtilitySolutionSpace.SparseIterator<V, U> sparseIter() {
+		this.incrNCCCs(1);
+		return new ScalarSpaceIter<V, U> (this.values[0], this.infeasibleUtil, this.infeasibleUtil);
+	}
+	
+	/** @see BasicHypercube#sparseIter(String[]) */
+	@Override
+	public UtilitySolutionSpace.SparseIterator<V, U> sparseIter(String[] variables) {
+		assert variables.length == 0;
+		this.incrNCCCs(1);
+		return new ScalarSpaceIter<V, U> (values[0], this.infeasibleUtil, this.infeasibleUtil);
+	}
+
+	/** @see BasicHypercube#sparseIter(String[], V[][]) */
+	@Override
+	public UtilitySolutionSpace.SparseIterator<V, U> sparseIter(String[] variables, V[][] domains) {
+		this.incrNCCCs(1);
+		return new ScalarSpaceIter<V, U> (values[0], variables, domains, null, this.infeasibleUtil, this.infeasibleUtil);
+	}
+
+	/** @see Hypercube#sparseIter(java.lang.String[], V[][], V[]) */
+	@Override
+	public UtilitySolutionSpace.SparseIterator<V, U> sparseIter(String[] variables, V[][] domains, V[] assignment) {
+		this.incrNCCCs(1);
+		return new ScalarSpaceIter<V, U> (values[0], variables, domains, assignment, this.infeasibleUtil, this.infeasibleUtil);
 	}
 
 	/** @see BasicHypercube#getDefaultUtility() */

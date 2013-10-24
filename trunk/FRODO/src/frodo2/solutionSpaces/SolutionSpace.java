@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2012  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -246,25 +246,22 @@ public interface SolutionSpace<V extends Addable<V> > extends Serializable, Clon
 	
 	
 	/* The fourth group is connected to a SolutionSpace iterator */
-
-	/** @return an iterator which can be used to iterate through solutions */
-	public Iterator<V> iterator(); 
 	
-	/** Returns an iterator with a specific variable order
+	/** @return a sparse iterator which can be used to iterate through feasible solutions */
+	public SparseIterator<V> sparseIter(); 
+	
+	/** Returns a sparse iterator with a specific variable order
 	 * @param order 	the order of iteration of the variables
 	 * @return 			an iterator which can be used to iterate through solutions 
 	 * @warning The input array of variables must contain exactly all of the space's variables. 
 	 */
-	public Iterator<V> iterator(String[] order); 
+	public SparseIterator<V> sparseIter(String[] order); 
 	
-	/** A SolutionSpace iterator
+	/** A SolutionSpace iterator that skips infeasible solutions
 	 * @param <V> type used for variable values
 	 */
-	public interface Iterator<V> {
+	public interface SparseIterator<V> {
 		
-		/** @return the total number of solutions iterated over */
-		public long getNbrSolutions ();
-
 		/**
 		 * @return the next assignment in the solution space. 
 		 * @warning The array can be later reused by the iterator, so do not assume you can store it and use it. 
@@ -294,15 +291,32 @@ public interface SolutionSpace<V extends Addable<V> > extends Serializable, Clon
 		public V[][] getDomains ();
 		
 		/**
-		 * @return \c true if there is a next assignment in the SolutionSpace
-		 */
-		public boolean hasNext();
-		
-		/**
 		 * It is supposed to be called if the solution space upon which the iterator is based
 		 * has changed. The iterator will adjust its data structures to be able to
 		 * provide the next solution right after the recent current solution. 
 		 */
 		public void update();
+	}
+	
+	/** @return an iterator which can be used to iterate through solutions */
+	public Iterator<V> iterator(); 
+	
+	/** Returns an iterator with a specific variable order
+	 * @param order 	the order of iteration of the variables
+	 * @return 			an iterator which can be used to iterate through solutions 
+	 * @warning The input array of variables must contain exactly all of the space's variables. 
+	 */
+	public Iterator<V> iterator(String[] order); 
+	
+	/** An iterator that does NOT skip infeasible solutions
+	 * @param <V> the type used for variable values
+	 */
+	public interface Iterator<V> extends SparseIterator<V> {
+		
+		/** @return the total number of solutions iterated over */
+		public long getNbrSolutions ();
+		
+		/** @return \c true if there is a next assignment in the SolutionSpace */
+		public boolean hasNext();
 	}
 }

@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2012  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -22,6 +22,7 @@ How to contact the authors:
 
 package frodo2.algorithms.afb.test;
 
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -32,12 +33,13 @@ import junit.framework.TestSuite;
 import org.jdom2.Element;
 
 import frodo2.algorithms.Problem;
+import frodo2.algorithms.SingleQueueAgent;
 import frodo2.algorithms.Solution;
 import frodo2.algorithms.XCSPparser;
 import frodo2.algorithms.StatsReporterWithConvergence.CurrentAssignment;
-import frodo2.algorithms.afb.AFB;
 import frodo2.algorithms.dpop.DPOPsolver;
 import frodo2.algorithms.dpop.test.DPOPagentTest;
+import frodo2.algorithms.afb.AFB;
 import frodo2.algorithms.reformulation.ProblemRescaler;
 import frodo2.algorithms.test.AllTests;
 import frodo2.algorithms.varOrdering.election.VariableElection;
@@ -171,6 +173,32 @@ public class AFBagentTest <V extends Addable<V>, U extends Addable<U> > extends 
 			
 			else if (className.equals(AFB.class.getName())) {
 				module.setAttribute("convergence", "true");
+				
+				// Override the message types
+				for (Element msgElmt : module.getChild("messages").getChildren()) {
+
+					// Look up the new value for the message type
+					String newType = msgElmt.getAttributeValue("value");
+					String ownerClassName = msgElmt.getAttributeValue("ownerClass");
+					if (ownerClassName != null) { // the attribute "value" actually refers to a field in a class
+						Class<?> ownerClass = Class.forName(ownerClassName);
+						try {
+							Field field = ownerClass.getDeclaredField(newType);
+							newType = (String) field.get(newType);
+						} catch (NoSuchFieldException e) {
+							System.err.println("Unable to read the value of the field " + ownerClass.getName() + "." + newType);
+							e.printStackTrace();
+						}
+					}
+
+					// Set the message type to its new value
+					try {
+						SingleQueueAgent.setMsgType(AFB.class, msgElmt.getAttributeValue("name"), newType);
+					} catch (NoSuchFieldException e) {
+						System.err.println("Unable to find the field " + AFB.class.getName() + "." + msgElmt.getAttributeValue("name"));
+						e.printStackTrace();
+					}
+				}
 			}
 			
 			else if ((this.maximize || this.sign <= 0) && className.equals(ProblemRescaler.class.getName())) 

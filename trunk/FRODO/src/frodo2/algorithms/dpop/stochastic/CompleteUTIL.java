@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2012  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -383,7 +383,7 @@ public class CompleteUTIL < Val extends Addable<Val>, U extends Addable<U> > ext
 
 							// Check whether we can find a better solution than the one output by the algorithm
 							U utilFound = paramUtil.getUtility(0);
-							U betterUtil = join.iterator().nextUtility(utilFound, ! this.problem.maximize());
+							U betterUtil = join.sparseIter().nextUtility(utilFound, ! this.problem.maximize());
 							if (betterUtil == null) // no better solution found
 								this.probOfOptimality = this.one;
 
@@ -396,7 +396,7 @@ public class CompleteUTIL < Val extends Addable<Val>, U extends Addable<U> > ext
 								// Check whether we can find a better solution than the one output by the algorithm
 								U utilFound = utilIter.nextUtility();
 								UtilitySolutionSpace<Val, U> candidates = join.slice(probSpace.getVariables(), probIter.nextSolution());
-								U betterUtil = candidates.iterator().nextUtility(utilFound, ! this.problem.maximize());
+								U betterUtil = candidates.sparseIter().nextUtility(utilFound, ! this.problem.maximize());
 								if (betterUtil == null) // no better solution found
 									this.probOfOptimality = this.probOfOptimality.add(probIter.getCurrentUtility());
 							}
@@ -577,19 +577,13 @@ public class CompleteUTIL < Val extends Addable<Val>, U extends Addable<U> > ext
 			for (String randVar : randVars) 
 				distributions.put(randVar, this.problem.getProbabilitySpaces(randVar).get(0));
 
-			if (this.method == Method.CONSENSUS) {
-				
-				ProjOutput<Val, U> projOutput = space.consensus(myVar, distributions, this.maximize);
-				projOutput.space = projOutput.space.expectation(distributions);
-				return projOutput;
+			if (this.method == Method.CONSENSUS) 
+				return space.consensusExpect(myVar, distributions, this.maximize);
 
-			} else if (this.method == Method.CONSENSUS_ALL_SOLS) {
+			else if (this.method == Method.CONSENSUS_ALL_SOLS) 
+				return space.consensusAllSolsExpect(myVar, distributions, this.maximize);
 
-				ProjOutput<Val, U> projOutput = space.consensusAllSols(myVar, distributions, this.maximize);
-				projOutput.space = projOutput.space.expectation(distributions);
-				return projOutput;
-
-			} else if (this.method == Method.EXPECTATION_MONOTONE) 
+			else if (this.method == Method.EXPECTATION_MONOTONE) 
 				return space.projExpectMonotone(myVar, distributions, this.maximize);
 
 			else { // EXPECTATION 

@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2012  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -76,15 +76,17 @@ public class E_DPOPsolver < V extends Addable<V>, U extends Addable<U> > extends
 		 * @param msgNbrs			The number of messages sent per message type
 		 * @param totalMsgSize		the total message size
 		 * @param msgSizes 			The amount of information sent per message type
+		 * @param maxMsgSize 		the size (in bytes) of the largest message
+		 * @param maxMsgSizes 		for each message type, the size (in bytes) of the largest message of that type
 		 * @param ncccCount 		the ncccs used
 		 * @param timeNeeded 		the time needed to solve the problem
 		 * @param moduleEndTimes 	each module's end time
 		 * @param treeWidth 		the width of the tree on which the algorithm has run
 		 */
 		public StochSolution (int nbrVariables, U reportedUtil, U expectedUtil, U worstUtil, U probOfOptimality, double centralization, Map<String, V> assignments, 
-				int nbrMsgs, TreeMap<String, Integer> msgNbrs, long totalMsgSize, TreeMap<String, Long> msgSizes, 
+				int nbrMsgs, TreeMap<String, Integer> msgNbrs, long totalMsgSize, TreeMap<String, Long> msgSizes, long maxMsgSize, TreeMap<String, Long> maxMsgSizes, 
 				long ncccCount, long timeNeeded, HashMap<String, Long> moduleEndTimes, int treeWidth) {
-			super(nbrVariables, reportedUtil, null, assignments, nbrMsgs, msgNbrs, totalMsgSize, msgSizes, ncccCount, timeNeeded, moduleEndTimes, treeWidth);
+			super(nbrVariables, reportedUtil, null, assignments, nbrMsgs, msgNbrs, totalMsgSize, msgSizes, maxMsgSize, maxMsgSizes, ncccCount, timeNeeded, moduleEndTimes, treeWidth, 0);
 			this.worstUtil = worstUtil;
 			this.expectedUtil = expectedUtil;
 			this.probOfOptimality = probOfOptimality;
@@ -209,7 +211,7 @@ public class E_DPOPsolver < V extends Addable<V>, U extends Addable<U> > extends
 		this.dfsString = (this.samplingModule == null ? "" : this.samplingModule.dfsToString());
 		
 		return new StochSolution<V, U> (problem.getNbrVars(), utilModule.getOptUtil(), utilModule.getExpectedUtil(), utilModule.getWorstUtil(), utilModule.getProbOfOptimality(), 0.0, utilModule.getSolution(), 
-				factory.getNbrMsgs(), factory.getMsgNbrs(), factory.getTotalMsgSize(), factory.getMsgSizes(), factory.getNcccs(), factory.getTime(), null, utilModule.getMaxMsgDim());
+				factory.getNbrMsgs(), factory.getMsgNbrs(), factory.getTotalMsgSize(), factory.getMsgSizes(), factory.getOverallMaxMsgSize(), factory.getMaxMsgSizes(), factory.getNcccs(), factory.getTime(), null, utilModule.getMaxMsgDim());
 	}
 	
 	/** @return a DOT representation of the DFS used */

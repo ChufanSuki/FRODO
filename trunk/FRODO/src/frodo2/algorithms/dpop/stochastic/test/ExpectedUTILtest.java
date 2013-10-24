@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2012  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -94,7 +94,7 @@ public class ExpectedUTILtest extends UTILpropagationTest<AddableReal> {
 		testSuite.addTest(testTmp);
 		
 		testTmp = new TestSuite ("Tests for ExpectedUTIL with XML support using shared memory pipes and real utilities using the advanced consensus method");
-		testTmp.addTest(new RepeatedTest (new ExpectedUTILtest (false, true, Method.CONSENSUS_ALL_SOLS, 0), 200));
+		testTmp.addTest(new RepeatedTest (new ExpectedUTILtest (false, true, Method.CONSENSUS_ALL_SOLS, 0), 2000));
 		testSuite.addTest(testTmp);
 		
 		testTmp = new TestSuite ("Tests for ExpectedUTIL with XML support using shared memory pipes and real utilities using the advanced consensus method with low sampling");
@@ -253,6 +253,8 @@ public class ExpectedUTILtest extends UTILpropagationTest<AddableReal> {
 				}
 				
 				// Project out the random variables that this variable is responsible for projecting out
+				assert this.whereToProject.containsKey(var) : 
+					var + " not in " + this.whereToProject; /// @bug Sometimes fails
 				for (String randVar : this.whereToProject.get(var)) {
 					Map< String, UtilitySolutionSpace<AddableInteger, AddableReal> > distributions = 
 						new HashMap< String, UtilitySolutionSpace<AddableInteger, AddableReal> > ();
@@ -355,7 +357,7 @@ public class ExpectedUTILtest extends UTILpropagationTest<AddableReal> {
 						AddableReal optCount = counts.get(chosen);
 						assertTrue (optCount != null);
 						for (AddableReal count : counts.values()) 
-							assertTrue (optCount.compareTo(count) >= 0);
+							assertTrue (optCount + " < " + count, optCount.compareTo(count) >= 0); /// @bug Rarely fails
 					}
 				}
 				

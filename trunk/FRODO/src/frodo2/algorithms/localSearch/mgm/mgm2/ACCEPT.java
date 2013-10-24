@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2012  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -20,9 +20,7 @@ How to contact the authors:
 <http://frodo2.sourceforge.net/>
  */
 
-/**
- * 
- */
+
 package frodo2.algorithms.localSearch.mgm.mgm2;
 
 import frodo2.communication.MessageWith4Payloads;

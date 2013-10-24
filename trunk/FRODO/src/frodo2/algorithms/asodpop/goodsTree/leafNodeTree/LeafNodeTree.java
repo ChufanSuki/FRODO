@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2012  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -173,6 +173,7 @@ frodo2.algorithms.odpop.goodsTree.leafNodeTree.LeafNodeTree<Val, U, L> {
 	 * @param localVariables	the variables that occur in the local problem
 	 * @param assignment		the assignment to the local variables
 	 */
+	@SuppressWarnings("unused") /// @todo This method is actually used, but the compiler incorrectly complains it isn't
 	private void fillOwnOptions(U[] ownOptions, int currentVariable, String[] localVariables, Val[] assignment) {
 		int nextVariable = currentVariable + 1;
 		if(currentVariable == depthFinalVariable) {

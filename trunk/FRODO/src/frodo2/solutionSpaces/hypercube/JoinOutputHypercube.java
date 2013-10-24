@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2012  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -64,15 +64,20 @@ extends Hypercube<V, U> {
 		/** The infeasible utility */
 		private final U infeasibleUtil;
 		
+		/** The utility value to skip, if any */
+		private final U skippedUtil;
+		
 		/** Constructor 
 		 * @param iters 			the underlying iterators
 		 * @param addition 			Whether we are adding or multiplying
 		 * @param infeasibleUtil 	The infeasible utility
+		 * @param skippedUtil 		The utility value to skip, if any
 		 */
-		private JoinOutputIterator (UtilitySolutionSpace.Iterator<V, U>[] iters, boolean addition, U infeasibleUtil) {
+		private JoinOutputIterator (UtilitySolutionSpace.Iterator<V, U>[] iters, boolean addition, U infeasibleUtil, U skippedUtil) {
 			this.iters = iters;
 			this.addition = addition;
 			this.infeasibleUtil = infeasibleUtil;
+			this.skippedUtil = skippedUtil;
 		}
 		
 		/** @see java.lang.Object#toString() */
@@ -147,7 +152,21 @@ extends Hypercube<V, U> {
 		}
 		
 		/** @see frodo2.solutionSpaces.BasicUtilitySolutionSpace.Iterator#nextUtility() */
+		@Override
 		public U nextUtility() {
+			
+			U util = this.nextUtilBlind();
+			
+			final U inf = this.skippedUtil;
+			if (inf != null) 
+				while (inf.equals(util)) 
+					util = this.nextUtilBlind();
+			
+			return util;
+		}
+		
+		/** @return the next utility, regardless of whether it is feasible or not */
+		private U nextUtilBlind () {
 			
 			final UtilitySolutionSpace.Iterator<V, U>[] myIters = this.iters;
 			
@@ -268,10 +287,20 @@ extends Hypercube<V, U> {
 
 		/** @see frodo2.solutionSpaces.BasicUtilitySolutionSpace.Iterator#nextSolution() */
 		public V[] nextSolution() {
-			V[] sol = this.iters[0].nextSolution();
-			for (int i = this.iters.length - 1; i >= 1; i--) 
-				this.iters[i].nextSolution();
-			return sol;
+			
+			if (this.skippedUtil == null) {
+				
+				V[] sol = this.iters[0].nextSolution();
+				for (int i = this.iters.length - 1; i >= 1; i--) 
+					this.iters[i].nextSolution();
+				return sol;
+				
+			} else { // sparse
+				if (this.nextUtility() == null) 
+					return null;
+				else 
+					return this.iters[0].getCurrentSolution();
+			}
 		}
 
 		/** @see frodo2.solutionSpaces.BasicUtilitySolutionSpace.Iterator#update() */
@@ -515,13 +544,13 @@ extends Hypercube<V, U> {
 		return this.inputs.get(0).getClassOfU();
 	}
 	
-	/** @see Hypercube#newIter(java.lang.String[], V[][], V[]) */
+	/** @see Hypercube#newIter(java.lang.String[], V[][], V[], Addable) */
 	@SuppressWarnings("unchecked")
 	@Override
-	protected UtilitySolutionSpace.Iterator<V, U> newIter (String[] order, V[][] domains, V[] assignment) {
+	protected UtilitySolutionSpace.Iterator<V, U> newIter (String[] order, V[][] domains, V[] assignment, U skippedUtil) {
 		
 		if (order == null) 
-			return this.newIter(this.variables, this.domains, assignment);
+			return this.newIter(this.variables, this.domains, assignment, skippedUtil);
 		
 		else if (domains == null) {
 			assert order.length == this.variables.length : "The input order does not contain all of the space's variables";
@@ -543,7 +572,7 @@ extends Hypercube<V, U> {
 				doms[i] = dom;
 			}
 
-			return this.newIter(order, doms, assignment);
+			return this.newIter(order, doms, assignment, skippedUtil);
 			
 		} else {
 			UtilitySolutionSpace.Iterator<V, U>[] iters = new UtilitySolutionSpace.Iterator [inputs.size()];
@@ -551,7 +580,7 @@ extends Hypercube<V, U> {
 			for (int i = 0; i < nbrInputs; i++) 
 				iters[i] = this.inputs.get(i).iterator(order, domains, assignment);
 			
-			return new JoinOutputIterator<V, U> (iters, this.addition, this.infeasibleUtil);
+			return new JoinOutputIterator<V, U> (iters, this.addition, this.infeasibleUtil, skippedUtil);
 		}
 	}
 	
@@ -759,10 +788,9 @@ extends Hypercube<V, U> {
 			optUtil = this.infeasibleUtil.getMinInfinity();
 		else 
 			optUtil = this.infeasibleUtil.getPlusInfinity();
-		for (UtilitySolutionSpace.Iterator<V, U> iter = this.iterator(order, newDoms); iter.hasNext(); ) {
-			U util = iter.nextUtility(optUtil, !maximum);
-			if (util == null) 
-				break;
+		UtilitySolutionSpace.SparseIterator<V, U> iter = this.sparseIter(order, newDoms);
+		U util = null;
+		while ( (util = iter.nextUtility(optUtil, !maximum)) != null) {
 			optUtil = util;
 			System.arraycopy(iter.getCurrentSolution(), 0, this.assignment, 0, nbrVars);
 		}

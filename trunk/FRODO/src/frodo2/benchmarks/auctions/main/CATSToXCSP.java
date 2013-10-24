@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2012  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -52,6 +52,7 @@ import frodo2.solutionSpaces.AddableInteger;
  * implemented to do this, corresponding to three different DCOP models for the auction. 
  * 
  * @author Andreas Schaedeli, Thomas Leaute
+ * @todo Add support for Python scripting
  *
  */
 public class CATSToXCSP {
@@ -110,7 +111,7 @@ public class CATSToXCSP {
 	public static void main(String[] args) {
 
 		// The GNU GPL copyright notice
-		System.out.println("FRODO  Copyright (C) 2008-2012  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek");
+		System.out.println("FRODO  Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek");
 		System.out.println("This program comes with ABSOLUTELY NO WARRANTY.");
 		System.out.println("This is free software, and you are welcome to redistribute it");
 		System.out.println("under certain conditions. Use the option -license to display the license.\n");
@@ -147,7 +148,7 @@ public class CATSToXCSP {
 				new XMLOutputter(Format.getPrettyFormat()).output(doc, new FileWriter (new File(outputFileName)));
 			}
 			catch(IOException e) {
-				System.out.println("Output file " + outputFileName + "could not be written correctly");
+				System.err.println("Output file " + outputFileName + "could not be written correctly");
 				e.printStackTrace();
 			}
 
@@ -209,6 +210,7 @@ public class CATSToXCSP {
 				}
 				lineNumber++;
 			}
+			fileScanner.close();
 		}
 		catch(NumberFormatException e) {
 			if(nbGoods == -1) {
@@ -217,6 +219,7 @@ public class CATSToXCSP {
 			else {
 				System.err.println("Bid ID at line " + lineNumber + " is no valid integer");
 			}
+			fileScanner.close();
 			throw e;
 		}
 
@@ -279,7 +282,7 @@ public class CATSToXCSP {
 				//If the argument "-src" is found, the next argument must be the source file name
 				if(args[i].equals("-src")) {
 					if(i == args.length - 1) {
-						System.out.println("No source file specified");
+						System.err.println("No source file specified");
 					}
 					else {
 						sourceFileName = args[i+1];
@@ -291,20 +294,20 @@ public class CATSToXCSP {
 				//If the argument "-method" is found, the next argument must specify the ID of the conversion method to be used
 				else if(args[i].equals("-method")) {
 					if(i == args.length - 1) {
-						System.out.println("No method specified");
+						System.err.println("No method specified");
 					}
 					else {
 						try {
 							methodID = Integer.parseInt(args[i+1]);
 							if(methodID < 1 || methodID > 6) {
-								System.out.println("No correct method ID was specified");
+								System.err.println("No correct method ID was specified");
 							}
 							else {
 								methodOK = true;
 							}
 						}
 						catch(NumberFormatException e) {
-							System.out.println("Specified method ID is no integer");
+							System.err.println("Specified method ID is no integer");
 						}
 						i++;
 					}
@@ -365,7 +368,7 @@ public class CATSToXCSP {
 			licenseScanner.close();
 		}
 		catch(FileNotFoundException e) {
-			System.out.println("License file \'LICENSE.txt\' could not be read");
+			System.err.println("License file \'LICENSE.txt\' could not be read");
 		}
 	}
 

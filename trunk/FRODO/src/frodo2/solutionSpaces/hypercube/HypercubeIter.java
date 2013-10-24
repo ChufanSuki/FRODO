@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2012  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -42,43 +42,48 @@ public class HypercubeIter < V extends Addable<V>, U extends Addable<U> > extend
 	 * @param variables 	the variables to iterate over; may include variables not in the space
 	 * @param domains 		the variables' domains
 	 * @param assignment 	An array that will be used as the output of nextSolution()
+	 * @param skippedUtil	The utility value to skip, if any
 	 * @warning The input array of variables must contain all of the space's variables, and the input domains must be sub-domains of the space's. 
 	 */
-	protected HypercubeIter(BasicHypercube<V, U> space, String[] variables, V[][] domains, V[] assignment) {
-		super(space, variables, domains, assignment);
+	protected HypercubeIter(BasicHypercube<V, U> space, String[] variables, V[][] domains, V[] assignment, U skippedUtil) {
+		super(space, variables, domains, assignment, skippedUtil);
 	}
 
 	/** Constructor
-	 * @param space 	the BasicHypercube to iterate over
-	 * @param varOrder 	the order of iteration of the variables
+	 * @param space 		the BasicHypercube to iterate over
+	 * @param varOrder 		the order of iteration of the variables
 	 * @param assignment 	An array that will be used as the output of nextSolution()
+	 * @param skippedUtil	The utility value to skip, if any
 	 * @warning The input array of variables must contain exactly all of the space's variables. 
 	 */
-	protected HypercubeIter(BasicHypercube<V, U> space, String[] varOrder, V[] assignment) {
-		super(space, varOrder, assignment);
+	protected HypercubeIter(BasicHypercube<V, U> space, String[] varOrder, V[] assignment, U skippedUtil) {
+		super(space, varOrder, assignment, skippedUtil);
 	}
 
 	/** Constructor 
-	 * @param space 	the BasicHypercube to iterate over
+	 * @param space 		the BasicHypercube to iterate over
 	 * @param assignment 	An array that will be used as the output of nextSolution()
+	 * @param skippedUtil	The utility value to skip, if any
 	 */
-	protected HypercubeIter(BasicHypercube<V, U> space, V[] assignment) {
-		super(space, assignment);
+	protected HypercubeIter(BasicHypercube<V, U> space, V[] assignment, U skippedUtil) {
+		super(space, assignment, skippedUtil);
 	}
 
 	/** @see Iterator#nextUtility(java.lang.Object, boolean) */
 	public U nextUtility(U bound, final boolean minimize) {
 		
+		U util;
+		
 		if (minimize) {
-			while (this.hasNext()) {
-				if (super.nextUtility().compareTo(bound) < 0) {
-					return this.getCurrentUtility();
+			while ( (util = super.nextUtility()) != null) {
+				if (util.compareTo(bound) < 0) {
+					return util;
 				}
 			}
 		} else  { // maximizing
-			while (this.hasNext()) {
-				if (super.nextUtility().compareTo(bound) > 0) {
-					return this.getCurrentUtility();
+			while ( (util = super.nextUtility()) != null) {
+				if (util.compareTo(bound) > 0) {
+					return util;
 				}
 			}
 		}

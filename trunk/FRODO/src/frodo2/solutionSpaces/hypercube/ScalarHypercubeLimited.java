@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2012  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -215,6 +215,23 @@ public class ScalarHypercubeLimited < V extends Addable<V>, U extends Addable<U>
 		return null;
 	}
 
+	/** @see HypercubeLimited#sparseIter() */
+	@Override
+	public BasicHypercube.SparseIterator<V, UL> sparseIter() {
+		/// @todo Auto-generated method stub
+		assert false : "Not yet implemented";
+		return null;
+	}
+
+	/** @see HypercubeLimited#sparseIter(String[], V[][]) */
+	@Override
+	public BasicHypercube.SparseIterator<V, UL> sparseIter(
+			String[] variables, V[][] domains) {
+		/// @todo Auto-generated method stub
+		assert false : "Not yet implemented";
+		return null;
+	}
+
 	/** @see HypercubeLimited#prettyPrint(java.io.Serializable) */
 	@Override
 	public String prettyPrint(UL ignoredUtil) {
@@ -388,6 +405,14 @@ public class ScalarHypercubeLimited < V extends Addable<V>, U extends Addable<U>
 	/** @see HypercubeLimited#iterator(String[]) */
 	@Override
 	public Iterator<V, UL> iterator(String[] order) {
+		/// @todo Auto-generated method stub
+		assert false : "Not yet implemented";
+		return null;
+	}
+
+	/** @see HypercubeLimited#sparseIter(String[]) */
+	@Override
+	public SparseIterator<V, UL> sparseIter(String[] order) {
 		/// @todo Auto-generated method stub
 		assert false : "Not yet implemented";
 		return null;

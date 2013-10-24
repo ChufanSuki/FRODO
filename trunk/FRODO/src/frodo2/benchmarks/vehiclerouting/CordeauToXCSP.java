@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2012  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -40,13 +40,14 @@ import org.jdom2.output.XMLOutputter;
 
 import frodo2.solutionSpaces.AddableInteger;
 import frodo2.solutionSpaces.AddableReal;
-import frodo2.solutionSpaces.hypercube.ScalarSpaceIter;
+import frodo2.solutionSpaces.UtilitySolutionSpace.SparseIterator;
 import frodo2.solutionSpaces.vehiclerouting.VehicleRoutingSpace;
 
 /** A file converter from Cordeau's MDVRP format into FRODO XCSP format
  * 
  * @see "http://neo.lcc.uma.es/radi-aeb/WebVRP/index.html?/Problem_Instances/CordeauFilesDesc.html"
  * @author Thomas Leaute
+ * @todo Add support for Python scripting
  */
 public class CordeauToXCSP {
 	
@@ -132,7 +133,7 @@ public class CordeauToXCSP {
 	public static void main(String[] args) throws IOException {
 		
 		// The GNU GPL copyright notice
-		System.out.println("FRODO  Copyright (C) 2008-2012  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek");
+		System.out.println("FRODO  Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek");
 		System.out.println("This program comes with ABSOLUTELY NO WARRANTY.");
 		System.out.println("This is free software, and you are welcome to redistribute it");
 		System.out.println("under certain conditions. Use the option -license to display the license.\n");
@@ -151,6 +152,7 @@ public class CordeauToXCSP {
 					System.out.println(line);
 					line = reader.readLine();
 				}
+				reader.close();
 			} catch (FileNotFoundException e) {
 				e.printStackTrace();
 				System.exit(1);
@@ -717,20 +719,27 @@ public class CordeauToXCSP {
 				relElement.addContent(elmt2);
 				elmt2.setAttribute("name", relationName);
 				elmt2.setAttribute("arity", Integer.toString(arity));
-				ScalarSpaceIter<AddableInteger, AddableReal> iter = vrpSpace.iterator();
-				assert iter.getNbrSolutions() < Integer.MAX_VALUE : "A relation can only contain up to 2^32 solutions";
-				elmt2.setAttribute("nbTuples", Integer.toString((int) iter.getNbrSolutions()));
+				SparseIterator<AddableInteger, AddableReal> iter = vrpSpace.sparseIter();
 				elmt2.setAttribute("semantics", "soft");
 				elmt2.setAttribute("defaultCost", "infinity");
-				builder = new StringBuilder (iter.nextUtility().toString() + ":");
-				for (AddableInteger val : iter.getCurrentSolution()) 
-					builder.append(val + " ");
-				while (iter.hasNext()) {
-					builder.append("|" + iter.nextUtility() + ":");
+				builder = new StringBuilder ();
+				AddableReal util = iter.nextUtility();
+				int nbrTuples = 0;
+				if (util != null) {
+					nbrTuples++;
+					builder.append(util.toString() + ":");
 					for (AddableInteger val : iter.getCurrentSolution()) 
 						builder.append(val + " ");
+					while ( (util = iter.nextUtility()) != null) {
+						assert nbrTuples < Integer.MAX_VALUE : "A relation can only contain up to 2^32 solutions";
+						nbrTuples++;
+						builder.append("|" + util + ":");
+						for (AddableInteger val : iter.getCurrentSolution()) 
+							builder.append(val + " ");
+					}
 				}
 				elmt2.setText(builder.toString());
+				elmt2.setAttribute("nbTuples", Integer.toString(nbrTuples));
 			}
 		}
 		

@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2012  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -179,6 +179,8 @@ public class ASODPOPsolver < V extends Addable<V>, U extends Addable<U> > extend
 		TreeMap<String, Integer> msgNbrs = factory.getMsgNbrs();
 		long msgSize = factory.getTotalMsgSize();
 		TreeMap<String, Long> msgSizes = factory.getMsgSizes();
+		long maxMsgSize = factory.getOverallMaxMsgSize();
+		TreeMap<String, Long> maxMsgSizes = factory.getMaxMsgSizes();
 		double averageTreeFillPercentage = asodpopModule.getAverageFillTreePercentage();
 		double averageDummyFullPercentage = asodpopModule.getAverageDummyFillTreePercentage();
 		double averageNumberOfDummies = asodpopModule.getAverageNumberOfDummies();
@@ -194,7 +196,7 @@ public class ASODPOPsolver < V extends Addable<V>, U extends Addable<U> > extend
 		timesNeeded.put(asodpopModule.getClass().getName(), asodpopModule.getFinalTime());
 		asodpopModule = null;
 		
-		return new ASODPOPsolution<V, U> (nbrVariables, reportedUtil, utility, assignment, nbrMsgs, msgNbrs, msgSize, msgSizes, this.factory.getNcccs(), factory.getTime(), timesNeeded, 
+		return new ASODPOPsolution<V, U> (nbrVariables, reportedUtil, utility, assignment, nbrMsgs, msgNbrs, msgSize, msgSizes, maxMsgSize, maxMsgSizes, this.factory.getNcccs(), factory.getTime(), timesNeeded, 
 				numberOfCoordinationConstraint, assignmentHistories, averageTreeFillPercentage, maxMsgDim, averageDummyFullPercentage, averageNumberOfDummies, specUTILmsgs, totalUTILmsgs);
 	}
 	

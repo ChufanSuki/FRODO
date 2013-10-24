@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2012  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -26,7 +26,7 @@ package frodo2.algorithms;
 import java.util.HashMap;
 import java.util.Map;
 
-import frodo2.communication.MessageWith2Payloads;
+import frodo2.communication.MessageWith3Payloads;
 import frodo2.communication.QueueOutputPipeInterface;
 import frodo2.solutionSpaces.Addable;
 
@@ -57,7 +57,7 @@ public interface AgentInterface < V extends Addable<V> > {
 	/** An AGENT_FINISHED message containing statistics about messages sent
 	 * @author Thomas Leaute
 	 */
-	public static class AgentFinishedMessage extends MessageWith2Payloads< HashMap<String, Integer>, HashMap<String, Long> > {
+	public static class AgentFinishedMessage extends MessageWith3Payloads< HashMap<String, Integer>, HashMap<String, Long>, HashMap<String, Long> > {
 
 		/** Empty constructor used for externalization */
 		public AgentFinishedMessage () { }
@@ -65,9 +65,10 @@ public interface AgentInterface < V extends Addable<V> > {
 		/** Constructor
 		 * @param msgNbrs 		for each message type, the number of messages sent of that type
 		 * @param msgSizes 		for each message type, the total amount of information sent in messages of that type, in bytes
+		 * @param maxMsgSizes 	for each message type, the size (in bytes) of the largest message of this type
 		 */
-		public AgentFinishedMessage(HashMap<String, Integer> msgNbrs, HashMap<String, Long> msgSizes) {
-			super(AGENT_FINISHED, msgNbrs, msgSizes);
+		public AgentFinishedMessage(HashMap<String, Integer> msgNbrs, HashMap<String, Long> msgSizes, HashMap<String, Long> maxMsgSizes) {
+			super(AGENT_FINISHED, msgNbrs, msgSizes, maxMsgSizes);
 		}
 		
 		/** @return for each message type, the number of messages sent of that type */
@@ -80,10 +81,16 @@ public interface AgentInterface < V extends Addable<V> > {
 			return this.getPayload2();
 		}
 		
-		/** @see MessageWith2Payloads#toString() */
+		/** @return for each message type, the size (in bytes) of the largest message of this type */
+		public HashMap<String, Long> getMaxMsgSizes () {
+			return this.getPayload3();
+		}
+		
+		/** @see MessageWith3Payloads#toString() */
 		@Override
 		public String toString () {
-			return "Message(" + this.getType() + ")\n\tmsgNbrs = " + this.getMsgNbrs() + "\n\tmsgSizes = " + this.getMsgSizes();
+			return "Message(" + this.getType() + ")\n\tmsgNbrs = " + this.getMsgNbrs() + "\n\tmsgSizes = " + this.getMsgSizes() + 
+					"\n\tmaxMsgSizes = " + this.getMaxMsgSizes();
 		}
 	}
 	

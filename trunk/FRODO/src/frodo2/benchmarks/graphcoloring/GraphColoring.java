@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2012  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -27,6 +27,9 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.TreeMap;
 
 import org.jdom2.Document;
 import org.jdom2.Element;
@@ -46,57 +49,63 @@ public class GraphColoring {
 	/** Generates a random graph coloring problem and writes it to a file
 	 * @param args 	[-soft] nbrNodes density nbrColors [stochNodeRatio]
 	 * @throws IOException 	if an error occurs while attempting to write the output file
+	 * @todo Add support for various graph topologies
 	 */
 	public static void main(String[] args) throws IOException {
 		
 		// The GNU GPL copyright notice
-		System.out.println("FRODO  Copyright (C) 2008-2012  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek\n" +
+		System.out.println("FRODO  Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek\n" +
 				"This program comes with ABSOLUTELY NO WARRANTY.\n" +
 				"This is free software, and you are welcome to redistribute it\n" +
 				"under certain conditions. \n");
-		
-		if (args.length < 3 || args.length > 7) {
-			System.out.println("Usage: " + GraphColoring.class.getSimpleName() + " [-i] [-soft] [-mpc] nbrNodes density nbrColors [stochNodeRatio]\n" +
-					"\t -i [optional]               if present, the output problem is expressed in intensional form\n" +
-					"\t -soft [optional]            if present, the output is a Max-DisCSP instead of a DisCSP with hard constraints (default is DisCSP)\n" +
-					"\t -mpc [optional]             if present, also outputs an alternative problem formulation in which all constraints are public\n" +
-					"\t nbrNodes                    the number of nodes\n" +
-					"\t density                     the fraction of pairs of nodes that are neighbors of each other\n" +
-					"\t nbrColors                   the number of colors\n" +
-					"\t stochNodeRatio [optional]   the fraction of nodes whose color is uncontrollable; the output is a StochDCOP (default is 0)");
-			System.exit(1);
-		}
 		
 		ArrayList<String> args2 = new ArrayList<String> (Arrays.asList(args));
 		
 		boolean intensional = args2.remove("-i");
 		boolean soft = args2.remove("-soft");
 		boolean mpc = args2.remove("-mpc");
+		boolean nbrLinks = args2.remove("-nbrLinks");
 
+		if (args2.size() < 4 || args2.size() > 5) {
+			System.err.println("Usage: " + GraphColoring.class.getSimpleName() + " [-i] [-soft] [-mpc] [-nbrLinks] nbrNodes density tightness nbrColors [stochNodeRatio]\n" +
+					"\t -i [optional]               if present, the output problem is expressed in intensional form\n" +
+					"\t -soft [optional]            if present, the output is a Max-DisCSP instead of a DisCSP with hard constraints (default is DisCSP)\n" +
+					"\t -mpc [optional]             if present, also outputs an alternative problem formulation in which all constraints are public\n" +
+					"\t -nbrLinks [optional]		if present, the density parameter states that there must be density*nbrNodes links in the graph\n" +
+					"\t nbrNodes                    the number of nodes\n" +
+					"\t density                     the fraction of pairs of nodes that are neighbors of each other\n" +
+					"\t tightness                   if >0, the output problem contains unary constraints of expected tightness equal to this input parameter\n" +
+					"\t nbrColors                   the number of colors\n" +
+					"\t stochNodeRatio [optional]   the fraction of nodes whose color is uncontrollable; the output is a StochDCOP (default is 0)");
+			System.exit(1);
+		}
+		
 		final int nbrNodes = Integer.parseInt(args2.get(0));
 		assert nbrNodes >= 2 : "To few nodes (" + nbrNodes + ")";
 		final double density = Double.parseDouble(args2.get(1));
-		assert density >= 0 && density <= 1 : "The input density is not between 0 and 1: " + density;
-		final int nbrColors = Integer.parseInt(args2.get(2));
+		assert nbrLinks || (density >= 0 && density <= 1): "The input density is not between 0 and 1: " + density;
+		final double tightness = Double.parseDouble(args2.get(2));
+		assert tightness >= 0 && tightness <= 1: "The input tightness is not between 0 and 1: " + tightness;
+		final int nbrColors = Integer.parseInt(args2.get(3));
 		assert nbrColors > 0 : "The number of colors must be positive (" + nbrColors + ")";
 		
 		// Look for the ratio of stochastic nodes
 		int nbrStochNodes = 0;
-		if (args2.size() >= 4) 
-			nbrStochNodes = (int) (nbrNodes * Double.parseDouble(args2.get(3)));
+		if (args2.size() >= 5) 
+			nbrStochNodes = (int) (nbrNodes * Double.parseDouble(args2.get(4)));
 		assert nbrStochNodes >= 0 && nbrStochNodes <= nbrNodes : "Incorrect ratio of stochastic nodes";
 		
-		// Generate the random graph
-		Graph graph = RandGraphFactory.getSizedRandGraph(nbrNodes, (int) (density * nbrNodes * (nbrNodes - 1) / 2.0), 0);
-//		new DOTrenderer ("graph", graph.toString(), "twopi");
+		// Generate the random instance
+		GraphColoring instance = new GraphColoring (nbrNodes, density, tightness, nbrColors, nbrStochNodes, nbrLinks);
+//		new DOTrenderer ("graph", instance.graph.toString(), "twopi");
 		
 		// Generate the XCSP representation and write it to a file
-		Document problem = generateProblem(graph, nbrColors, false, soft, nbrStochNodes, intensional);
+		Document problem = instance.toXCSP(false, soft, intensional);
 		new XMLOutputter(Format.getPrettyFormat()).output(problem, new FileWriter ("graphColoring.xml"));
 		System.out.println("Wrote graphColoring.xml");
 
 		if (mpc) {
-			problem = generateProblem(graph, nbrColors, true, soft, nbrStochNodes, intensional);
+			problem = instance.toXCSP(true, soft, intensional);
 			new XMLOutputter(Format.getPrettyFormat()).output(problem, new FileWriter ("graphColoring_MPC.xml"));
 			System.out.println("Wrote graphColoring_MPC.xml");
 		}
@@ -106,27 +115,110 @@ public class GraphColoring {
 	 * @param soft 				whether to make it a DisCSP (\c false) or a Max-DisCSP (\c true)
 	 * @param nbrNodes 			total number of nodes
 	 * @param density 			graph density
+	 * @param tightness 		the tightness of the unary constraints
 	 * @param nbrColors 		number of colors
 	 * @param nbrStochNodes 	number of uncontrollable nodes
 	 * @param intensional 		whether the output should be intensional
 	 * @return a problem instance
 	 */
-	public static Document generateProblem (boolean soft, int nbrNodes, double density, int nbrColors, int nbrStochNodes, boolean intensional) {
+	public static Document generateProblem (boolean soft, int nbrNodes, double density, double tightness, int nbrColors, int nbrStochNodes, boolean intensional) {
 		
-		Graph graph = RandGraphFactory.getSizedRandGraph(nbrNodes, (int) (density * nbrNodes * (nbrNodes - 1) / 2.0), 0);
-		return GraphColoring.generateProblem(graph, nbrColors, false, soft, nbrStochNodes, intensional);
+		GraphColoring instance = new GraphColoring (nbrNodes, density, tightness, nbrColors, nbrStochNodes, false);
+		return instance.toXCSP(false, soft, intensional);
+	}
+	
+	/** The underlying graph */
+	final public Graph graph;
+	
+	/** For each node, its list of forbidden colors */
+	final public TreeMap< String, ArrayList<Integer> > unaryCons;
+	
+	/** The number of colors */
+	final public int nbrColors;
+	
+	/** The set of uncontrollable nodes */
+	final private HashSet<String> stochNodes;
+
+	/** The name of the problem instance */
+	private final String instanceName;
+
+	/** The desired density */
+	private double targetDensity = -1;
+	
+	/** The desired tightness of the unary constraints */
+	private final double targetTightness;
+
+	/** Constructor
+	 * @param nbrNodes 			total number of nodes
+	 * @param density 			graph density
+	 * @param tightness 		the tightness of the unary constraints
+	 * @param nbrColors 		number of colors
+	 * @param nbrStochNodes 	number of uncontrollable nodes
+	 * @param nbrLinks 			if true, the density parameter states that there must be density*nbrNodes links in the graph
+	 */
+	public GraphColoring (int nbrNodes, double density, final double tightness, final int nbrColors, int nbrStochNodes, boolean nbrLinks) {
+		this(nbrLinks ? RandGraphFactory.getSizedRandGraph(nbrNodes, (int) (density * nbrNodes), 0) :
+						RandGraphFactory.getSizedRandGraph(nbrNodes, (int) (density * nbrNodes * (nbrNodes - 1) / 2.0), 0), 
+				tightness, nbrColors, nbrStochNodes);
+		this.targetDensity = density;
+	}
+	
+	/** Constructor
+	 * @param graph 			the underlying graph
+	 * @param tightness 		the tightness of the unary constraints
+	 * @param nbrColors 		number of colors
+	 * @param nbrStochNodes 	number of uncontrollable nodes
+	 */
+	public GraphColoring (Graph graph, final double tightness, final int nbrColors, final int nbrStochNodes) {
+		this.graph = graph;
+		this.targetTightness = tightness;
+		this.nbrColors = nbrColors;
+		this.instanceName = "graphColoring_" + System.currentTimeMillis();
+		
+		// The first nbrStochNodes nodes are selected as the uncontrollable ones
+		this.stochNodes = new HashSet<String> ();
+		for (int i = 0; i < nbrStochNodes; i++) 
+			this.stochNodes.add(graph.nodes.get(i));
+		
+		this.unaryCons = new TreeMap< String, ArrayList<Integer> > ();
+		if (tightness > 0) { // generate the unary constraints
+			
+			for (String n : this.graph.nodes) {
+				if (this.stochNodes.contains(n)) // skip uncontrollable nodes
+					continue;
+				
+				ArrayList<Integer> colors = new ArrayList<Integer> (nbrColors);
+				for (int i = 0; i < nbrColors; i++) 
+					if (Math.random() <= tightness) 
+						colors.add(i);
+				
+				if (! colors.isEmpty() ) 
+					this.unaryCons.put(n, colors);
+			}
+		}
 	}
 
+	/** Creates a "stats" element
+	 * @param name 		the value of the "name" attribute
+	 * @param value 	the text
+	 * @return a new "stats" element
+	 */
+	public static Element createStats (String name, String value) {
+		
+		Element stats = new Element ("stats");
+		stats.setAttribute("name", name);
+		stats.setText(value);
+		
+		return stats;
+	}
+	
 	/** Generates an XCSP representation of a graph coloring problem
-	 * @param graph 						the underlying graph
-	 * @param nbrColors 					the number of colors
 	 * @param publicInteragentConstraints 	whether inter-agent constraints should be public
 	 * @param soft 							whether the output should be a Max-DisCSP
-	 * @param nbrStochNodes 				the desired number of stochastic nodes
 	 * @param intensional 					whether the output should be intensional
 	 * @return An XCSP-formatted Document
 	 */
-	public static Document generateProblem(Graph graph, final int nbrColors, final boolean publicInteragentConstraints, final boolean soft, final int nbrStochNodes, final boolean intensional) {
+	public Document toXCSP (final boolean publicInteragentConstraints, final boolean soft, final boolean intensional) {
 		
 		// Create the root element
 		Element probElement = new Element ("instance");
@@ -134,19 +226,24 @@ public class GraphColoring {
 				Namespace.getNamespace("xsi", "http://www.w3.org/2001/XMLSchema-instance"));
 		
 		// Create the "presentation" element
-		Element elmt = new Element ("presentation");
-		probElement.addContent(elmt);
-		elmt.setAttribute("name", "graphColoring");
-		elmt.setAttribute("maxConstraintArity", "2");
-		elmt.setAttribute("maximize", "false");
-		elmt.setAttribute("format", "XCSP 2.1_FRODO");
+		Element presElmt = new Element ("presentation");
+		probElement.addContent(presElmt);
+		presElmt.setAttribute("name", this.instanceName);
+		presElmt.setAttribute("maxConstraintArity", "2");
+		presElmt.setAttribute("maximize", "false");
+		presElmt.setAttribute("format", "XCSP 2.1_FRODO");
 		
 		// Create the "agents" element
-		elmt = new Element ("agents");
+		Element elmt = new Element ("agents");
 		probElement.addContent(elmt);
 		final int nbrNodes = graph.nodes.size();
-		elmt.setAttribute("nbAgents", Integer.toString(nbrNodes - nbrStochNodes));
-		for (int varID = nbrStochNodes; varID < nbrNodes; varID++) {
+		elmt.setAttribute("nbAgents", Integer.toString(nbrNodes - this.stochNodes.size()));
+		for (String varID : this.graph.nodes) {
+			
+			// Skip the stoch nodes
+			if (this.stochNodes.contains(varID)) 
+				continue;
+			
 			Element subElmt = new Element ("agent");
 			elmt.addContent(subElmt);
 			subElmt.setAttribute("name", "a" + varID);
@@ -166,26 +263,27 @@ public class GraphColoring {
 		elmt = new Element ("variables");
 		probElement.addContent(elmt);
 		elmt.setAttribute("nbVariables", Integer.toString(graph.nodes.size()));
-		for (int varID = 0; varID < nbrNodes; varID++) {
+		for (String varID : this.graph.nodes) {
 			subElmt = new Element ("variable");
 			elmt.addContent(subElmt);
 			subElmt.setAttribute("name", "n" + varID);
 			subElmt.setAttribute("domain", "colors");
-			if (varID < nbrStochNodes) 
+			if (this.stochNodes.contains(varID)) 
 				subElmt.setAttribute("type", "random");
 			else 
 				subElmt.setAttribute("agent", "a" + varID);
 		}
 		
+		// Create the "relations" element
+		Element relElmt = new Element ("relations");
+		if (soft || !intensional || !this.unaryCons.isEmpty()) {
+			probElement.addContent(relElmt);
+		}
+		
 		if (soft || !intensional) { // extensional
 
-			// Create the "relations" element
-			elmt = new Element ("relations");
-			probElement.addContent(elmt);
-			elmt.setAttribute("nbRelations", "1");
-
 			subElmt = new Element ("relation");
-			elmt.addContent(subElmt);
+			relElmt.addContent(subElmt);
 			subElmt.setAttribute("name", "neq");
 			subElmt.setAttribute("semantics", "soft");
 			subElmt.setAttribute("arity", "2");
@@ -221,14 +319,14 @@ public class GraphColoring {
 			subElmt.setText("ne(X, Y)");
 		}
 		
-		if (nbrStochNodes > 0) {
+		if (! this.stochNodes.isEmpty()) {
 			
 			// Create the "probabilities" element
 			elmt = new Element ("probabilities");
 			probElement.addContent(elmt);
-			elmt.setAttribute("nbProbabilities", Integer.toString(nbrStochNodes));
+			elmt.setAttribute("nbProbabilities", Integer.toString(this.stochNodes.size()));
 			
-			for (int varID = 0; varID < nbrStochNodes; varID++) {
+			for (String varID : this.stochNodes) {
 				
 				subElmt = new Element ("probability");
 				elmt.addContent(subElmt);
@@ -256,11 +354,45 @@ public class GraphColoring {
 		Element conElmt = new Element ("constraints");
 		probElement.addContent(conElmt);
 		
+		// Create the unary constraints
+		double tightness = 0.0;
+		final double weight = 1.0 / (this.nbrColors * (this.graph.nodes.size() - this.stochNodes.size()));
+		for (Map.Entry< String, ArrayList<Integer> > entry : this.unaryCons.entrySet()) {
+			String n = entry.getKey();
+			ArrayList<Integer> colors = entry.getValue();
+			tightness += colors.size() * weight;
+
+			// Create the relation
+			subElmt = new Element ("relation");
+			relElmt.addContent(subElmt);
+			subElmt.setAttribute("name", "unaryRel_" + n);
+			subElmt.setAttribute("semantics", soft || !intensional ? "soft" : "conflicts");
+			subElmt.setAttribute("arity", "1");
+			if (soft || !intensional) 
+				subElmt.setAttribute("defaultCost", "0");
+			subElmt.setAttribute("nbTuples", Integer.toString(colors.size()));
+
+			StringBuilder builder = new StringBuilder (soft ? "1: " : !intensional ? "infinity: " : "");
+			for (int i = colors.size() - 1; i > 0; i--) 
+				builder.append(colors.get(i)).append("|");
+			builder.append(colors.get(0));
+			subElmt.setText(builder.toString());
+
+			// Create the constraint
+			elmt = new Element ("constraint");
+			conElmt.addContent(elmt);
+			elmt.setAttribute("name", "unaryCons_" + n);
+			elmt.setAttribute("scope", "n" + n);
+			elmt.setAttribute("arity", "1");
+			elmt.setAttribute("reference", "unaryRel_" + n);
+			elmt.setAttribute("agent", "a" + n);					
+		}
+		
 		// Go through all edges in the graph
 		for (Edge edge : graph.edges) {
 			
 			// Skip this constraint if it involves two random variables
-			if (Integer.parseInt(edge.source) < nbrStochNodes && Integer.parseInt(edge.dest) < nbrStochNodes) 
+			if (this.stochNodes.contains(edge.source) && this.stochNodes.contains(edge.dest)) 
 				continue;
 			
 			elmt = new Element ("constraint");
@@ -284,7 +416,7 @@ public class GraphColoring {
 		}
 		
 		// Add the probability distributions
-		for (int varID = 0; varID < nbrStochNodes; varID++) {
+		for (String varID : this.stochNodes) {
 			final String varName = "n" + varID;
 			
 			elmt = new Element ("constraint");
@@ -295,7 +427,19 @@ public class GraphColoring {
 			elmt.setAttribute("reference", varName + "proba");
 		}
 
+		relElmt.setAttribute("nbRelations", Integer.toString(relElmt.getContentSize()));
 		conElmt.setAttribute("nbConstraints", Integer.toString(conElmt.getContentSize()));
+
+		// Write the stats
+		presElmt.addContent(createStats("number of nodes", Integer.toString(this.graph.nodes.size())));
+		presElmt.addContent(createStats("target density", Double.toString(this.targetDensity)));
+		presElmt.addContent(createStats("true average density", Double.toString(this.graph.computeDensity())));
+		presElmt.addContent(createStats("target unary tightness", Double.toString(this.targetTightness)));
+		presElmt.addContent(createStats("true average unary tightness", Double.toString(tightness)));
+		presElmt.addContent(createStats("number of colors", Integer.toString(this.nbrColors)));
+		presElmt.addContent(createStats("number of uncontrollable nodes", Integer.toString(this.stochNodes.size())));
+		presElmt.addContent(createStats("number of disconnected components", Integer.toString(graph.components.size())));
+		presElmt.addContent(createStats("max degree", Integer.toString(graph.computeMaxDeg())));
 
 		return new Document (probElement);
 	}

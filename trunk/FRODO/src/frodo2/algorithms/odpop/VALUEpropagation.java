@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2012  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -141,6 +141,9 @@ public class VALUEpropagation < Val extends Addable<Val>, U extends Addable<U> >
 	
 	/** The sum of maximal cuts*/
 	private U maximalCutSum;
+
+	/** For each variable, a list of VALUE messages that are waiting to be processed until the DFS output has been received */
+	private HashMap< String, List< VALUEmsgWithVars<Val> > > postponed = new HashMap< String, List< VALUEmsgWithVars<Val> > > ();
 	
 	/**
 	 * Constructor used for stats reporter
@@ -316,6 +319,12 @@ public class VALUEpropagation < Val extends Addable<Val>, U extends Addable<U> >
 			for(String child : children) {
 				owners.put(child, problem.getOwner(child));
 			}
+			
+			// Process the pending VALUE messages, if any
+			List< VALUEmsgWithVars<Val> > msgs = this.postponed.remove(var);
+			if (msgs != null) 
+				for (VALUEmsgWithVars<Val> valueMsg : msgs) 
+					this.notifyIn(valueMsg);
 		}
 		
 		else if(type.equals(VALUE_MSG_TYPE)) {
@@ -328,7 +337,15 @@ public class VALUEpropagation < Val extends Addable<Val>, U extends Addable<U> >
 			
 			HashMap<String, Val> reportedValues = msgCast.getValues();
 			if(reportedValues == null) { // we are dealing with an infeasible problem
-				this.findOptimalAssignmentAndSend(varID, varIndex, null);
+
+				// Check whether we have received the DFS output for this variable
+				if (this.children.get(varIndex) == null) { // not received yet; postpone the processing of this message
+					List< VALUEmsgWithVars<Val> > msgs = this.postponed.get(varID);
+					if (msgs == null) 
+						this.postponed.put(varID, msgs = new ArrayList< VALUEmsgWithVars<Val> > ());
+					msgs.add(msgCast);
+				} else 
+					this.findOptimalAssignmentAndSend(varID, varIndex, null);
 			} else {
 				HashMap<String, Val> values = (HashMap<String, Val>)reportedValues.clone();
 				contextMap.set(varIndex, values);
@@ -403,7 +420,7 @@ public class VALUEpropagation < Val extends Addable<Val>, U extends Addable<U> >
 
 		if(tree == null) { // we are dealing with an infeasible problem
 			val = domains[varIndex][(int)(Math.random()*domains[varIndex].length)];
-			for(int i = 0; i < children.size(); i++) { /// @bug Rare NullPointerExceptions when running VALUEpropagationTest
+			for(int i = 0; i < children.size(); i++) {
 				String child = children.get(i);
 				if(LOG)
 					log(varID, "Sending a VALUE message to child " + child + " (problem infeasible)");

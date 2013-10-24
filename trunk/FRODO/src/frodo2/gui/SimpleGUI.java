@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2012  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -93,7 +93,7 @@ public class SimpleGUI extends JFrame implements ActionListener, ItemListener {
 	private JTextField problemField;
 
 	/**List of DCOP solving agents*/
-	private JComboBox agentList;
+	private JComboBox<String> agentList;
 
 	/**Specified timeout value*/
 	private JTextField timeoutField;
@@ -198,7 +198,7 @@ public class SimpleGUI extends JFrame implements ActionListener, ItemListener {
 
 		JPanel agentChooser = new JPanel();
 		agentChooser.setLayout(new BorderLayout());
-		agentList = new JComboBox(createAgentsList());
+		agentList = new JComboBox<String> (createAgentsList());
 		agentList.addItem("Choose custom agent...");
 		
 		if(agentFilePath != null) {		//Sets the selected agent configuration file in the drop down menu to the file given as parameter
@@ -287,7 +287,7 @@ public class SimpleGUI extends JFrame implements ActionListener, ItemListener {
 	public static void main(String[] args) {
 
 		// The GNU GPL copyright notice
-		System.out.println("FRODO  Copyright (C) 2008-2012  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek");
+		System.out.println("FRODO  Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek");
 		System.out.println("This program comes with ABSOLUTELY NO WARRANTY.");
 		System.out.println("This is free software, and you are welcome to redistribute it");
 		System.out.println("under certain conditions. \n");
@@ -500,7 +500,7 @@ public class SimpleGUI extends JFrame implements ActionListener, ItemListener {
 	 * 
 	 * @return Array containing the names of all currently implemented DCOP solving agents
 	 */
-	private Object[] createAgentsList() {
+	private String[] createAgentsList() {
 
 		// Check if the OR-Objects library is available to use the VRP code
 		boolean enableVRP = true;
@@ -629,6 +629,8 @@ public class SimpleGUI extends JFrame implements ActionListener, ItemListener {
 		agentNamesToPath.put("AFBagent.xml", "/frodo2/algorithms/afb/AFBagent.xml");
 		if (enableVRP) 
 			agentNamesToPath.put("AFBagentVRP.xml", "/frodo2/algorithms/afb/AFBagentVRP.xml");
+		if (enableJaCoP) 
+			agentNamesToPath.put("AFBagentJaCoP.xml", "/frodo2/algorithms/afb/AFBagentJaCoP.xml");
 
 		// MPC-DisCSP4
 		agentNamesToPath.put("MPC-DisCSP4.xml", "/frodo2/algorithms/mpc_discsp/MPC-DisCSP4.xml");
@@ -651,7 +653,7 @@ public class SimpleGUI extends JFrame implements ActionListener, ItemListener {
 		
 		List<String> keys = new ArrayList<String>(agentNamesToPath.keySet());
 		Collections.sort(keys);
-		return keys.toArray();
+		return keys.toArray(new String [keys.size()]);
 	}
 
 	/**

@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2012  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -309,15 +309,15 @@ public class SamplingPhase < V extends Addable<V>, U extends Addable<U> > extend
 			
 			// Retrieve the information from the message
 			@SuppressWarnings("unchecked")
-			MessageDFSoutput<V, ?> msgCast = (MessageDFSoutput<V, ?>) msg;
+			MessageDFSoutput<V, U> msgCast = (MessageDFSoutput<V, U>) msg;
 			String var = msgCast.getVar();
-			DFSview<V, ?> neighbors = msgCast.getNeighbors();
+			DFSview<V, U> neighbors = msgCast.getNeighbors();
 			HashSet<String> allChildren = new HashSet<String> (neighbors.getChildren());
 			allChildren.addAll(neighbors.getAllPseudoChildren());
 			
 			// For each space that var is responsible for enforcing, add the random variables in the scope to var's flags
 			HashSet<String> flags = new HashSet<String> ();
-			for (UtilitySolutionSpace<V, U> space : this.problem.getSolutionSpaces(var, true, allChildren)) {
+			for (UtilitySolutionSpace<V, U> space : neighbors.getSpaces()) {
 				
 				// Add all random variables in the scope to var's flags
 				for (String randVar : space.getVariables()) 

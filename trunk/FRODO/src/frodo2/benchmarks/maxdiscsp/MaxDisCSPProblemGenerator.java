@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2012  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -71,18 +71,32 @@ public class MaxDisCSPProblemGenerator
 		{
 			// apply the density p1, by reducing the possible number of edges in the graph
 			Graph g = RandGraphFactory.getSizedRandGraph(n, (int)(Math.round(n * (n-1) * 0.5 * p1)), 0);
-			return generateProblem (g, k, p2);
+			return generateProblem (g, k, p1, p2);
 		}	
 	
+		/** Creates a "stats" element
+		 * @param name 		the value of the "name" attribute
+		 * @param value 	the text
+		 * @return a new "stats" element
+		 */
+		public static Element createStats (String name, String value) {
+			
+			Element stats = new Element ("stats");
+			stats.setAttribute("name", name);
+			stats.setText(value);
+			
+			return stats;
+		}
 		
 		/** Creates a problem description based on the input constraint graph
-		 * @param graph 			a constraint graph
-		 * @param k					the uniform domain size. Each variable domain will have values {1,2, ... ,k}
-		 * @param p2 				the tightness of the constraint graph.
+		 * @param graph 	a constraint graph
+		 * @param k			the uniform domain size. Each variable domain will have values {1,2, ... ,k}
+		 * @param p1 		the target density of the constraint graph
+		 * @param p2 		the target tightness of the constraint graph
 		 * @return a problem description based on the input graph
 		 * @see AllTests#createRandProblem(int, int, int, boolean)
 		*/
-		public static Document generateProblem (Graph graph, int k, double p2) 
+		public static Document generateProblem (Graph graph, int k, double p1, double p2) 
 		{	
 			// Create the root element
 			Element probElement = new Element ("instance");
@@ -90,15 +104,15 @@ public class MaxDisCSPProblemGenerator
 					Namespace.getNamespace("xsi", "http://www.w3.org/2001/XMLSchema-instance"));
 	
 			// Create the "presentation" element
-			Element elmt = new Element ("presentation");
-			probElement.addContent(elmt);
-			elmt.setAttribute("name", "randomMaxDisCSP");
-			elmt.setAttribute("maxConstraintArity", "2");
-			elmt.setAttribute("maximize", Boolean.toString(false));
-			elmt.setAttribute("format", "XCSP 2.1_FRODO");
+			Element presElmt = new Element ("presentation");
+			probElement.addContent(presElmt);
+			presElmt.setAttribute("name", "randomMaxDisCSP_" + System.currentTimeMillis());
+			presElmt.setAttribute("maxConstraintArity", "2");
+			presElmt.setAttribute("maximize", Boolean.toString(false));
+			presElmt.setAttribute("format", "XCSP 2.1_FRODO");
 			
 			// Create the "agents" element
-			elmt = new Element ("agents");
+			Element elmt = new Element ("agents");
 			probElement.addContent(elmt);
 			elmt.setAttribute("nbAgents", Integer.toString(graph.nodes.size()));
 			for (String varID : graph.nodes) {
@@ -128,7 +142,7 @@ public class MaxDisCSPProblemGenerator
 			{
 				elmt = new Element ("variable");
 				varsElement.addContent(elmt);
-				elmt.setAttribute("name", varID);
+				elmt.setAttribute("name", "x" + varID);
 				elmt.setAttribute("domain", "D");
 				elmt.setAttribute("agent", "a" + varID); // make sure each agent owns one variable
 			}
@@ -140,13 +154,16 @@ public class MaxDisCSPProblemGenerator
 			probElement.addContent(conElement);
 		 
 			// Generate a random hypercube for each pair of connected variables in the graph
+			double trueP2 = 0.0;
+			final int nbrEdges = graph.edges.length;
+			final double tupleWeight = 1.0 / (nbrEdges * k * k);
 			for (int i = 0; i<graph.edges.length; i++)
 			{
 				Edge e = graph.edges[i];		
 				List<String> vars = new ArrayList<String>();
 				
-				vars.add(e.dest);
-				vars.add(e.source);
+				vars.add("x" + e.dest);
+				vars.add("x" + e.source);
 				Hypercube< AddableInteger, AddableInteger > hypercube = randHypercube(vars, k, p2);
 				hypercube.setName("c_" + Integer.toString(i));
 	
@@ -166,6 +183,7 @@ public class MaxDisCSPProblemGenerator
 					// Skip this tuple if it has the default utility 0
 					if (iter.nextUtility().intValue() == 0) 
 						continue;
+					trueP2 += tupleWeight;
 					
 					// Write the assignment
 					j++;
@@ -185,8 +203,20 @@ public class MaxDisCSPProblemGenerator
 				// Create the "constraint" element
 				conElement.addContent(XCSPparser.getConstraint(hypercube, "c_" + Integer.toString(i), "r_" + Integer.toString(i)));
 			}
+			
 			relElement.setAttribute("nbRelations", Integer.toString(graph.edges.length));
 			conElement.setAttribute("nbConstraints", Integer.toString(graph.edges.length));
+			
+			// Write the stats
+			final int nbrVars = graph.nodes.size();
+			presElmt.addContent(createStats("number of variables", Integer.toString(nbrVars)));
+			presElmt.addContent(createStats("domain size", Integer.toString(k)));
+			presElmt.addContent(createStats("target density p1", Double.toString(p1)));
+			presElmt.addContent(createStats("true average density p1", Double.toString(graph.computeDensity())));
+			presElmt.addContent(createStats("target tightness p2", Double.toString(p2)));
+			presElmt.addContent(createStats("true average tightness p2", Double.toString(trueP2)));
+			presElmt.addContent(createStats("number of disconnected components", Integer.toString(graph.components.size())));
+			presElmt.addContent(createStats("max degree", Integer.toString(graph.computeMaxDeg())));
 	
 			return new Document (probElement);
 		}
@@ -230,12 +260,13 @@ public class MaxDisCSPProblemGenerator
 		 
 		/**
 		 * @param args Expects: n k p1 p2
+		 * @todo Add support for MPC-DisWCSP4
 		 */
 		public static void main(String[] args) 
 		{
 			
 			// The GNU GPL copyright notice
-			System.out.println("FRODO  Copyright (C) 2008-2012  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek");
+			System.out.println("FRODO  Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek");
 			System.out.println("This program comes with ABSOLUTELY NO WARRANTY.");
 			System.out.println("This is free software, and you are welcome to redistribute it");
 			System.out.println("under certain conditions. \n");
@@ -257,7 +288,7 @@ public class MaxDisCSPProblemGenerator
 			// Parse the input arguments
 			if (args.length != 4) 
 			{
-				System.out.println("Usage: MaxDisCSPProblemGenerator nbrVars domainSize density(p1) tightness(p2). Eg: MaxDisCSPProblemGenerator 10 10 0.3 0.7");
+				System.err.println("Usage: MaxDisCSPProblemGenerator nbrVars domainSize density(p1) tightness(p2). Eg: MaxDisCSPProblemGenerator 10 10 0.3 0.7");
 				System.exit(1);
 			}
 		

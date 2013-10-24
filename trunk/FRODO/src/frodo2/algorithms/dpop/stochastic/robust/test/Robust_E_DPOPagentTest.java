@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2012  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -36,8 +36,8 @@ import frodo2.algorithms.RandGraphFactory;
 import frodo2.algorithms.XCSPparser;
 import frodo2.algorithms.dpop.stochastic.CompleteUTIL;
 import frodo2.algorithms.dpop.stochastic.ExpectedUTIL;
-import frodo2.algorithms.dpop.stochastic.SamplingPhase;
 import frodo2.algorithms.dpop.stochastic.ExpectedUTIL.Method;
+import frodo2.algorithms.dpop.stochastic.SamplingPhase;
 import frodo2.algorithms.dpop.stochastic.test.E_DPOPagentTest;
 import frodo2.algorithms.test.AllTests;
 import frodo2.communication.Queue;
@@ -50,6 +50,7 @@ import frodo2.solutionSpaces.AddableReal;
 /** Unit tests for Robust-E[DPOP]
  * @param <V> the type used for variable values
  * @author Thomas Leaute
+ * @bug There seem to be interferences between consecutive tests, producing timeouts, "Non-monotone problem" AssertionErrors and "address already in use" errors
  */
 public class Robust_E_DPOPagentTest < V extends Addable<V> > extends E_DPOPagentTest<V> {
 

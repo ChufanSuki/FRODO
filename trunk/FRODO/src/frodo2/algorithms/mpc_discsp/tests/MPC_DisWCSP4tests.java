@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2012  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -129,7 +129,7 @@ public class MPC_DisWCSP4tests extends TestCase {
 		// Solve the problem using MPC-DisWCSP4
 		final int nbrConstraints = parser.getSolutionSpaces().size();
 		Solution<AddableInteger, AddableInteger> sol = new MPC_DisWCSP4solver<AddableInteger, AddableInteger> (this.agentConfig)
-			.solve(problem, false, 240000L, costAmplitude * nbrConstraints, costAmplitude * nbrConstraints * parser.getAgents().size());
+			.solve(problem, false, 600000L, costAmplitude * nbrConstraints, costAmplitude * nbrConstraints * parser.getAgents().size());
 		assertNotNull("timeout", sol);
 		
 		assertEquals(optCost, sol.getUtility());

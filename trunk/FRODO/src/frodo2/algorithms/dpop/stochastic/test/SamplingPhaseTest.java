@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2012  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -40,6 +40,7 @@ import frodo2.algorithms.XCSPparser;
 import frodo2.algorithms.dpop.stochastic.SamplesMsg2;
 import frodo2.algorithms.dpop.stochastic.SamplingPhase;
 import frodo2.algorithms.dpop.stochastic.SamplingPhase.RandVarsProjMsg;
+import frodo2.algorithms.dpop.test.UTILpropagationTest;
 import frodo2.algorithms.test.AllTests;
 import frodo2.communication.IncomingMsgPolicyInterface;
 import frodo2.communication.Message;
@@ -120,11 +121,12 @@ public class SamplingPhaseTest extends LowestCommonAncestorsTest {
 		
 		// Recompute allFlags. 
 		super.allFlags.clear();
-		XCSPparser<AddableInteger, AddableReal> parser = new XCSPparser<AddableInteger, AddableReal> (this.problem);
-		for (String var : parser.getVariables()) 
+		XCSPparser<AddableInteger, AddableReal> parser2 = new XCSPparser<AddableInteger, AddableReal> (this.problem);
+		this.dfs = UTILpropagationTest.computeDFS(graph, parser2, true);
+		for (String var : parser2.getVariables()) 
 			allFlags.put(var, new HashSet<String> ());
-		for (String randVar : parser.getVariables(null)) 
-			for (String var : parser.getNeighborVars(randVar)) 
+		for (String randVar : parser2.getVariables(null)) 
+			for (String var : parser2.getNeighborVars(randVar)) 
 				super.allFlags.get(var).add(randVar);
 		
 		// Initialize allHigherRelevantRandVars

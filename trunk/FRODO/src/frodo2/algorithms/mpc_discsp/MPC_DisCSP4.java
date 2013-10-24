@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2012  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -47,7 +47,7 @@ import frodo2.solutionSpaces.Addable;
 import frodo2.solutionSpaces.AddableInteger;
 import frodo2.solutionSpaces.DCOPProblemInterface;
 import frodo2.solutionSpaces.UtilitySolutionSpace;
-import frodo2.solutionSpaces.UtilitySolutionSpace.Iterator;
+import frodo2.solutionSpaces.UtilitySolutionSpace.SparseIterator;
 import frodo2.solutionSpaces.UtilitySolutionSpace.ProjOutput;
 import frodo2.solutionSpaces.hypercube.ScalarHypercube;
 
@@ -56,8 +56,8 @@ import frodo2.solutionSpaces.hypercube.ScalarHypercube;
  * MPC-DisCSP4 is described in the following paper:
  * 
  * Marius-Calin Silaghi. Hiding absence of solution for a distributed constraint satisfaction problem (poster). 
- * In Proceedings of the Eighteenth International Florida Artificial Intelligence Research Society Conference (FLAIRSÕ05), 
- * pages 854Ð855, Clearwater Beach, FL, USA, May 15Ð17 2005. AAAI Press.
+ * In Proceedings of the Eighteenth International Florida Artificial Intelligence Research Society Conference (FLAIRS'05), 
+ * pages 854-855, Clearwater Beach, FL, USA, May 15-17 2005. AAAI Press.
  * 
  * @author Thomas Leaute
  * 
@@ -1099,13 +1099,10 @@ public class MPC_DisCSP4 < V extends Addable<V>, U extends Addable<U> > implemen
 		// Construct a vector containing all the publicly feasible solutions
 		List<BigInteger> sPrimePrime = new ArrayList<BigInteger> ();
 		this.solIndex = new ArrayList< int[] > ();
-		for (Iterator<V, AddableInteger> iter = publicSpace.iterator(this.vars, doms); iter.hasNext(); ) {
-			
-			// Find the next feasible solution, if any
-			AddableInteger publicCost = iter.nextUtility(plusinf, true);
-			if (publicCost == null) 
-				break;
-			
+		SparseIterator<V, AddableInteger> iter = publicSpace.sparseIter(this.vars, doms);
+		AddableInteger publicCost = null;
+		while ( (publicCost = iter.nextUtility(plusinf, true)) != null) {
+		
 			// Record the feasibility of this solution
 			AddableInteger cost = privateSpace.getUtility(this.vars, iter.getCurrentSolution());
 			this.recordCandidateSol(publicCost, cost, sPrimePrime);

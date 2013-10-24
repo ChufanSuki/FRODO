@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2012  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -53,9 +53,9 @@ import frodo2.solutionSpaces.AddableLimited;
 import frodo2.solutionSpaces.BasicUtilitySolutionSpace;
 import frodo2.solutionSpaces.DCOPProblemInterface;
 import frodo2.solutionSpaces.UtilitySolutionSpace;
+import frodo2.solutionSpaces.UtilitySolutionSpace.ProjOutput;
 import frodo2.solutionSpaces.UtilitySolutionSpaceLimited;
 import frodo2.solutionSpaces.UtilitySolutionSpace.Iterator;
-import frodo2.solutionSpaces.UtilitySolutionSpace.ProjOutput;
 import frodo2.solutionSpaces.crypto.CryptoScheme;
 import frodo2.solutionSpaces.hypercube.BasicHypercube;
 import frodo2.solutionSpaces.hypercube.HypercubeLimited;
@@ -65,8 +65,8 @@ import frodo2.solutionSpaces.hypercube.ScalarBasicHypercube;
  * 
  * This is an optimization version of the ConsistencyProp() and FeasibleValue() procedures from the following paper: 
  * Thomas Leaute and Boi Faltings. Privacy-preserving multi-agent constraint satisfaction. In Proceedings of 
- * the 2009 IEEE International Conference on PrivAcy, Security, riSk and Trust (PASSATÕ09), Vancouver, 
- * British Columbia, August 29Ð31 2009. IEEE Computer Society Press.
+ * the 2009 IEEE International Conference on PrivAcy, Security, riSk and Trust (PASSAT'09), Vancouver, 
+ * British Columbia, August 29-31 2009. IEEE Computer Society Press.
  * 
  * @author Eric Zbinden, Thomas Leaute
  * @param <V> the type used for variable values

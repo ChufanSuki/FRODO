@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2012  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -46,25 +46,26 @@ import frodo2.solutionSpaces.AddableInteger;
 public class MeetingScheduling {
 
 	/** Creates a problem instance and saves it to a file
-	 * @param args 	[-i] [-EAV] [-PEAV] [-EASV] [-infinity value] [-maxCost value] nbrAgents nbrMeetings nbrAgentsPerMeeting nbrSlots
+	 * @param args 	[-i] [-EAV] [-PEAV] [-EASV] [-infinity value] [-tightness value] [-maxCost value] nbrAgents nbrMeetings nbrAgentsPerMeeting nbrSlots
 	 * @throws IOException if an I/O error occurs
 	 */
 	public static void main(String[] args) throws IOException {
 
 		// The GNU GPL copyright notice
-		System.out.println("FRODO  Copyright (C) 2008-2012  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek\n" +
+		System.out.println("FRODO  Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek\n" +
 				"This program comes with ABSOLUTELY NO WARRANTY.\n" +
 				"This is free software, and you are welcome to redistribute it\n" +
 				"under certain conditions. \n");
 		
 		// Parse the inputs
-		if (args.length < 4 || args.length > 12) {
-			System.err.println("Required input parameters: [-i] [-EAV] [-PEAV] [-EASV] [-infinity value] [-maxCost value] nbrAgents nbrMeetings nbrAgentsPerMeeting nbrSlots\n" +
+		if (args.length < 4 || args.length > 14) {
+			System.err.println("Required input parameters: [-i] [-EAV] [-PEAV] [-EASV] [-infinity value] [-tightness value] [-maxCost value] nbrAgents nbrMeetings nbrAgentsPerMeeting nbrSlots\n" +
 					"\t -i [optional]               outputs an intensional problem\n" +
 					"\t -EAV [optional]             Events As (private) Variables\n" +
 					"\t -PEAV [optional]            Private Events As (private) Variables\n" +
 					"\t -EASV [optional]            Events As Shared Variables\n" +
 					"\t -infinity value [optional]  the cost incurred by violating one constraint; can be set to `infinity' to use hard constraints (default)\n" +
+					"\t -tightness value [optional] for each agent and each time slot, the probability in [0, 1] that the agent is not available at that time (default is 0.0)\n" +
 					"\t -maxCost value [optional]   if provided, each attendee assigns a random cost in [0, value] to having any meeting at each time slot");
 			return;
 		}
@@ -74,6 +75,7 @@ public class MeetingScheduling {
 		boolean peav = false;
 		boolean easv = false;
 		AddableInteger infinity = AddableInteger.PlusInfinity.PLUS_INF;
+		double tightness = 0.0;
 		Integer maxCost = null;
 		while (true) {
 			String param = params.getFirst();
@@ -98,6 +100,10 @@ public class MeetingScheduling {
 				params.removeFirst();
 				infinity = infinity.fromString(params.removeFirst());
 				
+			} else if (param.equals("-tightness")) {
+				params.removeFirst();
+				tightness = Double.parseDouble(params.removeFirst());
+				
 			} else if (param.equals("-maxCost")) {
 				params.removeFirst();
 				maxCost = Integer.parseInt(params.removeFirst());
@@ -110,7 +116,7 @@ public class MeetingScheduling {
 			peav = true;
 		
 		if (intensional && infinity != AddableInteger.PlusInfinity.PLUS_INF) {
-			System.err.println("WARNING! Producing an extensional problem.");
+			System.err.println("WARNING! Producing an extensional problem because the -infinity option specifies a non-infinite value");
 			intensional = false;
 		}
 		
@@ -125,7 +131,7 @@ public class MeetingScheduling {
 		}
 		
 		// Generate a random problem instance
-		MeetingScheduling instance = new MeetingScheduling (nbrAgents, nbrMeetings, nbrAgentsPerMeeting, nbrSlots, maxCost);
+		MeetingScheduling instance = new MeetingScheduling (nbrAgents, nbrMeetings, nbrAgentsPerMeeting, nbrSlots, infinity, tightness, maxCost);
 		
 		// Create XCSP and write to a file
 		if (peav) {
@@ -155,27 +161,72 @@ public class MeetingScheduling {
 		EASV
 	}
 	
+	/** The number of agents */
+	private int nbrAgents;
+	
 	/** For each meeting, its list of attendees */
 	private ArrayList< ArrayList<Integer> > attendees;
 
 	/** For each participant, its list of meetings */
 	private ArrayList< ArrayList<Integer> > meetings;
 	
-	/** The cost that each participant assigns to having a meeting in each time slot */
+	/** The (finite) cost that each participant assigns to having a meeting in each time slot */
 	private ArrayList< ArrayList<Integer> > preferences;
+	
+	/** For each agent, the list of time slots at which it is NOT available */
+	private ArrayList< ArrayList<Integer> > absences;
 	
 	/** Number of available time slots for each meeting */
 	private final int nbrSlots;
+	
+	/** The number of metings */
+	private final int nbrMeetings;
+	
+	/** The number of agents per meeting */
+	private final int nbrAgentsPerMeeting;
+	
+	/** The target tightness value, where the tightness is the probability of being unavailable at a given time slot */
+	private final double targetTightness;
+	
+	/** The real average tightness value, where the tightness is the probability of being unavailable at a given time slot */
+	private double avgTightness = 0.0;
+	
+	/** The maximum cost for attending a meeting at any given time slot; if null, no agent preferences are considered */
+	private final Integer maxCost;
+	
+	/** The name of the problem instance */
+	private final String instanceName;
 
+	/** Creates a "stats" element
+	 * @param name 		the value of the "name" attribute
+	 * @param value 	the text
+	 * @return a new "stats" element
+	 */
+	public static Element createStats (String name, String value) {
+		
+		Element stats = new Element ("stats");
+		stats.setAttribute("name", name);
+		stats.setText(value);
+		
+		return stats;
+	}
+	
 	/** Constructor
 	 * @param nbrAgents 			number of agents in the overall pool of agents
 	 * @param nbrMeetings 			number of meetings
 	 * @param nbrAgentsPerMeeting 	number of agents per meeting
 	 * @param nbrSlots 				number of available time slots for each meeting
+	 * @param infinity 				the cost incurred by violating one constraint
+	 * @param tightness 			for each agent and each time slot, the probability of absence
 	 * @param maxCost 				if not \c null, each attendee assigns a random cost in [0, value] to having any meeting at each time slot
 	 */
-	public MeetingScheduling(final int nbrAgents, final int nbrMeetings, final int nbrAgentsPerMeeting, int nbrSlots, Integer maxCost) {
+	public MeetingScheduling(final int nbrAgents, final int nbrMeetings, final int nbrAgentsPerMeeting, final int nbrSlots, 
+			final AddableInteger infinity, final double tightness, Integer maxCost) {
+		this.nbrAgents = nbrAgents;
+		this.nbrMeetings = nbrMeetings;
+		this.nbrAgentsPerMeeting = nbrAgentsPerMeeting;
 		this.nbrSlots = nbrSlots;
+		this.instanceName = "randomMeetingScheduling_" + System.currentTimeMillis();
 		
 		// Create the pool of agents
 		ArrayList<Integer> pool = new ArrayList<Integer> (nbrAgents);
@@ -186,6 +237,7 @@ public class MeetingScheduling {
 		}
 		
 		// Create the agents' preferences
+		this.maxCost = maxCost;
 		if (maxCost != null) {
 			maxCost++; // so that rnd(0, maxCost) is in [0, maxCost]
 			
@@ -197,6 +249,26 @@ public class MeetingScheduling {
 				for (int j = nbrSlots - 1; j >= 0; j--) 
 					pref.add(rnd.nextInt(maxCost));
 				this.preferences.add(pref);
+			}
+		}
+		
+		// Create the agents' availabilities
+		this.targetTightness = tightness;
+		if (tightness > 0) {
+			
+			this.absences = new ArrayList< ArrayList<Integer> > (nbrAgents);
+			
+			final double weight = 1.0 / (nbrSlots * nbrAgents);
+			for (int i = 0; i < nbrAgents; i++) {
+				ArrayList<Integer> abs = new ArrayList<Integer> (nbrSlots);
+				this.absences.add(abs);
+				
+				for (int j = 0; j < nbrSlots; j++) {
+					if (Math.random() <= tightness) {
+						abs.add(j);
+						this.avgTightness += weight;
+					}
+				}
 			}
 		}
 		
@@ -223,7 +295,7 @@ public class MeetingScheduling {
 	 * @param infinity 		the cost incurred by violating one constraint
 	 * @return an XCSP Document
 	 */
-	private Document toXCSP(boolean intensional, final Mode mode, AddableInteger infinity) {
+	private Document toXCSP(final boolean intensional, final Mode mode, AddableInteger infinity) {
 		
 		Element root = new Element ("instance");
 		
@@ -233,9 +305,21 @@ public class MeetingScheduling {
 		// <presentation>
 		Element elmt = new Element ("presentation");
 		root.addContent(elmt);
-		elmt.setAttribute("name", "Meeting scheduling instance");
+		elmt.setAttribute("name", this.instanceName);
 		elmt.setAttribute("format", "XCSP 2.1_FRODO");
 		elmt.setAttribute("maximize", "false");
+		
+		// Write the stats
+		elmt.addContent(createStats("formulation", mode.toString()));
+		elmt.addContent(createStats("number of agents", Integer.toString(this.nbrAgents)));
+		elmt.addContent(createStats("number of meetings", Integer.toString(this.nbrMeetings)));
+		elmt.addContent(createStats("number of agents per meeting", Integer.toString(this.nbrAgentsPerMeeting)));
+		elmt.addContent(createStats("number of time slots", Integer.toString(this.nbrSlots)));
+		elmt.addContent(createStats("constraint violation cost", infinity.toString()));
+		elmt.addContent(createStats("target probability of being unavailable at any given time slot", Double.toString(this.targetTightness)));
+		elmt.addContent(createStats("average probability of being unavailable at any given time slot", Double.toString(this.avgTightness)));
+		elmt.addContent(createStats("maximum random cost of being unavailable at any given time slot", 
+				this.maxCost == null ? "null" : this.maxCost.toString()));
 		
 		// <agents>
 		elmt = new Element ("agents");
@@ -314,6 +398,33 @@ public class MeetingScheduling {
 			}
 		}
 		
+		// Each agent expresses availabilities over the time slots
+		if (this.absences != null && !intensional) {
+			
+			// Loop over the agents
+			for (int i = 0; i < this.meetings.size(); i++) {
+				String agent = "a" + i;
+				ArrayList<Integer> abs = this.absences.get(i);
+				
+				elmt = new Element ("relation");
+				relElmt.addContent(elmt);
+				elmt.setAttribute("name", agent + "_avail");
+				elmt.setAttribute("semantics", "soft");
+				elmt.setAttribute("nbTuples", Integer.toString(abs.size()));
+				elmt.setAttribute("defaultCost", "0");
+				elmt.setAttribute("arity", "1");
+				
+				StringBuilder builder = new StringBuilder (abs.isEmpty() ? "" : infinity.toString() + ": ");
+				for (int j = abs.size() - 1; j > 0; j--) {
+					builder.append(abs.get(j));
+					builder.append("|");
+				}
+				if (! abs.isEmpty()) 
+					builder.append(abs.get(0));
+				elmt.setText(builder.toString());
+			}
+		}
+		
 		if (mode == Mode.PEAV && intensional) {
 			elmt = new Element ("predicates");
 			root.addContent(elmt);
@@ -337,7 +448,7 @@ public class MeetingScheduling {
 			
 		} else {
 			
-			if (mode != Mode.PEAV && this.preferences == null) { // we need trivial unary constraints for agents involved in a single meeting
+			if (mode != Mode.PEAV && this.preferences == null && this.absences == null) { // we need trivial unary constraints for agents involved in a single meeting
 				subElmt = new Element ("relation");
 				relElmt.addContent(subElmt);
 				subElmt.setAttribute("name", "trivial1");
@@ -409,6 +520,26 @@ public class MeetingScheduling {
 			}
 		}
 		
+		if (this.absences != null && !intensional) { // hard availability constraints
+			
+			// Loop over the agents
+			for (int i = 0; i < this.meetings.size(); i++) {
+				String agent = "a" + i;
+				
+				// Loop over the meetings this agent participates in
+				for (Integer meeting : this.meetings.get(i)) {
+					
+					subElmt = new Element ("constraint");
+					elmt.addContent(subElmt);
+					subElmt.setAttribute("name", agent + "_avail_m" + meeting);
+					subElmt.setAttribute("scope", "m" + meeting + (mode != Mode.PEAV ? "" : agent));
+					subElmt.setAttribute("arity", "1");
+					subElmt.setAttribute("reference", agent + "_avail");
+					subElmt.setAttribute("agent", agent);
+				}
+			}
+		}
+		
 		if (mode == Mode.PEAV) {
 			// Binary equality constraints: loop over the meetings
 			for (int i = 0; i < this.attendees.size(); i++) {
@@ -444,8 +575,12 @@ public class MeetingScheduling {
 			String agentName = "a" + agent;
 				
 			if (intensional) { // use one allDifferent constraint
-					
-				if (myMeetings.size() > 1 || this.preferences == null) {
+				
+				// Create an allDifferent constraint if:
+				// 1) the agent has > 1 meeting
+				// 2) the agent only has 1 meeting, but is not always available
+				// 3) the agent only has 1 meeting, is always available, but has no other constraint (i.e. preferences)
+				if (myMeetings.size() > 1 || this.absences != null || this.preferences == null) {
 					
 					subElmt = new Element ("constraint");
 					elmt.addContent(subElmt);
@@ -462,6 +597,9 @@ public class MeetingScheduling {
 
 					Element params = new Element ("parameters");
 					subElmt.addContent(params);
+					if (this.absences != null) 
+						for (Integer abs : this.absences.get(agent)) // the parameters must include the agent's unavailabilities
+							scope += abs + " ";
 					params.setText("[ " + scope + "]");
 				}
 					
@@ -486,7 +624,7 @@ public class MeetingScheduling {
 						}
 					}
 					
-				} else if (this.preferences == null) { // use unary always-satisfied constraint
+				} else if (this.preferences == null && this.absences == null) { // use unary always-satisfied constraint
 					
 					subElmt = new Element ("constraint");
 					elmt.addContent(subElmt);

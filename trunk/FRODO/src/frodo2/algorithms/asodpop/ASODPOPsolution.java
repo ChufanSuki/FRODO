@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2012  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -57,6 +57,8 @@ public class ASODPOPsolution<V extends Addable<V>, U> extends ODPOPsolution <V, 
 	 * @param msgNbrs						the number of messages per message type
 	 * @param totalMsgSize					the total amount of information that has been exchanged (in bytes)
 	 * @param msgSizes						the amount of information per message type
+	 * @param maxMsgSize 					the size (in bytes) of the largest message
+	 * @param maxMsgSizes 					for each message type, the size (in bytes) of the largest message of that type
 	 * @param ncccCount 					the ncccs used
 	 * @param timeNeeded 					the time needed to solve the problem
 	 * @param moduleEndTimes 				each module's end time
@@ -70,10 +72,10 @@ public class ASODPOPsolution<V extends Addable<V>, U> extends ODPOPsolution <V, 
 	 * @param totalUTILmsgs 				the total number of UTIL messages that have been sent
 	 */
 	public ASODPOPsolution (int nbrVariables, U reportedUtil, U trueUtil, Map<String, V> assignments, int nbrMsgs, TreeMap<String, Integer> msgNbrs, long totalMsgSize, TreeMap<String, Long> msgSizes, 
-			long ncccCount, long timeNeeded, HashMap<String, Long> moduleEndTimes, int numberOfCoordinationConstraint, 
+			long maxMsgSize, TreeMap<String, Long> maxMsgSizes, long ncccCount, long timeNeeded, HashMap<String, Long> moduleEndTimes, int numberOfCoordinationConstraint, 
 			HashMap< String, ArrayList< CurrentAssignment<V> > > assignmentHistories, double averageTreeFillPercentage, int treeWidth, double dummyFillPercentage, double numberOfDummies,
 			int specUTILmsgs, int totalUTILmsgs) {
-		super(nbrVariables, reportedUtil, trueUtil, assignments, nbrMsgs, msgNbrs, totalMsgSize, msgSizes, ncccCount, timeNeeded, moduleEndTimes, numberOfCoordinationConstraint, averageTreeFillPercentage);
+		super(nbrVariables, reportedUtil, trueUtil, assignments, nbrMsgs, msgNbrs, totalMsgSize, msgSizes, maxMsgSize, maxMsgSizes, ncccCount, timeNeeded, moduleEndTimes, numberOfCoordinationConstraint, averageTreeFillPercentage);
 		this.assignmentHistories = assignmentHistories;
 		this.specUILmsgs = specUTILmsgs;
 		this.totalUTILmsgs = totalUTILmsgs;

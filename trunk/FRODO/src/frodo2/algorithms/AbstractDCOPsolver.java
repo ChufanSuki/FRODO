@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2012  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -22,8 +22,13 @@ How to contact the authors:
 
 package frodo2.algorithms;
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
 import java.lang.reflect.Field;
 import java.util.List;
+import java.util.TreeMap;
+import java.util.TreeSet;
 
 import org.jdom2.Document;
 import org.jdom2.Element;
@@ -41,6 +46,142 @@ import frodo2.solutionSpaces.DCOPProblemInterface;
  */
 public abstract class AbstractDCOPsolver < V extends Addable<V>, U extends Addable<U>, S extends Solution<V, U> > 
 	extends AbstractSolver<DCOPProblemInterface<V, U>, V, U, S> {
+
+	/** Solves a problem and writes statistics to a file
+	 * @param args 	[algoName, solverClassName, agentConfigFile, problemFile, timeout in seconds, outputFile]
+	 * @throws Exception if an error occurs
+	 */
+	public static void main (String[] args) throws Exception {
+		
+		// Parse the input arguments
+		String algoName = args[0];
+		String solverClassName = args[1];
+		Document agentConfig = XCSPparser.parse(args[2], false);
+		Document problemFile = XCSPparser.parse(args[3], false);
+		Long timeout = 1000 * Long.parseLong(args[4]); // *1000 to get it in ms
+		String outputFilePath = args[5];
+		
+		// Instantiate the solver
+		@SuppressWarnings("unchecked")
+		Class<? extends AbstractDCOPsolver<?, ?, ?>> solverClass = 
+				(Class<? extends AbstractDCOPsolver<?, ?, ?>>) Class.forName(solverClassName);
+		@SuppressWarnings("unchecked")
+		AbstractDCOPsolver< ?, ?, Solution<?, ?> > solver = 
+				(AbstractDCOPsolver<?, ?, Solution<?, ?>>) solverClass.getConstructor(Document.class).newInstance(agentConfig);
+		
+		// Write a first "timeout" line to the output file that will be overwritten after the algorithm terminates (if it does)
+		File outputFile = new File (outputFilePath);
+		boolean newFile = ! outputFile.exists();
+		BufferedWriter writer = new BufferedWriter (new FileWriter (outputFile, true));
+		if (newFile) 
+			writer.append(solver.getFileHeader(problemFile)).append("\n");
+		writer.append(solver.getTimeoutLine(algoName, problemFile)).append("\n").flush();
+		
+		// Solve and record the stats
+		Solution<?, ?> sol = solver.solve(problemFile, false, timeout);
+		
+		if (sol != null) {
+			writer.append(algoName);
+			writer.append("\t0"); // 0 = no timeout; 1 = timeout
+
+			// First write statistics about the problem instance
+			writer.append(solver.getProbStats(problemFile));
+			
+			// Write the statistics about the solution found
+			writer.append(sol.toLineString()).append("\n");
+		}
+		
+		writer.close();
+	}
+	
+	/** Returns the header for the output CSV file
+	 * @param problemFile 	the problem file
+	 * @return the titles of the columns in the output CSV file 
+	 */
+	protected String getFileHeader(Document problemFile) {
+		
+		StringBuffer buf = new StringBuffer ("algorithm");
+
+		buf.append("\ttimed out"); // 0 if the algorithm terminated, 1 if it timed out
+
+		buf.append("\tproblem instance"); // the name of the problem instance, assumed unique
+
+		// Write statistics about the problem instance, added by the problem generator to the XCSP file
+		Element presElmt = problemFile.getRootElement().getChild("presentation");
+		TreeSet<String> stats = new TreeSet<String> ();
+		for (Element child : presElmt.getChildren()) 
+			stats.add(child.getAttributeValue("name"));
+		for (String name : stats) 
+			buf.append("\t").append(name);
+		
+		// Continue with the statistics about the solution
+		buf.append("\tNCCCs");
+		buf.append("\tsimulated time (in ms)");
+		
+		buf.append("\tnumber of messages");
+		buf.append("\ttotal message size (in bytes)");
+		buf.append("\tmaximum message size (in bytes)");
+		
+		buf.append("\tinduced treewidth");
+		
+		if (Boolean.parseBoolean(presElmt.getAttributeValue("maximize"))) 
+			buf.append("\treported utility").append("\ttrue utility");
+		else 
+			buf.append("\treported cost").append("\ttrue cost");
+		
+		return buf.toString();
+	}
+	
+	/** Parses the statistics about the problem instance
+	 * @param problemFile 	the problem instance
+	 * @return the statistics
+	 */
+	protected String getProbStats (Document problemFile) {
+		
+		StringBuffer buf = new StringBuffer ();
+		
+		// Write the name of this problem instance (assuming it is unique)
+		Element presElmt = problemFile.getRootElement().getChild("presentation");
+		buf.append("\t").append(presElmt.getAttributeValue("name"));
+		
+		// Write statistics about the problem instance
+		TreeMap<String, String> stats = new TreeMap<String, String> ();
+		for (Element child : presElmt.getChildren()) 
+			stats.put(child.getAttributeValue("name"), child.getText());
+		for (String value : stats.values()) 
+			buf.append("\t").append(value);
+		
+		return buf.toString();
+	}
+
+	/** Returns a timeout line for the output CSV file
+	 * @param algoName 		the name of the algorithm
+	 * @param problemFile 	the problem instance
+	 * @return a line in the output CSV file that corresponds to a timeout 
+	 */
+	protected String getTimeoutLine(String algoName, Document problemFile) {
+		
+		StringBuffer buf = new StringBuffer (algoName);
+		
+		buf.append("\t1"); // 0 = no timeout; 1 = timeout
+		
+		buf.append(this.getProbStats(problemFile));
+		
+		// Continue with statistics about the solution
+		buf.append("\t").append(Long.MAX_VALUE); // NCCCs
+		buf.append("\t").append(Long.MAX_VALUE); // runtime
+		
+		buf.append("\t").append(Integer.MAX_VALUE); // nbrMessages
+		buf.append("\t").append(Long.MAX_VALUE); // total msg size
+		buf.append("\t").append(Long.MAX_VALUE); // max msg size
+		
+		buf.append("\t").append(Integer.MAX_VALUE); // treewidth
+		
+		buf.append("\tNaN"); // reported util
+		buf.append("\tNaN"); // true util
+
+		return buf.toString();
+	}
 
 	/**
 	 * Dummy constructor

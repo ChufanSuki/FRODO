@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2012  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -166,7 +166,7 @@ public class AgentFactory < V extends Addable<V> > implements IncomingMsgPolicyI
 	public static void main (String[] args) {
 
 		// The GNU GPL copyright notice
-		System.out.println("FRODO  Copyright (C) 2008-2012  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek");
+		System.out.println("FRODO  Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek");
 		System.out.println("This program comes with ABSOLUTELY NO WARRANTY.");
 		System.out.println("This is free software, and you are welcome to redistribute it");
 		System.out.println("under certain conditions. Use the option -license to display the license.\n");
@@ -187,6 +187,7 @@ public class AgentFactory < V extends Addable<V> > implements IncomingMsgPolicyI
 						System.out.println(line);
 						line = reader.readLine();
 					}
+					reader.close();
 				} catch (FileNotFoundException e) {
 					e.printStackTrace();
 					System.exit(1);
@@ -295,6 +296,9 @@ public class AgentFactory < V extends Addable<V> > implements IncomingMsgPolicyI
 
 	/** For each message type, the total amount of information sent in messages of that type, in bytes */
 	private TreeMap<String, Long> msgSizes = new TreeMap<String, Long> ();
+	
+	/** For each message type, the size (in bytes) of the largest message */
+	private TreeMap<String, Long> maxMsgSizes = new TreeMap<String, Long> ();
 
 	/** The statistics listeners */
 	private Collection<StatsReporter> statsReporters;
@@ -632,6 +636,7 @@ public class AgentFactory < V extends Addable<V> > implements IncomingMsgPolicyI
 		if (this.measureMsgs) {
 			this.msgNbrs = new TreeMap<String, Integer> ();
 			this.msgSizes = new TreeMap<String, Long> ();
+			this.maxMsgSizes = new TreeMap<String, Long> ();
 		}
 		Set<String> agentNames = problem.getAgents();
 		this.nbrAgents = agentNames.size();
@@ -786,6 +791,15 @@ public class AgentFactory < V extends Addable<V> > implements IncomingMsgPolicyI
 						else 
 							this.msgSizes.put(msgType, size + entry.getValue());
 					}
+					
+					// Update maxMsgSizes
+					for (Map.Entry<String, Long> entry : msgCast.getMaxMsgSizes().entrySet()) {
+						String msgType = entry.getKey();
+						
+						Long maxSize = this.maxMsgSizes.get(msgType);
+						if (maxSize == null || entry.getValue() > maxSize) 
+							this.maxMsgSizes.put(msgType, entry.getValue());
+					}
 				}
 
 				if (++nbrAgentsFinished >= nbrAgents) {
@@ -828,6 +842,16 @@ public class AgentFactory < V extends Addable<V> > implements IncomingMsgPolicyI
 								totalSize += size;
 							}
 							System.out.println("\t- Total:\t" + formatter.format(totalSize));
+							
+							// Print the maximum message size
+							long maxSize = 0;
+							System.out.println("Size of the largest message sent (by type, in bytes): ");
+							for (Map.Entry<String, Long> entry : this.maxMsgSizes.entrySet()) {
+								long size = entry.getValue();
+								System.out.println("\t" + entry.getKey() + ":\t" + formatter.format(size));
+								maxSize = Math.max(size, maxSize);
+							}
+							System.out.println("\t- Overall maximum:\t" + formatter.format(maxSize));
 						}
 					}
 
@@ -896,6 +920,14 @@ public class AgentFactory < V extends Addable<V> > implements IncomingMsgPolicyI
 			size += l;
 		return size;
 	}
+	
+	/** @return the size (in bytes) of the largest message */
+	public long getOverallMaxMsgSize() {
+		long maxSize = 0;
+		for (Long l : this.maxMsgSizes.values()) 
+			maxSize = Math.max(maxSize, l);
+		return maxSize;
+	}
 
 	/**
 	 * @author Brammert Ottens, 24 aug 2009
@@ -911,6 +943,11 @@ public class AgentFactory < V extends Addable<V> > implements IncomingMsgPolicyI
 	 */
 	public TreeMap<String, Long> getMsgSizes() {
 		return this.msgSizes;
+	}
+	
+	/** @return for each message type, the size (in bytes) of the largest message of that type */
+	public TreeMap<String, Long> getMaxMsgSizes() {
+		return this.maxMsgSizes;
 	}
 
 	/**

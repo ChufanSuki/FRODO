@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2012  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -169,7 +169,7 @@ public class DSAsolver < V extends Addable<V>, U extends Addable<U> > extends Ab
 	public DSAsolution<V, U> buildSolution() {
 		
 		return new DSAsolution<V, U> (0, dsaModule.getFinalUtility(), super.problem.getUtility(this.dsaModule.getFinalAssignments()).getUtility(0), 
-				dsaModule.getFinalAssignments(), factory.getNbrMsgs(), factory.getTotalMsgSize(), factory.getNcccs(), factory.getTime(), null, dsaModule.getAssignmentHistories());
+				dsaModule.getFinalAssignments(), factory.getNbrMsgs(), factory.getTotalMsgSize(), factory.getOverallMaxMsgSize(), factory.getNcccs(), factory.getTime(), null, dsaModule.getAssignmentHistories());
 	}
 
 	/** @see AbstractDCOPsolver#clear() */

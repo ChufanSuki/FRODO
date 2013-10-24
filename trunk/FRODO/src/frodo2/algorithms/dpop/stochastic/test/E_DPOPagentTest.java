@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2012  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -37,9 +37,9 @@ import frodo2.algorithms.XCSPparser;
 import frodo2.algorithms.dpop.VALUEpropagation;
 import frodo2.algorithms.dpop.param.ParamDPOPsolver;
 import frodo2.algorithms.dpop.stochastic.E_DPOPsolver;
-import frodo2.algorithms.dpop.stochastic.ExpectedUTIL;
 import frodo2.algorithms.dpop.stochastic.SamplingPhase;
 import frodo2.algorithms.dpop.stochastic.E_DPOPsolver.StochSolution;
+import frodo2.algorithms.dpop.stochastic.ExpectedUTIL;
 import frodo2.algorithms.dpop.test.DPOPagentTest;
 import frodo2.algorithms.test.AllTests;
 import frodo2.communication.Queue;

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!-- 
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2012  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -73,6 +73,9 @@ WARNING! This file is in format 1.1; a parser that supports this experimental fo
 			<xs:documentation>General information about the problem instance</xs:documentation>
 		</xs:annotation>
 		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="stats" maxOccurs="unbounded" minOccurs="0"/>
+			</xs:sequence>
 			<xs:attribute name="name" type="xs:string" use="optional"/>
 			<xs:attribute default="XCSP 2.1_FRODO" name="format" type="xs:string" use="optional"/>
 			<xs:attribute name="maxConstraintArity" type="xs:positiveInteger" use="optional">

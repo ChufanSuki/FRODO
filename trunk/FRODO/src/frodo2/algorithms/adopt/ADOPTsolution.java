@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2012  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -51,15 +51,17 @@ public class ADOPTsolution<V extends Addable<V>, U> extends Solution <V, U> impl
 	 * @param msgNbrs						the number of messages per message type
 	 * @param totalMsgSize					the total amount of information that has been exchanged (in bytes)
 	 * @param msgSizes						the amount of information per message type
+	 * @param maxMsgSize 					the size (in bytes) of the largest message
+	 * @param maxMsgSizes 					for each message type, the size (in bytes) of the largest message of that type
 	 * @param ncccCount 					the ncccs used
 	 * @param timeNeeded 					the time needed to solve the problem
 	 * @param moduleEndTimes 				each module's end time
 	 * @param assignmentHistories 			the history of variable assignments
 	 */
 	public ADOPTsolution (int nbrVariables, U reportedUtil, U trueUtil, Map<String, V> assignments, int nbrMsgs, TreeMap<String, Integer> msgNbrs, long totalMsgSize, TreeMap<String, Long> msgSizes, 
-			long ncccCount, long timeNeeded, HashMap<String, Long> moduleEndTimes, 
+			long maxMsgSize, TreeMap<String, Long> maxMsgSizes, long ncccCount, long timeNeeded, HashMap<String, Long> moduleEndTimes, 
 			HashMap< String, ArrayList< CurrentAssignment<V> > > assignmentHistories) {
-		super(nbrVariables, reportedUtil, trueUtil, assignments, nbrMsgs, msgNbrs, totalMsgSize, msgSizes, ncccCount, timeNeeded, moduleEndTimes, 0, 0);
+		super(nbrVariables, reportedUtil, trueUtil, assignments, nbrMsgs, msgNbrs, totalMsgSize, msgSizes, maxMsgSize, maxMsgSizes, ncccCount, timeNeeded, moduleEndTimes, 0, 0);
 		this.assignmentHistories = assignmentHistories;
 	}
 

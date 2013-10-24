@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2012  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -304,11 +304,8 @@ public class JaCoPutilSpace < U extends Addable<U> > implements UtilitySolutionS
 		long nbrSol = this.getNumberOfSolutions();
 		assert nbrSol < Integer.MAX_VALUE : "Cannot extensionalize a space containing more than " + Integer.MAX_VALUE + " solutions";
 		out.writeInt((int)nbrSol); // number of utilities
-
-		Iterator<AddableInteger, U> iter = this.iterator();
-		for(iter = this.iterator(); iter.hasNext();) {
+		for(Iterator<AddableInteger, U> iter = this.iterator(); iter.hasNext(); ) 
 			out.writeObject(iter.nextUtility()); // each utility
-		}
 	}
 
 	/** @see java.io.Externalizable#readExternal(java.io.ObjectInput) */
@@ -377,7 +374,7 @@ public class JaCoPutilSpace < U extends Addable<U> > implements UtilitySolutionS
 		rel.setAttribute("arity", Integer.toString(vars.length));
 		rel.setAttribute("semantics", "soft");
 		// Read the utilities
-		int nbrSol = in.readInt();
+		final int nbrSol = in.readInt();
 
 		rel.setAttribute("nbTuples", Integer.toString(nbrSol));
 
@@ -492,6 +489,28 @@ public class JaCoPutilSpace < U extends Addable<U> > implements UtilitySolutionS
 		/// @todo Auto-generated method stub
 		assert false : "Not yet implemented";
 	return null;
+	}
+
+	/** @see frodo2.solutionSpaces.UtilitySolutionSpace#consensusExpect(java.lang.String, java.util.Map, boolean) */
+	@Override
+	public frodo2.solutionSpaces.UtilitySolutionSpace.ProjOutput<AddableInteger, U> consensusExpect(
+			String varOut,
+			Map<String, UtilitySolutionSpace<AddableInteger, U>> distributions,
+			boolean maximum) {
+		/// @todo Auto-generated method stub
+		assert false : "Not yet implemented";
+		return null;
+	}
+
+	/** @see frodo2.solutionSpaces.UtilitySolutionSpace#consensusAllSolsExpect(java.lang.String, java.util.Map, boolean) */
+	@Override
+	public frodo2.solutionSpaces.UtilitySolutionSpace.ProjOutput<AddableInteger, U> consensusAllSolsExpect(
+			String varOut,
+			Map<String, UtilitySolutionSpace<AddableInteger, U>> distributions,
+			boolean maximum) {
+		/// @todo Auto-generated method stub
+		assert false : "Not yet implemented";
+		return null;
 	}
 
 	/** @see frodo2.solutionSpaces.UtilitySolutionSpace#expectation(java.util.Map) */
@@ -1369,7 +1388,22 @@ public class JaCoPutilSpace < U extends Addable<U> > implements UtilitySolutionS
 	}
 
 	/** @see UtilitySolutionSpace#iterator() */
+	@Override
 	public UtilitySolutionSpace.Iterator<AddableInteger, U> iterator() {
+		return (UtilitySolutionSpace.Iterator<AddableInteger, U>) this.iterator(false);
+	}
+
+	/** @see UtilitySolutionSpace#sparseIter() */
+	@Override
+	public UtilitySolutionSpace.SparseIterator<AddableInteger, U> sparseIter() {
+		return this.iterator(true);
+	}
+
+	/** Returns an iterator
+	 * @param sparse 	whether the iterator should skip infeasible solutions
+	 * @return an iterator
+	 */
+	private UtilitySolutionSpace.SparseIterator<AddableInteger, U> iterator(final boolean sparse) {
 
 		AddableInteger[][] variables_domain = new AddableInteger[vars.length][];
 
@@ -1377,11 +1411,33 @@ public class JaCoPutilSpace < U extends Addable<U> > implements UtilitySolutionS
 			variables_domain[i] = allVars.get(vars[i]);
 		}
 
-		return new JaCoPutilSpaceIter<U> (this, this.vars, variables_domain);
+		if (sparse) 
+			return new JaCoPutilSpaceIter2<U> (this, this.vars, variables_domain);
+		else 
+			return new JaCoPutilSpaceIter<U> (this, this.vars, variables_domain);
 	}
 
 	/** @see UtilitySolutionSpace#iterator(java.lang.String[], Addable[][], Addable[]) */
+	@Override
 	public UtilitySolutionSpace.Iterator<AddableInteger, U> iterator(String[] variables, AddableInteger[][] domains, AddableInteger[] assignment) {
+		return (UtilitySolutionSpace.Iterator<AddableInteger, U>) this.iterator(variables, domains, assignment, false);
+	}
+	
+	/** @see UtilitySolutionSpace#sparseIter(java.lang.String[], Addable[][], Addable[]) */
+	@Override
+	public UtilitySolutionSpace.SparseIterator<AddableInteger, U> sparseIter(String[] variables, AddableInteger[][] domains, AddableInteger[] assignment) {
+		return this.iterator(variables, domains, assignment, true);
+	}
+	
+	/** Returns an iterator
+	 * @param variables 	The variables to iterate over
+	 * @param domains		The domains of the variables over which to iterate
+	 * @param assignment 	An array that will be used as the output of nextSolution()
+	 * @param sparse 		Whether to return an iterator that skips infeasible solutions
+	 * @return an iterator which allows to iterate over the given variables and their utilities 
+	 */
+	private UtilitySolutionSpace.SparseIterator<AddableInteger, U> 
+	iterator(String[] variables, AddableInteger[][] domains, AddableInteger[] assignment, final boolean sparse) {
 
 		// We want to allow the input list of variables not to contain all this space's variables
 		int nbrInputVars = variables.length;
@@ -1415,8 +1471,13 @@ public class JaCoPutilSpace < U extends Addable<U> > implements UtilitySolutionS
 		}
 
 		int nbrVarsIter = vars.size();
-		return new JaCoPutilSpaceIter<U> (this, vars.toArray(new String [nbrVarsIter]), 
-				doms.toArray((AddableInteger[][]) Array.newInstance(domains.getClass().getComponentType(), nbrVarsIter)));
+		
+		if (sparse) 
+			return new JaCoPutilSpaceIter2<U> (this, vars.toArray(new String [nbrVarsIter]), 
+					doms.toArray((AddableInteger[][]) Array.newInstance(domains.getClass().getComponentType(), nbrVarsIter)));
+		else 
+			return new JaCoPutilSpaceIter<U> (this, vars.toArray(new String [nbrVarsIter]), 
+					doms.toArray((AddableInteger[][]) Array.newInstance(domains.getClass().getComponentType(), nbrVarsIter)));
 	}
 
 	/** @see BasicUtilitySolutionSpace#prettyPrint(java.io.Serializable) */
@@ -1579,15 +1640,34 @@ public class JaCoPutilSpace < U extends Addable<U> > implements UtilitySolutionS
 	}
 
 	/** @see UtilitySolutionSpace#iterator(java.lang.String[]) */
-	public UtilitySolutionSpace.Iterator<AddableInteger, U> iterator(
-			String[] order) {
+	@Override
+	public UtilitySolutionSpace.Iterator<AddableInteger, U> iterator(String[] order) {
+		return (UtilitySolutionSpace.Iterator<AddableInteger, U>) this.iterator(order, false);
+	}
+	
+	/** @see UtilitySolutionSpace#sparseIter(java.lang.String[]) */
+	@Override
+	public UtilitySolutionSpace.SparseIterator<AddableInteger, U> sparseIter(String[] order) {
+		return this.iterator(order, true);
+	}
+	
+	/** Returns an iterator with a specific variable order
+	 * @param order 	the order of iteration of the variables
+	 * @param sparse 	whether to return an iterator that skips infeasible solutions
+	 * @return 			an iterator which can be used to iterate through solutions 
+	 * @warning The input array of variables must contain exactly all of the space's variables. 
+	 */
+	private UtilitySolutionSpace.SparseIterator<AddableInteger, U> iterator(String[] order, final boolean sparse) {
 
 		AddableInteger[][] variables_domain = new AddableInteger[vars.length][];
 		for(int i = 0; i < vars.length; i++){
 			variables_domain[i] = allVars.get(order[i]);
 		}
 
-		return this.iterator(order, variables_domain);
+		if (sparse) 
+			return this.sparseIter(order, variables_domain);
+		else 
+			return this.iterator(order, variables_domain);
 	}
 
 	/** @see SolutionSpace#join(SolutionSpace, java.lang.String[]) */
@@ -1691,9 +1771,7 @@ public class JaCoPutilSpace < U extends Addable<U> > implements UtilitySolutionS
 
 	/** @see UtilitySolutionSpace#blindProjectAll(boolean) */
 	public U blindProjectAll(boolean maximize) {
-		/// @todo Auto-generated method stub
-		assert false : "Not yet implemented";
-	return null;
+		return this.blindProject(this.getVariables(), maximize).getUtility(0);
 	}
 
 	/** @see UtilitySolutionSpace#iteratorBestFirst(boolean, java.lang.String[], Addable[]) */
@@ -1835,8 +1913,15 @@ public class JaCoPutilSpace < U extends Addable<U> > implements UtilitySolutionS
 	}
 
 	/** @see UtilitySolutionSpace#iterator(java.lang.String[], Addable[][]) */
+	@Override
 	public Iterator<AddableInteger, U> iterator(String[] variables, AddableInteger[][] domains) {
 		return this.iterator(variables, domains, (AddableInteger[]) Array.newInstance(AddableInteger.class, variables.length));
+	}
+	
+	/** @see UtilitySolutionSpace#sparseIter(java.lang.String[], Addable[][]) */
+	@Override
+	public SparseIterator<AddableInteger, U> sparseIter(String[] variables, AddableInteger[][] domains) {
+		return this.sparseIter(variables, domains, (AddableInteger[]) Array.newInstance(AddableInteger.class, variables.length));
 	}
 	
 	/** 

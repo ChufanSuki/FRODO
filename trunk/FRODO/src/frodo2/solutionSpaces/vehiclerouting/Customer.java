@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2012  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -22,10 +22,9 @@ How to contact the authors:
 
 package frodo2.solutionSpaces.vehiclerouting;
 
+import frodo2.solutionSpaces.AddableInteger;
 import com.orllc.orobjects.lib.geom.rect2.Point;
 import com.orllc.orobjects.lib.real.DoubleI;
-
-import frodo2.solutionSpaces.AddableInteger;
 
 /** A customer in the Vehicle Routing Problem
  * @author Thomas Leaute
