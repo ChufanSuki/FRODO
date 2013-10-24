@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2012  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -210,9 +210,10 @@ public class Convergence <V extends Addable<V>, U extends Addable<U>> {
 				timeWriterAll.write(s.time + "\t" + s.utility + "\n");
 				timeWriterAll.flush();
 			}
+			timeWriterAll.close();
 			
 		} catch (IOException e) {
-			System.out.println(e);
+			System.out.println(e); /// @bug timeWriterAll will not be closed
 		}
 		
 		return finalConvergenceTimeStamp;
@@ -307,6 +308,7 @@ public class Convergence <V extends Addable<V>, U extends Addable<U>> {
 					utilityEvolution.add((AddableReal)zero.fromString(parts[1]));
 					line = br.readLine();
 				}
+				br.close();
 
 				timeStamps.add(timeStampEvolution);
 				globalUtility.add(utilityEvolution);
@@ -314,7 +316,7 @@ public class Convergence <V extends Addable<V>, U extends Addable<U>> {
 				assert timeStampEvolution.size() == utilityEvolution.size() : "there should be as much time stamps as there are utility values!";
 
 			} catch (IOException e) {
-				cont = false;
+				cont = false; /// @bug br will not be closed
 			}
 			i++;
 		}

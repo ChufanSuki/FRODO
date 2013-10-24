@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2012  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -263,7 +263,7 @@ extends UTILpropagation<Val, U> {
 
 							// Check whether we can find a better solution than the one output by the algorithm
 							U utilFound = paramUtil.getUtility(0);
-							U betterUtil = join.iterator().nextUtility(utilFound, ! this.problem.maximize());
+							U betterUtil = join.sparseIter().nextUtility(utilFound, ! this.problem.maximize());
 							if (betterUtil == null) // no better solution found
 								this.probOfOptimality = this.one;
 
@@ -276,7 +276,7 @@ extends UTILpropagation<Val, U> {
 								// Check whether we can find a better solution than the one output by the algorithm
 								U utilFound = utilIter.nextUtility();
 								UtilitySolutionSpace<Val, U> candidates = join.slice(probSpace.getVariables(), probIter.nextSolution());
-								U betterUtil = candidates.iterator().nextUtility(utilFound, ! this.problem.maximize());
+								U betterUtil = candidates.sparseIter().nextUtility(utilFound, ! this.problem.maximize());
 								if (betterUtil == null) // no better solution found
 									this.probOfOptimality = this.probOfOptimality.add(probIter.getCurrentUtility());
 							}
@@ -434,7 +434,11 @@ extends UTILpropagation<Val, U> {
 				distributions.put(randVar, probSpaces.get(0));
 			}
 			
-			return space.consensus(var, distributions, maximize);
+			// Check whether all the random variables in the space are going to be projected out immediately hereafter
+			if (this.randVarsProj.get(var).containsAll(distributions.keySet())) 
+				return space.consensusExpect(var, distributions, maximize);
+			else 
+				return space.consensus(var, distributions, maximize);
 		}
 		
 		else if (this.method == Method.CONSENSUS_ALL_SOLS) { // advanced consensus for all solutions
@@ -450,7 +454,11 @@ extends UTILpropagation<Val, U> {
 				distributions.put(randVar, probSpaces.get(0));
 			}
 			
-			return space.consensusAllSols(var, distributions, maximize);
+			// Check whether all the random variables in the space are going to be projected out immediately hereafter
+			if (this.randVarsProj.get(var).containsAll(distributions.keySet())) 
+				return space.consensusAllSolsExpect(var, distributions, maximize);
+			else 
+				return space.consensusAllSols(var, distributions, maximize);
 		}
 		
 		// Else, use the expectation or expectationMonotone methods

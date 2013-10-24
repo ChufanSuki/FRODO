@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2012  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -37,29 +37,35 @@ implements Iterator<V, U> {
 	protected ScalarSpaceIter () { }
 	
 	/** Constructor 
-	 * @param utility 	 the utility value
+	 * @param utility 	 		the utility value
+	 * @param infeasibleUtil 	the infeasible utility
+	 * @param skippedUtil 		the utility value to skip, if any
 	 */
-	public ScalarSpaceIter (U utility) {
-		super (utility);
+	public ScalarSpaceIter (U utility, U infeasibleUtil, U skippedUtil) {
+		super (utility, infeasibleUtil, skippedUtil);
 	}
 	
 	/** Constructor
-	 * @param utility 		the utility value
-	 * @param variables 	the variables to iterate over; may include variables not in the space
-	 * @param domains 		the variables' domains
+	 * @param utility 			the utility value
+	 * @param variables 		the variables to iterate over; may include variables not in the space
+	 * @param domains 			the variables' domains
+	 * @param infeasibleUtil 	the infeasible utility
+	 * @param skippedUtil 		the utility value to skip, if any
 	 */
-	public ScalarSpaceIter (U utility, String[] variables, V[][] domains) {
-		super (utility, variables, domains, null);
+	public ScalarSpaceIter (U utility, String[] variables, V[][] domains, U infeasibleUtil, U skippedUtil) {
+		super (utility, variables, domains, null, infeasibleUtil, skippedUtil);
 	}
 
 	/** Constructor
-	 * @param utility 		the utility value
-	 * @param variables 	the variables to iterate over; may include variables not in the space
-	 * @param domains 		the variables' domains
-	 * @param assignment 	An array that will be used as the output of nextSolution()
+	 * @param utility 			the utility value
+	 * @param variables 		the variables to iterate over; may include variables not in the space
+	 * @param domains 			the variables' domains
+	 * @param assignment 		An array that will be used as the output of nextSolution()
+	 * @param infeasibleUtil 	the infeasible utility
+	 * @param skippedUtil 		the utility value to skip, if any
 	 */
-	protected ScalarSpaceIter (U utility, String[] variables, V[][] domains, V[] assignment) {
-		super (utility, variables, domains, assignment);
+	protected ScalarSpaceIter (U utility, String[] variables, V[][] domains, V[] assignment, U infeasibleUtil, U skippedUtil) {
+		super (utility, variables, domains, assignment, infeasibleUtil, skippedUtil);
 	}
 
 	/** @see Iterator#nextUtility(java.lang.Object, boolean) */

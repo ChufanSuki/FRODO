@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2012  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -17,13 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 How to contact the authors: 
-<http://lia.epfl.ch/>
-
-EPFL / IC / IIF / LIA
-Batiment IN 
-Station 14 
-CH - 1015 Lausanne 
-Switzerland
+<http://frodo2.sourceforge.net/>
 */
 
 package frodo2.algorithms.odpop.goodsTree.InnerNodeTree;
@@ -2672,7 +2666,7 @@ public class InnerNodeTree < Val extends Addable<Val>, U extends Addable<U>, L e
 	 * @param currentNode	the current node being visited
 	 * @return	\c true
 	 */
-	@SuppressWarnings("unchecked")
+	@SuppressWarnings({ "unchecked", "unused" })
 	private boolean checkDummy(int depth, InnerNode<U, L> currentNode) {
 		if(currentNode.isAlive()) {
 			int nextDepth = depth + 1;

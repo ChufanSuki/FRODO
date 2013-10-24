@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2012  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -26,14 +26,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.TreeSet;
 
-
-import org.jdom2.Document;
-import org.jdom2.Element;
-
 import frodo2.benchmarks.auctions.cats.Auction;
 import frodo2.benchmarks.auctions.cats.Bid;
 import frodo2.benchmarks.auctions.cats.Bidder;
 import frodo2.benchmarks.auctions.cats.Good;
+
+import org.jdom2.Document;
+import org.jdom2.Element;
 
 /**
  * This class is used to generate the 'instance' tag in the output XML file.

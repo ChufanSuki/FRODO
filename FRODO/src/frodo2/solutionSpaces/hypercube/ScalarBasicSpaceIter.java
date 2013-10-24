@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2012  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -60,25 +60,39 @@ implements Iterator<V, U> {
 	
 	/** The total number of solutions to iterate over */
 	private long nbrSols = 1;
+
+	/** The utility value that should be skipped, if any */
+	protected U skippedUtil;
+	
+	/** The infeasible utility */
+	protected U inf;
 	
 	/** Empty constructor */
 	protected ScalarBasicSpaceIter () { }
 	
 	/** Constructor 
-	 * @param utility 	 the utility value
+	 * @param utility 	 		the utility value
+	 * @param infeasibleUtil 	the infeasible utility
+	 * @param skippedUtil 		the utility value that should be skipped, if any
 	 */
-	public ScalarBasicSpaceIter (U utility) {
+	public ScalarBasicSpaceIter (U utility, U infeasibleUtil, U skippedUtil) {
 		this.utility = utility;
+		this.inf = infeasibleUtil;
+		this.skippedUtil = skippedUtil;
 	}
 	
 	/** Constructor
-	 * @param utility 		the utility value
-	 * @param variables 	the variables to iterate over; may include variables not in the space
-	 * @param domains 		the variables' domains
-	 * @param assignment 	An array that will be used as the output of nextSolution()
+	 * @param utility 			the utility value
+	 * @param variables 		the variables to iterate over; may include variables not in the space
+	 * @param domains 			the variables' domains
+	 * @param assignment 		An array that will be used as the output of nextSolution()
+	 * @param infeasibleUtil 	the infeasible utility
+	 * @param skippedUtil 		the utility value that should be skipped, if any
 	 */
-	protected ScalarBasicSpaceIter (U utility, String[] variables, V[][] domains, V[] assignment) {
+	protected ScalarBasicSpaceIter (U utility, String[] variables, V[][] domains, V[] assignment, U infeasibleUtil, U skippedUtil) {
 		this.init(utility, variables, domains, assignment);
+		this.inf = infeasibleUtil;
+		this.skippedUtil = skippedUtil;
 	}
 	
 	/** Helper method called by the constructor
@@ -92,9 +106,6 @@ implements Iterator<V, U> {
 		
 		this.utility = utility;
 		
-		if (variables.length == 0) 
-			return;
-		
 		this.variables = variables;
 		this.domains = domains;
 		
@@ -102,6 +113,9 @@ implements Iterator<V, U> {
 		this.solution = (assignment != null ? assignment : (V[]) Array.newInstance(domains.getClass().getComponentType().getComponentType(), nbrVars));
 		for (int i = 0; i < nbrVars; i++) 
 			solution[i] = domains[i][0];
+		
+		if (variables.length == 0) 
+			return;
 		
 		this.valIndexes = new int [nbrVars];
 		Arrays.fill(this.valIndexes, 0);
@@ -125,13 +139,20 @@ implements Iterator<V, U> {
 	 */
 	public V[] nextSolution() {
 		
+		// Return null if there are no more solutions
+		if (this.nbrSolLeft <= 0) {
+			this.utility = null;
+			this.solution = null;
+			return null;
+		}
+		
 		if (this.solution == null) {
 			this.nbrSolLeft--;
 			return null;
 		}
 		
-		// Return null if there are no more solutions
-		if (this.nbrSolLeft <= 0) {
+		if (this.skippedUtil != null && this.skippedUtil.equals(this.utility)) {
+			this.nbrSolLeft = 0;
 			this.utility = null;
 			this.solution = null;
 			return null;
@@ -144,13 +165,20 @@ implements Iterator<V, U> {
 	/** @see frodo2.solutionSpaces.BasicUtilitySolutionSpace.Iterator#nextUtility() */
 	public U nextUtility() {
 		
+		// Return null if there are no more solutions
+		if (this.nbrSolLeft <= 0) {
+			this.utility = null;
+			this.solution = null;
+			return null;
+		}
+		
 		if (this.solution == null) {
 			this.nbrSolLeft--;
 			return this.utility;
 		}
 		
-		// Return null if there are no more solutions
-		if (this.nbrSolLeft <= 0) {
+		if (this.skippedUtil != null && this.skippedUtil.equals(this.utility)) {
+			this.nbrSolLeft = 0;
 			this.utility = null;
 			this.solution = null;
 			return null;

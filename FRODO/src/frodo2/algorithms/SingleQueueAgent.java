@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2012  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -239,7 +239,7 @@ public class SingleQueueAgent < Val extends Addable<Val> > implements AgentInter
 	 * @param newType 						 new value for the message type
 	 * @throws NoSuchFieldException 		if \a msgType is not a field of \a module
 	 */
-	public static void setMsgType(Class< MessageListener<String> > moduleClass, String msgType, String newType) 
+	public static void setMsgType(Class< ? extends MessageListener<String> > moduleClass, String msgType, String newType) 
 	throws NoSuchFieldException {
 		
 		Field field = moduleClass.getField(msgType);
@@ -337,7 +337,7 @@ public class SingleQueueAgent < Val extends Addable<Val> > implements AgentInter
 	/** Sends a message to the controller saying that the agent has finished */
 	protected void finished () {
 		if (this.measureMsgs) // send a message with statistics
-			queue.sendMessage(STATS_MONITOR, new AgentFinishedMessage (queue.getMsgNbrs(), queue.getMsgSizes()));
+			queue.sendMessage(STATS_MONITOR, new AgentFinishedMessage (queue.getMsgNbrs(), queue.getMsgSizes(), queue.getMaxMsgSizes()));
 		else 
 			queue.sendMessage(STATS_MONITOR, new Message(AGENT_FINISHED));
 		queue.resetStats();

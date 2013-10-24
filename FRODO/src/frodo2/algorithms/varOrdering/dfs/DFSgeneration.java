@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2012  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -204,7 +204,7 @@ public class DFSgeneration < V extends Addable<V>, U extends Addable<U> > implem
 			assert ! children.contains(pseudo) : pseudo + " is already a child";
 			
 			// Look up the last child added, i.e. the child whose subtree is being explored
-			assert !children.isEmpty();
+			assert !children.isEmpty(); /// @todo: got a very rare assertion error when running ODPOP tests!
 			String lastChild = children.get(children.size() - 1);
 			
 			// Add the input variable to its list of pseudo-children

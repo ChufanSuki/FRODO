@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2012  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -40,8 +40,8 @@ import frodo2.solutionSpaces.Addable;
 import frodo2.solutionSpaces.AddableInteger;
 import frodo2.solutionSpaces.AddableReal;
 import frodo2.solutionSpaces.BasicUtilitySolutionSpace;
-import frodo2.solutionSpaces.UtilitySolutionSpace;
 import frodo2.solutionSpaces.BasicUtilitySolutionSpace.Iterator;
+import frodo2.solutionSpaces.UtilitySolutionSpace;
 import frodo2.solutionSpaces.UtilitySolutionSpace.ProjOutput;
 import frodo2.solutionSpaces.hypercube.BasicHypercube;
 import frodo2.solutionSpaces.hypercube.Hypercube;
@@ -214,7 +214,7 @@ public class HypercubeTest extends TestCase {
 		testSuite.addTest(suiteTmp);
 		
 		suiteTmp = new TestSuite ("Tests for the method testExpectation");
-		suiteTmp.addTest(new RepeatedTest (new HypercubeTest ("testExpectation"), 1000));
+		suiteTmp.addTest(new RepeatedTest (new HypercubeTest ("testExpectation"), 2000));
 		testSuite.addTest(suiteTmp);
 		
 		suiteTmp = new TestSuite ("Tests for the method compose");
@@ -227,6 +227,10 @@ public class HypercubeTest extends TestCase {
 		
 		suiteTmp = new TestSuite ("Tests for the method consensus with weighted samples");
 		suiteTmp.addTest(new RepeatedTest (new HypercubeTest ("testConsensusWeighted"), 1000));
+		testSuite.addTest(suiteTmp);
+		
+		suiteTmp = new TestSuite ("Tests for the method consensusExpect with weighted samples");
+		suiteTmp.addTest(new RepeatedTest (new HypercubeTest ("testConsensusWeightedExpect"), 1000));
 		testSuite.addTest(suiteTmp);
 		
 		suiteTmp = new TestSuite ("Tests for the method iterator that takes in a list of variables");
@@ -1092,6 +1096,7 @@ public class HypercubeTest extends TestCase {
 
 		// Read the hypercube from the input stream
 		Hypercube<AddableInteger, AddableInteger> h2 = (Hypercube<AddableInteger, AddableInteger>) objIn.readObject();
+		objIn.close();
 
 		// Check the hypercubes are equal
 		assertTrue (h1.equals(h2));
@@ -1140,12 +1145,13 @@ public class HypercubeTest extends TestCase {
 			
 			// Read the hypercube from the input stream
 			Hypercube<AddableInteger, AddableInteger> h2 = (Hypercube<AddableInteger, AddableInteger>) objIn.readObject();
+			objIn.close();
 			
 			// Check the hypercubes are equal
 			assertTrue (h1.equals(h2));
 			
 		} catch (IOException e) {
-			fail(e.toString());
+			fail(e.toString()); /// @bug objIn might not be closed
 		} catch (ClassNotFoundException e) {
 			fail(e.toString());
 		}
@@ -1233,8 +1239,9 @@ public class HypercubeTest extends TestCase {
 		}
 		String[] varsOut = candidates.toArray(new String [candidates.size()]);
 		
-		boolean maximum = (Math.random() > 0.5);
-		assertTrue (hypercube.blindProject(varsOut, maximum).equivalent(hypercube.project(varsOut, maximum).space));
+		assertTrue (hypercube + "\n.blindProject(" + Arrays.toString(varsOut) + ", " + maximize + ") = \n" + 
+				hypercube.blindProject(varsOut, maximize) + "\n!=\n" + hypercube.project(varsOut, maximize).space, 
+				hypercube.blindProject(varsOut, maximize).equivalent(hypercube.project(varsOut, maximize).space));
 	}
 	
 	/** Tests the additive join method that automatically computes the variable ordering */
@@ -1301,13 +1308,14 @@ public class HypercubeTest extends TestCase {
 		Hypercube<AddableInteger, AddableReal> utilSpace = null, probSpace = null;
 		String[] randVars = null;
 		ArrayList< AddableInteger[] > domains = null;
+		HashMap< String, UtilitySolutionSpace<AddableInteger, AddableReal> > distributions = null;
 		
 		boolean valid = false;
 		while (!valid) { // loop until we get a valid test case
 			
 			utilSpace = random_hypercube(0, AddableReal.class);
+			distributions = new HashMap< String, UtilitySolutionSpace<AddableInteger, AddableReal> > ();
 			
-			/// @todo Test the expectation over multiple random variables
 			probSpace = random_hypercube(1, 2 + (int)(3*Math.random()), 10000, (int)(5*Math.random()), null, AddableReal.class);
 			AddableReal sum = new AddableReal(0.0);
 			for (Iterator<AddableInteger, AddableReal> iter = probSpace.iterator(); iter.hasNext(); ) 
@@ -1315,14 +1323,32 @@ public class HypercubeTest extends TestCase {
 			assert sum.doubleValue() > 0.0;
 			for (Iterator<AddableInteger, AddableReal> iter = probSpace.iterator(); iter.hasNext(); ) 
 				iter.setCurrentUtility(iter.nextUtility().divide(sum));
-			randVars = new String[] { probSpace.getVariable(0) };
+			distributions.put(probSpace.getVariable(0), probSpace);
+			
+			// With some probability, introduce a second random variable
+			if (Math.random() > 0.3) {
+				probSpace = random_hypercube(1, 2 + (int)(3*Math.random()), 10000, (int)(5*Math.random()), null, AddableReal.class);
+				sum = new AddableReal(0.0);
+				for (Iterator<AddableInteger, AddableReal> iter = probSpace.iterator(); iter.hasNext(); ) 
+					sum = sum.add(iter.nextUtility());
+				assert sum.doubleValue() > 0.0;
+				for (Iterator<AddableInteger, AddableReal> iter = probSpace.iterator(); iter.hasNext(); ) 
+					iter.setCurrentUtility(iter.nextUtility().divide(sum));
+				distributions.put(probSpace.getVariable(0), probSpace);				
+			}
+			
+			randVars = new String [distributions.size()];
 			domains = new ArrayList< AddableInteger[] > ();
-			domains.add(probSpace.getDomain(randVars[0]));
+			int i = 0;
+			for (UtilitySolutionSpace<AddableInteger, AddableReal> prob : distributions.values()) {
+				randVars[i++] = prob.getVariable(0);
+				domains.add(prob.getDomain(0));
+			}
 			
 			valid = true;
 
 			// If a random variable is contained in the utilSpace, its domain must be a superset of the one in the probSpace
-			for (int i = 0; i < randVars.length; i++) {
+			for (i = 0; i < randVars.length; i++) {
 				String var = randVars[i];
 				AddableInteger[] dom = domains.get(i);
 				AddableInteger[] dom2 = utilSpace.getDomain(var);
@@ -1341,13 +1367,12 @@ public class HypercubeTest extends TestCase {
 		}
 		
 		// Compute the expectation
-		HashMap< String, UtilitySolutionSpace<AddableInteger, AddableReal> > distributions = 
-			new HashMap< String, UtilitySolutionSpace<AddableInteger, AddableReal> > ();
-		distributions.put(probSpace.getVariable(0), probSpace);
 		UtilitySolutionSpace<AddableInteger, AddableReal> expectation = utilSpace.expectation(distributions);
 		
 		// Recompute the expectation in a different (memory-inefficient) way: fist multiply, then slice, then join
-		UtilitySolutionSpace<AddableInteger, AddableReal> product = utilSpace.multiply(probSpace);
+		UtilitySolutionSpace<AddableInteger, AddableReal> product = utilSpace;
+		for (UtilitySolutionSpace<AddableInteger, AddableReal> prod : distributions.values()) 
+			product = product.multiply(prod);
 		UtilitySolutionSpace<AddableInteger, AddableReal> expectation2 = new ScalarHypercube<AddableInteger, AddableReal> (new AddableReal (0), null, new AddableInteger [0].getClass());
 		
 		// Re-order the random variables and their domains so that their order is consistent with the order in product
@@ -1410,9 +1435,19 @@ public class HypercubeTest extends TestCase {
 		// Compare the two expectations solution-wise, with some error margin
 		assertEquals(expectation + " != " + expectation2, expectation.getNumberOfVariables(), expectation2.getNumberOfVariables());
 		Iterator<AddableInteger, AddableReal> iter = expectation.iterator();
+		assertTrue (iter.getCurrentSolution() != null);
 		Iterator<AddableInteger, AddableReal> iter2 = expectation2.iterator(expectation.getVariables());
-		while (iter.hasNext()) 
-			assertTrue (iter.nextUtility().equals(iter2.nextUtility(), 1E-6));
+		Iterator<AddableInteger, AddableReal> iter3 = expectation.resolve().iterator(expectation.getVariables());
+		assertEquals (expectation.getNumberOfSolutions(), iter.getNbrSolutions());
+		AddableReal util = null;
+		for (int i = 0; iter.hasNext(); i++) {
+			util = iter.nextUtility();
+			assertTrue (i + "\n" + expectation, util != null);
+			assertTrue (util + " != " + iter2.getCurrentUtility() + "\n" + expectation + " != " + expectation2, 
+					util != null && util.equals(iter2.nextUtility(), 1E-6));
+			assertTrue (util + " != " + iter3.getCurrentUtility() + "\n" + expectation + " != " + expectation.resolve(), 
+					util.equals(iter3.nextUtility(), 1E-6));
+		}
 	}
 	
 	/** Tests the composition method */
@@ -1598,6 +1633,18 @@ public class HypercubeTest extends TestCase {
 	
 	/** Tests the consensus() operation with weighted samples */
 	public void testConsensusWeighted () {
+		this.testConsensusWeighted(false);
+	}
+	
+	/** Tests the consensusExpect() operation with weighted samples */
+	public void testConsensusWeightedExpect () {
+		this.testConsensusWeighted(true);
+	}
+	
+	/** Tests the consensus() operation with weighted samples 
+	 * @param expect whether to compose the consensus operation with the expectation operation
+	 */
+	private void testConsensusWeighted (final boolean expect) {
 		
 		Hypercube<AddableInteger, AddableReal> h1 = random_hypercube(0.1, AddableReal.class);
 		
@@ -1637,7 +1684,8 @@ public class HypercubeTest extends TestCase {
 		}
 		
 		// Perform the normal consensus operation
-		ProjOutput<AddableInteger, AddableReal> projOutput1 = h1.consensus(varOut, distributions, maximize);
+		ProjOutput<AddableInteger, AddableReal> projOutput1 = 
+				expect ? h1.consensusExpect(varOut, distributions, maximize) : h1.consensus(varOut, distributions, maximize);
 		
 		// Check the variables in the projOutput
 		if (h1.getDomain(varOut) != null) {
@@ -1646,8 +1694,16 @@ public class HypercubeTest extends TestCase {
 			assertTrue (projOutput1.getVariables().length == 0);
 		
 		// Check that the conditional optimal assignments are consistent with the first output 
-		assertTrue (h1.compose(new String[] { varOut }, projOutput1.assignments) + " != " + projOutput1.space, 
-				h1.compose(new String[] { varOut }, projOutput1.assignments).equivalent(projOutput1.space));
+		UtilitySolutionSpace<AddableInteger, AddableReal> composition = h1.compose(new String[] { varOut }, projOutput1.assignments);
+		if (expect) 
+			composition = composition.expectation(distributions);
+		assertTrue (composition + " != " + projOutput1.space + "\ndistributions: " + distributions + "\nvar out: " + varOut, 
+				composition.getNumberOfVariables() == projOutput1.space.getNumberOfVariables());
+		Iterator<AddableInteger, AddableReal> iter1 = composition.iterator();
+		Iterator<AddableInteger, AddableReal> iter2 = projOutput1.space.iterator(composition.getVariables());
+		while (iter1.hasNext()) 
+			assertTrue (iter1.getCurrentUtility() + " != " + iter2.getCurrentUtility() + "\n" + composition + " != " + projOutput1.space, 
+					iter1.nextUtility() != null && iter1.getCurrentUtility().equals(iter2.nextUtility(), 1E-6));
 		
 		// Perform the advanced consensus operation
 		ProjOutput<AddableInteger, AddableReal> projOutput2 = h1.consensusAllSols(varOut, distributions, maximize);

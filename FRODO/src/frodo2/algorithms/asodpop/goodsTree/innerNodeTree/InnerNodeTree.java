@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2012  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -30,9 +30,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
 
-import frodo2.algorithms.asodpop.Good;
 import frodo2.algorithms.odpop.goodsTree.InnerNodeTree.InnerNode;
 import frodo2.algorithms.odpop.goodsTree.InnerNodeTreeFullDomain.Node;
+import frodo2.algorithms.asodpop.Good;
 import frodo2.solutionSpaces.Addable;
 import frodo2.solutionSpaces.AddableDelayed;
 import frodo2.solutionSpaces.UtilitySolutionSpace;

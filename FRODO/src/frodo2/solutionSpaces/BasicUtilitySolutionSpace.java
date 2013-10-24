@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2012  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -208,14 +208,35 @@ extends SolutionSpace<V> {
 		
 	/* The fourth group is connected to a BasicUtilitySolutionSpace iterator */
 
-	/** @return an iterator which allows to iterate over the solutions and their utilities */
+	/** @see SolutionSpace#sparseIter() */
+	@Override
+	public SparseIterator<V, U> sparseIter(); 
+	
+	/** @see SolutionSpace#sparseIter(java.lang.String[]) */
+	@Override
+	public SparseIterator<V, U> sparseIter(String[] order); 
+
+	/** Returns a sparse iterator
+	 * @param variables 	The variables to iterate over, which may contain variables not in the space, but must contain all variables in the space
+	 * @param domains		The domains of the variables over which to iterate
+	 * @return an iterator which allows to iterate over the given variables and their utilities 
+	 */
+	public SparseIterator<V, U> sparseIter(String[] variables, V[][] domains); 
+	
+	/** Returns a sparse iterator
+	 * @param variables 	The variables to iterate over
+	 * @param domains		The domains of the variables over which to iterate
+	 * @param assignment 	An array that will be used as the output of nextSolution()
+	 * @return an iterator which allows to iterate over the given variables and their utilities 
+	 */
+	public SparseIterator<V, U> sparseIter(String[] variables, V[][] domains, V[] assignment); 
+		
+	/** @see SolutionSpace#iterator() */
+	@Override
 	public Iterator<V, U> iterator();
 	
-	/** Returns an iterator with a specific variable order
-	 * @param order 	the order of iteration of the variables
-	 * @return 			an iterator which can be used to iterate through solutions 
-	 * @warning The input array of variables must contain exactly all of the space's variables. 
-	 */
+	/** @see SolutionSpace#iterator(java.lang.String[]) */
+	@Override
 	public Iterator<V, U> iterator(String[] order);
 	
 	/** Returns an iterator
@@ -225,18 +246,19 @@ extends SolutionSpace<V> {
 	 */
 	public Iterator<V, U> iterator(String[] variables, V[][] domains); 
 	
-	/** @param variables 	The variables to iterate over
+	/** Returns an iterator
+	 * @param variables 	The variables to iterate over
 	 * @param domains		The domains of the variables over which to iterate
 	 * @param assignment 	An array that will be used as the output of nextSolution()
 	 * @return an iterator which allows to iterate over the given variables and their utilities 
 	 */
 	public Iterator<V, U> iterator(String[] variables, V[][] domains, V[] assignment); 
 		
-	/** A BasicUtilitySolutionSpace iterator
+	/** A BasicUtilitySolutionSpace iterator that skips infeasible solutions
 	 * @param <V> the type used for variable values
 	 * @param <U> the type used for utility values
 	 */
-	public interface Iterator<V, U> extends SolutionSpace.Iterator<V> {
+	public interface SparseIterator<V, U> extends SolutionSpace.SparseIterator<V> {
 
 		/** @return the utility value of the next solution */
 		public U nextUtility();
@@ -249,4 +271,10 @@ extends SolutionSpace<V> {
 		 */
 		public void setCurrentUtility (U util);
 	}
+	
+	/** A BasicUtilitySolutionSpace iterator that doest NOT skip infeasible solutions
+	 * @param <V> the type used for variable values
+	 * @param <U> the type used for utility values
+	 */
+	public interface Iterator<V, U> extends SparseIterator<V, U>, SolutionSpace.Iterator<V> {}
 }

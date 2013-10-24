@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2012  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -26,6 +26,12 @@ How to contact the authors:
 
 package frodo2.solutionSpaces.hypercube;
 
+import frodo2.solutionSpaces.Addable;
+import frodo2.solutionSpaces.AddableReal;
+import frodo2.solutionSpaces.BasicUtilitySolutionSpace;
+import frodo2.solutionSpaces.ProblemInterface;
+import frodo2.solutionSpaces.SolutionSpace;
+import frodo2.solutionSpaces.UtilitySolutionSpace;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -47,13 +53,6 @@ import org.jdom2.Element;
 import org.jdom2.input.SAXBuilder;
 import org.jdom2.output.Format;
 import org.jdom2.output.XMLOutputter;
-
-import frodo2.solutionSpaces.Addable;
-import frodo2.solutionSpaces.AddableReal;
-import frodo2.solutionSpaces.BasicUtilitySolutionSpace;
-import frodo2.solutionSpaces.ProblemInterface;
-import frodo2.solutionSpaces.SolutionSpace;
-import frodo2.solutionSpaces.UtilitySolutionSpace;
 
 /**
  * The class representing a hypercube
@@ -1038,12 +1037,22 @@ extends HypercubeLimited<V, U, U> implements UtilitySolutionSpace<V, U> {
 	
 	/** @see UtilitySolutionSpace#consensus(java.lang.String, java.util.Map, boolean) */
 	public ProjOutput< V, U > consensus (final String varOut, final Map< String, UtilitySolutionSpace<V, U> > distributions, final boolean maximum) {
-		return this.consensus(varOut, distributions, maximum, false);
+		return this.consensus(varOut, distributions, maximum, false, false);
 	}
 	
 	/** @see UtilitySolutionSpace#consensusAllSols(java.lang.String, java.util.Map, boolean) */
 	public ProjOutput<V, U> consensusAllSols (String varOut, Map< String, UtilitySolutionSpace<V, U> > distributions, boolean maximum) {
-		return this.consensus(varOut, distributions, maximum, true);
+		return this.consensus(varOut, distributions, maximum, true, false);
+	}
+	
+	/** @see UtilitySolutionSpace#consensusExpect(java.lang.String, java.util.Map, boolean) */
+	public ProjOutput< V, U > consensusExpect (final String varOut, final Map< String, UtilitySolutionSpace<V, U> > distributions, final boolean maximum) {
+		return this.consensus(varOut, distributions, maximum, false, true);
+	}
+	
+	/** @see UtilitySolutionSpace#consensusAllSolsExpect(java.lang.String, java.util.Map, boolean) */
+	public ProjOutput<V, U> consensusAllSolsExpect (String varOut, Map< String, UtilitySolutionSpace<V, U> > distributions, boolean maximum) {
+		return this.consensus(varOut, distributions, maximum, true, true);
 	}
 	
 	/** A projection operation that uses the consensus approach
@@ -1051,18 +1060,20 @@ extends HypercubeLimited<V, U, U> implements UtilitySolutionSpace<V, U> {
 	 * @param distributions 	for each random variable, its weighted samples/probability distribution
 	 * @param maximum 			\c true if we should maximize the utility; \c false if it should be minimized
 	 * @param allSolutions 		if \c true, use the revised consensus algorithm that considers \b all optimal solutions to each scenario
+	 * @param expect 			whether to compose the consenus operation with the expectation operation
 	 * @return a ProjOutput object that represents the pair resulting space - conditional optimal assignments
 	 * @todo Test when the distributions and the caller do not agree on the domains. 
 	 */
 	@SuppressWarnings("unchecked")
-	protected ProjOutput< V, U > consensus (final String varOut, final Map< String, UtilitySolutionSpace<V, U> > distributions, final boolean maximum, final boolean allSolutions) {
+	protected ProjOutput< V, U > consensus (final String varOut, final Map< String, UtilitySolutionSpace<V, U> > distributions, 
+			final boolean maximum, final boolean allSolutions, final boolean expect) {
 		
 		assert ! distributions.containsKey(varOut) : "The provided distributions contain the variable " + varOut + " to be projected out";
 
 		// If this hypercube does not contain the variable to be projected out, 
 		// return a clone and NULL optimal conditional assignments 
 		if (this.getDomain(varOut) == null) 
-			return new ProjOutput<V, U> (this.clone(), new String [0], NullHypercube.NULL);
+			return new ProjOutput<V, U> (expect ? this.expectation(distributions) : this.clone(), new String [0], NullHypercube.NULL);
 		
 		// Choose the following order to iterate on the variables: 
 		// 1) varsKept: the variables that are not projected out and for which no distribution is provided
@@ -1070,7 +1081,7 @@ extends HypercubeLimited<V, U, U> implements UtilitySolutionSpace<V, U> {
 		// 3) varOut: the variable being projected out
 		final int myNbrVars = this.variables.length;
 		String[] iterOrder = new String [myNbrVars];
-		Class<?> domClass = this.domains.getClass().getComponentType();
+		Class< ? extends V[] > domClass = (Class<? extends V[]>) this.domains.getClass().getComponentType();
 		V[][] iterDomsNotOut = (V[][]) Array.newInstance(domClass, myNbrVars);
 		int nbrVarsKept = myNbrVars - 1;
 		String[] iterOrderNotOut = new String [nbrVarsKept];
@@ -1117,8 +1128,9 @@ extends HypercubeLimited<V, U, U> implements UtilitySolutionSpace<V, U> {
 		}
 		final int nbrRandUtils = nbrRandUtilsTmp;
 		
-		// The utility array of the optimal conditional assignments
+		// The utility arrays of the optimal conditional assignments and the optimal expected utilities
 		ArrayList<V>[] optSols = new ArrayList [ nbrVarsKeptUtils ];
+		U[] expectUtils = expect ? (U[]) Array.newInstance(this.getClassOfU(), nbrVarsKeptUtils) : null;
 		
 		// For a given assignment to varOut, the probability that it be optimal
 		int i;
@@ -1132,12 +1144,19 @@ extends HypercubeLimited<V, U, U> implements UtilitySolutionSpace<V, U> {
 		U optUtil;
 		final U infeasibleUtil = (maximum ? this.infeasibleUtil.getMinInfinity() : this.infeasibleUtil.getPlusInfinity());
 		ArrayList<V> optVals;
+		HashMap<V, U> partialExpect = expect ? new HashMap<V, U> (varOutDomSize) : null;
+		HashMap<V, U> zeroExpect = expect ? new HashMap<V, U> (varOutDomSize) : null;
+		if (expect) 
+			for (V val : this.getDomain(varOut)) 
+				zeroExpect.put(val, this.infeasibleUtil.getZero());
+		U expectUtil = null;
 		
 		int k;
 		U util;
 		int diffUtil;
 		
 		double prob;
+		U probAddable = null;
 		
 		Double count;
 		
@@ -1157,17 +1176,30 @@ extends HypercubeLimited<V, U, U> implements UtilitySolutionSpace<V, U> {
 			
 			// Go through all possible assignments to the randVars
 			j = -1;
+			if (expect) 
+				partialExpect.putAll(zeroExpect);
 			scenariosLoop: while (++j < nbrRandUtils) {
 				
 				// Initialize the best solution
 				optUtil = infeasibleUtil;
 				optVals = new ArrayList<V> ();
 					
+				// Compute the probability of the current assignment to the randVars
+				prob = 1.0;
+				for (UtilitySolutionSpace.Iterator<V, AddableReal> iter : iters) 
+					prob *= iter.nextUtility().doubleValue();
+				if (expect) probAddable = (U) new AddableReal (prob);
+				probLeft -= prob;
+				
 				// Go through all possible assignments to the varOut to find the optimal one(s)
 				for (k = 0; k < varOutDomSize; k++) {
+					sol = myIter.nextSolution()[indexVarOut];
 					
-					myIter.nextSolution();
-					util = myIter.getCurrentUtility(optUtil, !maximum);
+					if (expect) // start computing the expectation
+						partialExpect.put(sol, partialExpect.get(sol).add((util = myIter.getCurrentUtility()).multiply(probAddable)));
+					else 
+						util = myIter.getCurrentUtility(optUtil, !maximum);
+					
 					diffUtil = util.compareTo(optUtil); /// @bug Can be 0 even if the true utility of the current solution is worse
 					if ((maximum && diffUtil >= 0) || (! maximum && diffUtil <= 0)) { // best assignment to varOut found so far
 						
@@ -1178,15 +1210,9 @@ extends HypercubeLimited<V, U, U> implements UtilitySolutionSpace<V, U> {
 						}
 						
 						// Record the current assignment
-						optVals.add(myIter.getCurrentSolution()[indexVarOut]);
+						optVals.add(sol);
 					}
 				}
-				
-				// Compute the probability of the current assignment to the randVars
-				prob = 1.0;
-				for (UtilitySolutionSpace.Iterator<V, AddableReal> iter : iters) 
-					prob *= iter.nextUtility().doubleValue();
-				probLeft -= prob;
 				
 				// Record the best solution(s) found
 				if (allSolutions) { // we want to consider all solutions
@@ -1249,33 +1275,60 @@ extends HypercubeLimited<V, U, U> implements UtilitySolutionSpace<V, U> {
 					break scenariosLoop;
 			}
 			
+			if (expect) expectUtil = partialExpect.get(optSol);
+			
 			// Finish iterating without computing utilities if the iteration was interrupted
 			while (++j < nbrRandUtils) {
+				
+				if (expect) { // we actually need to compute the probability and utility to compute the expectation 
+					prob = 1.0;
+					for (UtilitySolutionSpace.Iterator<V, AddableReal> iter : iters) 
+						prob *= iter.nextUtility().doubleValue();
+					probAddable = (U) new AddableReal (prob);
+					probLeft -= prob;
+				} else 
+					for (UtilitySolutionSpace.Iterator<V, AddableReal> iter : iters) 
+						iter.nextSolution();
 
-				for (k = 0; k < varOutDomSize; k++) 
-					myIter.nextSolution();
+				for (k = 0; k < varOutDomSize; k++) {
+					sol = myIter.nextSolution()[indexVarOut];
+					if (expect && optSol.equals(sol)) 
+						expectUtil = expectUtil.add(myIter.getCurrentUtility().multiply(probAddable));
+				}
 
-				for (UtilitySolutionSpace.Iterator<V, AddableReal> iter : iters) 
-					iter.nextSolution();
 			}
 			
 			// Record the best solution found
 			tmp = new ArrayList<V> (1);
 			tmp.add(optSol);
 			optSols[i] = tmp;
+			if (expect) expectUtils[i] = expectUtil;
 		}
 		
-		// Generate the BasicHypercube of optimal conditional assignments
+		// Generate the BasicHypercube of optimal conditional assignments and the composition
 		BasicHypercube< V, ArrayList<V> > optAssignments;
+		UtilitySolutionSpace< V, U > composition;
+		String[] varsOut = new String[] { varOut };
 		if (nbrVarsKept > 0) {
 			V[][] varsKeptDoms = (V[][]) Array.newInstance(domClass, nbrVarsKept);
 			System.arraycopy(iterDomsNotOut, 0, varsKeptDoms, 0, nbrVarsKept);
-			optAssignments = new BasicHypercube< V, ArrayList<V> > (varsKept.toArray(new String [nbrVarsKept]), varsKeptDoms, optSols, null);
-		} else 
+			String[] varsKeptArray = varsKept.toArray(new String [nbrVarsKept]);
+			optAssignments = new BasicHypercube< V, ArrayList<V> > (varsKeptArray, varsKeptDoms, optSols, null);
+			
+			if (expect) 
+				composition = new Hypercube< V, U > (varsKeptArray, varsKeptDoms, expectUtils, this.infeasibleUtil);
+			else 
+				composition = this.compose(varsOut, optAssignments);
+			
+		} else { // nbrVarsKept == 0
 			optAssignments = new ScalarBasicHypercube< V, ArrayList<V> > (optSols[0], null);
-
-		String[] varsOut = new String[] { varOut };
-		return new ProjOutput<V, U> (this.compose(varsOut, optAssignments), varsOut, optAssignments);
+			if (expect) 
+				composition = new ScalarHypercube< V, U > (expectUtils[0], this.infeasibleUtil, domClass);
+			else 
+				composition = this.compose(varsOut, optAssignments);
+		}
+		
+		return new ProjOutput<V, U> (composition, varsOut, optAssignments);
 	}
 
 	/**Returns a Hypercube obtained by projecting some of the variables of the hypercube
@@ -1409,6 +1462,29 @@ extends HypercubeLimited<V, U, U> implements UtilitySolutionSpace<V, U> {
 			varsOut = varsOutSet.toArray(new String [nbrVarsOut]);
 		
 		return new BlindProjectOutput<V, U> (this, varsOut, maximize, this.infeasibleUtil);
+	}
+
+	/** @see HypercubeLimited#blindProjectAll(boolean) */
+	@Override
+	public U blindProjectAll(final boolean maximize) {
+		
+		final U inf = maximize ? this.infeasibleUtil.getMinInfinity() : this.infeasibleUtil.getPlusInfinity();
+		
+		// Compute the optimum utility value
+		BasicUtilitySolutionSpace.SparseIterator<V, U> iter = this.sparseIter(inf);
+		U optimum = iter.nextUtility();
+		if (optimum == null) 
+			return inf;
+		
+		U util = null;
+		while ( (util = iter.nextUtility()) != null) {
+			if (maximize) 
+				optimum = optimum.max(util);
+			else 
+				optimum = optimum.min(util);
+		}
+		
+		return optimum;
 	}
 
 	/** @see HypercubeLimited#min(java.lang.String) */
@@ -2326,10 +2402,22 @@ extends HypercubeLimited<V, U, U> implements UtilitySolutionSpace<V, U> {
 		return (UtilitySolutionSpace.Iterator<V, U>) super.iterator();
 	}
 	
+	/** @see BasicHypercube#sparseIter() */
+	@Override
+	public UtilitySolutionSpace.SparseIterator<V, U> sparseIter() {
+		return (UtilitySolutionSpace.SparseIterator<V, U>) super.sparseIter();
+	}
+	
 	/** @see BasicHypercube#iterator(java.lang.String[]) */
 	@Override
 	public UtilitySolutionSpace.Iterator<V, U> iterator(String[] order) {
 		return (UtilitySolutionSpace.Iterator<V, U>) super.iterator(order);
+	}
+	
+	/** @see BasicHypercube#sparseIter(java.lang.String[]) */
+	@Override
+	public UtilitySolutionSpace.SparseIterator<V, U> sparseIter(String[] order) {
+		return (UtilitySolutionSpace.SparseIterator<V, U>) super.sparseIter(order);
 	}
 	
 	/** @see BasicHypercube#iterator(java.lang.String[], V[][]) */
@@ -2338,22 +2426,34 @@ extends HypercubeLimited<V, U, U> implements UtilitySolutionSpace<V, U> {
 		return (UtilitySolutionSpace.Iterator<V, U>) super.iterator(variables, domains);
 	}
 
+	/** @see BasicHypercube#sparseIter(java.lang.String[], V[][]) */
+	@Override
+	public UtilitySolutionSpace.SparseIterator<V, U> sparseIter(String[] variables, V[][] domains) {
+		return (UtilitySolutionSpace.SparseIterator<V, U>) super.sparseIter(variables, domains);
+	}
+
 	/** @see BasicHypercube#iterator(java.lang.String[], V[][], V[]) */
 	@Override
 	public UtilitySolutionSpace.Iterator<V, U> iterator(String[] variables, V[][] domains, V[] assignment) {
 		return (UtilitySolutionSpace.Iterator<V, U>) super.iterator(variables, domains, assignment);
 	}
 
-	/** @see BasicHypercube#newIter(java.lang.String[], V[][], V[]) */
+	/** @see BasicHypercube#sparseIter(java.lang.String[], V[][], V[]) */
 	@Override
-	protected UtilitySolutionSpace.Iterator<V, U> newIter (String[] variables, V[][] domains, V[] assignment) {
+	public UtilitySolutionSpace.SparseIterator<V, U> sparseIter(String[] variables, V[][] domains, V[] assignment) {
+		return (UtilitySolutionSpace.SparseIterator<V, U>) super.sparseIter(variables, domains, assignment);
+	}
+
+	/** @see BasicHypercube#newIter(java.lang.String[], V[][], V[], Serializable) */
+	@Override
+	protected UtilitySolutionSpace.Iterator<V, U> newIter (String[] variables, V[][] domains, V[] assignment, U skippedUtil) {
 		
 		if (variables == null) 
-			return new HypercubeIter<V, U> (this, assignment);
+			return new HypercubeIter<V, U> (this, assignment, skippedUtil);
 		else if (domains == null) 
-			return new HypercubeIter<V, U> (this, variables, assignment);
+			return new HypercubeIter<V, U> (this, variables, assignment, skippedUtil);
 		else 
-			return new HypercubeIter<V, U> (this, variables, domains, assignment);
+			return new HypercubeIter<V, U> (this, variables, domains, assignment, skippedUtil);
 	}
 	
 	/**
@@ -2594,10 +2694,10 @@ extends HypercubeLimited<V, U, U> implements UtilitySolutionSpace<V, U> {
 		
 		
 		/** Always returns \a NULL for the resulting hypercube, and for the optimal assignments
-		 * @see Hypercube#consensus(java.lang.String, java.util.Map, boolean, boolean) 
+		 * @see Hypercube#consensus(java.lang.String, java.util.Map, boolean, boolean, boolean) 
 		 */
 		@Override
-		protected ProjOutput< V, U > consensus (String varOut, Map< String, UtilitySolutionSpace<V, U> > distributions, boolean maximum, boolean allSolutions) {
+		protected ProjOutput< V, U > consensus (String varOut, Map< String, UtilitySolutionSpace<V, U> > distributions, boolean maximum, boolean allSolutions, boolean expect) {
 			return new ProjOutput<V, U> (NULL, new String [0], NULL);
 		}
 
@@ -2762,6 +2862,38 @@ extends HypercubeLimited<V, U, U> implements UtilitySolutionSpace<V, U> {
 		/** @see Hypercube#iterator(java.lang.String[], V[][], V[]) */
 		@Override
 		public HypercubeIter<V, U> iterator(String[] variables, V[][] domains, V[] assignment) {
+			/// @todo Auto-generated method stub
+			assert false : "not implemented!";
+			return null;
+		}
+
+		/** @see Hypercube#sparseIter() */
+		@Override
+		public HypercubeIter<V, U> sparseIter() {
+			/// @todo Auto-generated method stub
+			assert false : "not implemented!";
+			return null;
+		}
+		
+		/** @see Hypercube#sparseIter(String[]) */
+		@Override
+		public HypercubeIter<V, U> sparseIter(String[] order) {
+			/// @todo Auto-generated method stub
+			assert false : "not implemented!";
+			return null;
+		}
+		
+		/** @see BasicHypercube#sparseIter(String[], V[][]) */
+		@Override
+		public HypercubeIter<V, U> sparseIter(String[] variables, V[][] domains) {
+			/// @todo Auto-generated method stub
+			assert false : "not implemented!";
+			return null;
+		}
+
+		/** @see Hypercube#sparseIter(java.lang.String[], V[][], V[]) */
+		@Override
+		public HypercubeIter<V, U> sparseIter(String[] variables, V[][] domains, V[] assignment) {
 			/// @todo Auto-generated method stub
 			assert false : "not implemented!";
 			return null;

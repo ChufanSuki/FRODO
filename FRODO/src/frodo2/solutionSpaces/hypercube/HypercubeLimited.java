@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2012  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -322,13 +322,14 @@ extends BasicHypercube<V, UL> implements UtilitySolutionSpaceLimited<V, U, UL> {
 	public UL blindProjectAll(final boolean maximize) {
 		
 		// Compute the optimum utility value
-		Iterator<V, UL> iter = this.iterator();
+		SparseIterator<V, UL> iter = this.iterator();
 		UL optimum = iter.nextUtility();
-		while (iter.hasNext()) {
+		UL util = null;
+		while ( (util = iter.nextUtility()) != null) {
 			if (maximize) 
-				optimum = optimum.max(iter.nextUtility());
+				optimum = optimum.max(util);
 			else 
-				optimum = optimum.min(iter.nextUtility());
+				optimum = optimum.min(util);
 		}
 		
 		return optimum;

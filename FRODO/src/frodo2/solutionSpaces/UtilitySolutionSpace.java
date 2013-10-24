@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2012  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -248,6 +248,17 @@ extends UtilitySolutionSpaceLimited<V, U, U> {
 	 */
 	public ProjOutput< V, U > consensus (String varOut, Map< String, UtilitySolutionSpace<V, U> > distributions, boolean maximum);
 	
+	/** The composition of the consensus and expectation operations
+	 * 
+	 * @see UtilitySolutionSpace#consensus(String, Map, boolean)
+	 * 
+	 * @param varOut 			the variable that is projected out
+	 * @param distributions 	for each random variable, its weighted samples/probability distribution
+	 * @param maximum 			\c true if we should maximize the utility; \c false if it should be minimized
+	 * @return a ProjOutput object that represents the pair resulting space - conditional optimal assignments
+	 */
+	public ProjOutput< V, U > consensusExpect (String varOut, Map< String, UtilitySolutionSpace<V, U> > distributions, boolean maximum);
+	
 	/** A projection operation that uses the advanced consensus approach
 	 * 
 	 * The normal consensus approach computes one optimal solution per scenario, risking to miss very promising optimal solutions. 
@@ -260,6 +271,17 @@ extends UtilitySolutionSpaceLimited<V, U, U> {
 	 * @see UtilitySolutionSpace#consensus(String, Map, boolean)
 	 */
 	public ProjOutput< V, U > consensusAllSols (String varOut, Map< String, UtilitySolutionSpace<V, U> > distributions, boolean maximum);
+	
+	/** The composition of the consensusAllSols and expectation operations
+	 * 
+	 * @see UtilitySolutionSpace#consensusAllSols(String, Map, boolean)
+	 * 
+	 * @param varOut 			the variable that is projected out
+	 * @param distributions 	for each random variable, its weighted samples/probability distribution
+	 * @param maximum 			\c true if we should maximize the utility; \c false if it should be minimized
+	 * @return a ProjOutput object that represents the pair resulting space - conditional optimal assignments
+	 */
+	public ProjOutput< V, U > consensusAllSolsExpect (String varOut, Map< String, UtilitySolutionSpace<V, U> > distributions, boolean maximum);
 	
 	
 	/** Projects variables out of this UtilitySolutionSpace
@@ -359,7 +381,7 @@ extends UtilitySolutionSpaceLimited<V, U, U> {
 	/**
 	 * Rescales the utilities in this space
 	 * 
-	 * @author Brammert Ottens, 9 mrt. 2012
+	 * @author Brammert Ottens, 9 mrt. 2013
 	 * @param add		add this value to all utilities
 	 * @param multiply	multiply all utilities with this value
 	 * @return a rescaled utility space
@@ -386,33 +408,43 @@ extends UtilitySolutionSpaceLimited<V, U, U> {
 	 */
 	public IteratorBestFirst<V, U> iteratorBestFirst(boolean maximize, String[] fixedVariables, V[] fixedValues);
 	
-	/** @return an iterator which allows to iterate over the solutions and their utilities */
+	/** @see BasicUtilitySolutionSpace#sparseIter() */
+	@Override
+	public SparseIterator<V, U> sparseIter();
+	
+	/** @see BasicUtilitySolutionSpace#sparseIter(java.lang.String[]) */
+	@Override
+	public SparseIterator<V, U> sparseIter(String[] order);
+	
+	/** @see BasicUtilitySolutionSpace#sparseIter(java.lang.String[], V[][]) */
+	@Override
+	public SparseIterator<V, U> sparseIter(String[] variables, V[][] domains); 
+		
+	/** @see BasicUtilitySolutionSpace#sparseIter(java.lang.String[], V[][], V[]) */
+	@Override
+	public SparseIterator<V, U> sparseIter(String[] variables, V[][] domains, V[] assignment); 
+		
+	/** @see BasicUtilitySolutionSpace#iterator() */
+	@Override
 	public Iterator<V, U> iterator();
 	
-	/** Returns an iterator with a specific variable order
-	 * @param order 	the order of iteration of the variables
-	 * @return 			an iterator which can be used to iterate through solutions 
-	 * @warning The input array of variables must contain exactly all of the space's variables. 
-	 */
+	/** @see BasicUtilitySolutionSpace#iterator(java.lang.String[]) */
+	@Override
 	public Iterator<V, U> iterator(String[] order);
 	
-	/** @param variables 	The variables to iterate over
-	 * @param domains		The domains of the variables over which to iterate
-	 * @return an iterator which allows to iterate over the given variables and their utilities */
+	/** @see BasicUtilitySolutionSpace#iterator(java.lang.String[], V[][]) */
+	@Override
 	public Iterator<V, U> iterator(String[] variables, V[][] domains); 
 		
-	/** @param variables 	The variables to iterate over
-	 * @param domains		The domains of the variables over which to iterate
-	 * @param assignment 	An array that will be used as the output of nextSolution()
-	 * @return an iterator which allows to iterate over the given variables and their utilities 
-	 */
+	/** @see BasicUtilitySolutionSpace#iterator(java.lang.String[], V[][], V[]) */
+	@Override
 	public Iterator<V, U> iterator(String[] variables, V[][] domains, V[] assignment); 
 		
-	/** A UtilitySolutionSpace iterator
+	/** A UtilitySolutionSpace iterator that skips infeasible solutions
 	 * @param <V> the type used for variable values
 	 * @param <U> the type used for utility values
 	 */
-	public interface Iterator<V, U> extends BasicUtilitySolutionSpace.Iterator<V, U> {
+	public interface SparseIterator<V, U> extends BasicUtilitySolutionSpace.SparseIterator<V, U> {
 
 		/** Returns the next solution strictly better than the input bound
 		 * @param bound 		a bound on the desired utility
@@ -429,6 +461,12 @@ extends UtilitySolutionSpaceLimited<V, U, U> {
 		 */	
 		public U getCurrentUtility(U bound, boolean minimize);
 	}
+	
+	/** A UtilitySolutionSpace iterator that does NOT skip infeasible solutions
+	 * @param <V> the type used for variable values
+	 * @param <U> the type used for utility values
+	 */
+	public interface Iterator<V, U> extends SparseIterator<V, U>, BasicUtilitySolutionSpace.Iterator<V, U> {}
 	
 	/**
 	 * A BasicUtilitySolutionSpace iterator that returns items in a 

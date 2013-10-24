@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2012  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -44,6 +44,9 @@ implements Iterator<V, U> {
 	/** Current utility value */
 	protected U utility;
 	
+	/** The utility value that is skipped in sparse iterator mode */
+	private U skippedUtil;
+	
 	/** The index of the current utility value in the utility array */
 	protected int utilIndex;
 	
@@ -81,11 +84,12 @@ implements Iterator<V, U> {
 	protected BasicHypercubeIter () { }
 	
 	/** Constructor 
-	 * @param space 	the BasicHypercube to iterate over
+	 * @param space 		the BasicHypercube to iterate over
 	 * @param assignment 	An array that will be used as the output of nextSolution()
+	 * @param skippedUtil	The utility value to skip, if any
 	 */
 	@SuppressWarnings("unchecked")
-	protected BasicHypercubeIter (BasicHypercube<V, U> space, V[] assignment) {
+	protected BasicHypercubeIter (BasicHypercube<V, U> space, V[] assignment, U skippedUtil) {
 		
 		this.space = space;
 		this.utilities = space.values;
@@ -93,6 +97,7 @@ implements Iterator<V, U> {
 		this.domains = space.domains;
 		this.nbrSolLeft = space.number_of_utility_values;
 		this.nbrSols = this.nbrSolLeft;
+		this.skippedUtil = skippedUtil;
 		
 		this.nbrVars = space.variables.length;
 		this.solution = (assignment != null ? assignment : (V[]) Array.newInstance(space.classOfV, nbrVars));
@@ -121,15 +126,17 @@ implements Iterator<V, U> {
 	 * @param variables 	the variables to iterate over; may include variables not in the space
 	 * @param domains 		the variables' domains
 	 * @param assignment 	An array that will be used as the output of nextSolution()
+	 * @param skippedUtil	The utility value that should be skipped, if any
 	 * @warning The input array of variables must contain all of the space's variables, and the input domains must be sub-domains of the space's. 
 	 */
 	@SuppressWarnings("unchecked")
-	protected BasicHypercubeIter (final BasicHypercube<V, U> space, final String[] variables, final V[][] domains, final V[] assignment) {
+	protected BasicHypercubeIter (final BasicHypercube<V, U> space, final String[] variables, final V[][] domains, final V[] assignment, U skippedUtil) {
 		
 		this.space = space;
 		this.utilities = space.values;
 		this.variables = variables;
 		this.domains = domains;
+		this.skippedUtil = skippedUtil;
 		
 		this.nbrVars = variables.length;
 		this.solution = (assignment != null ? assignment : (V[]) Array.newInstance(space.classOfV, nbrVars));
@@ -204,13 +211,14 @@ implements Iterator<V, U> {
 	}
 
 	/** Constructor
-	 * @param space 	the BasicHypercube to iterate over
-	 * @param varOrder 	the order of iteration of the variables
+	 * @param space 		the BasicHypercube to iterate over
+	 * @param varOrder 		the order of iteration of the variables
 	 * @param assignment 	An array that will be used as the output of nextSolution()
+	 * @param skippedUtil	The utility value to skip, if any
 	 * @warning The input array of variables must contain exactly all of the space's variables. 
 	 */
 	@SuppressWarnings("unchecked")
-	protected BasicHypercubeIter (BasicHypercube<V, U> space, String[] varOrder, V[] assignment) {
+	protected BasicHypercubeIter (BasicHypercube<V, U> space, String[] varOrder, V[] assignment, U skippedUtil) {
 		
 		assert Hypercube.sub(space.variables, varOrder).length == 0 && Hypercube.sub(varOrder, space.variables).length == 0 : 
 			"Only the order of variables may differ between the input variable array " + Arrays.asList(varOrder) + " and the space's " + Arrays.asList(space.variables);
@@ -221,6 +229,7 @@ implements Iterator<V, U> {
 		this.nbrVars = space.variables.length;
 		this.nbrSolLeft = space.number_of_utility_values;
 		this.nbrSols = this.nbrSolLeft;
+		this.skippedUtil = skippedUtil;
 		
 		// Re-order the domains 
 		this.solution = (assignment != null ? assignment : (V[]) Array.newInstance(space.classOfV, nbrVars));
@@ -274,7 +283,27 @@ implements Iterator<V, U> {
 			return null;
 		}
 		
-		this.iter();
+		int index = this.iter();
+		
+		final U inf = this.skippedUtil;
+		if (inf != null) {
+			final BasicHypercube<V, U> space = this.space;
+			U[] utils = this.utilities;
+			U util = null;
+			
+			space.incrNCCCs(1);
+			while (inf.equals(util = utils[index]) && this.nbrSolLeft > 0) {
+				index = this.iter();
+				space.incrNCCCs(1);
+			}
+
+			if (inf.equals(util)) { // I have not found any next feasible solution
+				this.utility = null;
+				this.solution = null;
+			} else 
+				this.utility = util;
+		}
+		
 		return this.solution;
 	}
 
@@ -288,9 +317,30 @@ implements Iterator<V, U> {
 			return null;
 		}
 		
-		this.space.incrNCCCs(1);
+		int index = this.iter();
 		
-		return this.utility = this.utilities[this.iter()];
+		final U inf = this.skippedUtil;
+		if (inf == null) {
+			this.space.incrNCCCs(1);
+			return this.utility = this.utilities[index];
+			
+		} else {
+			final BasicHypercube<V, U> space = this.space;
+			U[] utils = this.utilities;
+			U util = null;
+			
+			space.incrNCCCs(1);
+			while (inf.equals(util = utils[index]) && this.nbrSolLeft > 0) {
+				index = this.iter();
+				space.incrNCCCs(1);
+			}
+
+			if (inf.equals(util)) { // I have not found any next feasible solution
+				this.solution = null;
+				return this.utility = null;
+			} else 
+				return this.utility = util;
+		}
 	}
 
 	/** Moves to the next solution 

@@ -1,8 +1,27 @@
+CHANGES IN VERSION 2.11 SINCE VERSION 2.10.5
+
+Major changes: 
+	- Upgraded to JDOM version 2.0.5; the file jdom-2.0.5.jar must be manually downloaded from the JDOM website and saved in FRODO's lib folder. 
+	- Renamed FRODO's package from ch.epfl.lia.frodo to just frodo2. 
+	- Added support for a standardized way of running experiments using Python scripts. 
+	- Added new performance metrics reporting the size of the largest message. 
+	- Important performance improvements to the interface with JaCoP through the introduction of sparse solution iterators. 
+	- AFB now supports intensional constraints using JaCoP and sparse solution iterators. 
+
+Minor changes: 
+	- Added tightness as an input to the graph coloring problem generator. This means agents can now have a priori availability schedules. 
+	- Extended the XCSP format to include statistics about the problem instance. 
+	- Multiple performance improvements to E[DPOP]. 
+	- Fixed a rare NullPointedException in O-DPOP. 
+	- Other minor bug fixes. 
+	- The URL of the SVN code repository has changed; new instructions can be found at http://sourceforge.net/p/frodo2/code/HEAD/tree/trunk/
+	
+
 CHANGES IN VERSION 2.10.5 SINCE VERSION 2.10.4
 
 Major changes: 
 	- Upgraded to JDOM version 2.0.1; the new JAR file must be manually downloaded from the JDOM website and put in FRODO's lib folder. 
-	- Upgraded to JaCoP version 3.2; the new JAR file must be manually downloaded from the JDOM website and put in FRODO's lib folder. 
+	- Upgraded to JaCoP version 3.2; the new JAR file must be manually downloaded from the JaCoP website and put in FRODO's lib folder. 
 	- When simulated time is enabled, the timeout is now specified in simulated time rather than wall clock time. 
 
 Minor changes: 
@@ -60,7 +79,7 @@ Major changes:
 		- Nash equilibria in party games. 
 
 Minor changes: 
-	- Most pseudo-tree-based algorithms now use a new DFSgenerationParallel module that takes care of electing the root (Léauté's 2011 PhD Thesis, request 3024773). 
+	- Most pseudo-tree-based algorithms now use a new DFSgenerationParallel module that takes care of electing the root (Leaute's 2011 PhD Thesis, request 3024773). 
 	
 	
 CHANGES IN VERSION 2.10.1 SINCE VERSION 2.10
@@ -129,7 +148,7 @@ Major changes:
 	- Support for the new P3/2-DPOP algorithm, introduced in the following upcoming paper at IJCAI'11: 
 		Thomas Leaute and Boi Faltings, "Coordinating Logistics Operations with Privacy Guarantees," in the Proceedings of IJCAI'11
 	- Support for the MGM algorithm by Maheswaran et al. (PDCS'04) (request 3216365). 
-	- Support for the privacy-preserving MPC-DisWCSP4 algorithm by Silaghi and Mitra (IAT’04, FLAIRS’05). 
+	- Support for the privacy-preserving MPC-DisWCSP4 algorithm by Silaghi and Mitra (IAT'04, FLAIRS'05). 
 
 Minor changes: 
 	- The CentralMailer now catches all exceptions (not just OutOfMemoryErrors) in order to terminate earlier, instead of waiting for the timeout (bug 3235096, reported by Fredrik Heintz). 

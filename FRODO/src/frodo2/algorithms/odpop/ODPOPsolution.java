@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2012  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -59,6 +59,8 @@ public class ODPOPsolution<V, U> extends Solution<V, U> {
 	 * @param msgNbrs						The number of messages sent per message type
 	 * @param totalMsgSize					The total message size
 	 * @param msgSizes 						The amount of information sent per message type
+	 * @param maxMsgSize 					the size (in bytes) of the largest message
+	 * @param maxMsgSizes 					for each message type, the size (in bytes) of the largest message of that type
 	 * @param ncccCount 					the ncccs used
 	 * @param timeNeeded 					the time needed to solve the problem
 	 * @param moduleEndTimes 				each module's end time
@@ -66,11 +68,12 @@ public class ODPOPsolution<V, U> extends Solution<V, U> {
 	 * @param averageTreeFillPercentage 	the average percentage of the solutionspaces that are filled
 	 */
 	public ODPOPsolution (int nbrVariables, U reportedUtil, U trueUtil, Map<String, V> assignments, int nbrMsgs, TreeMap<String, Integer> msgNbrs, long totalMsgSize, TreeMap<String, Long> msgSizes, 
-			long ncccCount, long timeNeeded, HashMap<String, Long> moduleEndTimes, int numberOfCoordinationConstraints, double averageTreeFillPercentage) {
-		super (nbrVariables, reportedUtil, trueUtil, assignments, nbrMsgs, totalMsgSize, ncccCount, timeNeeded, moduleEndTimes, numberOfCoordinationConstraints);
+			long maxMsgSize, TreeMap<String, Long> maxMsgSizes, long ncccCount, long timeNeeded, HashMap<String, Long> moduleEndTimes, int numberOfCoordinationConstraints, double averageTreeFillPercentage) {
+		super (nbrVariables, reportedUtil, trueUtil, assignments, nbrMsgs, totalMsgSize, maxMsgSize, ncccCount, timeNeeded, moduleEndTimes, numberOfCoordinationConstraints);
 		this.averageTreeFillPercentage = averageTreeFillPercentage;
 		this.msgNbrs = msgNbrs;
 		this.msgSizes = msgSizes;
+		this.maxMsgSizes = maxMsgSizes;
 	}
 	
 	/** Constructor 
@@ -82,6 +85,8 @@ public class ODPOPsolution<V, U> extends Solution<V, U> {
 	 * @param msgNbrs						The number of messages sent per message type
 	 * @param totalMsgSize					The total message size
 	 * @param msgSizes 						The amount of information sent per message type
+	 * @param maxMsgSize 					the size (in bytes) of the largest message
+	 * @param maxMsgSizes 					for each message type, the size (in bytes) of the largest message of that type
 	 * @param ncccCount 					the ncccs used
 	 * @param timeNeeded 					the time needed to solve the problem
 	 * @param moduleEndTimes 				each module's end time
@@ -91,8 +96,8 @@ public class ODPOPsolution<V, U> extends Solution<V, U> {
 	 * @param maximalCutSum 				The maximal value with which a utility value has been cut
 	 */
 	public ODPOPsolution (int nbrVariables, U reportedUtil, U trueUtil, Map<String, V> assignments, int nbrMsgs, TreeMap<String, Integer> msgNbrs, long totalMsgSize, TreeMap<String, Long> msgSizes, 
-			long ncccCount, long timeNeeded, HashMap<String, Long> moduleEndTimes, int numberOfCoordinationConstraints, double averageTreeFillPercentage, double percentageOfGoodsSent, U maximalCutSum) {
-		this (nbrVariables, reportedUtil, trueUtil, assignments, nbrMsgs, msgNbrs, totalMsgSize, msgSizes, ncccCount, timeNeeded, moduleEndTimes, numberOfCoordinationConstraints, averageTreeFillPercentage);
+			long maxMsgSize, TreeMap<String, Long> maxMsgSizes, long ncccCount, long timeNeeded, HashMap<String, Long> moduleEndTimes, int numberOfCoordinationConstraints, double averageTreeFillPercentage, double percentageOfGoodsSent, U maximalCutSum) {
+		this (nbrVariables, reportedUtil, trueUtil, assignments, nbrMsgs, msgNbrs, totalMsgSize, msgSizes, maxMsgSize, maxMsgSizes, ncccCount, timeNeeded, moduleEndTimes, numberOfCoordinationConstraints, averageTreeFillPercentage);
 		this.percentageOfGoodsSent = percentageOfGoodsSent;
 		this.maximalCutSum = maximalCutSum;
 	}
@@ -106,6 +111,8 @@ public class ODPOPsolution<V, U> extends Solution<V, U> {
 	 * @param msgNbrs						The number of messages sent per message type
 	 * @param totalMsgSize					The total message size
 	 * @param msgSizes 						The amount of information sent per message type
+	 * @param maxMsgSize 					the size (in bytes) of the largest message
+	 * @param maxMsgSizes 					for each message type, the size (in bytes) of the largest message of that type
 	 * @param ncccCount 					the ncccs used
 	 * @param timeNeeded 					the time needed to solve the problem
 	 * @param moduleEndTimes 				each module's end time
@@ -118,8 +125,8 @@ public class ODPOPsolution<V, U> extends Solution<V, U> {
 	 * @param maximalCutSum 				The maximal value with which a utility value has been cut
 	 */
 	public ODPOPsolution (int nbrVariables, U reportedUtil, U trueUtil, Map<String, V> assignments, int nbrMsgs, TreeMap<String, Integer> msgNbrs, long totalMsgSize, TreeMap<String, Long> msgSizes, 
-			long ncccCount, long timeNeeded, HashMap<String, Long> moduleEndTimes, int numberOfCoordinationConstraints, double averageTreeFillPercentage, double percentageOfGoodsSent, int treeWidth, double dummyFillPercentage, double numberOfDummies, U maximalCutSum) {
-		this(nbrVariables, reportedUtil, trueUtil, assignments, nbrMsgs, msgNbrs, totalMsgSize, msgSizes, ncccCount, timeNeeded, moduleEndTimes, numberOfCoordinationConstraints, averageTreeFillPercentage, percentageOfGoodsSent, maximalCutSum);
+			long maxMsgSize, TreeMap<String, Long> maxMsgSizes, long ncccCount, long timeNeeded, HashMap<String, Long> moduleEndTimes, int numberOfCoordinationConstraints, double averageTreeFillPercentage, double percentageOfGoodsSent, int treeWidth, double dummyFillPercentage, double numberOfDummies, U maximalCutSum) {
+		this(nbrVariables, reportedUtil, trueUtil, assignments, nbrMsgs, msgNbrs, totalMsgSize, msgSizes, maxMsgSize, maxMsgSizes, ncccCount, timeNeeded, moduleEndTimes, numberOfCoordinationConstraints, averageTreeFillPercentage, percentageOfGoodsSent, maximalCutSum);
 		this.treeWidth = treeWidth;
 		this.dummyFillPercentage = dummyFillPercentage;
 		this.numberOfDummies = numberOfDummies;

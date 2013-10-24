@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2012  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -22,10 +22,9 @@ How to contact the authors:
 
 package frodo2.benchmarks.auctions.xcsp;
 
+import frodo2.benchmarks.auctions.cats.Auction;
 
 import org.jdom2.Element;
-
-import frodo2.benchmarks.auctions.cats.Auction;
 
 /**
  * This class is used to generate the 'presentation' tag of the output XML file

@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2012  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -40,14 +40,14 @@ import frodo2.solutionSpaces.DCOPProblemInterface;
  * MPC-DisWCSP4 is MPC-DisCSP4, with the weak extension to DisWCSPs initially proposed for MPC-DisCSP2 in the following paper: 
  * 
  * Marius-Calin Silaghi and Debasis Mitra. Distributed constraint satisfaction and optimization with privacy enforcement. 
- * In Proceedings of the 2004 IEEE/WIC/ACM International Conference on Intelligent Agent Technology (IATÕ04), 
- * pages 531Ð535, Beijing, China, September 20Ð24 2004. IEEE Computer Society Press.
+ * In Proceedings of the 2004 IEEE/WIC/ACM International Conference on Intelligent Agent Technology (IAT'04), 
+ * pages 531-535, Beijing, China, September 20-24 2004. IEEE Computer Society Press.
  * 
  * MPC-DisCSP4 is described in the following paper:
  * 
  * Marius-Calin Silaghi. Hiding absence of solution for a distributed constraint satisfaction problem (poster). 
- * In Proceedings of the Eighteenth International Florida Artificial Intelligence Research Society Conference (FLAIRSÕ05), 
- * pages 854Ð855, Clearwater Beach, FL, USA, May 15Ð17 2005. AAAI Press.
+ * In Proceedings of the Eighteenth International Florida Artificial Intelligence Research Society Conference (FLAIRS'05), 
+ * pages 854-855, Clearwater Beach, FL, USA, May 15-17 2005. AAAI Press.
  * 
  * @author Thomas Leaute
  * 

@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2012  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -100,6 +100,9 @@ public class Queue implements Runnable {
 	/** For each message type, the total amount of information sent in messages of that type, in bytes */
 	protected HashMap<String, Long> msgSizes;
 	
+	/** For each message type, the size (in bytes) of the largest message of that type */
+	protected HashMap<String, Long> maxMsgSizes;
+	
 	/** lock for input field */
 	private final ReentrantLock input_lock = new ReentrantLock();
 	
@@ -137,6 +140,7 @@ public class Queue implements Runnable {
 		if (this.measureMsgs) {
 			this.msgNbrs = new HashMap<String, Integer> ();
 			this.msgSizes = new HashMap<String, Long> ();
+			this.maxMsgSizes = new HashMap<String, Long> ();
 			try {
 				this.monitor = new MsgSizeMonitor ();
 			} catch (IOException e) {
@@ -453,12 +457,19 @@ public class Queue implements Runnable {
 			this.msgNbrs.put(type, nbr + 1);
 		
 		// Increment msgSizes
-		Long size = this.msgSizes.get(type);
+		Long totalSize = this.msgSizes.get(type);
+		Long maxSize = this.maxMsgSizes.get(type);
 		try {
-			if (size == null) 
-				this.msgSizes.put(type, this.monitor.getMsgSize(to, msg));
+			Long size = this.monitor.getMsgSize(to, msg);
+			
+			if (totalSize == null) 
+				this.msgSizes.put(type, size);
 			else 
-				this.msgSizes.put(type, size + this.monitor.getMsgSize(to, msg));
+				this.msgSizes.put(type, totalSize + size);
+			
+			if (maxSize == null || size > maxSize) 
+				this.maxMsgSizes.put(type, size);
+			
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -665,12 +676,18 @@ public class Queue implements Runnable {
 		return msgSizes;
 	}
 	
+	/** @return for each message type, the size (in bytes) of the largest message of that type */
+	public HashMap<String, Long> getMaxMsgSizes() {
+		return maxMsgSizes;
+	}
+	
 	/** Resets the metrics statistics */
 	public void resetStats () {
 		
 		if (this.measureMsgs) {
 			this.msgNbrs = new HashMap<String, Integer> ();
 			this.msgSizes = new HashMap<String, Long> ();
+			this.maxMsgSizes = new HashMap<String, Long> ();
 		}
 		if(this.problem != null) 
 			msgWrap.setNCCCs(-1);

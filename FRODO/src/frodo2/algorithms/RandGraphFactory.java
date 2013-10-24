@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2012  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -133,6 +133,22 @@ public class RandGraphFactory {
 			}
 			out.append("}\n");
 			return out.toString();
+		}
+		
+		/** @return the p1 density, computed as the number of edges divided by the maximum possible number of edges */
+		public double computeDensity() {
+			final int nbrNodes = this.nodes.size();
+			if (nbrNodes <= 1) 
+				return 0.0;
+			return this.edges.length / (nbrNodes * (nbrNodes-1) / 2.0);
+		}
+		
+		/** @return the highest degree (i.e. number of neighbors) of any given node */
+		public int computeMaxDeg() {
+			int maxDeg = 0;
+			for (Set<String> neighbors : this.neighborhoods.values()) 
+				maxDeg = Math.max(maxDeg, neighbors.size());
+			return maxDeg;
 		}
 	}
 	
@@ -338,7 +354,6 @@ public class RandGraphFactory {
 	 * @param nbrNodes 	the desired number of nodes
 	 * @return the graph
 	 */
-	@SuppressWarnings("unchecked")
 	public static Graph getRingGraph (int nbrNodes) {
 		
 		assert nbrNodes > 2;
@@ -368,7 +383,6 @@ public class RandGraphFactory {
 	 * @param side 	the graph contains side*side nodes
 	 * @return the graph
 	 */
-	@SuppressWarnings("unchecked")
 	public static Graph getSquareGrid (int side) {
 		
 		// Create the nodes
@@ -421,7 +435,6 @@ public class RandGraphFactory {
 	 * @param branchingFactor 	each node has at most (branchingFactor + 1) neighbors
 	 * @return the graph
 	 */
-	@SuppressWarnings("unchecked")
 	public static Graph getAcyclicGraph (int nbrNodes, int branchingFactor) {
 		
 		// Generate the nodes and clusters

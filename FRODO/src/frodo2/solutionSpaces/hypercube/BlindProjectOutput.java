@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2012  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -60,17 +60,19 @@ public class BlindProjectOutput < V extends Addable<V>, U extends Addable<U> > e
 		private final boolean maximize;
 
 		/** Constructor
-		 * @param order 	the variable iteration order
+		 * @param order 		the variable iteration order
 		 * @param assignment 	An array that will be used as the output of nextSolution()
+		 * @param skippedUtil 	The utility value that should be skipped, if any
 		 */
 		@SuppressWarnings("unchecked")
-		protected MyIter(String[] order, V[] assignment) {
+		protected MyIter(String[] order, V[] assignment, U skippedUtil) {
 			
 			// Iteration order: 1) input order; 2) projected variables
 			String[] fullOrder = new String [order.length + varsOut.length];
 			System.arraycopy(order, 0, fullOrder, 0, order.length);
 			System.arraycopy(varsOut, 0, fullOrder, order.length, varsOut.length);
 			this.iter = space.iterator(fullOrder);
+			this.skippedUtil = skippedUtil;
 			
 			// Compute this.nbrUtilsOut
 			this.nbrUtilsOut = 1;
@@ -88,11 +90,12 @@ public class BlindProjectOutput < V extends Addable<V>, U extends Addable<U> > e
 		}
 
 		/** Constructor
-		 * @param order 	the variable iteration order
-		 * @param iterDoms 	the domains of the iterated variables
+		 * @param order 		the variable iteration order
+		 * @param iterDoms 		the domains of the iterated variables
 		 * @param assignment 	An array that will be used as the output of nextSolution()
+		 * @param skippedUtil 	The utility value that should be skipped, if any
 		 */
-		protected MyIter(String[] order, V[][] iterDoms, V[] assignment) {
+		protected MyIter(String[] order, V[][] iterDoms, V[] assignment, U skippedUtil) {
 			
 			// Iteration order: 1) input order; 2) projected variables
 			String[] fullOrder = new String [order.length + varsOut.length];
@@ -104,6 +107,7 @@ public class BlindProjectOutput < V extends Addable<V>, U extends Addable<U> > e
 			for (int i = varsOut.length - 1; i >= 0; i--) 
 				fullDoms[order.length + i] = space.getDomain(varsOut[i]);
 			this.iter = space.iterator(fullOrder, fullDoms);
+			this.skippedUtil = skippedUtil;
 			
 			// Compute this.nbrUtilsOut
 			this.nbrUtilsOut = 1;
@@ -113,6 +117,18 @@ public class BlindProjectOutput < V extends Addable<V>, U extends Addable<U> > e
 			super.init(null, order, iterDoms, assignment);
 			
 			this.maximize = BlindProjectOutput.this.maximize;
+		}
+		
+		/** @see ScalarSpaceIter#toString() */
+		@Override
+		public String toString () {
+			
+			StringBuilder builder = new StringBuilder (this.getClass().getCanonicalName());
+			builder.append("\n\t maximize: ").append(this.maximize);
+			builder.append("\n\t space: ").append(space);
+			builder.append("\n\t iter: ").append(this.iter);
+			
+			return builder.toString();
 		}
 
 		/** @see ScalarBasicSpaceIter#nextUtility() */
@@ -162,6 +178,19 @@ public class BlindProjectOutput < V extends Addable<V>, U extends Addable<U> > e
 		/** @see ScalarBasicSpaceIter#nextSolution() */
 		@Override
 		public V[] nextSolution() {
+			
+			V[] sol = this.nextSolBlind();
+			
+			final U inf = this.skippedUtil;
+			if (inf != null) 
+				while (inf.equals(this.getCurrentUtility())) 
+					sol = this.nextSolBlind();
+			
+			return sol;
+		}
+		
+		/** @return the next solution, regardless of whether it is feasible or not */
+		private V[] nextSolBlind () {
 			
 			// Return null if there are no more solutions
 			if (this.nbrSolLeft <= 0) {
@@ -707,6 +736,28 @@ public class BlindProjectOutput < V extends Addable<V>, U extends Addable<U> > e
 		return null;
 	}
 
+	/** @see frodo2.solutionSpaces.UtilitySolutionSpace#consensusExpect(java.lang.String, java.util.Map, boolean) */
+	@Override
+	public frodo2.solutionSpaces.UtilitySolutionSpace.ProjOutput<V, U> consensusExpect(
+			String varOut,
+			Map<String, UtilitySolutionSpace<V, U>> distributions,
+			boolean maximum) {
+		/// @todo Auto-generated method stub
+		assert false : "Not yet implemented";
+		return null;
+	}
+
+	/** @see frodo2.solutionSpaces.UtilitySolutionSpace#consensusAllSolsExpect(java.lang.String, java.util.Map, boolean) */
+	@Override
+	public frodo2.solutionSpaces.UtilitySolutionSpace.ProjOutput<V, U> consensusAllSolsExpect(
+			String varOut,
+			Map<String, UtilitySolutionSpace<V, U>> distributions,
+			boolean maximum) {
+		/// @todo Auto-generated method stub
+		assert false : "Not yet implemented";
+		return null;
+	}
+	
 	/** @see frodo2.solutionSpaces.UtilitySolutionSpace#project(int, boolean) */
 	public frodo2.solutionSpaces.UtilitySolutionSpace.ProjOutput<V, U> project(
 			int number_to_project, boolean maximum) {
@@ -841,28 +892,63 @@ public class BlindProjectOutput < V extends Addable<V>, U extends Addable<U> > e
 		return this.iterator(this.getVariables(), this.getDomains(), null);
 	}
 
+	/** @see Hypercube#sparseIter() */
+	@Override
+	public MyIter sparseIter() {
+		return this.sparseIter(this.getVariables(), this.getDomains(), null);
+	}
+
 	/** @see Hypercube#iterator(java.lang.String[]) */
 	@Override
 	public MyIter iterator(String[] order) {
-		return new MyIter (order, null);
+		return new MyIter (order, null, null);
+	}
+
+	/** @see Hypercube#sparseIter(java.lang.String[]) */
+	@Override
+	public MyIter sparseIter(String[] order) {
+		return new MyIter (order, null, this.infeasibleUtil);
 	}
 
 	/** @see Hypercube#iterator(java.lang.String[], V[][]) */
 	@Override
 	public MyIter iterator(String[] variables, V[][] domains) {
-		return new MyIter (variables, domains, null);
+		return new MyIter (variables, domains, null, null);
+	}
+
+	/** @see Hypercube#sparseIter(java.lang.String[], V[][]) */
+	@Override
+	public MyIter sparseIter(String[] variables, V[][] domains) {
+		return new MyIter (variables, domains, null, this.infeasibleUtil);
 	}
 
 	/** @see Hypercube#iterator(java.lang.String[], V[][], V[]) */
 	@Override
 	public MyIter iterator(String[] variables, V[][] domains, V[] assignment) {
-		return new MyIter (variables, domains, assignment);
+		return new MyIter (variables, domains, assignment, null);
 	}
 
-	/** @see Hypercube#newIter(java.lang.String[], V[][], V[]) */
+	/** Returns an iterator over this space
+	 * @param variables 	the variable order
+	 * @param domains 		the corresponding variable domains
+	 * @param assignment 	an array that will be used as the output of nextSolution()
+	 * @param skippedUtil 	the utility value to skip, if any
+	 * @return an iterator
+	 */
+	private MyIter iterator(String[] variables, V[][] domains, V[] assignment, U skippedUtil) {
+		return new MyIter (variables, domains, assignment, skippedUtil);
+	}
+
+	/** @see Hypercube#sparseIter(java.lang.String[], V[][], V[]) */
 	@Override
-	protected UtilitySolutionSpace.Iterator<V, U> newIter (String[] variables, V[][] domains, V[] assignment) {
-		return this.iterator(variables, domains, assignment);
+	public MyIter sparseIter(String[] variables, V[][] domains, V[] assignment) {
+		return new MyIter (variables, domains, assignment, this.infeasibleUtil);
+	}
+
+	/** @see Hypercube#newIter(java.lang.String[], V[][], V[], Addable) */
+	@Override
+	protected UtilitySolutionSpace.Iterator<V, U> newIter (String[] variables, V[][] domains, V[] assignment, U skippedUtil) {
+		return this.iterator(variables, domains, assignment, skippedUtil);
 	}
 	
 }

@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2012  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -92,7 +92,7 @@ public class MaxSumSolver < V extends Addable<V>, U extends Addable<U> > extends
 	@Override
 	public Solution<V, U> buildSolution() {
 		return new Solution<V, U> (super.problem.getNbrVars(), null, this.module.getOptCost(), this.module.getOptAssignments(), super.factory.getNbrMsgs(), super.factory.getMsgNbrs(), 
-				super.factory.getTotalMsgSize(), super.factory.getMsgSizes(), super.factory.getNcccs(), super.factory.getTime(), null, 0);
+				super.factory.getTotalMsgSize(), super.factory.getMsgSizes(), super.factory.getOverallMaxMsgSize(), super.factory.getMaxMsgSizes(), super.factory.getNcccs(), super.factory.getTime(), null, 0);
 	}
 
 }

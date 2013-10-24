@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2012  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -51,8 +51,8 @@ import frodo2.solutionSpaces.DCOPProblemInterface;
 /** MB-DPOP's labeling phase that identifies cluster roots (CRs) and cycle-cut (CC) nodes. 
  * 
  * Adrian Petcu and Boi Faltings. MB-DPOP: A new memory-bounded algorithm for distributed optimization. 
- * In Manuela M. Veloso, editor, Proceedings of the Twentieth International Joint Conference on Artificial Intelligence (IJCAIÕ07), 
- * pages 1452Ð1457, Hyderabad, India, January 6Ð12 2007.
+ * In Manuela M. Veloso, editor, Proceedings of the Twentieth International Joint Conference on Artificial Intelligence (IJCAI'07), 
+ * pages 1452-1457, Hyderabad, India, January 6-12 2007.
  * 
  * @author Thomas Leaute
  * 

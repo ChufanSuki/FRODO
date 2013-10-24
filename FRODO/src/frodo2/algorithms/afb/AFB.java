@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2012  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -148,7 +148,7 @@ public class AFB < V extends Addable<V>, U extends Addable<U> > implements Stats
 			private V[][] domains;
 			
 			/** The current Iterator over the solutions of the space associated with this cluster */
-			private UtilitySolutionSpace.Iterator<V, U> iterator = null;
+			private UtilitySolutionSpace.SparseIterator<V, U> iterator = null;
 			
 			/** The agent owning the previous variable in the ordering */
 			private String prevAgent;
@@ -416,9 +416,6 @@ public class AFB < V extends Addable<V>, U extends Addable<U> > implements Stats
 				
 				OrderMsg<V, U> msgCast = (OrderMsg<V, U>) msg;
 				Comparable<?> compID = msgCast.getComponentID();
-				for(List<String> cluster: msgCast.getOrder()){
-					assert cluster.size() == 1: "We assume that there can only be one variable in the cluster for now";
-				}
 				this.compInfos.put(compID, new ComponentInfo (msgCast.getOrder()));
 				
 				// Process the potentially pending messages for this component
@@ -679,7 +676,9 @@ public class AFB < V extends Addable<V>, U extends Addable<U> > implements Stats
 		{
 			info.cpa = msgCast.pa;
 			if (verbose) 	
-				System.out.println("received CPA_MSG on "+compInfo.order[clusterIndex]+" with "+msgCast.pa.toString()+"and ITERATOR_"+compInfo.order[clusterIndex]+"="+Arrays.toString(info.iterator.getCurrentSolution()));
+				System.out.println("received CPA_MSG on " + Arrays.toString(compInfo.order[clusterIndex]) +" with "+msgCast.pa.toString()
+						+" and ITERATOR_" + Arrays.toString(compInfo.order[clusterIndex]) 
+						+"="+ (info.iterator == null ? "null" : Arrays.toString(info.iterator.getCurrentSolution())));
 			
 			// If this CPA was sent from a variable with higher priority, then I should reset my index and start over the domain;
 			// Otherwise it must have been a backtrack message and my index should remain as it is. 
@@ -946,9 +945,11 @@ public class AFB < V extends Addable<V>, U extends Addable<U> > implements Stats
 				return futureSpace;	
 			}
 			
-			// Go through all spaces except the unary ones
+			// Go through all spaces except the ones that only contain variables in the current cluster
 			for (UtilitySolutionSpace<V,U> space : spaces) {
-				if (space.getNumberOfVariables() <= 1) 
+				
+				// Skip this space if it only involves variables in the current cluster
+				if (vars.containsAll(Arrays.asList(space.getVariables()))) 
 					continue;
 				
 				// Blindly project all variables except the current one(s)
@@ -1041,7 +1042,7 @@ public class AFB < V extends Addable<V>, U extends Addable<U> > implements Stats
 			
 			// If we don't already have an iterator over the solutions of this cluster, we create it
 			if(info.iterator == null){
-				info.iterator = f(clusterIndex, compInfo, info.cpa).iterator(info.vars, info.domains);
+				info.iterator = f(clusterIndex, compInfo, info.cpa).sparseIter(info.vars, info.domains);
 			}
 			
 			// iterate over the domain of the cluster to find next solution that is better than the current bound
@@ -1092,13 +1093,14 @@ public class AFB < V extends Addable<V>, U extends Addable<U> > implements Stats
 					// send CPA_MSG to the next variable
 					PA<V, U> pa = info.cpa.clone();
 					pa.index++;
-					if (verbose) System.out.println("sent CPA_MSG from "+compInfo.order[clusterIndex][0]+" to "+compInfo.order[clusterIndex+1][0]+" with "+pa.clone());
+					if (verbose) 
+						System.out.println("sent CPA_MSG from " + Arrays.toString(compInfo.order[clusterIndex]) +" to "+ Arrays.toString(compInfo.order[clusterIndex+1]) +" with "+pa.clone());
 					this.queue.sendMessage(info.nextAgent, new CPAmsg<V, U> (compInfo.order[clusterIndex+1][0],compInfo.order[clusterIndex][0], pa,info.timestamp.clone()));
 					
 					//send FB_CPA to all variables with lower priority
 					for (int j = compInfo.order.length - 1; j > clusterIndex; j--)
 					{  
-						if (verbose) System.out.println("Sent FB_CPA from "+ compInfo.order[clusterIndex][0]+" to "+compInfo.order[j][0]+" with "+info.cpa.toString());
+						if (verbose) System.out.println("Sent FB_CPA from "+ Arrays.toString(compInfo.order[clusterIndex]) +" to "+ Arrays.toString(compInfo.order[j]) +" with "+info.cpa.toString());
 						this.queue.sendMessage(compInfo.clusterAgents.get(j), new FbCpaMsg<V, U> (compInfo.order[j][0], compInfo.order[clusterIndex][0], info.cpa.clone(),info.timestamp.clone())); /// @bug Why hasn't the PA index been incremented? 
 					}
 				}
@@ -1136,7 +1138,10 @@ public class AFB < V extends Addable<V>, U extends Addable<U> > implements Stats
 
 				// reset the domain values for variable at position varIndex
 				info.iterator = null;
-				if (verbose) System.out.println("sent CPA_MSG from "+compInfo.order[clusterIndex][0]+" to "+compInfo.order[clusterIndex-1][0]+" with "+pa.toString()+" VALINDEX_"+compInfo.order[clusterIndex]+"=" +Arrays.toString(info.iterator.getCurrentSolution()));
+				if (verbose) System.out.println("sent CPA_MSG from "+ Arrays.toString(compInfo.order[clusterIndex])
+						+" to "+ Arrays.toString(compInfo.order[clusterIndex-1]) +" with "+pa.toString()
+						+" VALINDEX_"+ Arrays.toString(compInfo.order[clusterIndex]) 
+						+"=" + (info.iterator == null ? "null" : Arrays.toString(info.iterator.getCurrentSolution())));
 				this.queue.sendMessage(info.prevAgent, new CPAmsg<V,U>(compInfo.order[clusterIndex-1][0],compInfo.order[clusterIndex][0], pa,info.timestamp.clone())); /// @todo Backtrack messages don't need to contain the CPA. 
 			}							
 		}

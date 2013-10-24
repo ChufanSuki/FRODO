@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2012  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -30,19 +30,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.PriorityQueue;
 
-import com.orllc.orobjects.lib.graph.DuplicateVertexException;
-import com.orllc.orobjects.lib.graph.PointGraph;
-import com.orllc.orobjects.lib.graph.VertexNotFoundException;
-import com.orllc.orobjects.lib.graph.tsp.TwoOpt;
-import com.orllc.orobjects.lib.graph.vrp.BestOf;
-import com.orllc.orobjects.lib.graph.vrp.ClarkeWright;
-import com.orllc.orobjects.lib.graph.vrp.Composite;
-import com.orllc.orobjects.lib.graph.vrp.GillettMiller;
-import com.orllc.orobjects.lib.graph.vrp.ImproveI;
-import com.orllc.orobjects.lib.graph.vrp.ImproveWithTSP;
-import com.orllc.orobjects.lib.graph.vrp.SolutionNotFoundException;
-import com.orllc.orobjects.lib.graph.vrp.VRPException;
-
 import frodo2.solutionSpaces.Addable;
 import frodo2.solutionSpaces.AddableInteger;
 import frodo2.solutionSpaces.BasicUtilitySolutionSpace;
@@ -60,6 +47,18 @@ import frodo2.solutionSpaces.hypercube.ScalarBasicHypercube;
 import frodo2.solutionSpaces.hypercube.ScalarHypercube;
 import frodo2.solutionSpaces.hypercube.ScalarSpaceIter;
 import frodo2.solutionSpaces.hypercube.Hypercube.NullHypercube;
+import com.orllc.orobjects.lib.graph.DuplicateVertexException;
+import com.orllc.orobjects.lib.graph.PointGraph;
+import com.orllc.orobjects.lib.graph.VertexNotFoundException;
+import com.orllc.orobjects.lib.graph.tsp.TwoOpt;
+import com.orllc.orobjects.lib.graph.vrp.BestOf;
+import com.orllc.orobjects.lib.graph.vrp.ClarkeWright;
+import com.orllc.orobjects.lib.graph.vrp.Composite;
+import com.orllc.orobjects.lib.graph.vrp.GillettMiller;
+import com.orllc.orobjects.lib.graph.vrp.ImproveI;
+import com.orllc.orobjects.lib.graph.vrp.ImproveWithTSP;
+import com.orllc.orobjects.lib.graph.vrp.SolutionNotFoundException;
+import com.orllc.orobjects.lib.graph.vrp.VRPException;
 
 /** A solution space for Vehicle Routing Problems
  * @author Thomas Leaute
@@ -79,9 +78,10 @@ public class VehicleRoutingSpace < U extends Addable<U> > implements UtilitySolu
 		/** Constructor
 		 * @param variables 	variables over which to iterate
 		 * @param domains 		the domains for the iteration variables
+		 * @param skippedUtil 	the utility value to skip, if any
 		 */
-		public VRPiterator(String[] variables, AddableInteger[][] domains) {
-			super (infeasibleUtil, variables, domains);
+		public VRPiterator(String[] variables, AddableInteger[][] domains, U skippedUtil) {
+			super (infeasibleUtil, variables, domains, infeasibleUtil, skippedUtil);
 
 			// Check which customers must be served
 			HashSet<Customer> toBeServed = new HashSet<Customer> (selectedCustomers);
@@ -115,29 +115,45 @@ public class VehicleRoutingSpace < U extends Addable<U> > implements UtilitySolu
 		@Override
 		public AddableInteger[] nextSolution() {
 			
-			AddableInteger[] solution = super.nextSolution();
+			AddableInteger[] sol = this.nextSolBlind();
+			
+			final U inf = this.skippedUtil;
+			if (inf != null) 
+				while (inf.equals(this.getCurrentUtility())) 
+					this.nextSolBlind();
+			
+			return sol;
+		}
+		
+		/** @return the next solution, regardless of whether it is feasible or not */
+		private AddableInteger[] nextSolBlind () {
+			
+			// Return null if there are no more solutions
+			if (this.nbrSolLeft <= 0) {
+				this.utility = null;
+				this.solution = null;
+				return null;
+			}
+			
+			this.iter();
 			
 			// Don't compute the new utility; only compute it if it is needed, i.e. inside getCurrentUtility() 
 			super.setCurrentUtility(null);
 			
-			return solution;
+			return this.solution;
 		}
 		
 		/** @see ScalarSpaceIter#nextUtility() */
 		@Override
 		public U nextUtility() {
 			
-			AddableInteger[] solution = super.nextSolution();
+			AddableInteger[] solution = this.nextSolution();
 			
 			// Check if there are no more solutions
-			if (solution == null) {
-				super.setCurrentUtility(null);
+			if (solution == null) 
 				return null;
-			}
 			
-			U util = getUtility(super.getVariablesOrder(), solution);
-			super.setCurrentUtility(util);
-			return util;
+			return this.getCurrentUtility();
 		}
 		
 		/** @see Iterator#nextUtility(java.lang.Object, boolean) */
@@ -152,16 +168,18 @@ public class VehicleRoutingSpace < U extends Addable<U> > implements UtilitySolu
 				return null;
 			}
 			
+			U util;
+			
 			if (minimize) {
-				while (this.hasNext()) {
-					if (this.nextUtility().compareTo(bound) < 0) {
-						return this.getCurrentUtility();
+				while ( (util = this.nextUtility()) != null) {
+					if (util.compareTo(bound) < 0) {
+						return util;
 					}
 				}
 			} else  { // maximizing
-				while (this.hasNext()) {
-					if (this.nextUtility().compareTo(bound) > 0) {
-						return this.getCurrentUtility();
+				while ( (util = this.nextUtility()) != null) {
+					if (util.compareTo(bound) > 0) {
+						return util;
 					}
 				}
 			}
@@ -909,6 +927,28 @@ public class VehicleRoutingSpace < U extends Addable<U> > implements UtilitySolu
 		return null;
 	}
 
+	/** @see frodo2.solutionSpaces.UtilitySolutionSpace#consensusExpect(java.lang.String, java.util.Map, boolean) */
+	@Override
+	public frodo2.solutionSpaces.UtilitySolutionSpace.ProjOutput<AddableInteger, U> consensusExpect(
+			String varOut,
+			Map<String, UtilitySolutionSpace<AddableInteger, U>> distributions,
+			boolean maximum) {
+		/// @todo Auto-generated method stub
+		assert false : "Not yet implemented";
+		return null;
+	}
+
+	/** @see frodo2.solutionSpaces.UtilitySolutionSpace#consensusAllSolsExpect(java.lang.String, java.util.Map, boolean) */
+	@Override
+	public frodo2.solutionSpaces.UtilitySolutionSpace.ProjOutput<AddableInteger, U> consensusAllSolsExpect(
+			String varOut,
+			Map<String, UtilitySolutionSpace<AddableInteger, U>> distributions,
+			boolean maximum) {
+		/// @todo Auto-generated method stub
+		assert false : "Not yet implemented";
+		return null;
+	}
+
 	/** @see UtilitySolutionSpace#expectation(java.util.Map) */
 	public UtilitySolutionSpace<AddableInteger, U> expectation(Map< String, UtilitySolutionSpace<AddableInteger, U> > distributions) {
 		
@@ -1608,12 +1648,22 @@ public class VehicleRoutingSpace < U extends Addable<U> > implements UtilitySolu
 
 	/** @see BasicUtilitySolutionSpace#iterator() */
 	public VRPiterator iterator() {
-		return new VRPiterator (this.vars, this.getDomains());
+		return new VRPiterator (this.vars, this.getDomains(), null);
+	}
+
+	/** @see BasicUtilitySolutionSpace#sparseIter() */
+	public VRPiterator sparseIter() {
+		return new VRPiterator (this.vars, this.getDomains(), this.infeasibleUtil);
 	}
 
 	/** @see BasicUtilitySolutionSpace#iterator(java.lang.String[], Addable[][]) */
 	public VRPiterator iterator(String[] variables, AddableInteger[][] domains) {
-		return new VRPiterator (variables, domains);
+		return new VRPiterator (variables, domains, null);
+	}
+
+	/** @see BasicUtilitySolutionSpace#sparseIter(java.lang.String[], Addable[][]) */
+	public VRPiterator sparseIter(String[] variables, AddableInteger[][] domains) {
+		return new VRPiterator (variables, domains, this.infeasibleUtil);
 	}
 
 	/** @see UtilitySolutionSpace#iterator(java.lang.String[], Addable[][], Addable[]) */
@@ -1621,7 +1671,15 @@ public class VehicleRoutingSpace < U extends Addable<U> > implements UtilitySolu
 		
 		/// @todo Improve by making use of assignments
 
-		return new VRPiterator (variables, domains);
+		return new VRPiterator (variables, domains, null);
+	}
+	
+	/** @see UtilitySolutionSpace#sparseIter(java.lang.String[], Addable[][], Addable[]) */
+	public SparseIterator<AddableInteger, U> sparseIter(String[] variables, AddableInteger[][] domains, AddableInteger[] assignment) {
+		
+		/// @todo Improve by making use of assignments
+
+		return new VRPiterator (variables, domains, this.infeasibleUtil);
 	}
 	
 	/** @see frodo2.solutionSpaces.BasicUtilitySolutionSpace#prettyPrint(java.io.Serializable) */
@@ -1738,6 +1796,11 @@ public class VehicleRoutingSpace < U extends Addable<U> > implements UtilitySolu
 	/** @see SolutionSpace#iterator(java.lang.String[]) */
 	public VRPiterator iterator(String[] order) {
 		return this.iterator(order, this.getDomains());
+	}
+
+	/** @see SolutionSpace#sparseIter(java.lang.String[]) */
+	public VRPiterator sparseIter(String[] order) {
+		return this.sparseIter(order, this.getDomains());
 	}
 
 	/** @see frodo2.solutionSpaces.SolutionSpace#join(frodo2.solutionSpaces.SolutionSpace, java.lang.String[]) */

@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2012  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -172,7 +172,7 @@ public class MGM2solver < V extends Addable<V>, U extends Addable<U> > extends A
 		HashMap<String, Long> timesNeeded = new HashMap<String, Long> ();
 		
 		return new MGMsolution<V, U> (problem.getNbrVars(), this.mgmModule.getFinalSolution(), this.mgmModule.getFinalSolution(), 
-				mgmModule.getCurrentSolution(), factory.getNbrMsgs(), factory.getTotalMsgSize(), factory.getNcccs(), factory.getTime(), timesNeeded, mgmModule.getAssignmentHistories());
+				mgmModule.getCurrentSolution(), factory.getNbrMsgs(), factory.getTotalMsgSize(), factory.getOverallMaxMsgSize(), factory.getNcccs(), factory.getTime(), timesNeeded, mgmModule.getAssignmentHistories());
 	}
 
 	/** @see AbstractDCOPsolver#clear() */

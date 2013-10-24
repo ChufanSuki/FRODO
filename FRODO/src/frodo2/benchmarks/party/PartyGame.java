@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2012  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -46,8 +46,8 @@ import frodo2.solutionSpaces.hypercube.ScalarSpaceIter;
  * 
  * The party game is described in the following paper:
  * Satinder Singh, Vishal Soni, and Michael P. Wellman. Computing approximate Bayes-Nash equilibria in tree-games of incomplete information. 
- * In Jack S. Breese, Joan Feigenbaum, and Margo I. Seltzer, editors, Proceedings of the Fifth ACM Conference on Electronic Commerce (ECÕ04), 
- * pages 81Ð90, New York, NY, USA, May 17Ð20 2004. ACM.
+ * In Jack S. Breese, Joan Feigenbaum, and Margo I. Seltzer, editors, Proceedings of the Fifth ACM Conference on Electronic Commerce (EC'04), 
+ * pages 81-90, New York, NY, USA, May 17-20 2004. ACM.
  * 
  * @author Thomas Leaute
  */
@@ -71,14 +71,23 @@ public class PartyGame {
 		
 		/** For each player, for each neighbor, the player's cost if they both attend the party */
 		public TreeMap< String, TreeMap<String, Double> > likes;
+		
+		/** Name of the problem instance */
+		final private String instanceName;
+		
+		/** The underlying party graph */
+		final private Graph graph;
 
 		/** Constructor
+		 * @param graph 		The underlying party graph
 		 * @param privateCosts 	Each player's private cost incurred by attending the party
 		 * @param likes 		For each player, for each neighbor, the player's cost if they both attend the party
 		 */
-		public PartyInstance(TreeMap<String, Double> privateCosts, TreeMap<String, TreeMap<String, Double>> likes) {
+		public PartyInstance(Graph graph, TreeMap<String, Double> privateCosts, TreeMap<String, TreeMap<String, Double>> likes) {
+			this.graph = graph;
 			this.privateCosts = privateCosts;
 			this.likes = likes;
+			this.instanceName = "partyProblem_" + System.currentTimeMillis();
 			
 //			new DOTrenderer ("Game", this.toString());
 		}
@@ -112,6 +121,20 @@ public class PartyGame {
 			
 			return dotString.toString();
 		}
+	}
+	
+	/** Creates a "stats" element
+	 * @param name 		the value of the "name" attribute
+	 * @param value 	the text
+	 * @return a new "stats" element
+	 */
+	public static Element createStats (String name, String value) {
+		
+		Element stats = new Element ("stats");
+		stats.setAttribute("name", name);
+		stats.setText(value);
+		
+		return stats;
 	}
 	
 	/** Generates an instance based on an acyclic graph
@@ -192,7 +215,7 @@ public class PartyGame {
 			likes.put(player, myLikes);
 		}
 		
-		return new PartyInstance (privateCosts, likes);
+		return new PartyInstance (graph, privateCosts, likes);
 	}
 
 	/** Encodes a party game instance as a DisCSP in XCSP format
@@ -257,7 +280,7 @@ public class PartyGame {
 		// Create the "presentation" element
 		Element elmt = new Element ("presentation");
 		probElement.addContent(elmt);
-		elmt.setAttribute("name", "partyProblem");
+		elmt.setAttribute("name", party.instanceName);
 		int maxConstraintArity = 0;
 		if (! intensional) 
 			elmt.setAttribute("maximize", "false");
@@ -308,7 +331,8 @@ public class PartyGame {
 				dom[domSize - 1] = new AddableReal (1);
 				AddableReal[][] doms = new AddableReal [players.size()][domSize];
 				Arrays.fill(doms, dom);
-				ScalarSpaceIter<AddableReal, AddableReal> iter = new ScalarSpaceIter<AddableReal, AddableReal> (null, players.toArray(new String [players.size()]), doms);
+				ScalarSpaceIter<AddableReal, AddableReal> iter = 
+						new ScalarSpaceIter<AddableReal, AddableReal> (null, players.toArray(new String [players.size()]), doms, null, null);
 				assert iter.getNbrSolutions() < (long) Integer.MAX_VALUE : "Variable domains are too large";
 				
 				HashMap<String, Double>[] domain = new HashMap [(int) iter.getNbrSolutions()];
@@ -481,6 +505,9 @@ public class PartyGame {
 				
 				switch (method) {
 				
+				case Soni07: 
+					break;
+				
 				case Leaute11: {
 					
 					// Create a variable for the neighbor's strategy
@@ -547,7 +574,8 @@ public class PartyGame {
 				dom[domSize - 1] = new AddableReal (1.0);
 				AddableReal[][] doms = new AddableReal [nbrNeighbors][domSize];
 				Arrays.fill(doms, dom);
-				ScalarSpaceIter<AddableReal, AddableReal> iter = new ScalarSpaceIter<AddableReal, AddableReal> (null, vars.toArray(new String [nbrNeighbors]), doms);
+				ScalarSpaceIter<AddableReal, AddableReal> iter = 
+						new ScalarSpaceIter<AddableReal, AddableReal> (null, vars.toArray(new String [nbrNeighbors]), doms, null, null);
 
 				// Create the relation text
 				while (iter.hasNext()) {
@@ -658,8 +686,14 @@ public class PartyGame {
 		predElement.setAttribute("nbPredicates", Integer.toString(predElement.getContentSize()));
 		conElement.setAttribute("nbConstraints", Integer.toString(conElement.getContentSize()));
 		
-		// Set the max arity
-		probElement.getChild("presentation").setAttribute("maxConstraintArity", Integer.toString(maxConstraintArity));
+		// Set the stats
+		(elmt = probElement.getChild("presentation")).setAttribute("maxConstraintArity", Integer.toString(maxConstraintArity));
+		elmt.addContent(createStats("margin of error", Double.toString(epsilon)));
+		elmt.addContent(createStats("equilibrium type", mixed ? "mixed" : "pure Nash"));
+		elmt.addContent(createStats("number of players", Integer.toString(party.graph.nodes.size())));
+		elmt.addContent(createStats("party graph average density", Double.toString(party.graph.computeDensity())));
+		elmt.addContent(createStats("number of disconnected components of the party graph", Integer.toString(party.graph.components.size())));
+		elmt.addContent(createStats("party graph max degree", Integer.toString(party.graph.computeMaxDeg())));
 		
 		return new Document (probElement);
 	}
@@ -671,7 +705,7 @@ public class PartyGame {
 	public static void main(String[] args) throws IOException {
 		
 		// The GNU GPL copyright notice
-		System.out.println("FRODO  Copyright (C) 2008-2012  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek");
+		System.out.println("FRODO  Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek");
 		System.out.println("This program comes with ABSOLUTELY NO WARRANTY.");
 		System.out.println("This is free software, and you are welcome to redistribute it");
 		System.out.println("under certain conditions. \n");

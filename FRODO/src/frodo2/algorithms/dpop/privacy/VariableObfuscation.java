@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2012  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -943,7 +943,6 @@ public class VariableObfuscation < V extends Addable<V>, U extends Addable<U> > 
 	 * @param obfuscatedDomain 	the obfuscated domain of the parent
 	 * @param utilityKeys       the utility obfuscation keys of the parent
 	 */
-	@SuppressWarnings("unchecked")
 	private void addReverseMap(String parent, String myVar, String codeName, V[] domain, V[] obfuscatedDomain, AddableBigInteger[] utilityKeys){
 		decodeCodeName.get(myVar).put(codeName, parent);
 		encodeParent.get(myVar).put(parent, codeName);

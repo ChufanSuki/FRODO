@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2012  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -33,15 +33,15 @@ import java.util.HashMap;
 import java.util.HashSet;
 
 import frodo2.algorithms.AgentInterface;
-import frodo2.communication.AgentAddress;
 import frodo2.communication.IncomingMsgPolicyInterface;
 import frodo2.communication.Message;
 import frodo2.communication.MessageWith2Payloads;
 import frodo2.communication.MessageWith3Payloads;
 import frodo2.communication.MessageWithPayload;
 import frodo2.communication.Queue;
-import frodo2.communication.QueueOutputPipeInterface;
+import frodo2.communication.AgentAddress;
 import frodo2.communication.sharedMemory.QueueIOPipe;
+import frodo2.communication.QueueOutputPipeInterface;
 import frodo2.controller.ConfigurationManager;
 import frodo2.controller.Controller;
 import frodo2.controller.WhitePages;

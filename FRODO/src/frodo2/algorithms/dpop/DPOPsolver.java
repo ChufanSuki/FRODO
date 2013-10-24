@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2012  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -225,6 +225,8 @@ public class DPOPsolver< V extends Addable<V>, U extends Addable<U> > extends Ab
 		TreeMap<String, Integer> msgNbrs = factory.getMsgNbrs();
 		long totalMsgSize = factory.getTotalMsgSize();
 		TreeMap<String, Long> msgSizes = factory.getMsgSizes();
+		long maxMsgSize = factory.getOverallMaxMsgSize();
+		TreeMap<String, Long> maxMsgSizes = factory.getMaxMsgSizes();
 		long ncccs = factory.getNcccs();
 		int maxMsgDim = utilModule.getMaxMsgDim();
 		int numberOfCoordinationConstraints = problem.getNumberOfCoordinationConstraints();
@@ -237,7 +239,7 @@ public class DPOPsolver< V extends Addable<V>, U extends Addable<U> > extends Ab
 		long totalTime = factory.getTime();
 		
 		return new Solution<V, U> (nbrVariables, optUtil, super.problem.getUtility(solution, true).getUtility(0), solution, nbrMsgs, msgNbrs, 
-				totalMsgSize, msgSizes, ncccs, totalTime, timesNeeded, maxMsgDim, numberOfCoordinationConstraints);
+				totalMsgSize, msgSizes, maxMsgSize, maxMsgSizes, ncccs, totalTime, timesNeeded, maxMsgDim, numberOfCoordinationConstraints);
 	}
 	
 	/** @see AbstractDCOPsolver#clear() */

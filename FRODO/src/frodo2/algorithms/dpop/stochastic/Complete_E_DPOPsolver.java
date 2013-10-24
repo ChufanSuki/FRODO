@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2012  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -107,7 +107,7 @@ public class Complete_E_DPOPsolver < V extends Addable<V>, U extends Addable<U> 
 		this.dfsString = (this.samplingModule == null ? "" : this.samplingModule.dfsToString());
 		
 		return new StochSolution<V, U> (problem.getNbrVars(), utilModule.getOptUtil(), utilModule.getExpectedUtil(), utilModule.getWorstUtil(), utilModule.getProbOfOptimality(), utilModule.getCentralization(), 
-				utilModule.getSolution(), factory.getNbrMsgs(), factory.getMsgNbrs(), factory.getTotalMsgSize(), factory.getMsgSizes(), factory.getNcccs(), factory.getTime(), null, utilModule.getMaxMsgDim());
+				utilModule.getSolution(), factory.getNbrMsgs(), factory.getMsgNbrs(), factory.getTotalMsgSize(), factory.getMsgSizes(), factory.getOverallMaxMsgSize(), factory.getMaxMsgSizes(), factory.getNcccs(), factory.getTime(), null, utilModule.getMaxMsgDim());
 	}
 	
 	/** @see E_DPOPsolver#clear() */

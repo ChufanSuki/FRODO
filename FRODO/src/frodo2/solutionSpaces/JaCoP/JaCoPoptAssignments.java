@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2012  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -370,7 +370,52 @@ public class JaCoPoptAssignments implements BasicUtilitySolutionSpace< AddableIn
 		return null;
 	}
 
-	/** @see BasicUtilitySolutionSpace#prettyPrint(java.io.Serializable) */
+
+	/** @see BasicUtilitySolutionSpace#iterator(java.lang.String[], Addable[][], Addable[]) */
+	public Iterator<AddableInteger, ArrayList<AddableInteger>> iterator(
+			String[] variables, AddableInteger[][] domains,
+			AddableInteger[] assignment) {
+		/// @todo Auto-generated method stub
+		assert false : "Not yet implemented";
+		return null;
+	}
+
+	/** @see BasicUtilitySolutionSpace#sparseIter() */
+	@Override
+	public SparseIterator<AddableInteger, ArrayList<AddableInteger>> sparseIter() {
+		/// @todo Auto-generated method stub
+		assert false : "Not implemented";
+		return null;
+	}
+
+	/** @see BasicUtilitySolutionSpace#sparseIter(java.lang.String[]) */
+	@Override
+	public SparseIterator<AddableInteger, ArrayList<AddableInteger>> sparseIter(
+			String[] order) {
+		/// @todo Auto-generated method stub
+		assert false : "Not implemented";
+		return null;
+	}
+
+	/** @see BasicUtilitySolutionSpace#sparseIter(java.lang.String[], Addable[][]) */
+	@Override
+	public SparseIterator<AddableInteger, ArrayList<AddableInteger>> sparseIter(
+			String[] variables, AddableInteger[][] domains) {
+		/// @todo Auto-generated method stub
+		assert false : "Not implemented";
+		return null;
+	}
+
+	/** @see BasicUtilitySolutionSpace#sparseIter(java.lang.String[], Addable[][], Addable[]) */
+	@Override
+	public SparseIterator<AddableInteger, ArrayList<AddableInteger>> sparseIter(
+			String[] variables, AddableInteger[][] domains,
+			AddableInteger[] assignment) {
+		/// @todo Auto-generated method stub
+		assert false : "Not implemented";
+		return null;
+	}
+		/** @see BasicUtilitySolutionSpace#prettyPrint(java.io.Serializable) */
 	public String prettyPrint(ArrayList<AddableInteger> ignoredUtil) {
 		/// @todo Auto-generated method stub
 		assert false : "Not yet implemented";
@@ -388,7 +433,8 @@ public class JaCoPoptAssignments implements BasicUtilitySolutionSpace< AddableIn
 		@SuppressWarnings("unchecked")
 		ArrayList<AddableInteger>[] utilities = new ArrayList [(int) this.getNumberOfSolutions()];
 		int i = 0;
-		for (ScalarSpaceIter<AddableInteger, AddableInteger> iter = new ScalarSpaceIter<AddableInteger, AddableInteger> (null, this.getVariables(), this.getDomains()); iter.hasNext(); i++) 
+		for (ScalarSpaceIter<AddableInteger, AddableInteger> iter = 
+				new ScalarSpaceIter<AddableInteger, AddableInteger> (null, this.getVariables(), this.getDomains(), null, null); iter.hasNext(); i++) 
 			utilities[i] = this.getUtility(iter.nextSolution());
 		
 		return new BasicHypercube< AddableInteger, ArrayList<AddableInteger> > (this.getVariables(), this.getDomains(), utilities, null);
@@ -646,13 +692,4 @@ public class JaCoPoptAssignments implements BasicUtilitySolutionSpace< AddableIn
 		
 	}
 
-	/** @see frodo2.solutionSpaces.BasicUtilitySolutionSpace#iterator(java.lang.String[], Addable[][], Addable[]) */
-	public frodo2.solutionSpaces.BasicUtilitySolutionSpace.Iterator<AddableInteger, ArrayList<AddableInteger>> iterator(
-			String[] variables, AddableInteger[][] domains,
-			AddableInteger[] assignment) {
-		/// @todo Auto-generated method stub
-		assert false : "Not yet implemented";
-		return null;
-	}
-	
 }

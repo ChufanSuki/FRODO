@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2012  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -23,6 +23,10 @@ How to contact the authors:
 /** Classes implementing hypercubes, which are explicit table spaces */
 package frodo2.solutionSpaces.hypercube;
 
+import frodo2.solutionSpaces.Addable;
+import frodo2.solutionSpaces.ProblemInterface;
+import frodo2.solutionSpaces.SolutionSpace;
+import frodo2.solutionSpaces.BasicUtilitySolutionSpace;
 
 import java.io.Externalizable;
 import java.io.IOException;
@@ -37,11 +41,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-
-import frodo2.solutionSpaces.Addable;
-import frodo2.solutionSpaces.BasicUtilitySolutionSpace;
-import frodo2.solutionSpaces.ProblemInterface;
-import frodo2.solutionSpaces.SolutionSpace;
 
 /** A basic hypercube that stores one utility per combination of assigments to variables.
  * 
@@ -705,10 +704,11 @@ implements BasicUtilitySolutionSpace<V, U>, Externalizable {
 		
 		builder.append("\t" + Arrays.asList(this.variables) + "\n");
 		
-		Iterator<V, U> iter = this.iterator();
-		while (iter.hasNext()) 
-			if (! iter.nextUtility().equals(ignoredUtil)) 
-				builder.append("\t" + Arrays.asList(iter.getCurrentSolution()) + " -> " + iter.getCurrentUtility() + "\n");
+		SparseIterator<V, U> iter = this.sparseIter();
+		U util = null;
+		while ( (util = iter.nextUtility()) != null ) 
+			if (! util.equals(ignoredUtil)) 
+				builder.append("\t" + Arrays.asList(iter.getCurrentSolution()) + " -> " + util + "\n");
 		
 		return builder.toString();
 	}
@@ -1055,9 +1055,16 @@ implements BasicUtilitySolutionSpace<V, U>, Externalizable {
 		Iterator<V, U> urIter = space.iterator(this.variables, this.domains);
 		
 		// Check that all utilities are the same
-		while (myIter.hasNext()) 
-			if (! myIter.nextUtility().equals(urIter.nextUtility())) 
+		U myUtil, urUtil;
+		while (myIter.hasNext()) {
+			urUtil = urIter.nextUtility();
+			
+			if ((myUtil = myIter.nextUtility()) == null) {
+				if (urUtil != null) 
+					return false;
+			} else if (! myUtil.equals(urUtil)) 
 				return false;
+		}
 		
 		return true;
 	}
@@ -1070,23 +1077,70 @@ implements BasicUtilitySolutionSpace<V, U>, Externalizable {
 	}
 
 	/** @see BasicUtilitySolutionSpace#iterator() */
+	@Override
 	public Iterator<V, U> iterator() {
-		return this.newIter(null, null, null);
+		return this.newIter(null, null, null, null);
+	}
+	
+	/** @see BasicUtilitySolutionSpace#sparseIter() */
+	@Override
+	public SparseIterator<V, U> sparseIter() {
+		return this.sparseIter(this.infeasibleUtil);
+	}
+	
+	/** Creates a sparse iterator that skips a specific utility
+	 * @param inf 	the utility to skip
+	 * @return a sparse iterator
+	 */
+	protected SparseIterator<V, U> sparseIter(U inf) {
+		return this.newIter(this.getVariables(), this.getDomains(), null, inf);
 	}
 	
 	/** @see SolutionSpace#iterator(java.lang.String[]) */
+	@Override
 	public Iterator<V, U> iterator(String[] order) {
-		return this.newIter(order, null, null);
+		return this.newIter(order, null, null, null);
+	}
+	
+	/** @see SolutionSpace#sparseIter(java.lang.String[]) */
+	@Override
+	public SparseIterator<V, U> sparseIter(String[] order) {
+		return this.newIter(order, null, null, this.infeasibleUtil);
 	}
 	
 	/** @see BasicUtilitySolutionSpace#iterator(java.lang.String[], V[][]) */
+	@Override
 	public Iterator<V, U> iterator(String[] variables, V[][] domains) {
-		return this.iterator(variables, domains, null);
+		return this.iterator(variables, domains, null, null);
+	}
+	
+	/** @see BasicUtilitySolutionSpace#sparseIter(java.lang.String[], V[][]) */
+	@Override
+	public SparseIterator<V, U> sparseIter(String[] variables, V[][] domains) {
+		return this.iterator(variables, domains, null, this.infeasibleUtil);
 	}
 	
 	/** @see BasicUtilitySolutionSpace#iterator(java.lang.String[], V[][], V[]) */
-	@SuppressWarnings("unchecked")
+	@Override
 	public Iterator<V, U> iterator(String[] variables, V[][] domains, V[] assignment) {
+		return this.iterator(variables, domains, assignment, null);
+	}
+	
+	/** @see BasicUtilitySolutionSpace#sparseIter(java.lang.String[], V[][], V[]) */
+	@Override
+	public SparseIterator<V, U> sparseIter(String[] variables, V[][] domains, V[] assignment) {
+		return this.iterator(variables, domains, assignment, this.infeasibleUtil);
+	}
+	
+	/** Returns an iterator
+	 * @param variables 	The variables to iterate over
+	 * @param domains		The domains of the variables over which to iterate
+	 * @param assignment 	An array that will be used as the output of nextSolution()
+	 * @param skippedUtil	The utility value that the sparse iterator should skip (if any)
+	 * @return an iterator which allows to iterate over the given variables and their utilities 
+	 */
+	@SuppressWarnings("unchecked")
+	private Iterator<V, U> iterator(String[] variables, V[][] domains, V[] assignment, final U skippedUtil) {
 		
 		// We want to allow the input list of variables not to contain all this space's variables
 		final int nbrInputVars = variables.length;
@@ -1125,28 +1179,29 @@ implements BasicUtilitySolutionSpace<V, U>, Externalizable {
 		}
 		
 		if (correctInputs) 
-			return this.newIter(variables, domains, assignment);
+			return this.newIter(variables, domains, assignment, skippedUtil);
 		
 		final int nbrVarsIter = vars.size();
 		return this.newIter(vars.toArray(new String [nbrVarsIter]), 
 				doms.toArray((V[][]) Array.newInstance(domains.getClass().getComponentType(), nbrVarsIter)), 
-				assignment);
+				assignment, skippedUtil);
 	}
 	
 	/** Creates a new iterator for this space
 	 * @param variables 	The variables to iterate over
 	 * @param domains		The domains of the variables over which to iterate
 	 * @param assignment 	An array that will be used as the output of nextSolution()
+	 * @param skippedUtil	A utility value that should be skipped (if \c null, nothing is skipped)
 	 * @return a new iterator
 	 */
-	protected Iterator<V, U> newIter (String[] variables, V[][] domains, V[] assignment) {
+	protected Iterator<V, U> newIter (String[] variables, V[][] domains, V[] assignment, final U skippedUtil) {
 		
 		if (variables == null) 
-			return new BasicHypercubeIter<V, U> (this, assignment);
+			return new BasicHypercubeIter<V, U> (this, assignment, skippedUtil);
 		else if (domains == null) 
-			return new BasicHypercubeIter<V, U> (this, variables, assignment);
+			return new BasicHypercubeIter<V, U> (this, variables, assignment, skippedUtil);
 		else 
-			return new BasicHypercubeIter<V, U> (this, variables, domains, assignment);
+			return new BasicHypercubeIter<V, U> (this, variables, domains, assignment, skippedUtil);
 	}
 	
 	/** @see SolutionSpace#augment(V[]) */

@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2012  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -62,7 +62,6 @@ extends MessageWith3Payloads<String, String[], ArrayList<Val[]>> {
 	}
 	
 	/** @see frodo2.communication.Message#toString() */
-	@SuppressWarnings("unchecked")
 	public String toString () {
 		return "Message(type = `" + this.getType() + "')\n\tdest: " + super.getPayload1() + "\n\tvars: " + Arrays.asList(super.getPayload2()) + 
 		"\n\tvals: " + Arrays.asList(super.getPayload3());

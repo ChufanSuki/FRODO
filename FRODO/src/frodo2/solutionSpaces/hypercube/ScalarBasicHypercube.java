@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2012  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -22,6 +22,9 @@ How to contact the authors:
 
 package frodo2.solutionSpaces.hypercube;
 
+import frodo2.solutionSpaces.Addable;
+import frodo2.solutionSpaces.SolutionSpace;
+import frodo2.solutionSpaces.BasicUtilitySolutionSpace;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -30,10 +33,6 @@ import java.io.Serializable;
 import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
-
-import frodo2.solutionSpaces.Addable;
-import frodo2.solutionSpaces.BasicUtilitySolutionSpace;
-import frodo2.solutionSpaces.SolutionSpace;
 
 /**
  * A BasicHypercube that contains only one utility, and no variables
@@ -297,20 +296,39 @@ public class ScalarBasicHypercube<V extends Addable<V>, U extends Serializable>
 	/** @see BasicHypercube#iterator() */
 	@Override
 	public Iterator<V, U> iterator() {
-		return new ScalarBasicSpaceIter<V, U> (this.utility);
+		return new ScalarBasicSpaceIter<V, U> (this.utility, this.infeasibleUtil, null);
 	}
 
 	/** @see BasicHypercube#iterator(String[]) */
 	@Override
 	public Iterator<V, U> iterator(String[] variables) {
 		assert variables.length == 0;
-		return new ScalarBasicSpaceIter<V, U> (this.utility);
+		return new ScalarBasicSpaceIter<V, U> (this.utility, this.infeasibleUtil, null);
 	}
 
 	/** @see BasicHypercube#iterator(String[], V[][]) */
 	@Override
 	public Iterator<V, U> iterator(String[] variables, V[][] domains, V[] assignment) {
-		return new ScalarBasicSpaceIter<V, U> (this.utility, variables, domains, assignment);
+		return new ScalarBasicSpaceIter<V, U> (this.utility, variables, domains, assignment, this.infeasibleUtil, null);
+	}
+
+	/** @see BasicHypercube#sparseIter() */
+	@Override
+	public SparseIterator<V, U> sparseIter() {
+		return new ScalarBasicSpaceIter<V, U> (this.utility, this.infeasibleUtil, this.infeasibleUtil);
+	}
+
+	/** @see BasicHypercube#sparseIter(String[]) */
+	@Override
+	public SparseIterator<V, U> sparseIter(String[] variables) {
+		assert variables.length == 0;
+		return new ScalarBasicSpaceIter<V, U> (this.utility, this.infeasibleUtil, this.infeasibleUtil);
+	}
+
+	/** @see BasicHypercube#sparseIter(String[], V[][]) */
+	@Override
+	public SparseIterator<V, U> sparseIter(String[] variables, V[][] domains, V[] assignment) {
+		return new ScalarBasicSpaceIter<V, U> (this.utility, variables, domains, assignment, this.infeasibleUtil, this.infeasibleUtil);
 	}
 
 	/** @see BasicHypercube#isIncludedIn(BasicUtilitySolutionSpace) */

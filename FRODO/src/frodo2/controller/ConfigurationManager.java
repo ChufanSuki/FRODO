@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2012  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -48,8 +48,8 @@ import frodo2.communication.MessageWith2Payloads;
 import frodo2.communication.MessageWithPayload;
 import frodo2.communication.MessageWrapper;
 import frodo2.communication.Queue;
-import frodo2.controller.WhitePages;
 import frodo2.controller.userIO.UserIO;
+import frodo2.controller.WhitePages;
 import frodo2.solutionSpaces.DCOPProblemInterface;
 import frodo2.solutionSpaces.ProblemInterface;
 
@@ -155,6 +155,9 @@ public class ConfigurationManager implements IncomingMsgPolicyInterface <String>
 	
 	/** For each message type, the total amount of information sent in messages of that type, in bytes */
 	private TreeMap<String, Long> msgSizes;
+	
+	/** For each message type, the size (in bytes) of the largest message */
+	private TreeMap<String, Long> maxMsgSizes;
 
 	/** The statistics listeners */
 	private Collection<StatsReporter> statsReporters;
@@ -338,6 +341,15 @@ public class ConfigurationManager implements IncomingMsgPolicyInterface <String>
 					else 
 						this.msgSizes.put(type, size + entry.getValue());
 				}
+				
+				// Update maxMsgSizes
+				for (Map.Entry<String, Long> entry : msgCast.getMaxMsgSizes().entrySet()) {
+					String type = entry.getKey();
+					
+					Long maxSize = this.maxMsgSizes.get(type);
+					if (maxSize == null || entry.getValue() > maxSize) 
+						this.maxMsgSizes.put(type, entry.getValue());
+				}
 			}
 			
 			if(numberOfAgentsFinished == numberOfAgents){
@@ -374,6 +386,16 @@ public class ConfigurationManager implements IncomingMsgPolicyInterface <String>
 						totalSize += size;
 					}
 					System.out.println("\t- Total:\t" + formatter.format(totalSize));
+					
+					// Print the maximum message size
+					long maxSize = 0;
+					System.out.println("Size of the largest message sent (by type, in bytes): ");
+					for (Map.Entry<String, Long> entry : this.maxMsgSizes.entrySet()) {
+						long size = entry.getValue();
+						System.out.println("\t" + entry.getKey() + ":\t" + formatter.format(size));
+						maxSize = Math.max(size, maxSize);
+					}
+					System.out.println("\t- Overall maximum:\t" + formatter.format(maxSize));
 				}
 				
 				cleanProblem();
@@ -530,6 +552,7 @@ public class ConfigurationManager implements IncomingMsgPolicyInterface <String>
 			if (measureMsgs != null) {
 				this.msgNbrs = new TreeMap<String, Integer> ();
 				this.msgSizes = new TreeMap<String, Long> ();
+				this.maxMsgSizes = new TreeMap<String, Long> ();
 				this.measureMsgs = Boolean.parseBoolean(measureMsgs);
 			} else 
 				this.measureMsgs = false;
