@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2014  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -80,6 +80,11 @@ extends BasicUtilitySolutionSpace<V, UL> {
 	public UtilitySolutionSpaceLimited<V, U, UL> slice (String var, V val);
 
 	/** @see BasicUtilitySolutionSpace#resolve() */
+	@Override
 	public UtilitySolutionSpaceLimited<V, U, UL> resolve ();
+
+	/** @see BasicUtilitySolutionSpace#resolve(boolean) */
+	@Override
+	public UtilitySolutionSpaceLimited<V, U, UL> resolve (boolean sparse);
 
 }

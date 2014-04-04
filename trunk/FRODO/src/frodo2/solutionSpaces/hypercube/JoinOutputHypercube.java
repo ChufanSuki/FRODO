@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2014  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -501,11 +501,17 @@ extends Hypercube<V, U> {
 		else 
 			return new Hypercube<V, U> (this.variables, this.domains, this.values, this.infeasibleUtil);
 	}
-	
+
 	/** @see Hypercube#resolve() */
-	@SuppressWarnings("unchecked")
 	@Override
 	public Hypercube<V, U> resolve () {
+		return this.resolve(true);
+	}
+	
+	/** @see Hypercube#resolve(boolean) */
+	@SuppressWarnings("unchecked")
+	@Override
+	public Hypercube<V, U> resolve (boolean sparse) {
 		
 		if (this.getNumberOfVariables() == 0) 
 			return this.scalarHypercube(this.getUtility(0));
@@ -513,11 +519,21 @@ extends Hypercube<V, U> {
 		// Resolve the utilities
 		assert this.nbrUtils < Integer.MAX_VALUE : "Cannot resolve a JoinOutputHypercube that contains more than 2^31-1 solutions";
 		U[] values = (U[]) Array.newInstance(this.getClassOfU(), (int) nbrUtils);
-		int i = 0;
-		for (UtilitySolutionSpace.Iterator<V, U> iter = this.iterator(); iter.hasNext(); ) 
-			values[i++] = iter.nextUtility();
+		Hypercube<V, U> out = new Hypercube<V, U> (this.variables, this.domains, values, this.infeasibleUtil);
+		
+		if (sparse) {
+			Arrays.fill(values, this.infeasibleUtil);
+			UtilitySolutionSpace.SparseIterator<V, U> iter = this.sparseIter();
+			for (U util = iter.nextUtility(); util != null; util = iter.nextUtility()) 
+				out.setUtility(iter.getCurrentSolution(), util);
+			
+		} else { // not sparse
+			int i = 0;
+			for (UtilitySolutionSpace.Iterator<V, U> iter = this.iterator(); iter.hasNext(); ) 
+				values[i++] = iter.nextUtility();
+		}
 
-		return new Hypercube<V, U> (this.variables, this.domains, values, this.infeasibleUtil);
+		return out;
 	}
 
 	/** @see Hypercube#clone() */

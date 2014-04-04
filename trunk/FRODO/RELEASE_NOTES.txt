@@ -1,3 +1,22 @@
+CHANGES IN VERSION 2.11.1 SINCE VERSION 2.11
+
+Major changes: 
+	- Added XCSP support for the diff2 global constraint.
+	- Fixed an discrepancy between the computation steps performed before serializing a JaCoP-based solution space 
+	  and the steps performed by the method that simulates serialization when the agents are running in the same JVM. 
+	  This used to result in FRODO reporting optimistic runtime measurements for (MB-)DPOP and MaxSum when using JaCoP. 
+
+Minor changes: 
+	- Reduced the memory footprint of JaCoPutilSpace.resolve() (support request 6 by Denise). This affects DPOPagentJaCoP. 
+	- Fixed a bug that made it harder to specify which MaxSum agent controls which function node (bug 49 by Dimitrios Athanasiadis).
+	- The XCSPparser now prints a warning on undefined relations corresponding to existing predicates or functions (support request 3 by Reza).
+	- The XCSPparser now prints a warning on relations of unsupported semantics (discussion with Teo). 
+	- In the Python experiments framework, different Java parameters can now be passed for each algorithm. 
+	- Python experiments can now display graphs with different performance metrics simultaneously. 
+	- Added performance regression tests for graph coloring and MaxDisCSP. 
+	- Added the agent configuration file CountAgentJaCoP.xml in algorithms.dpop.count. 
+	
+
 CHANGES IN VERSION 2.11 SINCE VERSION 2.10.5
 
 Major changes: 
@@ -436,7 +455,7 @@ Minor changes:
 	- Added a timeout to the simple mode. 
 	- Changes in the handling of NCCCs. NCCCs are currently only supported for O-DPOP and ADOPT. 
 	- Trashed DPOP's DomainSharing module. 
-	- Now provides an XML schema file for the XCSP format (frodo2/algorithms/XCSPschema.xsd). 
+	- Now provides an XML schema file for the XCSP format (ch/epfl/lia/frodo/algorithms/XCSPschema.xsd). 
 	- The simple mode now properly displays the number of messages and total information sent. 
 	- Changes in the required constructor signature for StatsReporters. 
 	- Removed busy waits in the unit tests. 

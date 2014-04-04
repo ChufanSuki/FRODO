@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!-- 
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2014  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -403,6 +403,7 @@ where variable values and utility values can be integer numbers, infinity or -in
 		</xs:annotation>
 		<xs:alternative test="@reference = 'global:weightedSum'" type="weightedSumConstraint" />
 		<xs:alternative test="@reference = 'global:allDifferent'" type="allDifferentConstraint" />
+		<xs:alternative test="@reference = 'global:diff2'" type="diff2Constraint" />
 		<xs:alternative type="nonGlobalConstraint" />
 	</xs:element>
 	
@@ -503,6 +504,33 @@ where variable values and utility values can be integer numbers, infinity or -in
 					</xs:element>
 				</xs:all>
 				<xs:attribute name="reference" type="xs:string" fixed="global:allDifferent" use="required"/>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+
+	<xs:complexType name="diff2Constraint">
+		<xs:complexContent>
+			<xs:extension base="constraint">
+				<xs:all>
+					<xs:element name="parameters" minOccurs="1" maxOccurs="1">
+						<xs:annotation>
+							<xs:documentation>
+A bracketed, whitespace-delimited list of sublists, 
+each sublists being the representation of an 2-dimensional rectangle as a bracketed, whitespace-delimited list of 2 items:
+1) a curly-bracketed, whitespace-delimited list of x and y origin variables/constants representing the origin of the rectangle; 
+2) a curly-bracketed, whitespace-delimited list of x and y size variables/constants representing the size of the rectangle. 
+Example of one such a rectangle: [ {orig_x_1 orig_y_1} {size_x_1 size_y_1} ]
+							</xs:documentation>
+						</xs:annotation>
+						<xs:simpleType>
+							<xs:restriction base="xs:string">
+								<xs:whiteSpace value="collapse"/>
+								<xs:pattern value="\[\s?\[\s?\{\s?([a-zA-Z_]([a-zA-Z\d_])*|(\+|-)?\d+)\s([a-zA-Z_]([a-zA-Z\d_])*|(\+|-)?\d+)\s?\}\s\{\s?([a-zA-Z_]([a-zA-Z\d_])*|(\+|-)?\d+)\s([a-zA-Z_]([a-zA-Z\d_])*|(\+|-)?\d+)\s?\}\s?\](\s?\[\s?\{\s?([a-zA-Z_]([a-zA-Z\d_])*|(\+|-)?\d+)\s([a-zA-Z_]([a-zA-Z\d_])*|(\+|-)?\d+)\s?\}\s\{\s?([a-zA-Z_]([a-zA-Z\d_])*|(\+|-)?\d+)\s([a-zA-Z_]([a-zA-Z\d_])*|(\+|-)?\d+)\s?\}\s?\])*\s?\]"/>
+							</xs:restriction>
+						</xs:simpleType>
+					</xs:element>
+				</xs:all>
+				<xs:attribute name="reference" type="xs:string" fixed="global:diff2" use="required"/>
 			</xs:extension>
 		</xs:complexContent>
 	</xs:complexType>

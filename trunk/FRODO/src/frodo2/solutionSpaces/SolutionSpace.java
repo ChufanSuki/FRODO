@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2014  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -241,8 +241,14 @@ public interface SolutionSpace<V extends Addable<V> > extends Serializable, Clon
 	/** @return a clone of this solution space */
 	public SolutionSpace< V > clone ();
 	
-	/** @return an explicit representation of this space if it is currently implicit, else returns itself */
+	/** @return resolve(true) */
 	public SolutionSpace<V> resolve ();
+	
+	/** Returns an explicit representation of this space
+	 * @param sparse 	whether to use a sparse iterator to resolve the space
+	 * @return an explicit representation of this space
+	 */
+	public SolutionSpace<V> resolve (boolean sparse);
 	
 	
 	/* The fourth group is connected to a SolutionSpace iterator */

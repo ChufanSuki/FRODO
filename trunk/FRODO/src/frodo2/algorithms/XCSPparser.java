@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2014  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -167,7 +167,7 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 	public static void main (String[] args) throws Exception {
 
 		// The GNU GPL copyright notice
-		System.out.println("FRODO  Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek");
+		System.out.println("FRODO  Copyright (C) 2008-2014  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek");
 		System.out.println("This program comes with ABSOLUTELY NO WARRANTY.");
 		System.out.println("This is free software, and you are welcome to redistribute it");
 		System.out.println("under certain conditions.\n");
@@ -806,8 +806,11 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 
 				// XCSP can have support and conflicts semantics too, these are of no 
 				// use in Hypercubes/DPOP context so they are ignored.
-				if (!semantics.equals("soft"))
+				if (!semantics.equals("soft")) {
+					System.err.println("Warning! The relation `" + name + "' is of semantics `" + semantics + 
+							"', which is not supported by the parser " + this.getClass());
 					continue;
+				}
 
 				if (nbTuples == 0 && defaultCost == null) {
 					System.err.println("Relation `" + name + "' has nbTuples == 0 and no default cost");
@@ -1501,6 +1504,29 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 	 */
 	protected void foundUndefinedRelations(HashSet<String> relationNames) {
 		System.err.println("Undefined relations: " + relationNames);
+		
+		// Collect all the predicates and functionals in the problem, if any
+		ArrayList<Element> predsAndFuncs = new ArrayList<Element> ();
+		String[] elmtNames = new String[] {"predicates", "functions"};
+		for (String elmtName : elmtNames) {
+			Element elmt = this.root.getChild(elmtName);
+			if (elmt != null) 
+				predsAndFuncs.addAll(elmt.getChildren());
+		}
+		if (predsAndFuncs.isEmpty()) 
+			return;
+		
+		// For each undefined relation, look for a predicate or a functional with the same name to suggest the use of the JaCoP parser
+		for (String relName : relationNames) {
+			for (Element predOrFunc : predsAndFuncs) {
+				if (relName.equals(predOrFunc.getAttributeValue("name"))) {
+					System.err.println("There exists a " + predOrFunc.getName() + " named `" + relName + 
+							"' but this XCSP parser (" + this.getClass() + ") does not support " + predOrFunc.getName() + 
+							"s. You should be using the XCSP parser based on JaCoP. ");
+					break;
+				}
+			}
+		}
 	}
 
 	/** Extracts the collection of neighbors of a given variable
