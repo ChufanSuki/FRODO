@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2014  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -71,6 +71,6 @@ extends MessageWith3Payloads< String, String[], BasicUtilitySolutionSpace< Val, 
 	/** @see MessageWith3Payloads#fakeSerialize() */
 	@Override
 	public void fakeSerialize () {
-		super.setPayload3(super.getPayload3().resolve());
+		super.setPayload3(super.getPayload3().resolve(false));
 	}
 }

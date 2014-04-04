@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2014  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -60,6 +60,7 @@ import junit.framework.TestSuite;
 /** JUnit tests for the Vehicle Routing Problem benchmarks
  * @author Thomas Leaute
  * @note Disable asserts if you don't want to see algorithms disagree or even fail because of floating point errors. 
+ * @todo Refactor this test so that each algorithm gets its own test (otherwise an algorithm that comes after a failing one is not tested)
  */
 public class VRPtests extends TestCase {
 	

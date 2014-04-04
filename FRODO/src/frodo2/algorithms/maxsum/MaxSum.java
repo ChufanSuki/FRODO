@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2014  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -235,6 +235,9 @@ public class MaxSum < V extends Addable<V>, U extends Addable<U> > implements St
 	/** For each recipient (variable or function), the last message received and waiting to be processed */
 	private HashMap<String, Message> pendingMsgs = new HashMap<String, Message> ();
 
+	/** The name of this agent */
+	private String agentName;
+
 	/** Constructor
 	 * @param problem       this agent's problem
 	 * @param parameters    the parameters for this module
@@ -414,6 +417,8 @@ public class MaxSum < V extends Addable<V>, U extends Addable<U> > implements St
 				FunctionNode<V, U> node = entry.getValue();
 				this.functionInfos.put(entry.getKey(), new FunctionInfo (node.getName(), node.getSpace(), node.getAgent()));
 			}
+			
+			this.agentName = this.problem.getAgent();
 			
 			this.start();
 			return;
@@ -597,9 +602,14 @@ public class MaxSum < V extends Addable<V>, U extends Addable<U> > implements St
 					if (! otherVar.equals(var)) 
 						vars[i++] = otherVar;
 				marginalUtil = marginalUtil.blindProject(vars, this.maximize);
-
+				
+				// Resolve the marginal util if serialization won't take care of it
+				String destAgent = this.varInfos.get(var).getAgent();
+				if (destAgent.equals(this.agentName)) // I own this variable, so no serialization will be performed
+					marginalUtil = marginalUtil.resolve();
+				
 				// Send the message
-				this.queue.sendMessage(this.varInfos.get(var).getAgent(), new FunctionMsg<V, U> (functionInfo.getName(), marginalUtil.resolve()));
+				this.queue.sendMessage(destAgent, new FunctionMsg<V, U> (functionInfo.getName(), marginalUtil));
 			}
 			
 		} else if (msgType.equals(AgentInterface.ALL_AGENTS_IDLE)) {

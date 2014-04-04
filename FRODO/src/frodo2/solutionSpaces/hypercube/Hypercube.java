@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2014  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -2338,6 +2338,12 @@ extends HypercubeLimited<V, U, U> implements UtilitySolutionSpace<V, U> {
 	/** @see BasicHypercube#resolve() */
 	@Override
 	public Hypercube<V, U> resolve() {
+		return this;
+	}
+
+	/** @see BasicHypercube#resolve(boolean) */
+	@Override
+	public Hypercube<V, U> resolve(boolean unused) {
 		return this;
 	}
 

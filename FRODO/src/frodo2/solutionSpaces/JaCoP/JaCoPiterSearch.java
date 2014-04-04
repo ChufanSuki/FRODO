@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2014  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -31,7 +31,7 @@ import JaCoP.search.DepthFirstSearch;
 import JaCoP.search.IndomainMin;
 import JaCoP.search.InputOrderSelect;
 
-/** A wrapper around a JaCoP DepthFirstSearch that is used to run this search on a new thread
+/** A wrapper around a JaCoP DepthFirstSearch that is used to run this search in a new thread
  * 
  * @author Arnaud Jutzeler, Thomas Leaute
  *

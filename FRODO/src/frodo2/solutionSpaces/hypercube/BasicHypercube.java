@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2014  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -1571,7 +1571,14 @@ implements BasicUtilitySolutionSpace<V, U>, Externalizable {
 	}
 	
 	/** @see BasicUtilitySolutionSpace#resolve() */
+	@Override
 	public BasicHypercube<V, U> resolve() {
+		return this.resolve(true);
+	}
+
+	/** @see BasicUtilitySolutionSpace#resolve(boolean) */
+	@Override
+	public BasicHypercube<V, U> resolve(boolean unused) {
 		
 		if (this.problem != null) {
 			this.incrNCCCs(this.getNumberOfSolutions());

@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2014  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -43,6 +43,10 @@ extends SolutionSpace<V> {
 	/** @return an explicit representation of this space if it is currently implicit, else returns itself */
 	public BasicUtilitySolutionSpace<V, U> resolve ();
 	
+	/** @see SolutionSpace#resolve(boolean) */
+	@Override
+	public BasicUtilitySolutionSpace<V, U> resolve (boolean sparse);
+
 	/** A human-friendly version of toString()
 	 * @param ignoredUtil 	do not display solutions with this utility
 	 * @return 				a human-friendly representation of the space 
@@ -135,6 +139,7 @@ extends SolutionSpace<V> {
 	 * @note This method uses == for testing the equality of utilities.
 	 * @param space 	the BasicUtilitySolutionSpace to be tested for equivalence
 	 * @return whether the input BasicUtilitySolutionSpace is equivalent to this one
+	 * @todo Move this to UtilitySolutionSpace? Utilities in a BasicUtilitySolutionSpace are not expected to be comparable. 
 	 */
 	public boolean equivalent( BasicUtilitySolutionSpace< V, U > space );
 

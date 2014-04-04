@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2014  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -60,7 +60,7 @@ public class FunctionMsg< V extends Addable<V>, U extends Addable<U> >  extends 
 	/** @see MessageWithPayload#fakeSerialize() */
 	@Override
 	public void fakeSerialize () {
-		super.setPayload2(this.getMarginalUtil().resolve());
+		super.setPayload2(this.getMarginalUtil().resolve(false));
 	}
 
 	/** @see java.io.Externalizable#writeExternal(java.io.ObjectOutput) */

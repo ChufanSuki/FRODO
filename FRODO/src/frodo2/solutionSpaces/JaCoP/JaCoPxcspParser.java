@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2014  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -40,6 +40,7 @@ import org.jdom2.Document;
 import org.jdom2.Element;
 
 import JaCoP.constraints.Alldifferent;
+import JaCoP.constraints.Diff2;
 import JaCoP.constraints.ExtensionalConflictVA;
 import JaCoP.constraints.ExtensionalSupportSTR;
 import JaCoP.constraints.SumWeight;
@@ -813,8 +814,58 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 			}
 
 			store.impose(new Alldifferent(vars));
+		
+		} else if (constraint.getAttributeValue("reference").equals("global:diff2")) {
+			
+			// Parse the parameters
+			String params = constraint.getChildText("parameters").trim();
+			params = params.substring(1, params.length() - 1).trim(); // removing the brackets
+			
+			// Overall pattern for the parameters: a whitespace-delimited list of rectangles, 
+			// each rectangle being a bracketed, whitespace-delimited list of 2 items: 
+			// 1) a curly-bracketed, whitespace-delimited list of 2 origin variables; 
+			// 2) a curly-bracketed, whitespace-delimited list of 2 size variables. 
+			pattern = Pattern.compile("\\[(.*)\\]"); // each rectangle is delimited by brackets
+			Matcher matcher = pattern.matcher(params);
+			Pattern curlyPat = Pattern.compile("\\{(.*)\\}\\s+\\{(.*)\\}"); // each sublist in a rectangle is delimited by curly brackets
+			Matcher curlyMat;
+			Pattern constPat = Pattern.compile("\\d+"); // a constant (vs. a variable)
+			
+			// Loop over the rectangles
+			ArrayList< ArrayList<IntVar> > rectangles = new ArrayList< ArrayList<IntVar> > ();
+			while(matcher.find()) {
+				curlyMat = curlyPat.matcher(matcher.group(1));
+				curlyMat.find();
+				String[] origins = curlyMat.group(1).split("\\s+");
+				String[] sizes = curlyMat.group(2).split("\\s+");
+				String[][] allVars = new String[][] {origins, sizes};
+				
+				assert origins.length == sizes.length : 
+					"Invalid XCSP description of a rectangle (inconsistent numbers of dimensions): " + matcher.group(1);
+				assert origins.length == 2: "Expected 2 dimensions, encountered " + origins.length;
+				
+				ArrayList<IntVar> rectVars = new ArrayList<IntVar> (2 * origins.length);
+				rectangles.add(rectVars);
+				for (String[] vars : allVars) {
+					for (String var : vars) {
+						
+						// Create auxiliary grounded variables to replace constants
+						/// @todo Reuse code by creating a method for this
+						if (constPat.matcher(var).matches()) {
+							int constant = Integer.parseInt(var);
+							rectVars.add(new IntVar (store, constant, constant));
+						} else {
+							assert store.findVariable(var) != null : "Unknown variable: " + var;
+							rectVars.add((IntVar) store.findVariable(var));
+						}
+					}
+				}
+			}
+			
+			store.impose(new Diff2 (rectangles));
+			
 		}else{
-			System.err.println("The global constraint " + constraint.getAttributeValue("reference") + " is not known");
+			System.err.println("The global constraint " + constraint.getAttributeValue("reference") + " is not supported");
 			System.exit(2);
 		}
 	}
@@ -1187,6 +1238,12 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 		
 		JaCoPxcspParser<U> out = newInstance (agent, instance);
 		return out;
+	}
+	
+	/** @see XCSPparser#foundUndefinedRelations(java.util.HashSet) */
+	@Override
+	protected void foundUndefinedRelations(HashSet<String> relationNames) {
+		System.err.println("Undefined relations: " + relationNames);
 	}
 }
 

@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2014  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -94,7 +94,7 @@ public class JaCoPutilSpace < U extends Addable<U> > implements UtilitySolutionS
 	/** The types of spaces that we know how to handle */
 	private static HashSet< Class<?> > knownSpaces;
 
-	static {
+	static { /// @bug Doesn't it also know Hypercubes?
 		knownSpaces = new HashSet< Class<?> > ();
 		knownSpaces.add(JaCoPutilSpace.class);
 		knownSpaces.add(ScalarHypercube.class);
@@ -146,7 +146,7 @@ public class JaCoPutilSpace < U extends Addable<U> > implements UtilitySolutionS
 		for(int i = varNames.length - 1; i >= 0; i--) 
 			allVars.put(varNames[i], domains[i]);
 
-		this.vars = allVars.keySet().toArray(new String[this.allVars.size()]);
+		this.vars = varNames;
 		this.projectedVars = new String[0];
 		this.slicedVars = new String[0];
 		this.store = null;
@@ -156,7 +156,7 @@ public class JaCoPutilSpace < U extends Addable<U> > implements UtilitySolutionS
 	/** Empty constructor that does nothing */
 	public JaCoPutilSpace() { }
 
-	/** Constructor				construct an explicit scalar JaCoPutilSpace that owns only one constraint
+	/** Constructor				construct an explicit scalar JaCoPutilSpace
 	 * @param name				the name of the JaCoPutilSpace corresponds to the name of its XCSP constraint
 	 * @param maximize	 		whether we should maximize the utility or minimize the cost
 	 * @param defaultUtil 		the utility of the scalar space
@@ -574,11 +574,11 @@ public class JaCoPutilSpace < U extends Addable<U> > implements UtilitySolutionS
 			if(space instanceof ScalarHypercube<?,?>) 
 				newDefaultUtil.add(((ScalarHypercube<AddableInteger,U>)space).getUtility(0));
 			else if (space instanceof Hypercube<?, ?>) 
-				return this.toHypercube().join(spaces);
+				return this.toHypercube().join(spaces); /// @todo Could it be more efficient to convert the space to a JaCoP extensional support space instead?
 			else{
 
 				// First cast the space to a JaCoPutilSpace
-				assert space instanceof JaCoPutilSpace<?> : "All spaces must be JaCoPutilSpaces";
+				assert space instanceof JaCoPutilSpace<?> : "Unsupported space type: " + space.getClass().getName();
 				JaCoPutilSpace<U> spaceCast = null;
 				try {
 					spaceCast = (JaCoPutilSpace<U>) space;
@@ -761,7 +761,14 @@ public class JaCoPutilSpace < U extends Addable<U> > implements UtilitySolutionS
 	}
 
 	/** @see UtilitySolutionSpace#resolve() */
+	@Override
 	public UtilitySolutionSpace<AddableInteger, U> resolve() {	
+		return this.resolve(true);
+	}
+
+	/** @see UtilitySolutionSpace#resolve(boolean) */
+	@Override
+	public UtilitySolutionSpace<AddableInteger, U> resolve(final boolean sparse) {	
 	
 		if(vars.length == 0){ // No variable, we construct a scalar hypercube
 			U cost = this.getUtility(0);
@@ -787,7 +794,8 @@ public class JaCoPutilSpace < U extends Addable<U> > implements UtilitySolutionS
 		newRel.setAttribute("name", "r_" + newName);
 		newRel.setAttribute("arity", Integer.toString(vars.length));
 		newRel.setAttribute("semantics", "soft");
-		newRel.setAttribute("defaultCost", this.infeasibleUtil.toString());
+		final U inf = this.infeasibleUtil;
+		newRel.setAttribute("defaultCost", inf.toString());
 		
 		// The variables
 		HashMap<String, AddableInteger[]> newVars = new HashMap<String, AddableInteger[]>();
@@ -805,109 +813,33 @@ public class JaCoPutilSpace < U extends Addable<U> > implements UtilitySolutionS
 			return new JaCoPutilSpace<U> (newName, newVars,  newCons, newRel, this.maximize, this.infeasibleUtil);
 		}
 
-		// Find the JaCoP Variables in the store
-		int n = 0;
-		IntVar[] vars = new IntVar[this.vars.length];
-		for(String var: this.vars){
-			vars[n] = (IntVar)store.findVariable(var);
-			assert vars[n] != null: "Variable " + var + " not found in the store!";
-			n++;
-		}
-
-		// Find the projected variables in the store
-		IntVar[] projectedVars = new IntVar[this.projectedVars.length];
-		n = 0;
-		for(String var: this.projectedVars){
-			projectedVars[n] = (IntVar) store.findVariable(var);
-			assert projectedVars[n] != null: "Variable " + var + " not found in the store!";
-			n++;
-		}
-
-		IntVar utilVar = (IntVar)store.findVariable("util_total");
-
-		// Method 1: We first record all solutions of the master search, and then assign one solution by one to optimize.
-
-		///@todo Method 2: use JaCoP Listeners to be able to avoid saving all the solutions of the first search!
-
-		// Create the master search
-		Search<IntVar> masterSearch = new DepthFirstSearch<IntVar> ();
-		masterSearch.getSolutionListener().recordSolutions(true);
-		masterSearch.getSolutionListener().searchAll(true);
-		masterSearch.setAssignSolution(false);
-
-		// Debug information
-		masterSearch.setPrintInfo(false);
-		boolean result = masterSearch.labeling(store, new InputOrderSelect<IntVar> (store, vars, new IndomainMin<IntVar>()));
-
-		if(!result){
-			// No solution
-			newRel.setAttribute("nbTuples", "0");
-			return new JaCoPutilSpace<U> (newName, newVars,  newCons, newRel, this.maximize, this.infeasibleUtil);
-		}
-
-		StringBuilder builder = new StringBuilder ("\n");
-		
-		// Create the heuristic for the slave search
-		InputOrderSelect<IntVar> slaveHeuristic;
-		if(projectedVars.length != 0) // we need to project some variables
-			slaveHeuristic = new InputOrderSelect<IntVar> (store, projectedVars, new IndomainMin<IntVar>());
-		else 
-			slaveHeuristic = new InputOrderSelect<IntVar> (store, new IntVar[] { utilVar }, new IndomainMin<IntVar>());
-
+		// Iterate over the solutions
 		int nbSol = 0;
-		int lvlReminder = store.level;
-		for (int i=1; i<=masterSearch.getSolutionListener().solutionsNo(); i++){
-			// Unfortunately, one cannot say that each feasible solution of the masterSearch will really give a feasible solution in the second search
-			// Indeed, this case can happen with the intensional constraints. 
-
-			store.setLevel(lvlReminder+1);
-			masterSearch.assignSolution(i-1);
-
-			// Optimization search
-			Search<IntVar> slaveSearch = new DepthFirstSearch<IntVar> ();
-			slaveSearch.getSolutionListener().recordSolutions(true);
-			slaveSearch.getSolutionListener().searchAll(false);
-			slaveSearch.setAssignSolution(false);
-
-
-			// Debug information
-			slaveSearch.setPrintInfo(false);
-
-			result = slaveSearch.labeling(store, slaveHeuristic, utilVar);
+		StringBuilder builder = new StringBuilder ("\n");
+		SparseIterator<AddableInteger, U> iter = sparse ? this.sparseIter() : this.iterator();
+		AddableInteger[] tuple = null;
+		final int nbrVarsMin1 = this.getNumberOfVariables() - 1;
+		int i;
+		for (U util = iter.nextUtility(); util != null; util = iter.nextUtility()) {
 			
-			if(!result){
-				// No solution for this specific assignment
-			}else{
-
-				nbSol++;
-				//slaveSearch.getSolution(0);
-				int cost = slaveSearch.getCostValue();
-				// If it is a maximization problem
-				if(this.maximize == true){
-					cost *= -1;
-				}
-
-				// Write the utility
-				builder.append(this.defaultUtil.intValue() + cost);
-				builder.append(":");
-
-				for (int j=0; j< vars.length; j++){
-					assert vars[j].singleton(): "problem with JaCoP's solution";
-					builder.append(vars[j].value() + " ");
-				}
-
-				if(i<masterSearch.getSolutionListener().solutionsNo())
+			// Record the tuple for this solution
+			if (sparse || ! inf.equals(util)) { // checks if the solution is feasible
+				
+				// Add the separator if this is not the first solution
+				if (nbSol++ > 0) 
 					builder.append("|");
-
-			}
-
-			for(int k = store.level; k > lvlReminder; k--){
-				store.removeLevel(k);
+				
+				// Write the utility
+				builder.append(this.defaultUtil.add(util)).append(":");
+				
+				// Write the tuple
+				tuple = iter.getCurrentSolution();
+				for (i = 0; i < nbrVarsMin1; i++) 
+					builder.append(tuple[i].toString()).append(" ");
+				builder.append(tuple[nbrVarsMin1]);
 			}
 		}
-		
-		store.setLevel(lvlReminder);
-		
+
 		newRel.setAttribute("nbTuples", String.valueOf(nbSol));
 		newRel.addContent(builder.toString());
 		
@@ -916,7 +848,7 @@ public class JaCoPutilSpace < U extends Addable<U> > implements UtilitySolutionS
 
 	/**
 	 * This method constructs the store and creates all the JaCoP variables needed in it as well as all the JaCoP constraints.
-	 * This method is call only once, when we need the store and it has not been created yet. It's not located in the constructor because
+	 * This method is called only once, when we need the store and it has not been created yet. It's not located in the constructor because
 	 * constructing the whole store is costly, and we do not always need to perform operations on it.
 	 * 
 	 * @return the store in which we have created all the variables and imposed all the constraints.
@@ -1593,9 +1525,10 @@ public class JaCoPutilSpace < U extends Addable<U> > implements UtilitySolutionS
 
 	/** @see SolutionSpace#getIndex(java.lang.String) */
 	public int getIndex(String variable) {
-		/// @todo Auto-generated method stub
-		assert false : "Not yet implemented";
-	return 0;
+		for (int i = this.vars.length - 1; i >= 0; i--) 
+			if (this.vars[i].equals(variable)) 
+				return i;
+		return -1;
 	}
 
 	/** @see SolutionSpace#getName() */

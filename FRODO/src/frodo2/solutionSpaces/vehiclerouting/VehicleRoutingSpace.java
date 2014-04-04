@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2014  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -1272,19 +1272,36 @@ public class VehicleRoutingSpace < U extends Addable<U> > implements UtilitySolu
 		assert false : "Not yet implemented";
 		return null;
 	}
-
+	
 	/** @see UtilitySolutionSpace#resolve() */
-	@SuppressWarnings("unchecked")
+	@Override
 	public Hypercube<AddableInteger, U> resolve() {
+		return this.resolve(true);
+	}
+
+	/** @see UtilitySolutionSpace#resolve(boolean) */
+	@SuppressWarnings("unchecked")
+	@Override
+	public Hypercube<AddableInteger, U> resolve(boolean sparse) {
 		
 		// Compute the utilities for all combinations of assignments to the variables
 		assert this.getNumberOfSolutions() < Integer.MAX_VALUE : "Cannot resolve a VehicleRoutingSpace that contains more than 2^32 solutions";
-		U[] utilities = (U[]) Array.newInstance(this.infeasibleUtil.getZero().getClass(), (int) this.getNumberOfSolutions());
-		int i = 0;
-		for (Iterator<AddableInteger, U> iter = this.iterator(); iter.hasNext(); i++) 
-			utilities[i] = iter.nextUtility();
+		U[] values = (U[]) Array.newInstance(this.infeasibleUtil.getZero().getClass(), (int) this.getNumberOfSolutions());
+		Hypercube<AddableInteger, U> out = new Hypercube<AddableInteger, U> (this.vars, this.doms, values, this.infeasibleUtil);
 		
-		return new Hypercube<AddableInteger, U> (this.vars, this.doms, utilities, this.infeasibleUtil);
+		if (sparse) {
+			Arrays.fill(values, this.infeasibleUtil);
+			UtilitySolutionSpace.SparseIterator<AddableInteger, U> iter = this.sparseIter();
+			for (U util = iter.nextUtility(); util != null; util = iter.nextUtility()) 
+				out.setUtility(iter.getCurrentSolution(), util);
+			
+		} else { // not sparse
+			int i = 0;
+			for (UtilitySolutionSpace.Iterator<AddableInteger, U> iter = this.iterator(); iter.hasNext(); ) 
+				values[i++] = iter.nextUtility();
+		}
+
+		return out;
 	}
 
 	/** @see UtilitySolutionSpace#toHypercube() */

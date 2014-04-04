@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2014  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -533,23 +533,27 @@ public class BlindProjectOutput < V extends Addable<V>, U extends Addable<U> > e
 		assert false : "Not yet implemented";
 		return null;
 	}
-
+	
 	/** @see Hypercube#resolve() */
-	@SuppressWarnings("unchecked")
 	@Override
 	public Hypercube<V, U> resolve() {
+		return this.resolve(true);
+	}
+
+	/** @see Hypercube#resolve(boolean) */
+	@SuppressWarnings("unchecked")
+	@Override
+	public Hypercube<V, U> resolve(boolean sparse) {
 		
 		if (this.getNumberOfVariables() == 0) { // return a scalar space
 			
 			// Compute the scalar expectation
-			UtilitySolutionSpace.Iterator<V, U> iter = this.space.iterator();
-			U opt = iter.nextUtility();
-			if (this.maximize) 
-				while (iter.hasNext()) 
-					opt = opt.max(iter.nextUtility());
-			else 
-				while (iter.hasNext()) 
-					opt = opt.min(iter.nextUtility());
+			/// @bug When sparse == true, might not work if the projection maximizes a minimization space or vice-versa, because the sparse iterator will skip the wrong infeasibility 
+			UtilitySolutionSpace.SparseIterator<V, U> iter = sparse ? this.space.sparseIter() : this.space.iterator();
+			final boolean minimize = ! this.maximize;
+			U opt = this.infeasibleUtil;
+			for (U better = iter.nextUtility(this.infeasibleUtil, minimize); better != null; ) 
+				better = iter.nextUtility(opt = better, minimize);
 			
 			return new ScalarHypercube<V, U> (opt, this.infeasibleUtil, (Class<? extends V[]>) this.assignment.getClass());
 		}
@@ -557,11 +561,22 @@ public class BlindProjectOutput < V extends Addable<V>, U extends Addable<U> > e
 		// Resolve the utilities
 		assert this.nbrUtils < Integer.MAX_VALUE : "Cannot resolve a space that contains more than 2^31-1 solutions";
 		U[] values = (U[]) Array.newInstance(this.getClassOfU(), (int) nbrUtils);
-		int i = 0;
-		for (UtilitySolutionSpace.Iterator<V, U> iter = this.iterator(); iter.hasNext(); ) 
-			values[i++] = iter.nextUtility();
+		Hypercube<V, U> out = new Hypercube<V, U> (this.variables, this.domains, values, this.infeasibleUtil);
+		
+		/// @bug When sparse == true, might not work if the projection maximizes a minimization space or vice-versa, because the sparse iterator will skip the wrong infeasibility 
+		if (sparse) {
+			Arrays.fill(values, this.infeasibleUtil);
+			UtilitySolutionSpace.SparseIterator<V, U> iter = this.sparseIter();
+			for (U util = iter.nextUtility(); util != null; util = iter.nextUtility()) 
+				out.setUtility(iter.getCurrentSolution(), util);
+			
+		} else { // not sparse
+			int i = 0;
+			for (UtilitySolutionSpace.Iterator<V, U> iter = this.iterator(); iter.hasNext(); ) 
+				values[i++] = iter.nextUtility();
+		}
 
-		return new Hypercube<V, U> (this.variables, this.domains, values, this.infeasibleUtil);
+		return out;
 	}
 
 	/** @see frodo2.solutionSpaces.hypercube.BasicHypercube#writeExternal(java.io.ObjectOutput) */

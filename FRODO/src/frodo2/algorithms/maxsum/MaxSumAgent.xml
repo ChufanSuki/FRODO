@@ -1,6 +1,6 @@
 <!-- 
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2014  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -68,7 +68,7 @@ How to contact the authors:
 				- empty string: displays the factor graph in DOT format in the console; 
 				- frodo2.gui.DOTrenderer: renders the factor graph in a new window. Assumes that Graphviz' "dot" command is on the shell path. 
 			- compile: whether each agent should implicitly compile all its function nodes into a single one
-				MUST be set to "true" if the problem includes involves private inter-agent constraints. 
+				MUST be set to "true" if the problem involves private inter-agent constraints. 
 		 -->
 		<module className = "frodo2.algorithms.varOrdering.factorgraph.FactorGraphGen" 
 				reportStats = "true" 

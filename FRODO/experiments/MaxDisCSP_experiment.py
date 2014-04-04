@@ -1,6 +1,6 @@
 """
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2014  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -91,4 +91,4 @@ frodo2.run(java, javaParams, generator, genParams, nbrProblems, algos, timeout, 
 # and one with only the faster algorithms on the larger problem sizes
 
 # Plot the graphs
-frodo2.plot(output, xCol = 8, yCol = 11) # the first column has index 0
+frodo2.plot(output, xCol = 8, yCol = 11) # yCol = 11 is the NCCC count (the first column has index 0)

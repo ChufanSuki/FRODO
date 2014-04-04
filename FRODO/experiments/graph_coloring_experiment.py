@@ -1,6 +1,6 @@
 """
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2014  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -94,4 +94,5 @@ frodo2.run(java, javaParams, generator, genParams, nbrProblems, algos, timeout, 
 # and one with only the faster algorithms on the larger problem sizes
 
 # Plot the graphs
-frodo2.plot(output, xCol = 6, yCol = 13) # the first column has index 0
+frodo2.plot(output, xCol = 6, yCol = 13, block = False) # yCol = 13 is the runtime (the first column has index 0)
+frodo2.plot(output, xCol = 6, yCol = 15, block = True) # yCol = 15 is the total message size (the first column has index 0)

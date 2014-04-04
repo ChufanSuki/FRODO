@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2014  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -40,8 +40,13 @@ extends UtilitySolutionSpaceLimited<V, U, U> {
 	/** @see BasicUtilitySolutionSpace#clone() */
 	public UtilitySolutionSpace<V, U> clone ();
 
-	/** @return an explicit representation of this space if it is currently implicit, else returns itself */
+	/** @see UtilitySolutionSpaceLimited#resolve() */
+	@Override
 	public UtilitySolutionSpace<V, U> resolve ();
+	
+	/** @see UtilitySolutionSpaceLimited#resolve(boolean) */
+	@Override
+	public UtilitySolutionSpace<V, U> resolve (boolean sparse);
 	
 	/** @return a Hypercube representation of this space */
 	public Hypercube<V, U> toHypercube ();
@@ -381,7 +386,7 @@ extends UtilitySolutionSpaceLimited<V, U, U> {
 	/**
 	 * Rescales the utilities in this space
 	 * 
-	 * @author Brammert Ottens, 9 mrt. 2013
+	 * @author Brammert Ottens, 9 mrt. 2012
 	 * @param add		add this value to all utilities
 	 * @param multiply	multiply all utilities with this value
 	 * @return a rescaled utility space

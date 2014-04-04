@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2013  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2014  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -423,7 +423,14 @@ public class JaCoPoptAssignments implements BasicUtilitySolutionSpace< AddableIn
 	}
 
 	/** @see BasicUtilitySolutionSpace#resolve() */
+	@Override
 	public BasicUtilitySolutionSpace< AddableInteger, ArrayList<AddableInteger> > resolve() {
+		return this.resolve(true);
+	}
+	
+	/** @see BasicUtilitySolutionSpace#resolve(boolean) */
+	@Override
+	public BasicUtilitySolutionSpace< AddableInteger, ArrayList<AddableInteger> > resolve(boolean unused) {
 		
 		if (this.varNames.length == 0) 
 			return new ScalarBasicHypercube< AddableInteger, ArrayList<AddableInteger> > (this.getUtility(0), null);
