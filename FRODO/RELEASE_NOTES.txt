@@ -1,3 +1,14 @@
+CHANGES IN VERSION 2.11.2 SINCE VERSION 2.11.1
+
+Major changes: 
+	- Upgraded to JaCoP version 4.0.0; the new JAR file must be manually downloaded from the JaCoP website and put in FRODO's lib folder. 
+	- Added support for the Cumulative global constraint (request by Shijie Li from TU Delft). 
+	
+Minor changes: 
+	- The Python experiment framework now displays the Java errors when launched from Enthought Canopy (bug 50 by costa). 
+	- The Python experiment framework now exits more gracefully when the results files are not found or are empty. 
+		
+
 CHANGES IN VERSION 2.11.1 SINCE VERSION 2.11
 
 Major changes: 

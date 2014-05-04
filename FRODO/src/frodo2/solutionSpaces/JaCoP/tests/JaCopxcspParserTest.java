@@ -27,13 +27,13 @@ import java.util.regex.Pattern;
 
 import org.jdom2.Element;
 
-import JaCoP.core.IntVar;
-import JaCoP.core.Store;
-import JaCoP.search.DepthFirstSearch;
-import JaCoP.search.IndomainMin;
-import JaCoP.search.SelectChoicePoint;
-import JaCoP.search.SimpleSelect;
-import JaCoP.search.SmallestDomain;
+import org.jacop.core.IntVar;
+import org.jacop.core.Store;
+import org.jacop.search.DepthFirstSearch;
+import org.jacop.search.IndomainMin;
+import org.jacop.search.SelectChoicePoint;
+import org.jacop.search.SimpleSelect;
+import org.jacop.search.SmallestDomain;
 
 import frodo2.solutionSpaces.JaCoP.JaCoPxcspParser;
 import junit.framework.TestCase;
@@ -1223,6 +1223,105 @@ public class JaCopxcspParserTest extends TestCase {
 		
 		assertFalse(getSolution());
 
+	}
+	
+	/** Tests the parsing of the global constraint Cumulative */
+	public void testGlobalConstraintCumulativeParser() {
+		
+		resetStore();
+		
+		Element cons = new Element ("constraint");
+		cons.setAttribute("name", "c_1");
+		cons.setAttribute("arity", "3");
+		cons.setAttribute("scope", "v4 v2 v5");
+		cons.setAttribute("reference", "global:cumulative");
+		Element param = new Element ("parameters");
+		param.addContent("[ {1 v4 3} {v2 6 v5} ] ").addContent(new Element ("le")).addContent(" 7");
+		cons.addContent(param);
+		
+		JaCoPxcspParser.parseGlobalConstraint(cons, store);
+		
+		assertFalse(getSolution());
+		
+
+		resetStore();
+		
+		cons = new Element ("constraint");
+		cons.setAttribute("name", "c_1");
+		cons.setAttribute("arity", "3");
+		cons.setAttribute("scope", "v4 v2 v5");
+		cons.setAttribute("reference", "global:cumulative");
+		param = new Element ("parameters");
+		param.addContent("[ {1 v4 3} {v2 6 v5} ] ").addContent(new Element ("eq")).addContent(" 7");
+		cons.addContent(param);
+		
+		JaCoPxcspParser.parseGlobalConstraint(cons, store);
+		
+		assertFalse(getSolution());
+		
+
+		resetStore();
+		
+		cons = new Element ("constraint");
+		cons.setAttribute("name", "c_1");
+		cons.setAttribute("arity", "4");
+		cons.setAttribute("scope", "v1 v3 v6 v8");
+		cons.setAttribute("reference", "global:cumulative");
+		param = new Element ("parameters");
+		param.addContent("[ {v1 4 v3} {2 v6 5} ] ").addContent(new Element ("le")).addContent(" v8");
+		cons.addContent(param);
+		
+		JaCoPxcspParser.parseGlobalConstraint(cons, store);
+		
+		assertTrue(getSolution());
+
+
+		resetStore();
+		
+		cons = new Element ("constraint");
+		cons.setAttribute("name", "c_1");
+		cons.setAttribute("arity", "4");
+		cons.setAttribute("scope", "v1 v3 v6 v8");
+		cons.setAttribute("reference", "global:cumulative");
+		param = new Element ("parameters");
+		param.addContent("[ {v1 4 v3} {2 v6 5} ] ").addContent(new Element ("eq")).addContent(" v8");
+		cons.addContent(param);
+		
+		JaCoPxcspParser.parseGlobalConstraint(cons, store);
+		
+		assertTrue(getSolution());
+
+
+		resetStore();
+		
+		cons = new Element ("constraint");
+		cons.setAttribute("name", "c_1");
+		cons.setAttribute("arity", "4");
+		cons.setAttribute("scope", "v1 v3 v6");
+		cons.setAttribute("reference", "global:cumulative");
+		param = new Element ("parameters");
+		param.addContent("[ {v1 4 v3} {2 v6 5} ] ").addContent(new Element ("eq")).addContent(" 9");
+		cons.addContent(param);
+		
+		JaCoPxcspParser.parseGlobalConstraint(cons, store);
+		
+		assertFalse(getSolution());
+
+
+		resetStore();
+		
+		cons = new Element ("constraint");
+		cons.setAttribute("name", "c_1");
+		cons.setAttribute("arity", "4");
+		cons.setAttribute("scope", "v1 v3 v6");
+		cons.setAttribute("reference", "global:cumulative");
+		param = new Element ("parameters");
+		param.addContent("[ {v1 4 v3} {2 v6 5} ] ").addContent(new Element ("le")).addContent(" 9");
+		cons.addContent(param);
+		
+		JaCoPxcspParser.parseGlobalConstraint(cons, store);
+		
+		assertTrue(getSolution());
 	}
 
 	/** Test method for parseGlobalConstraint(Element constraint, Store store) on WeightedSum constraint with eq atom*/

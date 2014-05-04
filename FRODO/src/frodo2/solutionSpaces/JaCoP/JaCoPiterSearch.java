@@ -25,11 +25,11 @@ package frodo2.solutionSpaces.JaCoP;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 
-import JaCoP.core.IntVar;
-import JaCoP.core.Store;
-import JaCoP.search.DepthFirstSearch;
-import JaCoP.search.IndomainMin;
-import JaCoP.search.InputOrderSelect;
+import org.jacop.core.IntVar;
+import org.jacop.core.Store;
+import org.jacop.search.DepthFirstSearch;
+import org.jacop.search.IndomainMin;
+import org.jacop.search.InputOrderSelect;
 
 /** A wrapper around a JaCoP DepthFirstSearch that is used to run this search in a new thread
  * 

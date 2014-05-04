@@ -27,12 +27,12 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
-import JaCoP.core.IntVar;
-import JaCoP.core.Store;
-import JaCoP.search.DepthFirstSearch;
-import JaCoP.search.IndomainMin;
-import JaCoP.search.InputOrderSelect;
-import JaCoP.search.Search;
+import org.jacop.core.IntVar;
+import org.jacop.core.Store;
+import org.jacop.search.DepthFirstSearch;
+import org.jacop.search.IndomainMin;
+import org.jacop.search.InputOrderSelect;
+import org.jacop.search.Search;
 
 import frodo2.solutionSpaces.Addable;
 import frodo2.solutionSpaces.AddableInteger;
@@ -189,7 +189,7 @@ public class JaCoPoptAssignments implements BasicUtilitySolutionSpace< AddableIn
 			// We ground the variables in the separator
 			try{
 				var.domain.in(store.level, var, variablesValues[i].intValue(), variablesValues[i].intValue());
-			}catch (JaCoP.core.FailException e){
+			}catch (org.jacop.core.FailException e){
 				
 				for(int k = store.level; k > lvlReminder; k--){
 					store.removeLevel(k);

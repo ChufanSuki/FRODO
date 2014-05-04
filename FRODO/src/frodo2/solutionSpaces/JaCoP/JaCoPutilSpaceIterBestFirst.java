@@ -22,14 +22,14 @@ How to contact the authors:
 
 package frodo2.solutionSpaces.JaCoP;
 
-import JaCoP.core.IntDomain;
-import JaCoP.core.IntVar;
-import JaCoP.core.Store;
-import JaCoP.search.DepthFirstSearch;
-import JaCoP.search.IndomainMin;
-import JaCoP.search.InputOrderSelect;
-import JaCoP.search.Search;
-import JaCoP.search.SolutionListener;
+import org.jacop.core.IntDomain;
+import org.jacop.core.IntVar;
+import org.jacop.core.Store;
+import org.jacop.search.DepthFirstSearch;
+import org.jacop.search.IndomainMin;
+import org.jacop.search.InputOrderSelect;
+import org.jacop.search.Search;
+import org.jacop.search.SolutionListener;
 import frodo2.solutionSpaces.Addable;
 import frodo2.solutionSpaces.AddableInteger;
 import frodo2.solutionSpaces.UtilitySolutionSpace.Iterator;
@@ -179,7 +179,7 @@ public class JaCoPutilSpaceIterBestFirst < U extends Addable<U> > implements Ite
 
 			try{
 				utilVar.domain.in(store.level, utilVar, newDom); /// @todo Changes are made to the current store level, and are never backtracked
-			}catch (JaCoP.core.FailException e){
+			}catch (org.jacop.core.FailException e){
 				return this.space.infeasibleUtil;
 			}
 		}
@@ -291,7 +291,7 @@ public class JaCoPutilSpaceIterBestFirst < U extends Addable<U> > implements Ite
 		// We ground the utility variable
 		try{
 			utilVar.domain.in(lvlReminder+1, utilVar,util, util);
-		}catch (JaCoP.core.FailException e){
+		}catch (org.jacop.core.FailException e){
 			
 			for(int k = store.level; k > lvlReminder; k--){
 				store.removeLevel(k);

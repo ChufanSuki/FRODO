@@ -39,20 +39,21 @@ import java.util.regex.Pattern;
 import org.jdom2.Document;
 import org.jdom2.Element;
 
-import JaCoP.constraints.Alldifferent;
-import JaCoP.constraints.Diff2;
-import JaCoP.constraints.ExtensionalConflictVA;
-import JaCoP.constraints.ExtensionalSupportSTR;
-import JaCoP.constraints.SumWeight;
-import JaCoP.constraints.XgtY;
-import JaCoP.constraints.XgteqY;
-import JaCoP.constraints.XltY;
-import JaCoP.constraints.XlteqY;
-import JaCoP.constraints.XneqY;
-import JaCoP.core.IntDomain;
-import JaCoP.core.IntVar;
-import JaCoP.core.IntervalDomain;
-import JaCoP.core.Store;
+import org.jacop.constraints.Alldifferent;
+import org.jacop.constraints.Cumulative;
+import org.jacop.constraints.Diff2;
+import org.jacop.constraints.ExtensionalConflictVA;
+import org.jacop.constraints.ExtensionalSupportSTR;
+import org.jacop.constraints.SumWeight;
+import org.jacop.constraints.XgtY;
+import org.jacop.constraints.XgteqY;
+import org.jacop.constraints.XltY;
+import org.jacop.constraints.XlteqY;
+import org.jacop.constraints.XneqY;
+import org.jacop.core.IntDomain;
+import org.jacop.core.IntVar;
+import org.jacop.core.IntervalDomain;
+import org.jacop.core.Store;
 
 import frodo2.algorithms.XCSPparser;
 import frodo2.solutionSpaces.Addable;
@@ -697,8 +698,9 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 		String[] varNames = pattern.split(scope);
 
 		int arity = Integer.valueOf(constraint.getAttributeValue("arity"));
+		String refName = constraint.getAttributeValue("reference");
 
-		if(constraint.getAttributeValue("reference").equals("global:weightedSum")){
+		if(refName.equals("global:weightedSum")){
 
 			String parameters = constraint.getChild("parameters").getText();
 			pattern = Pattern.compile("\\[(.*)\\]\\s*(\\d+)");
@@ -782,7 +784,7 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 
 			store.impose(new SumWeight(vars, weights, sumVar));
 
-		}else if(constraint.getAttributeValue("reference").equals("global:allDifferent")){
+		}else if(refName.equals("global:allDifferent")){
 			
 			// Extract the parameters of the constraint
 			assert constraint.getChild("parameters") != null : "No parameters passed to the constraint " + constraint.getAttributeValue("name");
@@ -815,7 +817,7 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 
 			store.impose(new Alldifferent(vars));
 		
-		} else if (constraint.getAttributeValue("reference").equals("global:diff2")) {
+		} else if (refName.equals("global:diff2")) {
 			
 			// Parse the parameters
 			String params = constraint.getChildText("parameters").trim();
@@ -863,6 +865,65 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 			}
 			
 			store.impose(new Diff2 (rectangles));
+			
+		} else if (refName.equals("global:cumulative")) {
+			
+			// Parse the parameters
+			String parameters = constraint.getChild("parameters").getText().trim();
+			
+			// A bracketed list, an operator element (<eq/> or <le/>), and the limit (variable or integer)
+			pattern = Pattern.compile("\\[(.*)\\]\\s*(\\S+)");
+			Matcher m = pattern.matcher(parameters);
+			m.find();
+			String limit = m.group(2);
+			
+			// Get the variable for the limit
+			IntVar limitVar;
+			Pattern constPat = Pattern.compile("\\d+"); // a constant (vs. a variable)
+			/// @todo Reuse code by creating a method for this
+			if (constPat.matcher(limit).matches()) { // a constant
+				int constant = Integer.parseInt(limit);
+				limitVar = new IntVar (store, constant, constant);
+			} else {
+				assert store.findVariable(limit) != null : "Unknown variable: " + limit;
+				limitVar = (IntVar) store.findVariable(limit);
+			}
+			
+			
+			// Check whether the limit is tight
+			assert constraint.getChild("parameters").getChildren().size() == 1 : "Single operator <eq/> or <le/> not found in " + constraint;
+			String opName = constraint.getChild("parameters").getChildren().get(0).getName();
+			assert opName.equals("eq") || opName.equals("le") : "Unsupported operator <" + opName + "/> (expected <eq/> or <le/>)";
+			final boolean tight = "eq".equals(opName);
+			
+			
+			// Go through the list of tasks
+			parameters = m.group(1).trim();
+			parameters = parameters.substring(1, parameters.length() - 1); // remove the first and last curly brackets
+			String[] tasks = parameters.split("\\}\\s*\\{");
+			final int nbrTasks = tasks.length;
+			IntVar[] starts = new IntVar [nbrTasks];
+			IntVar[] durations = new IntVar [nbrTasks];
+			IntVar[] resources = new IntVar [nbrTasks];
+			IntVar[][] vars = new IntVar[][] { starts, durations, resources };
+			for (int i = nbrTasks - 1; i >= 0; i--) { // for each task
+				String[] task = tasks[i].trim().split("\\s+");
+				
+				for (int j = 0; j <= 2; j++) { // for each variable
+					String var = task[j];
+					
+					/// @todo Reuse code by creating a method for this
+					if (constPat.matcher(var).matches()) { // a constant
+						int constant = Integer.parseInt(var);
+						vars[j][i] = new IntVar (store, constant, constant);
+					} else {
+						assert store.findVariable(var) != null : "Unknown variable: " + var;
+						vars[j][i] = (IntVar) store.findVariable(var);
+					}
+				}
+			}
+			
+			store.impose(new Cumulative (starts, durations, resources, limitVar, true, true, tight));
 			
 		}else{
 			System.err.println("The global constraint " + constraint.getAttributeValue("reference") + " is not supported");

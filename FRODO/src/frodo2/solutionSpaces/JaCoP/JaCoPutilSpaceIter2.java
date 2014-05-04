@@ -22,10 +22,10 @@ How to contact the authors:
 
 package frodo2.solutionSpaces.JaCoP;
 
-import JaCoP.core.IntDomain;
-import JaCoP.core.IntVar;
-import JaCoP.core.IntervalDomain;
-import JaCoP.core.Store;
+import org.jacop.core.IntDomain;
+import org.jacop.core.IntVar;
+import org.jacop.core.IntervalDomain;
+import org.jacop.core.Store;
 
 import frodo2.solutionSpaces.Addable;
 import frodo2.solutionSpaces.AddableInteger;
@@ -372,7 +372,7 @@ public class JaCoPutilSpaceIter2 < U extends Addable<U> > implements SparseItera
 					utilVar.dom().inMin(store.level, utilVar, bound.flipSign().subtract(this.space.defaultUtil).intValue() + 1);
 				}
 				
-			}catch (JaCoP.core.FailException e){
+			}catch (org.jacop.core.FailException e){
 				// The utility variable's domain does not contain any better value than the new bound
 				this.searchInitiated = true;
 				this.searchTerminated = true;

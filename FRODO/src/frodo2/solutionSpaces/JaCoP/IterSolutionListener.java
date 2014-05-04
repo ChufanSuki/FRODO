@@ -27,14 +27,14 @@ import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.concurrent.locks.Condition;
 
-import JaCoP.core.IntVar;
-import JaCoP.core.Store;
-import JaCoP.search.DepthFirstSearch;
-import JaCoP.search.IndomainMin;
-import JaCoP.search.InputOrderSelect;
-import JaCoP.search.Search;
-import JaCoP.search.SelectChoicePoint;
-import JaCoP.search.SimpleSolutionListener;
+import org.jacop.core.IntVar;
+import org.jacop.core.Store;
+import org.jacop.search.DepthFirstSearch;
+import org.jacop.search.IndomainMin;
+import org.jacop.search.InputOrderSelect;
+import org.jacop.search.Search;
+import org.jacop.search.SelectChoicePoint;
+import org.jacop.search.SimpleSolutionListener;
 
 
 /** This solution listener is a part of the JaCoPutilSpace iterator that allows us to simulate a JaCoP master/slave search combination
@@ -81,7 +81,7 @@ public class IterSolutionListener extends SimpleSolutionListener<IntVar> {
 	}
 	
 	/**
-	 * @see JaCoP.search.SimpleSolutionListener#executeAfterSolution(JaCoP.search.Search, JaCoP.search.SelectChoicePoint)
+	 * @see org.jacop.search.SimpleSolutionListener#executeAfterSolution(org.jacop.search.Search, org.jacop.search.SelectChoicePoint)
 	 */
 	@Override
 	public boolean executeAfterSolution(Search<IntVar> search,
