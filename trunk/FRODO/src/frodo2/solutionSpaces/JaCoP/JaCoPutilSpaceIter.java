@@ -35,6 +35,7 @@ import frodo2.solutionSpaces.hypercube.HypercubeIter;
 /** A solution iterator for JaCoPutilSpace
  * @author Arnaud Jutzeler, Thomas Leaute
  * @param <U> the type used for utility values
+ * @todo Improve performance using a sparse iterator that keeps track of the skipped infeasible solutions
  */
 public class JaCoPutilSpaceIter < U extends Addable<U> > extends HypercubeIter<AddableInteger, U>{
 	

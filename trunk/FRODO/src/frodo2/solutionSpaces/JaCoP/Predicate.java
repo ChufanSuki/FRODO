@@ -27,11 +27,11 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.StringTokenizer;
 
-import JaCoP.core.Store;
-import JaCoP.constraints.*;
-import JaCoP.core.IntVar;
-import JaCoP.core.IntervalDomain;
-import JaCoP.core.Var;
+import org.jacop.core.Store;
+import org.jacop.constraints.*;
+import org.jacop.core.IntVar;
+import org.jacop.core.IntervalDomain;
+import org.jacop.core.Var;
 
 /**
  * Predicate wrapper that translates a predicate expression from XCSP into constraints
@@ -87,7 +87,7 @@ public class Predicate extends DecomposedConstraint{
 
 	}
 
-	/** @see JaCoP.constraints.DecomposedConstraint#decompose(JaCoP.core.Store) */
+	/** @see org.jacop.constraints.DecomposedConstraint#decompose(org.jacop.core.Store) */
 	@Override
 	public ArrayList<Constraint> decompose(Store store) {
 
@@ -1554,7 +1554,7 @@ public class Predicate extends DecomposedConstraint{
 	}
 
 
-	/** @see JaCoP.constraints.DecomposedConstraint#imposeDecomposition(JaCoP.core.Store) */
+	/** @see org.jacop.constraints.DecomposedConstraint#imposeDecomposition(org.jacop.core.Store) */
 	@Override
 	public void imposeDecomposition(Store store) {
 		
@@ -1567,7 +1567,7 @@ public class Predicate extends DecomposedConstraint{
 		store.auxilaryVariables.addAll(auxilaryVariables);
 	}
 
-	/** @see JaCoP.constraints.DecomposedConstraint#auxiliaryVariables() */
+	/** @see org.jacop.constraints.DecomposedConstraint#auxiliaryVariables() */
 	@Override
 	public ArrayList<Var> auxiliaryVariables() { 
 		return auxilaryVariables;

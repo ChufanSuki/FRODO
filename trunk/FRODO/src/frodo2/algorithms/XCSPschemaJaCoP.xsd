@@ -404,6 +404,7 @@ where variable values and utility values can be integer numbers, infinity or -in
 		<xs:alternative test="@reference = 'global:weightedSum'" type="weightedSumConstraint" />
 		<xs:alternative test="@reference = 'global:allDifferent'" type="allDifferentConstraint" />
 		<xs:alternative test="@reference = 'global:diff2'" type="diff2Constraint" />
+		<xs:alternative test="@reference = 'global:cumulative'" type="cumulativeConstraint" />
 		<xs:alternative type="nonGlobalConstraint" />
 	</xs:element>
 	
@@ -504,6 +505,32 @@ where variable values and utility values can be integer numbers, infinity or -in
 					</xs:element>
 				</xs:all>
 				<xs:attribute name="reference" type="xs:string" fixed="global:allDifferent" use="required"/>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	
+	<xs:complexType name="cumulativeConstraint">
+		<xs:complexContent>
+			<xs:extension base="constraint">
+				<xs:all>
+					<xs:element name="parameters" minOccurs="1" maxOccurs="1">
+						<xs:annotation>
+							<xs:documentation>
+Three sequences of characters in sequence: 
+1) A bracketed, white-space-delimited list of curly-bracketed, white-space-delimited lists of 3 variable names (in this order: origin, duration, and height)
+2) An operator element, either "eq" or "le"
+3) A variable or integer (the limit)
+							</xs:documentation>
+						</xs:annotation>
+						<xs:complexType mixed="true">
+							<xs:choice>
+								<xs:element name="eq"/>
+								<xs:element name="le"/>
+							</xs:choice>
+						</xs:complexType>
+					</xs:element>
+				</xs:all>
+				<xs:attribute name="reference" type="xs:string" fixed="global:cumulative" use="required"/>
 			</xs:extension>
 		</xs:complexContent>
 	</xs:complexType>

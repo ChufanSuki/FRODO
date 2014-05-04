@@ -39,12 +39,12 @@ import junit.framework.TestSuite;
 import org.jdom2.Document;
 import org.jdom2.Element;
 
-import JaCoP.core.IntVar;
-import JaCoP.core.Store;
-import JaCoP.search.DepthFirstSearch;
-import JaCoP.search.IndomainMin;
-import JaCoP.search.InputOrderSelect;
-import JaCoP.search.Search;
+import org.jacop.core.IntVar;
+import org.jacop.core.Store;
+import org.jacop.search.DepthFirstSearch;
+import org.jacop.search.IndomainMin;
+import org.jacop.search.InputOrderSelect;
+import org.jacop.search.Search;
 import frodo2.algorithms.AbstractDCOPsolver;
 import frodo2.algorithms.Solution;
 import frodo2.algorithms.XCSPparser;

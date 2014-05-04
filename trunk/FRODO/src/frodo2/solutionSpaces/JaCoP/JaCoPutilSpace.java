@@ -36,16 +36,16 @@ import java.util.Map;
 
 import org.jdom2.Element;
 
-import JaCoP.constraints.Sum;
-import JaCoP.constraints.XplusYeqC;
-import JaCoP.core.IntDomain;
-import JaCoP.core.IntVar;
-import JaCoP.core.IntervalDomain;
-import JaCoP.core.Store;
-import JaCoP.search.DepthFirstSearch;
-import JaCoP.search.IndomainMin;
-import JaCoP.search.InputOrderSelect;
-import JaCoP.search.Search;
+import org.jacop.constraints.Sum;
+import org.jacop.constraints.XplusYeqC;
+import org.jacop.core.IntDomain;
+import org.jacop.core.IntVar;
+import org.jacop.core.IntervalDomain;
+import org.jacop.core.Store;
+import org.jacop.search.DepthFirstSearch;
+import org.jacop.search.IndomainMin;
+import org.jacop.search.InputOrderSelect;
+import org.jacop.search.Search;
 import frodo2.algorithms.XCSPparser;
 import frodo2.solutionSpaces.Addable;
 import frodo2.solutionSpaces.AddableInteger;
@@ -1131,7 +1131,7 @@ public class JaCoPutilSpace < U extends Addable<U> > implements UtilitySolutionS
 			// We ground the variables in the separator
 			try{
 				vars[i].domain.in(lvlReminder+1, vars[i], variablesValues[i].intValue(), variablesValues[i].intValue());
-			}catch (JaCoP.core.FailException e){
+			}catch (org.jacop.core.FailException e){
 
 				for(int k = store.level; k > lvlReminder; k--){
 					store.removeLevel(k);

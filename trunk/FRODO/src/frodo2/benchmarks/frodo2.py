@@ -207,8 +207,12 @@ def runAtDepth (depth, indent, genParams):
             
             # Run the algorithm
             print(indent + time.strftime("%H:%M:%S", time.localtime()) + " Starting " + algo[0])
-            javaProcess = subprocess.Popen([java] + myJavaParams + [algo[1]] + algo[0:4] + [str(timeout), tmpFileName], preexec_fn = ignoreInterruption)
-            javaProcess.wait()
+            javaProcess = subprocess.Popen([java] + myJavaParams + [algo[1]] + algo[0:4] + [str(timeout), tmpFileName], preexec_fn = ignoreInterruption, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            
+            out, err = javaProcess.communicate()
+            if err:
+                print(err.decode("utf-8"))
+    
             javaProcess = None
             
             if terminated: 
@@ -217,7 +221,13 @@ def runAtDepth (depth, indent, genParams):
         # Copy the results to the overall output file (skipping irrelevant timeouts) and delete the tmp file
         needsHeader = not os.path.exists(output)
         outFile = open(output, "a+")
+        
+        if not os.path.exists(tmpFileName):
+            print("ERROR: No solver produced any output file; please address the probable Java error messages above.")
+            interrupted = True
+            return
         tmpFile = open(tmpFileName, "r")
+        
         line = tmpFile.readline()
         if needsHeader: 
             outFile.write(line)
@@ -395,6 +405,9 @@ def plot (resultsFile, xCol, yCol, block = True):
     
     # Read the column names
     headers = file.readline().split('\t')
+    if len(headers) <= 1:
+        print("ERROR: No headers found in the results file `" + resultsFile + "'")
+        return
     xIndex = xCol
     yIndex = yCol
     xName = headers[xIndex]
