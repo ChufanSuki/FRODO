@@ -30,6 +30,7 @@ import org.jdom2.Document;
 import org.jdom2.Element;
 
 import frodo2.algorithms.AbstractDCOPsolver;
+import frodo2.algorithms.SolutionWithConvergence;
 import frodo2.algorithms.StatsReporter;
 import frodo2.solutionSpaces.Addable;
 
@@ -42,7 +43,7 @@ import frodo2.solutionSpaces.Addable;
  * @param <U> 	type used for utility values
  *
  */
-public class MGMsolver < V extends Addable<V>, U extends Addable<U> > extends AbstractDCOPsolver< V, U, MGMsolution<V, U> > {
+public class MGMsolver < V extends Addable<V>, U extends Addable<U> > extends AbstractDCOPsolver< V, U, SolutionWithConvergence<V, U> > {
 	
 	/** The MGM module */
 	private MGM<V, U> mgmModule;
@@ -166,12 +167,14 @@ public class MGMsolver < V extends Addable<V>, U extends Addable<U> > extends Ab
 		
 	/** @see AbstractDCOPsolver#buildSolution() */
 	@Override
-	public MGMsolution<V, U> buildSolution() {
+	public SolutionWithConvergence<V, U> buildSolution() {
 		
 		HashMap<String, Long> timesNeeded = new HashMap<String, Long> ();
 		
-		return new MGMsolution<V, U> (super.problem.getNbrVars(), this.mgmModule.getFinalSolution(), this.mgmModule.getFinalSolution(), 
-				mgmModule.getCurrentSolution(), factory.getNbrMsgs(), factory.getTotalMsgSize(), factory.getOverallMaxMsgSize(), factory.getNcccs(), factory.getTime(), timesNeeded, mgmModule.getAssignmentHistories());
+		return new SolutionWithConvergence<V, U> (super.problem.getNbrVars(), mgmModule.getFinalSolution(), this.mgmModule.getFinalSolution(), mgmModule.getCurrentSolution(), 
+				factory.getNbrMsgs(), factory.getMsgNbrs(), factory.getMsgNbrsSentPerAgent(), factory.getMsgNbrsReceivedPerAgent(), 
+				factory.getTotalMsgSize(), factory.getMsgSizes(), factory.getMsgSizesSentPerAgent(), factory.getMsgSizesReceivedPerAgent(), 
+				factory.getOverallMaxMsgSize(), factory.getMaxMsgSizes(), factory.getNcccs(), factory.getTime(), timesNeeded, mgmModule.getAssignmentHistories());
 	}
 
 	/** @see AbstractDCOPsolver#clear() */

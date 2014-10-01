@@ -114,8 +114,10 @@ public class MPC_DisWCSP4solver < V extends Addable<V>, U extends Addable<U> > e
 		int nbrVariables = problem.getNbrVars();
 		long totalTime = factory.getTime();
 		
-		return new Solution<V, U> (nbrVariables, this.module.getOptCost(), this.module.getOptCost(), solution, nbrMsgs, msgNbrs, 
-				totalMsgSize, msgSizes, maxMsgSize, maxMsgSizes, ncccs, totalTime, null, numberOfCoordinationConstraints);
+		return new Solution<V, U> (nbrVariables, this.module.getOptCost(), this.module.getOptCost(), solution, 
+				nbrMsgs, msgNbrs, this.factory.getMsgNbrsSentPerAgent(), this.factory.getMsgNbrsReceivedPerAgent(), 
+				totalMsgSize, msgSizes, this.factory.getMsgSizesSentPerAgent(), this.factory.getMsgSizesReceivedPerAgent(), 
+				maxMsgSize, maxMsgSizes, ncccs, totalTime, null, numberOfCoordinationConstraints);
 	}
 
 	/** Solves the input problem

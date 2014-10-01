@@ -36,7 +36,7 @@ javaParamsOld = [
             ]
 javaParamsNew = [
             "-Xmx2G", 
-            "-classpath", root + "bin:" + root + "lib/jacop-4.0.0.jar:" + root + "lib/jdom-2.0.5.jar", # includes the current version of FRODO
+            "-classpath", root + "bin:" + root + "lib/jacop-4.1.0.jar:" + root + "lib/jdom-2.0.5.jar", # includes the current version of FRODO
             ]
 
 # Partly define the problem generator (the input parameters will depend on the algorithm)

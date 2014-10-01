@@ -15,7 +15,6 @@
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.solutionSpaces"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.asodpop.goodsTree.innerNodeTreeBinaryDomains"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.maxsum.tests"/>
-        <file path="/FRODO_release/src/frodo2/benchmarks/graphcoloring/performance_regression_test.py"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.odpop.goodsTree.InnerNodeTree"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.dpop.memory.tests"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.communication.sharedMemory"/>
@@ -29,13 +28,13 @@
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.dpop.stochastic.robust.test"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.odpop.goodsTree"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.dpop.memory"/>
-        <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.benchmarks.maxdiscsp{MaxDisCSPProblemGenerator.java"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.localSearch.mgm.tests"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.afb.test"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.asodpop.goodsTree.innerNodeTree"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.daemon.userIO"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.benchmarks.meetings"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.benchmarks.kidneys"/>
+        <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.benchmarks.maxdiscsp"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.adopt"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.varOrdering.linear"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.heuristics"/>
@@ -78,13 +77,11 @@
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.afb"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.dpop.count.test"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.test"/>
-        <file path="/FRODO_release/src/frodo2/benchmarks/maxdiscsp/performance_regression_test.py"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.dpop.stochastic.test"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.odpop"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.asodpop"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.dpop"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.synchbb"/>
-        <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.benchmarks.graphcoloring{GraphColoring.java"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.dpop.param"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.dpop.stochastic.robust"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.communication.tcp"/>
@@ -93,6 +90,7 @@
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.varOrdering.linear.tests"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.benchmarks.party"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.localSearch.mgm.mgm2"/>
+        <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.benchmarks.graphcoloring"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.reformulation"/>
         <file path="/FRODO_release/LICENSE.txt"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.mpc_discsp.tests"/>

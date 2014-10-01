@@ -204,8 +204,10 @@ public class P3halves_DPOPsolver < V extends Addable<V>, U extends Addable<U> > 
 		int nbrVariables = problem.getNbrVars();
 		long totalTime = factory.getTime();
 		
-		return new Solution<V, U> (nbrVariables, optUtil, super.problem.getUtility(solution).getUtility(0), solution, nbrMsgs, msgNbrs, 
-				totalMsgSize, msgSizes, maxMsgSize, maxMsgSizes, ncccs, totalTime, null, maxMsgDim, numberOfCoordinationConstraints);
+		return new Solution<V, U> (nbrVariables, optUtil, super.problem.getUtility(solution).getUtility(0), solution, 
+				nbrMsgs, msgNbrs, this.factory.getMsgNbrsSentPerAgent(), this.factory.getMsgNbrsReceivedPerAgent(), 
+				totalMsgSize, msgSizes, this.factory.getMsgSizesSentPerAgent(), this.factory.getMsgSizesReceivedPerAgent(), 
+				maxMsgSize, maxMsgSizes, ncccs, totalTime, null, maxMsgDim, numberOfCoordinationConstraints);
 	}
 	
 	/** @see P_DPOPsolver#clear() */

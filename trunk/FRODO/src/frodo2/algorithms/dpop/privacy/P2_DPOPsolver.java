@@ -265,8 +265,10 @@ public class P2_DPOPsolver< V extends Addable<V>, U extends Addable<U> > extends
 		timesNeeded.put(encryptModule.getClass().getName(), encryptModule.getFinalTime());
 		long totalTime = factory.getTime();
 		
-		return new Solution<V, U> (nbrVariables, optUtil, super.problem.getUtility(solution).getUtility(0), solution, nbrMsgs, msgNbrs, 
-				totalMsgSize, msgSizes, maxMsgSize, maxMsgSizes, ncccs, totalTime, timesNeeded, maxMsgDim, numberOfCoordinationConstraints);
+		return new Solution<V, U> (nbrVariables, optUtil, super.problem.getUtility(solution).getUtility(0), solution, 
+				nbrMsgs, msgNbrs, this.factory.getMsgNbrsSentPerAgent(), this.factory.getMsgNbrsReceivedPerAgent(), 
+				totalMsgSize, msgSizes, this.factory.getMsgSizesSentPerAgent(), this.factory.getMsgSizesReceivedPerAgent(), 
+				maxMsgSize, maxMsgSizes, ncccs, totalTime, timesNeeded, maxMsgDim, numberOfCoordinationConstraints);
 	}
 	
 	/** Clear this class' member attributes */

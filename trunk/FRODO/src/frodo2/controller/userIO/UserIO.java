@@ -35,7 +35,7 @@ import frodo2.controller.Controller;
 import frodo2.controller.WhitePages;
 
 /**
- * This class implements all the functions that a user interfcae should deliver\
+ * This class implements all the functions that a user interface should deliver
  * @author brammertottens
  *
  */

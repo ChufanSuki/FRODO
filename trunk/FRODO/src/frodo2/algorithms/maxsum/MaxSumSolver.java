@@ -91,8 +91,10 @@ public class MaxSumSolver < V extends Addable<V>, U extends Addable<U> > extends
 	/** @see AbstractSolver#buildSolution() */
 	@Override
 	public Solution<V, U> buildSolution() {
-		return new Solution<V, U> (super.problem.getNbrVars(), null, this.module.getOptCost(), this.module.getOptAssignments(), super.factory.getNbrMsgs(), super.factory.getMsgNbrs(), 
-				super.factory.getTotalMsgSize(), super.factory.getMsgSizes(), super.factory.getOverallMaxMsgSize(), super.factory.getMaxMsgSizes(), super.factory.getNcccs(), super.factory.getTime(), null, 0);
+		return new Solution<V, U> (super.problem.getNbrVars(), null, this.module.getOptCost(), this.module.getOptAssignments(), 
+				super.factory.getNbrMsgs(), super.factory.getMsgNbrs(), this.factory.getMsgNbrsSentPerAgent(), this.factory.getMsgNbrsReceivedPerAgent(), 
+				super.factory.getTotalMsgSize(), super.factory.getMsgSizes(), this.factory.getMsgSizesSentPerAgent(), this.factory.getMsgSizesReceivedPerAgent(), 
+				super.factory.getOverallMaxMsgSize(), super.factory.getMaxMsgSizes(), super.factory.getNcccs(), super.factory.getTime(), null, 0);
 	}
 
 }

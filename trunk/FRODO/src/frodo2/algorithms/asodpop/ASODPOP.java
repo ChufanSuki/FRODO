@@ -1622,10 +1622,7 @@ implements StatsReporterWithConvergence<Val> {
 		}
 
 
-		/**
-		 * /**
-		 * This method simply looks at the tree, and given the context, determines the best assignment
-		 * so far.
+		/** This method simply looks at the tree, and given the context, determines the best assignment so far.
 		 * 
 		 * @param varIndex		The index of the variable
 		 * @param domainSize 	The size of the variables domain 

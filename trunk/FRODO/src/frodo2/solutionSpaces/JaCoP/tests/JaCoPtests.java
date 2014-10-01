@@ -870,6 +870,7 @@ public class JaCoPtests extends TestCase {
 		    	break;
 		    case MGM2:
 		    	allIntProblems.remove("queenAttacking-4.xml");
+		    	allIntProblems.remove("cc-8-8-3.xml");
 		    	break;
 		    case MPC_DisCSP4:
 		    	allIntProblems.remove("series-sat.xml");
