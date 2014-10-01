@@ -337,7 +337,8 @@ public class SingleQueueAgent < Val extends Addable<Val> > implements AgentInter
 	/** Sends a message to the controller saying that the agent has finished */
 	protected void finished () {
 		if (this.measureMsgs) // send a message with statistics
-			queue.sendMessage(STATS_MONITOR, new AgentFinishedMessage (queue.getMsgNbrs(), queue.getMsgSizes(), queue.getMaxMsgSizes()));
+			queue.sendMessage(STATS_MONITOR, new AgentFinishedMessage (this.agentID, queue.getMsgNbrs(), queue.getMsgNbrsSent(), 
+					queue.getMsgSizes(), queue.getMsgSizesSent(), queue.getMaxMsgSizes()));
 		else 
 			queue.sendMessage(STATS_MONITOR, new Message(AGENT_FINISHED));
 		queue.resetStats();

@@ -38,6 +38,7 @@ import org.jdom2.Document;
 import org.jdom2.Element;
 import org.jdom2.JDOMException;
 
+import frodo2.algorithms.AgentFactory;
 import frodo2.algorithms.AgentInterface;
 import frodo2.algorithms.StatsReporter;
 import frodo2.algorithms.XCSPparser;
@@ -153,8 +154,20 @@ public class ConfigurationManager implements IncomingMsgPolicyInterface <String>
 	/** For each message type, the number of messages sent of that type */
 	private TreeMap<String, Integer> msgNbrs;
 	
+	/** For each agent, the number of messages sent by that agent */
+	private TreeMap<Object, Integer> msgNbrsSentPerAgent = new TreeMap<Object, Integer> ();
+	
+	/** For each agent, the number of messages received by that agent */
+	private TreeMap<Object, Integer> msgNbrsReceivedPerAgent = new TreeMap<Object, Integer> ();
+	
 	/** For each message type, the total amount of information sent in messages of that type, in bytes */
 	private TreeMap<String, Long> msgSizes;
+	
+	/** For each agent, the total amount of information sent by that agent, in bytes */
+	private TreeMap<Object, Long> msgSizesSentPerAgent = new TreeMap<Object, Long> ();
+	
+	/** For each agent, the total amount of information received by that agent, in bytes */
+	private TreeMap<Object, Long> msgSizesReceivedPerAgent = new TreeMap<Object, Long> ();
 	
 	/** For each message type, the size (in bytes) of the largest message */
 	private TreeMap<String, Long> maxMsgSizes;
@@ -331,6 +344,25 @@ public class ConfigurationManager implements IncomingMsgPolicyInterface <String>
 						this.msgNbrs.put(type, nbr + entry.getValue());
 				}
 				
+				// Increment nbrMsgsSent & Received
+				int totalSent = 0;
+				for (Map.Entry<Object, Integer> entry : msgCast.getMsgNbrsSent().entrySet()) {
+					Object toAgent = entry.getKey();
+					totalSent += entry.getValue();
+
+					Integer nbr = this.msgNbrsReceivedPerAgent.get(toAgent);
+					if (nbr == null) 
+						this.msgNbrsReceivedPerAgent.put(toAgent, entry.getValue());
+					else 
+						this.msgNbrsReceivedPerAgent.put(toAgent, nbr + entry.getValue());
+				}
+				Object sender = msgCast.getSender();
+				Integer nbr = this.msgNbrsSentPerAgent.get(sender);
+				if (nbr == null) 
+					this.msgNbrsSentPerAgent.put(sender, totalSent);
+				else 
+					this.msgNbrsSentPerAgent.put(sender, nbr + totalSent);
+				
 				// Increment msgSizes
 				for (Map.Entry<String, Long> entry : msgCast.getMsgSizes().entrySet()) {
 					String type = entry.getKey();
@@ -341,6 +373,24 @@ public class ConfigurationManager implements IncomingMsgPolicyInterface <String>
 					else 
 						this.msgSizes.put(type, size + entry.getValue());
 				}
+				
+				// Increment msgSizesSent & Received
+				long totalInfoSent = 0;
+				for (Map.Entry<Object, Long> entry : msgCast.getMsgSizesSent().entrySet()) {
+					Object toAgent = entry.getKey();
+					totalInfoSent += entry.getValue();
+
+					Long info = this.msgSizesReceivedPerAgent.get(toAgent);
+					if (info == null) 
+						this.msgSizesReceivedPerAgent.put(toAgent, entry.getValue());
+					else 
+						this.msgSizesReceivedPerAgent.put(toAgent, info + entry.getValue());
+				}
+				Long info = this.msgSizesSentPerAgent.get(sender);
+				if (info == null) 
+					this.msgSizesSentPerAgent.put(sender, totalInfoSent);
+				else 
+					this.msgSizesSentPerAgent.put(sender, info + totalInfoSent);
 				
 				// Update maxMsgSizes
 				for (Map.Entry<String, Long> entry : msgCast.getMaxMsgSizes().entrySet()) {
@@ -365,38 +415,9 @@ public class ConfigurationManager implements IncomingMsgPolicyInterface <String>
 				if (this.finalNCCCcount > 0) 
 					System.out.println("Number of NCCCs = " + formatter.format(this.finalNCCCcount));
 				
-				if (this.measureMsgs) {
-					
-					// Print the number of messages sent
-					int totalNbr = 0;
-					System.out.println("Number of messages sent (by type): ");
-					for (Map.Entry<String, Integer> entry : this.msgNbrs.entrySet()) {
-						int nbr = entry.getValue();
-						System.out.println("\t" + entry.getKey() + ":\t" + formatter.format(nbr));
-						totalNbr += nbr;
-					}
-					System.out.println("\t- Total:\t" + formatter.format(totalNbr));
-
-					// Print the amount of information sent
-					long totalSize = 0;
-					System.out.println("Amount of information sent (by type, in bytes): ");
-					for (Map.Entry<String, Long> entry : this.msgSizes.entrySet()) {
-						long size = entry.getValue();
-						System.out.println("\t" + entry.getKey() + ":\t" + formatter.format(size));
-						totalSize += size;
-					}
-					System.out.println("\t- Total:\t" + formatter.format(totalSize));
-					
-					// Print the maximum message size
-					long maxSize = 0;
-					System.out.println("Size of the largest message sent (by type, in bytes): ");
-					for (Map.Entry<String, Long> entry : this.maxMsgSizes.entrySet()) {
-						long size = entry.getValue();
-						System.out.println("\t" + entry.getKey() + ":\t" + formatter.format(size));
-						maxSize = Math.max(size, maxSize);
-					}
-					System.out.println("\t- Overall maximum:\t" + formatter.format(maxSize));
-				}
+				if (this.measureMsgs) 
+					AgentFactory.printMsgStats(this.msgNbrs, this.msgNbrsSentPerAgent, this.msgNbrsReceivedPerAgent, this.msgSizes, 
+							this.msgSizesSentPerAgent, this.msgSizesReceivedPerAgent, this.maxMsgSizes);
 				
 				cleanProblem();
 				Message newMsg = new Message(KILL_ALL_AGENTS);

@@ -79,7 +79,7 @@ public class DFSgenerationParallel < S extends Comparable <S> & Serializable > i
 	private class FakeQueue extends Queue {
 		
 		/** The candidate root */
-		private S root;
+		private final S root;
 		
 		/** For each internal variable, the DFSoutput message that is being held until it becomes clear that the candidate root is indeed a root */
 		private HashMap< String, MessageDFSoutput<?, ?> > dfsOutputMsgs = new HashMap< String, MessageDFSoutput<?, ?> > ();
@@ -529,10 +529,6 @@ public class DFSgenerationParallel < S extends Comparable <S> & Serializable > i
 			fakeQueue.notifyInListeners(new MessageLEoutput<S> (var, true, myScore));
 		}
 		
-		// Tell the DFS heuristic to start exchanging messages
-		if (this.dfsHeuristic != null) 
-			this.queue.sendMessageToSelf(new Message (DFSgeneration.START_MSG_TYPE));
-		
 		this.owners = this.problem.getOwners();
 		
 		this.started = true;
@@ -547,7 +543,7 @@ public class DFSgenerationParallel < S extends Comparable <S> & Serializable > i
 		FakeQueue fakeQueue = new FakeQueue (root);
 		this.queues.put(root, fakeQueue);
 		
-		// Create a DFS Generation module associated with this variable and tell it to start
+		// Create a DFS Generation module associated with this variable
 		try {
 			DFSgeneration<?, ?> dfsModule = this.dfsGenerationConstructor.newInstance(this.problem, this.dfsGenerationParams);
 			fakeQueue.addIncomingMessagePolicyForReal(dfsModule);
@@ -564,7 +560,6 @@ public class DFSgenerationParallel < S extends Comparable <S> & Serializable > i
 			System.err.println("The constructor of the DFSgeneration class has thrown an exception");
 			e.printStackTrace();
 		}
-		fakeQueue.notifyInListeners(new Message (DFSgeneration.START_MSG_TYPE));
 		
 		// Deliver the heuristic messages
 		for (Message message : this.heuristicMsgs) 

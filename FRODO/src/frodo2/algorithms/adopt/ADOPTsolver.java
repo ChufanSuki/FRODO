@@ -28,6 +28,7 @@ import java.util.HashMap;
 import org.jdom2.Document;
 
 import frodo2.algorithms.AbstractDCOPsolver;
+import frodo2.algorithms.SolutionWithConvergence;
 import frodo2.algorithms.StatsReporter;
 import frodo2.algorithms.varOrdering.dfs.DFSgeneration;
 import frodo2.solutionSpaces.Addable;
@@ -37,7 +38,7 @@ import frodo2.solutionSpaces.Addable;
  * @param <V> type used for variable values
  * @param <U> type used for utility values
  */
-public class ADOPTsolver< V extends Addable<V>, U extends Addable<U> > extends AbstractDCOPsolver< V, U, ADOPTsolution<V, U> > {
+public class ADOPTsolver< V extends Addable<V>, U extends Addable<U> > extends AbstractDCOPsolver< V, U, SolutionWithConvergence<V, U> > {
 
 	/** The ADOPT module */
 	private ADOPT<V, U> adoptModule;
@@ -155,14 +156,16 @@ public class ADOPTsolver< V extends Addable<V>, U extends Addable<U> > extends A
 
 	/** @see AbstractDCOPsolver#buildSolution() */
 	@Override
-	public ADOPTsolution<V, U> buildSolution () {
+	public SolutionWithConvergence<V, U> buildSolution () {
 
 		HashMap<String, Long> times = new HashMap<String, Long> ();
 		times.put(dfsModule.getClass().toString(), dfsModule.getFinalTime());
 		times.put(adoptModule.getClass().toString(), adoptModule.getFinalTime());
 		
-		return new ADOPTsolution<V, U> (0, adoptModule.getTotalOptUtil(), super.problem.getUtility(this.adoptModule.getOptAssignments()).getUtility(0), adoptModule.getOptAssignments(), 
-				factory.getNbrMsgs(), factory.getMsgNbrs(), factory.getTotalMsgSize(), factory.getMsgSizes(), factory.getOverallMaxMsgSize(), factory.getMaxMsgSizes(), 
+		return new SolutionWithConvergence<V, U> (this.problem.getNbrVars(), adoptModule.getTotalOptUtil(), super.problem.getUtility(this.adoptModule.getOptAssignments()).getUtility(0), adoptModule.getOptAssignments(), 
+				factory.getNbrMsgs(), factory.getMsgNbrs(), factory.getMsgNbrsSentPerAgent(), factory.getMsgNbrsReceivedPerAgent(), 
+				factory.getTotalMsgSize(), factory.getMsgSizes(), factory.getMsgSizesSentPerAgent(), factory.getMsgSizesReceivedPerAgent(), 
+				factory.getOverallMaxMsgSize(), factory.getMaxMsgSizes(), 
 				factory.getNcccs(), factory.getTime(), times, adoptModule.getAssignmentHistories());
 	}
 

@@ -89,6 +89,7 @@ public class AgentFactory < V extends Addable<V> > implements IncomingMsgPolicyI
 	 * @param agentDesc 		a JDOM Document describing the agent
 	 * @param port 				the port number on which the agent should listen
 	 * @return a new instance of an agent
+	 * @todo Make it possible to not have to manually choose the port number
 	 */
 	public static < V extends Addable<V> > AgentInterface<V> createAgent (QueueOutputPipeInterface toDaemonPipe, QueueOutputPipeInterface toControllerPipe, 
 			ProblemInterface<V, ?> probDesc, Document agentDesc, int port) {
@@ -294,8 +295,20 @@ public class AgentFactory < V extends Addable<V> > implements IncomingMsgPolicyI
 	/** For each message type, the number of messages sent of that type */
 	private TreeMap<String, Integer> msgNbrs = new TreeMap<String, Integer> ();
 
+	/** For each agent, the number of messages sent by that agent */
+	private TreeMap<Object, Integer> msgNbrsSentPerAgent = new TreeMap<Object, Integer> ();
+	
+	/** For each agent, the number of messages received by that agent */
+	private TreeMap<Object, Integer> msgNbrsReceivedPerAgent = new TreeMap<Object, Integer> ();
+	
 	/** For each message type, the total amount of information sent in messages of that type, in bytes */
 	private TreeMap<String, Long> msgSizes = new TreeMap<String, Long> ();
+	
+	/** For each agent, the total amount of information sent by that agent, in bytes */
+	private TreeMap<Object, Long> msgSizesSentPerAgent = new TreeMap<Object, Long> ();
+	
+	/** For each agent, the total amount of information received by that agent, in bytes */
+	private TreeMap<Object, Long> msgSizesReceivedPerAgent = new TreeMap<Object, Long> ();
 	
 	/** For each message type, the size (in bytes) of the largest message */
 	private TreeMap<String, Long> maxMsgSizes = new TreeMap<String, Long> ();
@@ -781,6 +794,25 @@ public class AgentFactory < V extends Addable<V> > implements IncomingMsgPolicyI
 							this.msgNbrs.put(msgType, nbr + entry.getValue());
 					}
 
+					// Increment nbrMsgsSent & Received
+					int totalSent = 0;
+					for (Map.Entry<Object, Integer> entry : msgCast.getMsgNbrsSent().entrySet()) {
+						Object toAgent = entry.getKey();
+						totalSent += entry.getValue();
+
+						Integer nbr = this.msgNbrsReceivedPerAgent.get(toAgent);
+						if (nbr == null) 
+							this.msgNbrsReceivedPerAgent.put(toAgent, entry.getValue());
+						else 
+							this.msgNbrsReceivedPerAgent.put(toAgent, nbr + entry.getValue());
+					}
+					Object sender = msgCast.getSender();
+					Integer nbr = this.msgNbrsSentPerAgent.get(sender);
+					if (nbr == null) 
+						this.msgNbrsSentPerAgent.put(sender, totalSent);
+					else 
+						this.msgNbrsSentPerAgent.put(sender, nbr + totalSent);
+					
 					// Increment msgSizes
 					for (Map.Entry<String, Long> entry : msgCast.getMsgSizes().entrySet()) {
 						String msgType = entry.getKey();
@@ -791,6 +823,24 @@ public class AgentFactory < V extends Addable<V> > implements IncomingMsgPolicyI
 						else 
 							this.msgSizes.put(msgType, size + entry.getValue());
 					}
+					
+					// Increment msgSizesSent & Received
+					long totalInfoSent = 0;
+					for (Map.Entry<Object, Long> entry : msgCast.getMsgSizesSent().entrySet()) {
+						Object toAgent = entry.getKey();
+						totalInfoSent += entry.getValue();
+
+						Long info = this.msgSizesReceivedPerAgent.get(toAgent);
+						if (info == null) 
+							this.msgSizesReceivedPerAgent.put(toAgent, entry.getValue());
+						else 
+							this.msgSizesReceivedPerAgent.put(toAgent, info + entry.getValue());
+					}
+					Long info = this.msgSizesSentPerAgent.get(sender);
+					if (info == null) 
+						this.msgSizesSentPerAgent.put(sender, totalInfoSent);
+					else 
+						this.msgSizesSentPerAgent.put(sender, info + totalInfoSent);
 					
 					// Update maxMsgSizes
 					for (Map.Entry<String, Long> entry : msgCast.getMaxMsgSizes().entrySet()) {
@@ -822,36 +872,9 @@ public class AgentFactory < V extends Addable<V> > implements IncomingMsgPolicyI
 						if (this.measureMsgs) {
 							
 							/// @todo Also report communication stats after a timeout. 
-
-							// Print the number of messages sent
-							int totalNbr = 0;
-							System.out.println("Number of messages sent (by type): ");
-							for (Map.Entry<String, Integer> entry : this.msgNbrs.entrySet()) {
-								int nbr = entry.getValue();
-								System.out.println("\t" + entry.getKey() + ":\t" + formatter.format(nbr));
-								totalNbr += nbr;
-							}
-							System.out.println("\t- Total:\t" + formatter.format(totalNbr));
-
-							// Print the amount of information sent
-							long totalSize = 0;
-							System.out.println("Amount of information sent (by type, in bytes): ");
-							for (Map.Entry<String, Long> entry : this.msgSizes.entrySet()) {
-								long size = entry.getValue();
-								System.out.println("\t" + entry.getKey() + ":\t" + formatter.format(size));
-								totalSize += size;
-							}
-							System.out.println("\t- Total:\t" + formatter.format(totalSize));
 							
-							// Print the maximum message size
-							long maxSize = 0;
-							System.out.println("Size of the largest message sent (by type, in bytes): ");
-							for (Map.Entry<String, Long> entry : this.maxMsgSizes.entrySet()) {
-								long size = entry.getValue();
-								System.out.println("\t" + entry.getKey() + ":\t" + formatter.format(size));
-								maxSize = Math.max(size, maxSize);
-							}
-							System.out.println("\t- Overall maximum:\t" + formatter.format(maxSize));
+							AgentFactory.printMsgStats(this.msgNbrs, this.msgNbrsSentPerAgent, this.msgNbrsReceivedPerAgent, this.msgSizes, 
+									this.msgSizesSentPerAgent, this.msgSizesReceivedPerAgent, this.maxMsgSizes);
 						}
 					}
 
@@ -883,6 +906,72 @@ public class AgentFactory < V extends Addable<V> > implements IncomingMsgPolicyI
 			}
 		}
 
+	}
+
+	/** Prints the message statistics
+	 * @param msgNbrs 					For each message type, the number of messages sent of that type
+	 * @param msgNbrsSentPerAgent 		For each agent, the number of messages sent by that agent
+	 * @param msgNbrsReceivedPerAgent 	For each agent, the number of messages received by that agent
+	 * @param msgSizes 					For each message type, the total amount of information sent in messages of that type, in bytes
+	 * @param msgSizesSentPerAgent 		For each agent, the total amount of information sent by that agent, in bytes
+	 * @param msgSizesReceivedPerAgent 	For each agent, the total amount of information received by that agent, in bytes
+	 * @param maxMsgSizes 				For each message type, the size (in bytes) of the largest message
+	 */
+	public static void printMsgStats(Map<String, Integer> msgNbrs,
+			Map<Object, Integer> msgNbrsSentPerAgent,
+			Map<Object, Integer> msgNbrsReceivedPerAgent,
+			Map<String, Long> msgSizes,
+			Map<Object, Long> msgSizesSentPerAgent,
+			Map<Object, Long> msgSizesReceivedPerAgent,
+			Map<String, Long> maxMsgSizes) {
+		
+		NumberFormat formatter = NumberFormat.getInstance();
+
+		// Print the number of messages sent and received
+		int totalNbr = 0;
+		System.out.println("Number of messages sent (by type): ");
+		for (Map.Entry<String, Integer> entry : msgNbrs.entrySet()) {
+			int nbr = entry.getValue();
+			System.out.println("\t" + entry.getKey() + ":\t" + formatter.format(nbr));
+			totalNbr += nbr;
+		}
+		System.out.println("\t- Total:\t" + formatter.format(totalNbr));
+		
+		System.out.println("Number of messages sent (by agent): ");
+		for (Map.Entry<Object, Integer> entry : msgNbrsSentPerAgent.entrySet()) 
+			System.out.println("\t" + entry.getKey() + ":\t" + formatter.format(entry.getValue()));
+
+		System.out.println("Number of messages received (by agent): ");
+		for (Map.Entry<Object, Integer> entry : msgNbrsReceivedPerAgent.entrySet()) 
+			System.out.println("\t" + entry.getKey() + ":\t" + formatter.format(entry.getValue()));
+
+		// Print the amount of information sent
+		long totalSize = 0;
+		System.out.println("Amount of information sent (by type, in bytes): ");
+		for (Map.Entry<String, Long> entry : msgSizes.entrySet()) {
+			long size = entry.getValue();
+			System.out.println("\t" + entry.getKey() + ":\t" + formatter.format(size));
+			totalSize += size;
+		}
+		System.out.println("\t- Total:\t" + formatter.format(totalSize));
+
+		System.out.println("Amount of information sent (by agent, in bytes): ");
+		for (Map.Entry<Object, Long> entry : msgSizesSentPerAgent.entrySet()) 
+			System.out.println("\t" + entry.getKey() + ":\t" + formatter.format(entry.getValue()));
+
+		System.out.println("Amount of information received (by agent, in bytes): ");
+		for (Map.Entry<Object, Long> entry : msgSizesReceivedPerAgent.entrySet()) 
+			System.out.println("\t" + entry.getKey() + ":\t" + formatter.format(entry.getValue()));
+
+		// Print the maximum message size
+		long maxSize = 0;
+		System.out.println("Size of the largest message sent (by type, in bytes): ");
+		for (Map.Entry<String, Long> entry : maxMsgSizes.entrySet()) {
+			long size = entry.getValue();
+			System.out.println("\t" + entry.getKey() + ":\t" + formatter.format(size));
+			maxSize = Math.max(size, maxSize);
+		}
+		System.out.println("\t- Overall maximum:\t" + formatter.format(maxSize));
 	}
 
 	/** Does nothing
@@ -937,6 +1026,16 @@ public class AgentFactory < V extends Addable<V> > implements IncomingMsgPolicyI
 		return this.msgNbrs;
 	}
 
+	/** @return the number of messages sent by each agent */
+	public TreeMap<Object, Integer> getMsgNbrsSentPerAgent() {
+		return msgNbrsSentPerAgent;
+	}
+
+	/** @return the number of messages received by each agent */
+	public TreeMap<Object, Integer> getMsgNbrsReceivedPerAgent() {
+		return msgNbrsReceivedPerAgent;
+	}
+
 	/**
 	 * @author Brammert Ottens, 24 aug 2009
 	 * @return the total amount of information that has been sent
@@ -945,6 +1044,16 @@ public class AgentFactory < V extends Addable<V> > implements IncomingMsgPolicyI
 		return this.msgSizes;
 	}
 	
+	/** @return the amount of information sent by each agent, in bytes */
+	public TreeMap<Object, Long> getMsgSizesSentPerAgent() {
+		return msgSizesSentPerAgent;
+	}
+
+	/** @return the amount of information received by each agent, in bytes */
+	public TreeMap<Object, Long> getMsgSizesReceivedPerAgent() {
+		return msgSizesReceivedPerAgent;
+	}
+
 	/** @return for each message type, the size (in bytes) of the largest message of that type */
 	public TreeMap<String, Long> getMaxMsgSizes() {
 		return this.maxMsgSizes;

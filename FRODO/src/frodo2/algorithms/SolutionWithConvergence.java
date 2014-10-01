@@ -20,14 +20,13 @@ How to contact the authors:
 <http://frodo2.sourceforge.net/>
 */
 
-package frodo2.algorithms.localSearch.dsa;
+package frodo2.algorithms;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.TreeMap;
 
-import frodo2.algorithms.ConvergenceInterface;
-import frodo2.algorithms.Solution;
 import frodo2.algorithms.StatsReporterWithConvergence.CurrentAssignment;
 import frodo2.solutionSpaces.Addable;
 
@@ -36,28 +35,37 @@ import frodo2.solutionSpaces.Addable;
  * @param <U> type used for utility values
  * @author Brammert Ottens, Thomas Leaute
  */
-public class DSAsolution<V extends Addable<V>, U> extends Solution <V, U> implements ConvergenceInterface<V> {
+public class SolutionWithConvergence<V extends Addable<V>, U> extends Solution <V, U> implements ConvergenceInterface<V> {
 
 	/** The assignment history for all the agents */
 	private HashMap<String, ArrayList<CurrentAssignment<V>>> assignmentHistories;
 	
 	/** Constructor 
-	 * @param nbrVariables		the total number of variables occuring in the problem
-	 * @param reportedUtil 		the reported optimal utility
-	 * @param trueUtil 			the true optimal utility
+	 * @param nbrVariables					the total number of variables occuring in the problem
+	 * @param reportedUtil 					the reported optimal utility
+	 * @param trueUtil 						the true optimal utility
 	 * @param assignments 					the optimal assignments
 	 * @param nbrMsgs						the total number of messages that have been sent
+	 * @param msgNbrs						the number of messages per message type
+	 * @param msgsNbrsSentPerAgent 			the number of message sent by each agent
+	 * @param msgsNbrsReceivedPerAgent 		the number of messages received by each agent
 	 * @param totalMsgSize					the total amount of information that has been exchanged (in bytes)
+	 * @param msgSizes						the amount of information per message type
+	 * @param msgSizesSentPerAgent 			the amount of information sent by each agent, in bytes
+	 * @param msgSizesReveivedPerAgent 		the amount of information received by each agent, in bytes
 	 * @param maxMsgSize 					the size (in bytes) of the largest message
+	 * @param maxMsgSizes 					for each message type, the size (in bytes) of the largest message of that type
 	 * @param ncccCount 					the ncccs used
 	 * @param timeNeeded 					the time needed to solve the problem
 	 * @param moduleEndTimes 				each module's end time
 	 * @param assignmentHistories 			the history of variable assignments
 	 */
-	public DSAsolution (int nbrVariables, U reportedUtil, U trueUtil, Map<String, V> assignments, int nbrMsgs, long totalMsgSize, long maxMsgSize, 
-			long ncccCount, long timeNeeded, HashMap<String, Long> moduleEndTimes, 
+	public SolutionWithConvergence (int nbrVariables, U reportedUtil, U trueUtil, Map<String, V> assignments, 
+			int nbrMsgs, TreeMap<String, Integer> msgNbrs, TreeMap<Object, Integer> msgsNbrsSentPerAgent, TreeMap<Object, Integer> msgsNbrsReceivedPerAgent, 
+			long totalMsgSize, TreeMap<String, Long> msgSizes, TreeMap<Object, Long> msgSizesSentPerAgent, TreeMap<Object, Long> msgSizesReveivedPerAgent, 
+			long maxMsgSize, TreeMap<String, Long> maxMsgSizes, long ncccCount, long timeNeeded, HashMap<String, Long> moduleEndTimes, 
 			HashMap< String, ArrayList< CurrentAssignment<V> > > assignmentHistories) {
-		super(nbrVariables, reportedUtil, trueUtil, assignments, nbrMsgs, totalMsgSize, maxMsgSize, ncccCount, timeNeeded, moduleEndTimes, 0, 0);
+		super(nbrVariables, reportedUtil, trueUtil, assignments, nbrMsgs, msgNbrs, msgsNbrsSentPerAgent, msgsNbrsReceivedPerAgent, totalMsgSize, msgSizes, msgSizesSentPerAgent, msgSizesReveivedPerAgent, maxMsgSize, maxMsgSizes, ncccCount, timeNeeded, moduleEndTimes, 0, 0);
 		this.assignmentHistories = assignmentHistories;
 	}
 

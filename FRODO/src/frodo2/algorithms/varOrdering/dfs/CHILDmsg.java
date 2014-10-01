@@ -49,6 +49,16 @@ public class CHILDmsg extends MessageWith3Payloads <String, String, Serializable
 		super (DFSgeneration.CHILD_MSG_TYPE, sender, dest, rootID);
 	}
 	
+	/** @see MessageWith3Payloads#toString() */
+	@Override
+	public String toString () {
+		return new StringBuffer ("Message(type = `").append(this.getType()).append("')\n")
+				.append("\tsender = ").append(this.getSender()).append("\n")
+				.append("\tdest   = ").append(this.getDest()).append("\n")
+				.append("\trootID = ").append(this.getRootID())
+				.toString();
+	}
+	
 	/** @see java.io.Externalizable#writeExternal(java.io.ObjectOutput) */
 	public void writeExternal(ObjectOutput out) throws IOException {
 		out.writeObject(this.getSender());

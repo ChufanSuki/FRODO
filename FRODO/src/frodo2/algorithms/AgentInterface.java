@@ -23,6 +23,9 @@ How to contact the authors:
 /** Package containing various algorithms */
 package frodo2.algorithms;
 
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -59,18 +62,46 @@ public interface AgentInterface < V extends Addable<V> > {
 	 */
 	public static class AgentFinishedMessage extends MessageWith3Payloads< HashMap<String, Integer>, HashMap<String, Long>, HashMap<String, Long> > {
 
+		/** The sender agent */
+		private Object sender;
+		
+		/** The number of messages sent to each other agent */
+		private HashMap<Object, Integer> msgNbrsSent;
+		
+		/** The amount of information sent to each other agent, in bytes */
+		private HashMap<Object, Long> msgSizesSent;
+		
 		/** Empty constructor used for externalization */
 		public AgentFinishedMessage () { }
 
 		/** Constructor
-		 * @param msgNbrs 		for each message type, the number of messages sent of that type
-		 * @param msgSizes 		for each message type, the total amount of information sent in messages of that type, in bytes
-		 * @param maxMsgSizes 	for each message type, the size (in bytes) of the largest message of this type
+		 * @param sender 			the sender agent
+		 * @param msgNbrs 			for each message type, the number of messages sent of that type
+		 * @param msgNbrsSent 		the number of messages sent to each other agent
+		 * @param msgSizes 			for each message type, the total amount of information sent in messages of that type, in bytes
+		 * @param msgSizesSent 		the amount of information sent to each other agent, in bytes
+		 * @param maxMsgSizes 		for each message type, the size (in bytes) of the largest message of this type
 		 */
-		public AgentFinishedMessage(HashMap<String, Integer> msgNbrs, HashMap<String, Long> msgSizes, HashMap<String, Long> maxMsgSizes) {
+		public AgentFinishedMessage(Object sender, HashMap<String, Integer> msgNbrs, HashMap<Object, Integer> msgNbrsSent, 
+				HashMap<String, Long> msgSizes, HashMap<Object, Long> msgSizesSent, HashMap<String, Long> maxMsgSizes) {
 			super(AGENT_FINISHED, msgNbrs, msgSizes, maxMsgSizes);
+			this.sender = sender;
+			this.msgNbrsSent = msgNbrsSent;
+			this.msgSizesSent = msgSizesSent;
 		}
 		
+		/** @return the sender agent */
+		public Object getSender() {
+			return sender;
+		}
+
+		/** Sets the sender agent
+		 * @param sender 	the sender agent
+		 */
+		public void setSender(Object sender) {
+			this.sender = sender;
+		}
+
 		/** @return for each message type, the number of messages sent of that type */
 		public HashMap<String, Integer> getMsgNbrs () {
 			return this.getPayload1();
@@ -86,11 +117,60 @@ public interface AgentInterface < V extends Addable<V> > {
 			return this.getPayload3();
 		}
 		
+		/** @return the number of messages sent to each other agent */
+		public HashMap<Object, Integer> getMsgNbrsSent() {
+			return msgNbrsSent;
+		}
+
+		/** Sets the number of messages sent to each other agent
+		 * @param msgNbrsSent 	the number of messages sent
+		 */
+		public void setMsgNbrsSent(HashMap<Object, Integer> msgNbrsSent) {
+			this.msgNbrsSent = msgNbrsSent;
+		}
+
+		/** @return the amount of information sent to each other agent, in bytes */
+		public HashMap<Object, Long> getMsgSizesSent() {
+			return msgSizesSent;
+		}
+
+		/** Sets the amount of information sent to each other agent, in bytes
+		 * @param msgSizesSent 	the amount of information sent
+		 */
+		public void setMsgSizesSent(HashMap<Object, Long> msgSizesSent) {
+			this.msgSizesSent = msgSizesSent;
+		}
+
+		/** @see MessageWith3Payloads#writeExternal(java.io.ObjectOutput) */
+		@Override
+		public void writeExternal(ObjectOutput out) throws IOException {
+			super.writeExternal(out);
+			out.writeObject(this.sender);
+			out.writeObject(this.msgNbrsSent);
+			out.writeObject(this.msgSizesSent);			
+		}
+
+		/** @see MessageWith3Payloads#readExternal(java.io.ObjectInput) */
+		@SuppressWarnings("unchecked")
+		@Override
+		public void readExternal(ObjectInput in) throws IOException,
+				ClassNotFoundException {
+			super.readExternal(in);
+			this.sender = in.readObject();
+			this.msgNbrsSent = (HashMap<Object, Integer>) in.readObject();
+			this.msgSizesSent = (HashMap<Object, Long>) in.readObject();
+		}
+
 		/** @see MessageWith3Payloads#toString() */
 		@Override
 		public String toString () {
-			return "Message(" + this.getType() + ")\n\tmsgNbrs = " + this.getMsgNbrs() + "\n\tmsgSizes = " + this.getMsgSizes() + 
-					"\n\tmaxMsgSizes = " + this.getMaxMsgSizes();
+			return "Message(" + this.getType() + ")"
+					+ "\n\tsender = " + this.sender
+					+ "\n\tmsgNbrs = " + this.getMsgNbrs() 
+					+ "\n\tmsgSizes = " + this.getMsgSizes() 
+					+ "\n\tmaxMsgSizes = " + this.getMaxMsgSizes()
+					+ "\n\tmsgNbrsSent = " + this.msgNbrsSent
+					+ "\n\tmsgSizesSent = " + this.msgSizesSent;					
 		}
 	}
 	

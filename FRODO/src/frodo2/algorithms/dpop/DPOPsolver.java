@@ -238,8 +238,10 @@ public class DPOPsolver< V extends Addable<V>, U extends Addable<U> > extends Ab
 		timesNeeded.put(valueModule.getClass().getName(), valueModule.getFinalTime());
 		long totalTime = factory.getTime();
 		
-		return new Solution<V, U> (nbrVariables, optUtil, super.problem.getUtility(solution, true).getUtility(0), solution, nbrMsgs, msgNbrs, 
-				totalMsgSize, msgSizes, maxMsgSize, maxMsgSizes, ncccs, totalTime, timesNeeded, maxMsgDim, numberOfCoordinationConstraints);
+		return new Solution<V, U> (nbrVariables, optUtil, super.problem.getUtility(solution, true).getUtility(0), solution, 
+				nbrMsgs, msgNbrs, this.factory.getMsgNbrsSentPerAgent(), this.factory.getMsgNbrsReceivedPerAgent(), 
+				totalMsgSize, msgSizes, this.factory.getMsgSizesSentPerAgent(), this.factory.getMsgSizesReceivedPerAgent(), 
+				maxMsgSize, maxMsgSizes, ncccs, totalTime, timesNeeded, maxMsgDim, numberOfCoordinationConstraints);
 	}
 	
 	/** @see AbstractDCOPsolver#clear() */

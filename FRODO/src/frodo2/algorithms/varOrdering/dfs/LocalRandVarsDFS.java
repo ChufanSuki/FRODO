@@ -133,6 +133,15 @@ public class LocalRandVarsDFS < V extends Addable<V>, U extends Addable<U> > ext
 		super.init();
 		this.randNeighborhoods = problem.getAnonymNeighborhoods();
 		this.neighborAgents = problem.getAgentNeighborhoods();
+		
+		// Go through the list of my own variables
+		for (Map.Entry< String, Collection<String> > entry : this.neighborAgents.entrySet()) {
+			String var = entry.getKey();
+
+			// Send the set of neighboring random variables of this variable to its neighboring agents
+			Collection<String> agents = entry.getValue();
+			this.queue.sendMessageToMulti(agents, new RandVarsMsg (var, new HashSet<String> (this.randNeighborhoods.get(var))));
+		}
 	}
 
 	/** @see DFSgeneration#getMsgTypes() */
@@ -140,7 +149,6 @@ public class LocalRandVarsDFS < V extends Addable<V>, U extends Addable<U> > ext
 	public Collection<String> getMsgTypes() {
 		Collection<String> types = super.getMsgTypes();
 		types.add(RAND_VARS_MSG_TYPE);
-		types.add(START_MSG_TYPE);
 		return types;
 	}
 
@@ -150,25 +158,11 @@ public class LocalRandVarsDFS < V extends Addable<V>, U extends Addable<U> > ext
 		
 		String msgType = msg.getType();
 		
-		if (msgType.equals(START_MSG_TYPE)) {
-			
-			// Parse the problem if it has not been done yet
-			if (! this.started) 
-				init();
-			
-			// Go through the list of my own variables
-			for (Map.Entry< String, Collection<String> > entry : this.neighborAgents.entrySet()) {
-				String var = entry.getKey();
+		// Parse the problem if it has not been done yet
+		if (! this.started) 
+			init();
 
-				// Send the set of neighboring random variables of this variable to its neighboring agents
-				Collection<String> agents = entry.getValue();
-				this.queue.sendMessageToMulti(agents, new RandVarsMsg (var, new HashSet<String> (this.randNeighborhoods.get(var))));
-			}
-
-			return;
-		}
-		
-		else if (msgType.equals(RAND_VARS_MSG_TYPE)) { // message containing random variables
+		if (msgType.equals(RAND_VARS_MSG_TYPE)) { // message containing random variables
 			
 			// Parse the problem if it has not been done yet
 			if (! this.started) 

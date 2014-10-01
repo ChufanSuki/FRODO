@@ -49,7 +49,10 @@ public class Solution<V, U> {
 	/** The time needed to solve the problem*/
 	protected long timeNeeded;
 	
-	/** The cumulative time needed for all agents to find a solution */
+	/** The cumulative time needed for all agents to find a solution 
+	 * @todo Apparently not used anywhere
+	 * @see "https://sourceforge.net/p/frodo2/support-requests/8/"
+	 */
 	protected long cumulativeTime;
 
 	/** For each module in the algorithm, the time at which it finished */
@@ -144,41 +147,53 @@ public class Solution<V, U> {
 	}
 	
 	/** Constructor 
-	 * @param reportedUtil 		the reported optimal utility
-	 * @param trueUtil 			the true optimal utility
-	 * @param assignments 		the optimal assignments
-	 * @param nbrMsgs			The total number of messages sent
-	 * @param msgNbrs			The number of messages sent per message type
-	 * @param totalMsgSize		The total message size
-	 * @param msgSizes 			The amount of information sent per message type
-	 * @param maxMsgSize 		the size (in bytes) of the largest message
-	 * @param maxMsgSizes 		for each message type, the size (in bytes) of the largest message of that type
-	 * @param ncccCount 		the ncccs used
-	 * @param timeNeeded 		the time needed to solve the problem
-	 * @param moduleEndTimes 	each module's end time
+	 * @param reportedUtil 				the reported optimal utility
+	 * @param trueUtil 					the true optimal utility
+	 * @param assignments 				the optimal assignments
+	 * @param nbrMsgs					The total number of messages sent
+	 * @param msgNbrs					The number of messages sent per message type
+	 * @param msgsNbrsSentPerAgent 		the number of message sent by each agent
+	 * @param msgsNbrsReceivedPerAgent 	the number of messages received by each agent
+	 * @param totalMsgSize				The total message size
+	 * @param msgSizes 					The amount of information sent per message type
+	 * @param msgSizesSentPerAgent 		the amount of information sent by each agent, in bytes
+	 * @param msgSizesReveivedPerAgent 	the amount of information received by each agent, in bytes
+	 * @param maxMsgSize 				the size (in bytes) of the largest message
+	 * @param maxMsgSizes 				for each message type, the size (in bytes) of the largest message of that type
+	 * @param ncccCount 				the ncccs used
+	 * @param timeNeeded 				the time needed to solve the problem
+	 * @param moduleEndTimes 			each module's end time
 	 */
-	public Solution (U reportedUtil, U trueUtil, Map<String, V> assignments, int nbrMsgs, TreeMap<String, Integer> msgNbrs, long totalMsgSize, TreeMap<String, Long> msgSizes, 
+	public Solution (U reportedUtil, U trueUtil, Map<String, V> assignments, 
+			int nbrMsgs, TreeMap<String, Integer> msgNbrs, TreeMap<Object, Integer> msgsNbrsSentPerAgent, TreeMap<Object, Integer> msgsNbrsReceivedPerAgent, 
+			long totalMsgSize, TreeMap<String, Long> msgSizes, TreeMap<Object, Long> msgSizesSentPerAgent, TreeMap<Object, Long> msgSizesReveivedPerAgent, 
 			long maxMsgSize, TreeMap<String, Long> maxMsgSizes, long ncccCount, long timeNeeded, HashMap<String, Long> moduleEndTimes) {
-		this(0, reportedUtil, trueUtil, assignments, nbrMsgs, msgNbrs, totalMsgSize, msgSizes, maxMsgSize, maxMsgSizes, ncccCount, timeNeeded, moduleEndTimes, 0);
+		this(0, reportedUtil, trueUtil, assignments, nbrMsgs, msgNbrs, msgsNbrsSentPerAgent, msgsNbrsReceivedPerAgent, totalMsgSize, msgSizes, msgSizesSentPerAgent, msgSizesReveivedPerAgent, maxMsgSize, maxMsgSizes, ncccCount, timeNeeded, moduleEndTimes, 0);
 	}
 	
 	/** Constructor 
-	 * @param nbrVariables		the total number of variables in the problem
-	 * @param reportedUtil 		the reported optimal utility
-	 * @param trueUtil 			the true optimal utility
-	 * @param assignments 		the optimal assignments
-	 * @param nbrMsgs			The total number of messages sent
-	 * @param msgNbrs			The number of messages sent per message type
-	 * @param totalMsgSize		The total message size
-	 * @param msgSizes 			The amount of information sent per message type
-	 * @param maxMsgSize 		the size (in bytes) of the largest message
-	 * @param maxMsgSizes 		for each message type, the size (in bytes) of the largest message of that type
-	 * @param ncccCount 		the ncccs used
-	 * @param timeNeeded 		the time needed to solve the problem
-	 * @param moduleEndTimes 	each module's end time
-	 * @param numberOfCoordinationConstraints the number of constraints that contain variables that are owned by different agents
+	 * @param nbrVariables						the total number of variables in the problem
+	 * @param reportedUtil 						the reported optimal utility
+	 * @param trueUtil 							the true optimal utility
+	 * @param assignments 						the optimal assignments
+	 * @param nbrMsgs							The total number of messages sent
+	 * @param msgNbrs							The number of messages sent per message type
+	 * @param msgsNbrsSentPerAgent 				the number of message sent by each agent
+	 * @param msgsNbrsReceivedPerAgent 			the number of messages received by each agent
+	 * @param totalMsgSize						The total message size
+	 * @param msgSizes 							The amount of information sent per message type
+	 * @param msgSizesSentPerAgent 				the amount of information sent by each agent, in bytes
+	 * @param msgSizesReveivedPerAgent 			the amount of information received by each agent, in bytes
+	 * @param maxMsgSize 						the size (in bytes) of the largest message
+	 * @param maxMsgSizes 						for each message type, the size (in bytes) of the largest message of that type
+	 * @param ncccCount 						the ncccs used
+	 * @param timeNeeded 						the time needed to solve the problem
+	 * @param moduleEndTimes 					each module's end time
+	 * @param numberOfCoordinationConstraints 	the number of constraints that contain variables that are owned by different agents
 	 */
-	public Solution (int nbrVariables, U reportedUtil, U trueUtil, Map<String, V> assignments, int nbrMsgs, TreeMap<String, Integer> msgNbrs, long totalMsgSize, TreeMap<String, Long> msgSizes, 
+	public Solution (int nbrVariables, U reportedUtil, U trueUtil, Map<String, V> assignments, 
+			int nbrMsgs, TreeMap<String, Integer> msgNbrs, TreeMap<Object, Integer> msgsNbrsSentPerAgent, TreeMap<Object, Integer> msgsNbrsReceivedPerAgent, 
+			long totalMsgSize, TreeMap<String, Long> msgSizes, TreeMap<Object, Long> msgSizesSentPerAgent, TreeMap<Object, Long> msgSizesReveivedPerAgent, 
 			long maxMsgSize, TreeMap<String, Long> maxMsgSizes, long ncccCount, long timeNeeded, HashMap<String, Long> moduleEndTimes, int numberOfCoordinationConstraints) {
 		this(nbrVariables, reportedUtil, trueUtil, assignments, nbrMsgs, totalMsgSize, maxMsgSize, ncccCount, timeNeeded, moduleEndTimes, numberOfCoordinationConstraints);
 		this.msgNbrs = msgNbrs;
@@ -187,50 +202,62 @@ public class Solution<V, U> {
 	}
 	
 	/** Constructor 
-	 * @param nbrVariables		the total number of variables in the problem
-	 * @param reportedUtil 		the reported optimal utility
-	 * @param trueUtil 			the true optimal utility
-	 * @param assignments 		the optimal assignments
-	 * @param nbrMsgs			The total number of messages sent
-	 * @param msgNbrs			The number of messages sent per message type
-	 * @param totalMsgSize		The total message size
-	 * @param msgSizes 			The amount of information sent per message type
-	 * @param maxMsgSize 		the size (in bytes) of the largest message
-	 * @param maxMsgSizes 		for each message type, the size (in bytes) of the largest message of that type
-	 * @param ncccCount 		the ncccs used
-	 * @param timeNeeded 		the time needed to solve the problem
-	 * @param moduleEndTimes 	each module's end time
-	 * @param treeWidth 		the width of the tree on which the algorithm has run
-	 * @param numberOfCoordinationConstraints the number of constraints that contain variables that are owned by different agents
+	 * @param nbrVariables						the total number of variables in the problem
+	 * @param reportedUtil 						the reported optimal utility
+	 * @param trueUtil 							the true optimal utility
+	 * @param assignments 						the optimal assignments
+	 * @param nbrMsgs							The total number of messages sent
+	 * @param msgNbrs							The number of messages sent per message type
+	 * @param msgsNbrsSentPerAgent 				the number of message sent by each agent
+	 * @param msgsNbrsReceivedPerAgent 			the number of messages received by each agent
+	 * @param totalMsgSize						The total message size
+	 * @param msgSizes 							The amount of information sent per message type
+	 * @param msgSizesSentPerAgent 				the amount of information sent by each agent, in bytes
+	 * @param msgSizesReveivedPerAgent 			the amount of information received by each agent, in bytes
+	 * @param maxMsgSize 						the size (in bytes) of the largest message
+	 * @param maxMsgSizes 						for each message type, the size (in bytes) of the largest message of that type
+	 * @param ncccCount 						the ncccs used
+	 * @param timeNeeded 						the time needed to solve the problem
+	 * @param moduleEndTimes 					each module's end time
+	 * @param treeWidth 						the width of the tree on which the algorithm has run
+	 * @param numberOfCoordinationConstraints 	the number of constraints that contain variables that are owned by different agents
 	 */
-	public Solution (int nbrVariables, U reportedUtil, U trueUtil, Map<String, V> assignments, int nbrMsgs, TreeMap<String, Integer> msgNbrs, long totalMsgSize, TreeMap<String, Long> msgSizes, 
+	public Solution (int nbrVariables, U reportedUtil, U trueUtil, Map<String, V> assignments, 
+			int nbrMsgs, TreeMap<String, Integer> msgNbrs, TreeMap<Object, Integer> msgsNbrsSentPerAgent, TreeMap<Object, Integer> msgsNbrsReceivedPerAgent, 
+			long totalMsgSize, TreeMap<String, Long> msgSizes, TreeMap<Object, Long> msgSizesSentPerAgent, TreeMap<Object, Long> msgSizesReveivedPerAgent, 
 			long maxMsgSize, TreeMap<String, Long> maxMsgSizes, long ncccCount, long timeNeeded, HashMap<String, Long> moduleEndTimes, int treeWidth, int numberOfCoordinationConstraints) {
-		this(nbrVariables, reportedUtil, trueUtil, assignments, nbrMsgs, msgNbrs, totalMsgSize, msgSizes, maxMsgSize, maxMsgSizes, ncccCount, timeNeeded, moduleEndTimes, numberOfCoordinationConstraints);
+		this(nbrVariables, reportedUtil, trueUtil, assignments, nbrMsgs, msgNbrs, msgsNbrsSentPerAgent, msgsNbrsReceivedPerAgent, totalMsgSize, msgSizes, msgSizesSentPerAgent, msgSizesReveivedPerAgent, maxMsgSize, maxMsgSizes, ncccCount, timeNeeded, moduleEndTimes, numberOfCoordinationConstraints);
 		this.treeWidth = treeWidth;
 		assert reportedUtil != null;
 	}
 	
 	/** Constructor 
-	 * @param nbrVariables		the total number of variables in the problem
-	 * @param reportedUtil 		the reported optimal utility
-	 * @param trueUtil 			the true optimal utility
-	 * @param assignments 		the optimal assignments
-	 * @param nbrMsgs			The total number of messages sent
-	 * @param msgNbrs			The number of messages sent per message type
-	 * @param totalMsgSize		The total message size
-	 * @param msgSizes 			The amount of information sent per message type
-	 * @param maxMsgSize 		the size (in bytes) of the largest message
-	 * @param maxMsgSizes 		for each message type, the size (in bytes) of the largest message of that type
-	 * @param ncccCount 		the ncccs used
-	 * @param timeNeeded 		the time needed to solve the problem
-	 * @param cumulativelTime	the cumulative time needed by all the agents to terminate
-	 * @param moduleEndTimes 	each module's end time
-	 * @param treeWidth 		the width of the tree on which the algorithm has run
-	 * @param numberOfCoordinationConstraints the number of constraints that contain variables that are owned by different agents
+	 * @param nbrVariables						the total number of variables in the problem
+	 * @param reportedUtil 						the reported optimal utility
+	 * @param trueUtil 							the true optimal utility
+	 * @param assignments 						the optimal assignments
+	 * @param nbrMsgs							The total number of messages sent
+	 * @param msgNbrs							The number of messages sent per message type
+	 * @param msgsNbrsSentPerAgent 				the number of message sent by each agent
+	 * @param msgsNbrsReceivedPerAgent 			the number of messages received by each agent
+	 * @param totalMsgSize						The total message size
+	 * @param msgSizes 							The amount of information sent per message type
+	 * @param msgSizesSentPerAgent 				the amount of information sent by each agent, in bytes
+	 * @param msgSizesReveivedPerAgent 			the amount of information received by each agent, in bytes
+	 * @param maxMsgSize 						the size (in bytes) of the largest message
+	 * @param maxMsgSizes 						for each message type, the size (in bytes) of the largest message of that type
+	 * @param ncccCount 						the ncccs used
+	 * @param timeNeeded 						the time needed to solve the problem
+	 * @param cumulativelTime					the cumulative time needed by all the agents to terminate
+	 * @param moduleEndTimes 					each module's end time
+	 * @param treeWidth 						the width of the tree on which the algorithm has run
+	 * @param numberOfCoordinationConstraints 	the number of constraints that contain variables that are owned by different agents
 	 */
-	public Solution (int nbrVariables, U reportedUtil, U trueUtil, Map<String, V> assignments, int nbrMsgs, TreeMap<String, Integer> msgNbrs, long totalMsgSize, TreeMap<String, Long> msgSizes, 
+	public Solution (int nbrVariables, U reportedUtil, U trueUtil, Map<String, V> assignments, 
+			int nbrMsgs, TreeMap<String, Integer> msgNbrs, TreeMap<Object, Integer> msgsNbrsSentPerAgent, TreeMap<Object, Integer> msgsNbrsReceivedPerAgent, 
+			long totalMsgSize, TreeMap<String, Long> msgSizes, TreeMap<Object, Long> msgSizesSentPerAgent, TreeMap<Object, Long> msgSizesReveivedPerAgent, 
 			long maxMsgSize, TreeMap<String, Long> maxMsgSizes, long ncccCount, long timeNeeded, long cumulativelTime, HashMap<String, Long> moduleEndTimes, int treeWidth, int numberOfCoordinationConstraints) {
-		this(nbrVariables, reportedUtil, trueUtil, assignments, nbrMsgs, msgNbrs, totalMsgSize, msgSizes, maxMsgSize, maxMsgSizes, ncccCount, timeNeeded, moduleEndTimes, numberOfCoordinationConstraints);
+		this(nbrVariables, reportedUtil, trueUtil, assignments, nbrMsgs, msgNbrs, msgsNbrsSentPerAgent, msgsNbrsReceivedPerAgent, totalMsgSize, msgSizes, msgSizesSentPerAgent, msgSizesReveivedPerAgent, maxMsgSize, maxMsgSizes, ncccCount, timeNeeded, moduleEndTimes, numberOfCoordinationConstraints);
 		this.treeWidth = treeWidth;
 		this.cumulativeTime = cumulativelTime;
 		assert reportedUtil != null;

@@ -28,6 +28,7 @@ import org.jdom2.Document;
 import org.jdom2.Element;
 
 import frodo2.algorithms.AbstractDCOPsolver;
+import frodo2.algorithms.SolutionWithConvergence;
 import frodo2.algorithms.StatsReporter;
 import frodo2.algorithms.varOrdering.linear.LinearOrdering;
 import frodo2.gui.DOTrenderer;
@@ -38,7 +39,7 @@ import frodo2.solutionSpaces.Addable;
  * @param <V> type used for variable values
  * @param <U> type used for utility values
  */
-public class SynchBBsolver< V extends Addable<V>, U extends Addable<U> > extends AbstractDCOPsolver< V, U, SynchBBsolution<V, U> > {
+public class SynchBBsolver< V extends Addable<V>, U extends Addable<U> > extends AbstractDCOPsolver< V, U, SolutionWithConvergence<V, U> > {
 
 	/** The SynchBB module */
 	protected SynchBB<V, U> module;
@@ -155,9 +156,11 @@ public class SynchBBsolver< V extends Addable<V>, U extends Addable<U> > extends
 	
 	/** @see AbstractDCOPsolver#buildSolution() */
 	@Override
-	public SynchBBsolution<V, U> buildSolution () {
-		return new SynchBBsolution<V, U> (0, module.getOptCost(), super.problem.getUtility(this.module.getOptAssignments(), true).getUtility(0), module.getOptAssignments(), 
-				factory.getNbrMsgs(), factory.getMsgNbrs(), factory.getTotalMsgSize(), factory.getMsgSizes(), factory.getOverallMaxMsgSize(), factory.getMaxMsgSizes(), 
+	public SolutionWithConvergence<V, U> buildSolution () {
+		return new SolutionWithConvergence<V, U> (this.problem.getNbrVars(), module.getOptCost(), super.problem.getUtility(this.module.getOptAssignments(), true).getUtility(0), module.getOptAssignments(), 
+				factory.getNbrMsgs(), factory.getMsgNbrs(), factory.getMsgNbrsSentPerAgent(), factory.getMsgNbrsReceivedPerAgent(), 
+				factory.getTotalMsgSize(), factory.getMsgSizes(), factory.getMsgSizesSentPerAgent(), factory.getMsgSizesReceivedPerAgent(), 
+				factory.getOverallMaxMsgSize(), factory.getMaxMsgSizes(), 
 				factory.getNcccs(), factory.getTime(), null, module.getAssignmentHistories());
 	}
 	

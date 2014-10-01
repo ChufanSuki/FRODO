@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import org.jdom2.Document;
 
 import frodo2.algorithms.AbstractDCOPsolver;
+import frodo2.algorithms.SolutionWithConvergence;
 import frodo2.algorithms.StatsReporter;
 import frodo2.solutionSpaces.Addable;
 
@@ -35,7 +36,7 @@ import frodo2.solutionSpaces.Addable;
  * @param <U> type used for utility values
  * @author Alexandra Olteanu, Thomas Leaute
  */
-public class AFBsolver< V extends Addable<V>, U extends Addable<U> > extends AbstractDCOPsolver< V, U, AFBsolution<V, U> > {
+public class AFBsolver< V extends Addable<V>, U extends Addable<U> > extends AbstractDCOPsolver< V, U, SolutionWithConvergence<V, U> > {
 
 	/** The AFB module */
 	protected AFB<V, U> module;
@@ -104,9 +105,11 @@ public class AFBsolver< V extends Addable<V>, U extends Addable<U> > extends Abs
 	
 	/** @see AbstractDCOPsolver#buildSolution() */
 	@Override
-	public AFBsolution<V, U> buildSolution () {
-		return new AFBsolution<V, U> (0, module.getOptCost(), super.problem.getUtility(this.module.getOptAssignments()).getUtility(0), module.getOptAssignments(), 
-				factory.getNbrMsgs(), factory.getMsgNbrs(), factory.getTotalMsgSize(), factory.getMsgSizes(), factory.getOverallMaxMsgSize(), factory.getMaxMsgSizes(), 
+	public SolutionWithConvergence<V, U> buildSolution () {
+		return new SolutionWithConvergence<V, U> (this.problem.getNbrVars(), module.getOptCost(), super.problem.getUtility(this.module.getOptAssignments()).getUtility(0), module.getOptAssignments(), 
+				factory.getNbrMsgs(), factory.getMsgNbrs(), factory.getMsgNbrsSentPerAgent(), factory.getMsgNbrsReceivedPerAgent(), 
+				factory.getTotalMsgSize(), factory.getMsgSizes(), factory.getMsgSizesSentPerAgent(), factory.getMsgSizesReceivedPerAgent(), 
+				factory.getOverallMaxMsgSize(), factory.getMaxMsgSizes(), 
 				factory.getNcccs(), factory.getTime(), null, module.getAssignmentHistories());
 	}
 	

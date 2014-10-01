@@ -23,12 +23,14 @@ How to contact the authors:
 package frodo2.algorithms.localSearch.dsa;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 import org.jdom2.Document;
 import org.jdom2.Element;
 
 import frodo2.algorithms.AbstractDCOPsolver;
+import frodo2.algorithms.SolutionWithConvergence;
 import frodo2.algorithms.StatsReporter;
 import frodo2.solutionSpaces.Addable;
 
@@ -41,7 +43,7 @@ import frodo2.solutionSpaces.Addable;
  * @param <U> 	type used for utility values
  *
  */
-public class DSAsolver < V extends Addable<V>, U extends Addable<U> > extends AbstractDCOPsolver< V, U, DSAsolution<V, U> > {
+public class DSAsolver < V extends Addable<V>, U extends Addable<U> > extends AbstractDCOPsolver< V, U, SolutionWithConvergence<V, U> > {
 	
 	/** The DSA module */
 	protected DSA<V, U> dsaModule;
@@ -166,10 +168,14 @@ public class DSAsolver < V extends Addable<V>, U extends Addable<U> > extends Ab
 		
 	/** @see AbstractDCOPsolver#buildSolution() */
 	@Override
-	public DSAsolution<V, U> buildSolution() {
+	public SolutionWithConvergence<V, U> buildSolution() {
 		
-		return new DSAsolution<V, U> (0, dsaModule.getFinalUtility(), super.problem.getUtility(this.dsaModule.getFinalAssignments()).getUtility(0), 
-				dsaModule.getFinalAssignments(), factory.getNbrMsgs(), factory.getTotalMsgSize(), factory.getOverallMaxMsgSize(), factory.getNcccs(), factory.getTime(), null, dsaModule.getAssignmentHistories());
+		HashMap<String, Long> timesNeeded = new HashMap<String, Long> ();
+
+		return new SolutionWithConvergence<V, U> (super.problem.getNbrVars(), dsaModule.getFinalUtility(), super.problem.getUtility(this.dsaModule.getFinalAssignments()).getUtility(0), dsaModule.getFinalAssignments(), 
+				factory.getNbrMsgs(), factory.getMsgNbrs(), factory.getMsgNbrsSentPerAgent(), factory.getMsgNbrsReceivedPerAgent(), 
+				factory.getTotalMsgSize(), factory.getMsgSizes(), factory.getMsgSizesSentPerAgent(), factory.getMsgSizesReceivedPerAgent(), 
+				factory.getOverallMaxMsgSize(), factory.getMaxMsgSizes(), factory.getNcccs(), factory.getTime(), timesNeeded, dsaModule.getAssignmentHistories());
 	}
 
 	/** @see AbstractDCOPsolver#clear() */

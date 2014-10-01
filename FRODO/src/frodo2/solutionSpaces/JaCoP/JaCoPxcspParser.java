@@ -260,7 +260,7 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 		String owner = constraint.getAttributeValue("agent");
 
 		//int arity = Integer.valueOf(constraint.getAttributeValue("arity"));
-		String scope = constraint.getAttributeValue("scope");
+		String scope = constraint.getAttributeValue("scope").trim();
 
 		Pattern pattern = Pattern.compile("\\s+");
 
@@ -288,6 +288,7 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 			variables_domain[no] = variablesHashMap.get(n);
 			assert Math.log((double) size) + Math.log((double) variables_domain[no].length) < Math.log(Integer.MAX_VALUE) : 
 				"Size of utility array too big for an int";
+			assert variables_domain[no] != null : "Unkonwn domain for variable `" + n + "'";
 			size *= variables_domain[no].length;
 		}
 

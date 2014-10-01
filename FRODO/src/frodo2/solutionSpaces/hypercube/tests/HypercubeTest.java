@@ -301,7 +301,7 @@ public class HypercubeTest extends TestCase {
 			h3 = h3.join(hypercubes[i], total_variables);
 		}
 		
-		assertTrue(h2.equals(h3));
+		assertTrue(h2 + " != " + h3, h2.equivalent(h3));
 		
 		//join using the second implementation of the join operation
 		h3 = h1;
@@ -309,7 +309,7 @@ public class HypercubeTest extends TestCase {
 			h3 = (Hypercube<AddableInteger, AddableInteger>) h3.join(hypercubes[i], total_variables);
 		}
 		
-		assertTrue(h2.equals(h3));
+		assertTrue(h2 + " != " + h3, h2.equivalent(h3));
 	}
 	
 	/** This method creates two random hypercubes change the variables order of the second hypercube so that
@@ -390,9 +390,9 @@ public class HypercubeTest extends TestCase {
 		UtilitySolutionSpace<AddableInteger, AddableInteger> h5 = ((Hypercube<AddableInteger, AddableInteger>) h2.project( variables2, maximize ).getSpace()).join( (Hypercube<AddableInteger, AddableInteger>) h1.project( variables1, maximize ).getSpace(), total_variables );
 		
 		UtilitySolutionSpace<AddableInteger, AddableInteger> h6 = ((Hypercube<AddableInteger, AddableInteger>) h1.join( h2, total_variables ).project( variables1, maximize ).getSpace()).project( variables2, maximize ).getSpace();
-		assertTrue( h5.equals(h6) );
+		assertTrue( h5 + " != " + h6, h5.equivalent(h6) );
 		
-		assertTrue( h4.equals(h5) );
+		assertTrue( h4 + " != " + h5, h4.equivalent(h5) );
 	}
 	
 	/** This method creates a random hypercube and a random array of variables, then checks that the result of the projection of these variables out of the hypercube

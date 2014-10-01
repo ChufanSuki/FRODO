@@ -97,8 +97,14 @@ public class Queue implements Runnable {
 	/** For each message type, the number of messages sent of that type */
 	protected HashMap<String, Integer> msgNbrs;
 	
+	/** The number of messages sent to each other agent */
+	private HashMap<Object, Integer> msgNbrsSent;
+	
 	/** For each message type, the total amount of information sent in messages of that type, in bytes */
 	protected HashMap<String, Long> msgSizes;
+	
+	/** The amount of information sent to each other agent, in bytes */
+	private HashMap<Object, Long> msgSizesSent;
 	
 	/** For each message type, the size (in bytes) of the largest message of that type */
 	protected HashMap<String, Long> maxMsgSizes;
@@ -139,7 +145,9 @@ public class Queue implements Runnable {
 		this.measureMsgs = measureMsgs;
 		if (this.measureMsgs) {
 			this.msgNbrs = new HashMap<String, Integer> ();
+			this.msgNbrsSent = new HashMap<Object, Integer> ();
 			this.msgSizes = new HashMap<String, Long> ();
+			this.msgSizesSent = new HashMap<Object, Long> ();
 			this.maxMsgSizes = new HashMap<String, Long> ();
 			try {
 				this.monitor = new MsgSizeMonitor ();
@@ -456,8 +464,15 @@ public class Queue implements Runnable {
 		else 
 			this.msgNbrs.put(type, nbr + 1);
 		
+		nbr = this.msgNbrsSent.get(to);
+		if (nbr == null) 
+			this.msgNbrsSent.put(to, 1);
+		else 
+			this.msgNbrsSent.put(to, nbr + 1);
+		
 		// Increment msgSizes
 		Long totalSize = this.msgSizes.get(type);
+		Long sizeTo = this.msgSizesSent.get(to);
 		Long maxSize = this.maxMsgSizes.get(type);
 		try {
 			Long size = this.monitor.getMsgSize(to, msg);
@@ -466,6 +481,11 @@ public class Queue implements Runnable {
 				this.msgSizes.put(type, size);
 			else 
 				this.msgSizes.put(type, totalSize + size);
+			
+			if (sizeTo == null) 
+				this.msgSizesSent.put(to, size);
+			else 
+				this.msgSizesSent.put(to, sizeTo + size);
 			
 			if (maxSize == null || size > maxSize) 
 				this.maxMsgSizes.put(type, size);
@@ -671,11 +691,21 @@ public class Queue implements Runnable {
 		return msgNbrs;
 	}
 
+	/** @return the number of messages sent to each other agent */
+	public HashMap<Object, Integer> getMsgNbrsSent() {
+		return msgNbrsSent;
+	}
+
 	/** @return for each message type, the total amount of information sent in messages of that type, in bytes */
 	public HashMap<String, Long> getMsgSizes() {
 		return msgSizes;
 	}
 	
+	/** @return the amount of information sent to each other agent, in bytes */
+	public HashMap<Object, Long> getMsgSizesSent() {
+		return msgSizesSent;
+	}
+
 	/** @return for each message type, the size (in bytes) of the largest message of that type */
 	public HashMap<String, Long> getMaxMsgSizes() {
 		return maxMsgSizes;
@@ -686,7 +716,9 @@ public class Queue implements Runnable {
 		
 		if (this.measureMsgs) {
 			this.msgNbrs = new HashMap<String, Integer> ();
+			this.msgNbrsSent = new HashMap<Object, Integer> ();
 			this.msgSizes = new HashMap<String, Long> ();
+			this.msgSizesSent = new HashMap<Object, Long> ();			
 			this.maxMsgSizes = new HashMap<String, Long> ();
 		}
 		if(this.problem != null) 

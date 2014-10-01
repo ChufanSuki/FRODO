@@ -1,3 +1,16 @@
+CHANGES IN VERSION 2.11.3 SINCE VERSION 2.11.2
+
+Major changes: 
+	- Upgraded to JaCoP version 4.1.0; the new JAR file must be manually downloaded from the JaCoP website and put in FRODO's lib folder. 
+	- FRODO now reports the number and total size of messages sent and received by each agent (request by Shijie Li from TU Delft). 
+	- Fixed a bug following which too many heuristic score messages were exchanged by the DFSgenerationParallel module (reported by Yang Xiaolei).
+	
+Minor changes: 
+	- Fixed a bug in the XCSP parser when a constraint scope had trailing spaces (reported by Dimitrios Athanasiadis, University of Strathclyde). 
+	- Added an assert in the parser to catch references to non-defined variables (reported by Dimitrios Athanasiadis, University of Strathclyde). 
+	- Deleted a few duplicate Solution classes and replaced them with the new class SolutionWithConvergence
+
+
 CHANGES IN VERSION 2.11.2 SINCE VERSION 2.11.1
 
 Major changes: 

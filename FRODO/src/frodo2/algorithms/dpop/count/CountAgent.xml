@@ -34,7 +34,6 @@ How to contact the authors:
 	<!-- The XCSP parser
 		- parserClass: the class of the parser/subsolver to be used. Currently supported:
 			- frodo2.algorithms.XCSPparser: the default parser that does not consider local subproblems
-			- frodo2.solutionSpaces.JaCoP.JaCoPxcspParser: a parser based on JaCoP that can be used for DCOPs with complex local subproblems
 		- displayGraph: if true, displays the constraint graph in DOT format (default = false)
 		- domClass: the class to be used for variable values; the supported values are: 
 			- frodo2.solutionSpaces.AddableInteger 	(default) for integer-valued variables
