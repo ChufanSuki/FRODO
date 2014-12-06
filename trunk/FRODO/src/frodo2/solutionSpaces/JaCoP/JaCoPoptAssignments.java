@@ -31,8 +31,10 @@ import org.jacop.core.IntVar;
 import org.jacop.core.Store;
 import org.jacop.search.DepthFirstSearch;
 import org.jacop.search.IndomainMin;
-import org.jacop.search.InputOrderSelect;
+import org.jacop.search.MostConstrainedDynamic;
 import org.jacop.search.Search;
+import org.jacop.search.SimpleSelect;
+import org.jacop.search.SmallestDomain;
 
 import frodo2.solutionSpaces.Addable;
 import frodo2.solutionSpaces.AddableInteger;
@@ -241,7 +243,8 @@ public class JaCoPoptAssignments implements BasicUtilitySolutionSpace< AddableIn
 		// Debug information
 		search.setPrintInfo(false);
 			
-		boolean result = search.labeling(store, new InputOrderSelect<IntVar> (store, searchedVars, new IndomainMin<IntVar>()), utilVar);
+		boolean result = search.labeling(store, new SimpleSelect<IntVar> (searchedVars, 
+				new SmallestDomain<IntVar>(), new MostConstrainedDynamic<IntVar>(), new IndomainMin<IntVar>()), utilVar);	
 			
 		if(!result){
 			// The problem is infeasible, we can choose any assignment to each projected variable

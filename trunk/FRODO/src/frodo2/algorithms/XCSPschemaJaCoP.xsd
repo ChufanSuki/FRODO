@@ -467,7 +467,7 @@ where variable values and utility values can be integer numbers, infinity or -in
 					<xs:element name="parameters" minOccurs="1" maxOccurs="1">
 						<xs:annotation>
 							<xs:documentation>3 things in sequence: 
-							1) a (bracketed) list of (curly-bracketed) pairs of { coeff, var }
+							1) a (bracketed) list of (curly-bracketed) pairs of { coeff var }
 							2) a comparison operator, as a tag whose name is either "eq", "ne", "ge", "gt", "le" or "lt"
 							3) the right-hand-side constant</xs:documentation>
 						</xs:annotation>

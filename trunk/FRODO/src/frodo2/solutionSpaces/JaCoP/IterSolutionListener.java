@@ -23,7 +23,6 @@ How to contact the authors:
 package frodo2.solutionSpaces.JaCoP;
 
 import java.util.IdentityHashMap;
-
 import java.util.Iterator;
 import java.util.concurrent.locks.Condition;
 
@@ -32,9 +31,12 @@ import org.jacop.core.Store;
 import org.jacop.search.DepthFirstSearch;
 import org.jacop.search.IndomainMin;
 import org.jacop.search.InputOrderSelect;
+import org.jacop.search.MostConstrainedDynamic;
 import org.jacop.search.Search;
 import org.jacop.search.SelectChoicePoint;
+import org.jacop.search.SimpleSelect;
 import org.jacop.search.SimpleSolutionListener;
+import org.jacop.search.SmallestDomain;
 
 
 /** This solution listener is a part of the JaCoPutilSpace iterator that allows us to simulate a JaCoP master/slave search combination
@@ -112,7 +114,8 @@ public class IterSolutionListener extends SimpleSolutionListener<IntVar> {
 		// We need to project some variables
 		if(projectedVars.length != 0){
 			
-			slaveSearch.labeling(store, new InputOrderSelect<IntVar> (store, this.projectedVars, new IndomainMin<IntVar>()), utilVar);	
+			slaveSearch.labeling(store, new SimpleSelect<IntVar> (this.projectedVars, 
+					new SmallestDomain<IntVar>(), new MostConstrainedDynamic<IntVar>(), new IndomainMin<IntVar>()), utilVar);	
 			
 		// There is no delayed projection to perform
 		}else{

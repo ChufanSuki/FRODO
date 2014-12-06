@@ -27,9 +27,12 @@ import org.jacop.core.IntVar;
 import org.jacop.core.Store;
 import org.jacop.search.DepthFirstSearch;
 import org.jacop.search.IndomainMin;
-import org.jacop.search.InputOrderSelect;
+import org.jacop.search.MostConstrainedDynamic;
 import org.jacop.search.Search;
+import org.jacop.search.SimpleSelect;
+import org.jacop.search.SmallestDomain;
 import org.jacop.search.SolutionListener;
+
 import frodo2.solutionSpaces.Addable;
 import frodo2.solutionSpaces.AddableInteger;
 import frodo2.solutionSpaces.UtilitySolutionSpace.Iterator;
@@ -191,7 +194,8 @@ public class JaCoPutilSpaceIterBestFirst < U extends Addable<U> > implements Ite
 
 		// Debug information
 		search.setPrintInfo(false);
-		boolean result = search.labeling(store, new InputOrderSelect<IntVar> (store, allVars, new IndomainMin<IntVar>()), utilVar);
+		boolean result = search.labeling(store, new SimpleSelect<IntVar> (allVars, 
+				new SmallestDomain<IntVar>(), new MostConstrainedDynamic<IntVar>(), new IndomainMin<IntVar>()), utilVar);	
 
 		if(!result){
 			return this.space.infeasibleUtil;
@@ -241,7 +245,8 @@ public class JaCoPutilSpaceIterBestFirst < U extends Addable<U> > implements Ite
 
 		// Debug information
 		search.setPrintInfo(false);
-		boolean result = search.labeling(store, new InputOrderSelect<IntVar> (store, allVars, new IndomainMin<IntVar>()));
+		boolean result = search.labeling(store, new SimpleSelect<IntVar> (allVars, 
+				new SmallestDomain<IntVar>(), new MostConstrainedDynamic<IntVar>(), new IndomainMin<IntVar>()));	
 
 		if(!result){
 			return 0;
@@ -313,7 +318,8 @@ public class JaCoPutilSpaceIterBestFirst < U extends Addable<U> > implements Ite
 		/// @bug Projected variables are not being projected; the resulting solution list might contain two solutions that only differ on the projected variables, which should not happen
 		assert this.space.getProjectedVars().length == 0 : "Iteration over a space with projected variables is currently unsupported";
 		
-		boolean result = search.labeling(store, new InputOrderSelect<IntVar> (store, allVars, new IndomainMin<IntVar>()));
+		boolean result = search.labeling(store, new SimpleSelect<IntVar> (allVars, 
+				new SmallestDomain<IntVar>(), new MostConstrainedDynamic<IntVar>(), new IndomainMin<IntVar>()));	
 
 		if(!result){
 			// No solution

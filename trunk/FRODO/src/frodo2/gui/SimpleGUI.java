@@ -513,7 +513,7 @@ public class SimpleGUI extends JFrame implements ActionListener, ItemListener {
 		// Check if JaCoP is available
 		boolean enableJaCoP = true;
 		try {
-			Class.forName("JaCoP.core.Store");
+			Class.forName("org.jacop.core.Store");
 		} catch (ClassNotFoundException e) {
 			enableJaCoP = false;
 		}

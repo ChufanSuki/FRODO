@@ -114,9 +114,14 @@ public class Predicate extends DecomposedConstraint{
 			
 			Var temp = store.findVariable(name);
 			
-			if (temp == null)
-				variableMaping.put(nextToken, Integer.valueOf(name));
-			else
+			if (temp == null) {
+				try {
+					variableMaping.put(nextToken, Integer.valueOf(name));
+				} catch (NumberFormatException e) {
+					throw new NumberFormatException ("Unexpected parameter `" + name + 
+							"' in predicate-based constraint is neither a valid constant nor a matching variable in scope");
+				}
+			} else
 				variableMaping.put(nextToken, temp);
 
 		}
@@ -124,8 +129,8 @@ public class Predicate extends DecomposedConstraint{
 		if (debug)
 			System.out.println(variableMaping);
 
-		/// TODO, test if trimming spaces does not cause problems.
-		description = description.replace(" ", "");
+		// Remove all spaces, line terminators and tabs
+		description = description.replace(" ", "").replace("\n", "").replace("\t", "");
 		
 		tokenizer = new StringTokenizer(description, "(,)");
 

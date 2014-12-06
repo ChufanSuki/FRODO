@@ -191,7 +191,7 @@ def runAtDepth (depth, indent, genParams):
         print(indent + str([generator] + genParams))
         subprocess.call([java] + javaParams + [generator] + genParams, stdout = -1)
         
-        # First write experimental results for the current problem instance a temporary file
+        # First write experimental results for the current problem instance into a temporary file
         tmpFileName = ".current_run.csv"
         if os.path.exists(tmpFileName): 
             os.remove(tmpFileName)

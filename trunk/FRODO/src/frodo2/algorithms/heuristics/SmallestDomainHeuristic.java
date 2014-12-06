@@ -50,7 +50,7 @@ public class SmallestDomainHeuristic implements ScoringHeuristic<Short> {
 		
 		Map<String, Short> scores = new HashMap<String, Short> (this.problem.getNbrVars());
 		for (String var : this.problem.getVariables()) {
-			assert this.problem.getDomainSize(var) < - Short.MIN_VALUE;
+			assert this.problem.getDomainSize(var) < - Short.MIN_VALUE : "Domain of variable `" + var + "' is too large to fit in a short";
 			scores.put(var, (short) - this.problem.getDomainSize(var));
 		}
 		

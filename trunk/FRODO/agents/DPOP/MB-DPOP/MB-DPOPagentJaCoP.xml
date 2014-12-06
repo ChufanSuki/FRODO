@@ -134,7 +134,7 @@ How to contact the authors:
 		<module className = "frodo2.algorithms.dpop.memory.LabelingPhase" 
 				reportStats = "true" 
 				DOTrenderer = "" 
-				maxDim = "10" />
+				maxDim = "7" />
 		
 		<!-- MB-DPOP's memory-bounded UTIL propagation phase -->
 		<module className = "frodo2.algorithms.dpop.memory.MemoryBoundedUTIL" 

@@ -1,3 +1,17 @@
+CHANGES IN VERSION 2.12 SINCE VERSION 2.11.3
+
+Major changes: 
+	- Significant performance improvements to the interface with JaCoP: 
+		- 1.5x speedups for AFB and 2x speedups for DPOP on medium-sized graph coloring problems; 
+		- 4.5x speedups for AFB and 5x speedups for DPOP on medium-sized, high-tightness, random Max-DisCSPs; 
+		- much higher speedups can be expected on problem domains with complex, local subproblems. 
+	- The FRODO GUI now lists JaCoP-based agents again (bug 51, reported by Dimitrios Athanasiadis, from University of Strathclyde). 
+	
+Minor changes: 
+	- Improved the robustness of the JaCoP-based XCSP parser to tabs and line breaks in predicates. 
+	- Improved several error messages to make them more explicit. 
+
+
 CHANGES IN VERSION 2.11.3 SINCE VERSION 2.11.2
 
 Major changes: 

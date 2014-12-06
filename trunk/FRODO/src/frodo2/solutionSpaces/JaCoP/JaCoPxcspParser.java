@@ -286,9 +286,9 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 			hasAnonymVar = hasAnonymVar || (this.getOwner(n) == null);
 			no++;
 			variables_domain[no] = variablesHashMap.get(n);
+			assert variables_domain[no] != null : "Unknown domain for variable `" + n + "'";
 			assert Math.log((double) size) + Math.log((double) variables_domain[no].length) < Math.log(Integer.MAX_VALUE) : 
-				"Size of utility array too big for an int";
-			assert variables_domain[no] != null : "Unkonwn domain for variable `" + n + "'";
+				"Constraint `" + constraint.getAttributeValue("name") + "' has a solution space too large for an int";
 			size *= variables_domain[no].length;
 		}
 
@@ -873,7 +873,7 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 			String parameters = constraint.getChild("parameters").getText().trim();
 			
 			// A bracketed list, an operator element (<eq/> or <le/>), and the limit (variable or integer)
-			pattern = Pattern.compile("\\[(.*)\\]\\s*(\\S+)");
+			pattern = Pattern.compile("\\[(.*)\\]\\s*(\\S+)"); /// @bug . does not cover line terminators
 			Matcher m = pattern.matcher(parameters);
 			m.find();
 			String limit = m.group(2);
