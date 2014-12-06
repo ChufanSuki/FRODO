@@ -45,7 +45,11 @@ import org.jacop.core.Store;
 import org.jacop.search.DepthFirstSearch;
 import org.jacop.search.IndomainMin;
 import org.jacop.search.InputOrderSelect;
+import org.jacop.search.MostConstrainedDynamic;
 import org.jacop.search.Search;
+import org.jacop.search.SimpleSelect;
+import org.jacop.search.SmallestDomain;
+
 import frodo2.algorithms.XCSPparser;
 import frodo2.solutionSpaces.Addable;
 import frodo2.solutionSpaces.AddableInteger;
@@ -1208,7 +1212,8 @@ public class JaCoPutilSpace < U extends Addable<U> > implements UtilitySolutionS
 				// Debug information
 				search.setPrintInfo(false);
 				
-				boolean result = search.labeling(store, new InputOrderSelect<IntVar> (store, projectedVars, new IndomainMin<IntVar>()), utilVar);
+				boolean result = search.labeling(store, new SimpleSelect<IntVar> (projectedVars, 
+						new SmallestDomain<IntVar>(), new MostConstrainedDynamic<IntVar>(), new IndomainMin<IntVar>()), utilVar);	
 
 				if(!result){
 					// The solution given in argument is inconsistent!
@@ -1656,9 +1661,7 @@ public class JaCoPutilSpace < U extends Addable<U> > implements UtilitySolutionS
 
 	/** @see SolutionSpace#setName(java.lang.String) */
 	public void setName(String name) {
-		/// @todo Auto-generated method stub
-		assert false : "Not yet implemented";
-
+		this.name = name;
 	}
 
 	/** @see UtilitySolutionSpace#blindProject(java.lang.String, boolean) */

@@ -51,7 +51,7 @@ experiments = [
         ["previous ADOPT", "frodo2.algorithms.adopt.ADOPTsolver", root + "agents/ADOPT/ADOPTagentJaCoP.xml", problemFile, javaParamsOld], 
         ["new ADOPT", "frodo2.algorithms.adopt.ADOPTsolver", root + "agents/ADOPT/ADOPTagentJaCoP.xml", problemFile, javaParamsNew], 
             ]], 
-    ["AFB", ["-i", "-soft", list(range(15, 20)), .4, .0, 3], [
+    ["AFB", ["-i", "-soft", list(range(15, 22)), .4, .0, 3], [
         ["previous AFB", "frodo2.algorithms.afb.AFBsolver", root + "agents/AFB/AFBagentJaCoP.xml", problemFile, javaParamsOld], 
         ["new AFB", "frodo2.algorithms.afb.AFBsolver", root + "agents/AFB/AFBagentJaCoP.xml", problemFile, javaParamsNew], 
             ]],
@@ -63,7 +63,7 @@ experiments = [
         ["previous ASO-DPOP", "frodo2.algorithms.asodpop.ASODPOPsolver", root + "agents/DPOP/ASO-DPOP/ASO-DPOPagentJaCoP.xml", problemFile, javaParamsOld], 
         ["new ASO-DPOP", "frodo2.algorithms.asodpop.ASODPOPsolver", root + "agents/DPOP/ASO-DPOP/ASO-DPOPagentJaCoP.xml", problemFile, javaParamsNew], 
             ]], 
-    ["MB-DPOP", ["-i", "-soft", list(range(14, 19)), .4, .0, 3], [
+    ["MB-DPOP", ["-i", "-soft", list(range(15, 21)), .4, .0, 3], [
         ["previous MB-DPOP", "frodo2.algorithms.dpop.DPOPsolver", root + "agents/DPOP/MB-DPOP/MB-DPOPagentJaCoP.xml", problemFile, javaParamsOld], 
         ["new MB-DPOP", "frodo2.algorithms.dpop.DPOPsolver", root + "agents/DPOP/MB-DPOP/MB-DPOPagentJaCoP.xml", problemFile, javaParamsNew], 
             ]], 
@@ -79,7 +79,7 @@ experiments = [
         ["previous P3/2-DPOP", "frodo2.algorithms.dpop.privacy.P3halves_DPOPsolver", root + "agents/DPOP/P-DPOP/P1.5-DPOPagentJaCoP.xml", problemFile, javaParamsOld], 
         ["new P3/2-DPOP", "frodo2.algorithms.dpop.privacy.P3halves_DPOPsolver", root + "agents/DPOP/P-DPOP/P1.5-DPOPagentJaCoP.xml", problemFile, javaParamsNew], 
             ]],
-    ["P2-DPOP", ["-i", "-soft", list(range(1, 6)), .4, .0, 3], [
+    ["P2-DPOP", ["-i", "-soft", list(range(3, 6)), .4, .0, 3], [
         ["previous P2-DPOP", "frodo2.algorithms.dpop.privacy.P2_DPOPsolver", root + "agents/DPOP/P-DPOP/P2-DPOPagentJaCoP.xml", problemFile, javaParamsOld],
         ["new P2-DPOP", "frodo2.algorithms.dpop.privacy.P2_DPOPsolver", root + "agents/DPOP/P-DPOP/P2-DPOPagentJaCoP.xml", problemFile, javaParamsNew],
             ]],
@@ -115,7 +115,7 @@ experiments = [
         ["previous MPC-DisCSP4", "frodo2.algorithms.mpc_discsp.MPC_DisWCSP4solver", root + "agents/MPC/MPC-DisCSP4_JaCoP.xml", problemFile, javaParamsOld],
         ["new MPC-DisCSP4", "frodo2.algorithms.mpc_discsp.MPC_DisWCSP4solver", root + "agents/MPC/MPC-DisCSP4_JaCoP.xml", problemFile, javaParamsNew],
             ]],
-    ["MPC-DisWCSP4", ["-i", "-soft", list(range(1, 5)), .4, .0, 3], [
+    ["MPC-DisWCSP4", ["-i", "-soft", list(range(2, 5)), .4, .0, 3], [
         ["previous MPC-DisWCSP4", "frodo2.algorithms.mpc_discsp.MPC_DisWCSP4solver", root + "agents/MPC/MPC-DisWCSP4_JaCoP.xml", problemFile, javaParamsOld],
         ["new MPC-DisWCSP4", "frodo2.algorithms.mpc_discsp.MPC_DisWCSP4solver", root + "agents/MPC/MPC-DisWCSP4_JaCoP.xml", problemFile, javaParamsNew],
             ]],    

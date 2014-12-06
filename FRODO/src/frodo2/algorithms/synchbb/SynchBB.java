@@ -351,11 +351,14 @@ public class SynchBB < V extends Addable<V>, U extends Addable<U> > implements S
 	/** @return \c true if all utilities in all spaces are non-negative, \c false otherwise */
 	private boolean checkAllCostsNonNeg() {
 		U zero = this.zero;
+		U util;
 
-		for (UtilitySolutionSpace<V, U> space : this.problem.getSolutionSpaces()) 
+		for (UtilitySolutionSpace<V, U> space : this.problem.getSolutionSpaces(true)) 
 			for (UtilitySolutionSpace.Iterator<V, U> iter = space.iterator(); iter.hasNext(); ) 
-				if (iter.nextUtility().compareTo(zero) < 0) 
+				if ((util = iter.nextUtility()).compareTo(zero) < 0) {
+					System.err.println("Encountered cost of value " + util);
 					return false;
+				}
 
 		return true;
 	}

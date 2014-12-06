@@ -29,7 +29,9 @@ import org.jacop.core.IntVar;
 import org.jacop.core.Store;
 import org.jacop.search.DepthFirstSearch;
 import org.jacop.search.IndomainMin;
-import org.jacop.search.InputOrderSelect;
+import org.jacop.search.MostConstrainedDynamic;
+import org.jacop.search.SimpleSelect;
+import org.jacop.search.SmallestDomain;
 
 /** A wrapper around a JaCoP DepthFirstSearch that is used to run this search in a new thread
  * 
@@ -112,7 +114,8 @@ public class JaCoPiterSearch implements Runnable {
 		try{
 			
 			// Start the depth first search
-			search.labeling(store, new InputOrderSelect<IntVar> (store, this.vars, new IndomainMin<IntVar>()), utilVar);
+			search.labeling(store, new SimpleSelect<IntVar> (this.vars, 
+					new SmallestDomain<IntVar>(), new MostConstrainedDynamic<IntVar>(), new IndomainMin<IntVar>()), utilVar);	
 			
 			// We set null as the current solution to inform that the search has finished
 			this.solution = null;
