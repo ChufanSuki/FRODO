@@ -704,7 +704,7 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 		if(refName.equals("global:weightedSum")){
 
 			String parameters = constraint.getChild("parameters").getText();
-			pattern = Pattern.compile("\\[(.*)\\]\\s*(\\d+)");
+			pattern = Pattern.compile("\\[(.*)\\]\\s*(-?\\d+)");
 			Pattern pattern2 = Pattern.compile("\\{ ?(-?\\d+) (\\S+) ?\\}");
 
 			ArrayList<IntVar> vars = new ArrayList<IntVar>();
