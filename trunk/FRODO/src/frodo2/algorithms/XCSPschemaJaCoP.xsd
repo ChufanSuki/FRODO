@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!-- 
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2014  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2015  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -121,7 +121,7 @@ WARNING! This file is in format 1.1; a parser that supports this experimental fo
 			<xs:documentation>Variables must take on integer values (positive or negative)</xs:documentation>
 		</xs:annotation>
 		<xs:restriction base="xs:string">
-			<xs:pattern value="(\+|-)?\d+"/>
+			<xs:pattern value="-?\d+"/>
 		</xs:restriction>
 	</xs:simpleType>
 	
@@ -134,7 +134,7 @@ WARNING! This file is in format 1.1; a parser that supports this experimental fo
 				<xs:union memberTypes="variableValue">
 					<xs:simpleType>
 						<xs:restriction base="xs:string">
-							<xs:pattern value="(\+|-)?\d+\.\.(\+|-)?\d+"/>
+							<xs:pattern value="-?\d+\.\.-?\d+"/>
 						</xs:restriction>
 					</xs:simpleType>
 				</xs:union>
@@ -259,7 +259,7 @@ where variable values must be integer numbers.
 		</xs:annotation>
 		<xs:restriction base="xs:string">
 			<xs:whiteSpace value="collapse"/>
-			<xs:pattern value="(\+|-)?\d+(\s(\+|-)?\d+)*(\s?\|\s?(\+|-)?\d+(\s(\+|-)?\d+)*)*"/>
+			<xs:pattern value="-?\d+(\s-?\d+)*(\s?\|\s?-?\d+(\s-?\d+)*)*"/>
 		</xs:restriction>
 	</xs:simpleType>
 
@@ -272,7 +272,7 @@ where variable values and utility values can be integer numbers, infinity or -in
 		</xs:annotation>
 		<xs:restriction base="xs:string">
 			<xs:whiteSpace value="collapse"/>
-			<xs:pattern value="(\+|-)?\d+\s?:\s?(\+|-)?\d+(\s(\+|-)?\d+)*(\s?\|\s?((\+|-)?\d+\s?:\s?)?(\+|-)?\d+(\s(\+|-)?\d+)*)*"/>
+			<xs:pattern value="-?\d+\s?:\s?-?\d+(\s-?\d+)*(\s?\|\s?(-?\d+\s?:\s?)?-?\d+(\s-?\d+)*)*"/>
 		</xs:restriction>
 	</xs:simpleType>
 
@@ -405,6 +405,7 @@ where variable values and utility values can be integer numbers, infinity or -in
 		<xs:alternative test="@reference = 'global:allDifferent'" type="allDifferentConstraint" />
 		<xs:alternative test="@reference = 'global:diff2'" type="diff2Constraint" />
 		<xs:alternative test="@reference = 'global:cumulative'" type="cumulativeConstraint" />
+		<xs:alternative test="@reference = 'global:element'" type="elementConstraint" />
 		<xs:alternative type="nonGlobalConstraint" />
 	</xs:element>
 	
@@ -446,7 +447,7 @@ where variable values and utility values can be integer numbers, infinity or -in
 						<xs:simpleType>
 							<xs:restriction base="xs:string">
 								<xs:whiteSpace value="collapse"/>
-								<xs:pattern value="([a-zA-Z_]([a-zA-Z\d_])*|(\+|-)?\d+)(\s([a-zA-Z_]([a-zA-Z\d_])*|(\+|-)?\d+))*"/>
+								<xs:pattern value="([a-zA-Z_]([a-zA-Z\d_])*|-?\d+)(\s([a-zA-Z_]([a-zA-Z\d_])*|-?\d+))*"/>
 							</xs:restriction>
 						</xs:simpleType>
 					</xs:element>
@@ -499,7 +500,7 @@ where variable values and utility values can be integer numbers, infinity or -in
 						<xs:simpleType>
 							<xs:restriction base="xs:string">
 								<xs:whiteSpace value="collapse"/>
-								<xs:pattern value="\[\s?([a-zA-Z_]([a-zA-Z\d_])*|(\+|-)?\d+)(\s([a-zA-Z_]([a-zA-Z\d_])*|(\+|-)?\d+))*\s?\]"/>
+								<xs:pattern value="\[\s?([a-zA-Z_]([a-zA-Z\d_])*|-?\d+)(\s([a-zA-Z_]([a-zA-Z\d_])*|-?\d+))*\s?\]"/>
 							</xs:restriction>
 						</xs:simpleType>
 					</xs:element>
@@ -552,7 +553,7 @@ Example of one such a rectangle: [ {orig_x_1 orig_y_1} {size_x_1 size_y_1} ]
 						<xs:simpleType>
 							<xs:restriction base="xs:string">
 								<xs:whiteSpace value="collapse"/>
-								<xs:pattern value="\[\s?\[\s?\{\s?([a-zA-Z_]([a-zA-Z\d_])*|(\+|-)?\d+)\s([a-zA-Z_]([a-zA-Z\d_])*|(\+|-)?\d+)\s?\}\s\{\s?([a-zA-Z_]([a-zA-Z\d_])*|(\+|-)?\d+)\s([a-zA-Z_]([a-zA-Z\d_])*|(\+|-)?\d+)\s?\}\s?\](\s?\[\s?\{\s?([a-zA-Z_]([a-zA-Z\d_])*|(\+|-)?\d+)\s([a-zA-Z_]([a-zA-Z\d_])*|(\+|-)?\d+)\s?\}\s\{\s?([a-zA-Z_]([a-zA-Z\d_])*|(\+|-)?\d+)\s([a-zA-Z_]([a-zA-Z\d_])*|(\+|-)?\d+)\s?\}\s?\])*\s?\]"/>
+								<xs:pattern value="\[\s?\[\s?\{\s?([a-zA-Z_]([a-zA-Z\d_])*|-?\d+)\s([a-zA-Z_]([a-zA-Z\d_])*|-?\d+)\s?\}\s\{\s?([a-zA-Z_]([a-zA-Z\d_])*|-?\d+)\s([a-zA-Z_]([a-zA-Z\d_])*|-?\d+)\s?\}\s?\](\s?\[\s?\{\s?([a-zA-Z_]([a-zA-Z\d_])*|-?\d+)\s([a-zA-Z_]([a-zA-Z\d_])*|-?\d+)\s?\}\s\{\s?([a-zA-Z_]([a-zA-Z\d_])*|-?\d+)\s([a-zA-Z_]([a-zA-Z\d_])*|-?\d+)\s?\}\s?\])*\s?\]"/>
 							</xs:restriction>
 						</xs:simpleType>
 					</xs:element>
@@ -561,4 +562,30 @@ Example of one such a rectangle: [ {orig_x_1 orig_y_1} {size_x_1 size_y_1} ]
 			</xs:extension>
 		</xs:complexContent>
 	</xs:complexType>
+
+	<xs:complexType name="elementConstraint">
+		<xs:complexContent>
+			<xs:extension base="constraint">
+				<xs:all>
+					<xs:element name="parameters" minOccurs="1" maxOccurs="1">
+						<xs:annotation>
+							<xs:documentation>The following three items, in this order: 
+1) the name of the index variable 
+2) a bracketed, white-space-delimited list of variable names and/or constants and/or intervals of constants (such as 0..4)
+3) a variable name or a constant
+							</xs:documentation>
+						</xs:annotation>
+						<xs:simpleType>
+							<xs:restriction base="xs:string">
+								<xs:whiteSpace value="collapse"/>
+								<xs:pattern value="[a-zA-Z_]([a-zA-Z\d_])*\s?\[\s?([a-zA-Z_]([a-zA-Z\d_])*|-?\d+(\.\.-?\d+)?)(\s([a-zA-Z_]([a-zA-Z\d_])*|-?\d+(\.\.-?\d+)?))*\s?\]\s?([a-zA-Z_]([a-zA-Z\d_])*|-?\d+)"/>
+							</xs:restriction>
+						</xs:simpleType>
+					</xs:element>
+				</xs:all>
+				<xs:attribute name="reference" type="xs:string" fixed="global:element" use="required"/>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	
 </xs:schema>

@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2014  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2015  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -703,9 +703,9 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 
 		if(refName.equals("global:weightedSum")){
 
-			String parameters = constraint.getChild("parameters").getText();
+			String parameters = constraint.getChild("parameters").getText().replace('\n', ' ').trim();
 			pattern = Pattern.compile("\\[(.*)\\]\\s*(-?\\d+)");
-			Pattern pattern2 = Pattern.compile("\\{ ?(-?\\d+) (\\S+) ?\\}");
+			Pattern pattern2 = Pattern.compile("\\{\\s*(-?\\d+)\\s+(\\S+)\\s*\\}");
 
 			ArrayList<IntVar> vars = new ArrayList<IntVar>();
 			ArrayList<Integer> weights = new ArrayList<Integer>();
@@ -716,7 +716,7 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 
 			m = pattern2.matcher(m.group(1));
 			
-			Pattern constantPat = Pattern.compile("\\d+");
+			Pattern constantPat = Pattern.compile("-?\\d+");
 			
 			int i = 0;
 			IntVar v;
@@ -789,12 +789,12 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 			
 			// Extract the parameters of the constraint
 			assert constraint.getChild("parameters") != null : "No parameters passed to the constraint " + constraint.getAttributeValue("name");
-			String params = constraint.getChildText("parameters").trim();
+			String params = constraint.getChildText("parameters").replace('\n', ' ').trim();
 			params = params.substring(1, params.length() - 1).trim(); // removing the brackets
 			pattern = Pattern.compile("\\s+");
 			String[] paramVarNames = pattern.split(params);
 			
-			Pattern constantPat = Pattern.compile("\\d+");
+			Pattern constantPat = Pattern.compile("-?\\d+");
 			
 			// find JaCoP variables
 			IntVar[] vars = new IntVar[paramVarNames.length];
@@ -821,7 +821,7 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 		} else if (refName.equals("global:diff2")) {
 			
 			// Parse the parameters
-			String params = constraint.getChildText("parameters").trim();
+			String params = constraint.getChildText("parameters").replace('\n', ' ').trim();
 			params = params.substring(1, params.length() - 1).trim(); // removing the brackets
 			
 			// Overall pattern for the parameters: a whitespace-delimited list of rectangles, 
@@ -832,7 +832,7 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 			Matcher matcher = pattern.matcher(params);
 			Pattern curlyPat = Pattern.compile("\\{(.*)\\}\\s+\\{(.*)\\}"); // each sublist in a rectangle is delimited by curly brackets
 			Matcher curlyMat;
-			Pattern constPat = Pattern.compile("\\d+"); // a constant (vs. a variable)
+			Pattern constPat = Pattern.compile("-?\\d+"); // a constant (vs. a variable)
 			
 			// Loop over the rectangles
 			ArrayList< ArrayList<IntVar> > rectangles = new ArrayList< ArrayList<IntVar> > ();
@@ -870,17 +870,17 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 		} else if (refName.equals("global:cumulative")) {
 			
 			// Parse the parameters
-			String parameters = constraint.getChild("parameters").getText().trim();
+			String parameters = constraint.getChild("parameters").getText().replace('\n', ' ').trim();
 			
 			// A bracketed list, an operator element (<eq/> or <le/>), and the limit (variable or integer)
-			pattern = Pattern.compile("\\[(.*)\\]\\s*(\\S+)"); /// @bug . does not cover line terminators
+			pattern = Pattern.compile("\\[(.*)\\]\\s*(\\S+)");
 			Matcher m = pattern.matcher(parameters);
 			m.find();
 			String limit = m.group(2);
 			
 			// Get the variable for the limit
 			IntVar limitVar;
-			Pattern constPat = Pattern.compile("\\d+"); // a constant (vs. a variable)
+			Pattern constPat = Pattern.compile("-?\\d+"); // a constant (vs. a variable)
 			/// @todo Reuse code by creating a method for this
 			if (constPat.matcher(limit).matches()) { // a constant
 				int constant = Integer.parseInt(limit);
@@ -926,7 +926,77 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 			
 			store.impose(new Cumulative (starts, durations, resources, limitVar, true, true, tight));
 			
-		}else{
+		} else if (refName.equals("global:element")) {
+			
+			// Parse the parameters
+			String parameters = constraint.getChild("parameters").getText().replace('\n', ' ').trim();
+			
+			// A variable, bracketed list, and a variable or constant
+			pattern = Pattern.compile("(\\S+)\\s*\\[(.*)\\]\\s*(\\S+)");
+			Matcher m = pattern.matcher(parameters);
+			m.find();
+			String indexVarStr = m.group(1).trim();
+			String listStr = m.group(2).trim();
+			String varStr = m.group(3).trim();
+			
+			// Parse the index variable
+			assert store.findVariable(indexVarStr) != null : "Unknown variable: " + indexVarStr;
+			IntVar indexVar = (IntVar) store.findVariable(indexVarStr);
+			
+			// Parse the other variable
+			IntVar var;
+			Pattern constPat = Pattern.compile("-?\\d+"); // a constant (vs. a variable)
+			/// @todo Reuse code by creating a method for this
+			if (constPat.matcher(varStr).matches()) { // a constant
+				int constant = Integer.parseInt(varStr);
+				var = new IntVar (store, constant, constant);
+			} else {
+				assert store.findVariable(varStr) != null : "Unknown variable: " + varStr;
+				var = (IntVar) store.findVariable(varStr);
+			}
+			
+			// Parse the list
+			String[] strList = listStr.split("\\s+");
+			final int listSize = strList.length;
+			
+			// Check whether the list only contains constants 
+			boolean onlyConst = true;
+			for (int i = 0; i < listSize && onlyConst; i++) 
+				onlyConst = onlyConst && constPat.matcher(strList[i]).matches();
+			
+			if (onlyConst) { // use ElementInteger
+				
+				int[] list = new int [listSize];
+				for (int i = 0; i < listSize; i++) 
+					list[i] = Integer.parseInt(strList[i]);
+				
+				store.impose(new org.jacop.constraints.Element(indexVar, list, var));
+				
+			} else { // use ElementVariable
+				
+				IntVar[] list = new IntVar [listSize];
+				String elem;
+				Pattern intervPat = Pattern.compile("-?\\d+\\.\\.-?\\d+"); // a constant followed by two dots followed by a constant
+				for (int i = 0; i < listSize; i++) {
+					
+					if (constPat.matcher(elem = strList[i].trim()).matches()) { // a constant
+						int constant = Integer.parseInt(elem);
+						list[i] = new IntVar (store, constant, constant);
+					} else if (intervPat.matcher(elem).matches()) { // an interval 
+						String[] interval = elem.split("\\.\\.");
+						list[i] = new IntVar (store, Integer.parseInt(interval[0]), Integer.parseInt(interval[1]));
+					} else { // a variable
+						assert store.findVariable(elem) != null : "Unknown variable: " + elem;
+						list[i] = (IntVar) store.findVariable(elem);
+					}
+				}
+				
+				store.impose(new org.jacop.constraints.Element(indexVar, list, var));
+			}
+			
+			//store.impose(new Cumulative (starts, durations, resources, limitVar, true, true, tight));
+			
+		} else {
 			System.err.println("The global constraint " + constraint.getAttributeValue("reference") + " is not supported");
 			System.exit(2);
 		}

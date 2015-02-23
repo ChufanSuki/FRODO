@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2014  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2015  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -135,6 +135,10 @@ public class JaCopxcspParserTest extends TestCase {
 		globalConsSuite.addTest(new JaCopxcspParserTest ("testGlobalConstraintWeightedSumLtParser"));
 
 		globalConsSuite.addTest(new JaCopxcspParserTest ("testGlobalConstraintAllDifferentParser"));
+		
+		globalConsSuite.addTest(new JaCopxcspParserTest ("testGlobalConstraintCumulativeParser"));
+
+		globalConsSuite.addTest(new JaCopxcspParserTest ("testGlobalConstraintElementParser"));
 
 		return suite;
 	}
@@ -1139,7 +1143,7 @@ public class JaCopxcspParserTest extends TestCase {
 		cons.setAttribute("reference", "global:allDifferent");
 		Element params = new Element ("parameters");
 		cons.addContent(params);
-		params.setText(" [ v1 v2 v3 ] ");
+		params.setText("\n [\n v1 \n v2 v3 ] \n");
 
 		JaCoPxcspParser.parseGlobalConstraint(cons, store);
 
@@ -1236,7 +1240,7 @@ public class JaCopxcspParserTest extends TestCase {
 		cons.setAttribute("scope", "v4 v2 v5");
 		cons.setAttribute("reference", "global:cumulative");
 		Element param = new Element ("parameters");
-		param.addContent("[ {1 v4 3} {v2 6 v5} ] ").addContent(new Element ("le")).addContent(" 7");
+		param.addContent("\n [ \n {\n 1 \n v4 3 \n} \n {v2 6 v5} \n] ").addContent(new Element ("le")).addContent(" 7");
 		cons.addContent(param);
 		
 		JaCoPxcspParser.parseGlobalConstraint(cons, store);
@@ -1335,7 +1339,7 @@ public class JaCopxcspParserTest extends TestCase {
 		cons.setAttribute("scope", "v1 v2 v3");
 		cons.setAttribute("reference", "global:weightedSum"); 	
 		Element param = new Element("parameters");
-		param.setText("[ { 1 v2 } { 1 v1 } { 1 v3 } ] \n 6");
+		param.setText("\n [\n {\n 1 \n v2 \n} \n { 1 v1 } { 1 v3 } ] \n 6 \n");
 		param.addContent(new Element("eq"));
 		cons.addContent(param);
 
@@ -1717,6 +1721,70 @@ public class JaCopxcspParserTest extends TestCase {
 		assertTrue(search.getSolution()[3].singleton());
 
 		assertEquals(1, search.getSolution()[3].valueEnumeration().nextElement());
+	}
+	
+	/** Test for the Element constraint */
+	public void testGlobalConstraintElementParser () {
+		
+		Store store = new Store();
+		ArrayList<IntVar> vars = new ArrayList<IntVar>();
+		IntVar i = new IntVar(store, "i", 0, 3);
+		vars.add(i);
+		IntVar x0 = new IntVar(store, "x0", 0, 3);
+		vars.add(x0);
+		IntVar x1 = new IntVar(store, "x1", 0, 3);
+		vars.add(x1);
+		IntVar v = new IntVar(store, "v", 0, 3);
+		vars.add(v);
+
+		// Test with v as a variable
+		Element cons = new Element("constraint");
+		cons.setAttribute("name", "constraint");
+		cons.setAttribute("arity", "4");
+		cons.setAttribute("scope", "i x0 x1 v");
+		cons.setAttribute("reference", "global:element"); 	
+		Element param = new Element("parameters");
+		param.setText("\n i \n [\n -1 \n x0 -2..-1 x1 \n] \n v \n");
+		cons.addContent(param);
+
+		JaCoPxcspParser.parseGlobalConstraint(cons, store);
+
+		SelectChoicePoint<IntVar> select = new SimpleSelect<IntVar>(vars.toArray(new IntVar[4]),
+				new SmallestDomain<IntVar>(),
+				new IndomainMin<IntVar>());
+
+		DepthFirstSearch<IntVar> search = new DepthFirstSearch<IntVar>();
+		search.getSolutionListener().recordSolutions(true);
+		search.setPrintInfo(false);
+
+		boolean result = search.labeling(store, select);
+
+		assertTrue(result);
+
+	
+		// Test with v as a constant
+		cons = new Element("constraint");
+		cons.setAttribute("name", "constraint");
+		cons.setAttribute("arity", "4");
+		cons.setAttribute("scope", "i x0 x1");
+		cons.setAttribute("reference", "global:element"); 	
+		param = new Element("parameters");
+		param.setText("i [1 x0 1..2 x1] -1");
+		cons.addContent(param);
+
+		JaCoPxcspParser.parseGlobalConstraint(cons, store);
+
+		select = new SimpleSelect<IntVar>(vars.toArray(new IntVar[4]),
+				new SmallestDomain<IntVar>(),
+				new IndomainMin<IntVar>());
+
+		search = new DepthFirstSearch<IntVar>();
+		search.getSolutionListener().recordSolutions(true);
+		search.setPrintInfo(false);
+
+		result = search.labeling(store, select);
+
+		assertFalse(result);
 	}
 
 	/** This method creates a contraint and a predicate in XCSP standard and pass them to the parser

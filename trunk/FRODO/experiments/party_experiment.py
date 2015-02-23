@@ -1,6 +1,6 @@
 """
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2014  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2015  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -34,20 +34,20 @@ import frodo2
 # The command to call java and the JVM parameters
 java = "java"
 javaParams = [
-			"-Xmx2G", # sets the Java heap space to 2 GB
-			"-classpath", "../frodo2.jar", # sets the Java classpath to include FRODO
-			]
+            "-Xmx2G", # sets the Java heap space to 2 GB
+            "-classpath", "../frodo2.jar", # sets the Java classpath to include FRODO
+            ]
 
 # Define the random problems to be generated
 generator = "frodo2.benchmarks.party.PartyGame"
 genParams = [
-			"-i", 				# use intensional constraints
-			0.0, 				# the margin of error of approximate equilibria
-			"false", 			# true = mixed equilibria should be considered
-			"acyclic", 			# the topology of the graph
-			list(range(2, 8)), 	# the varying problem size
-			2, 					# for acyclic graphs, the branching factor
-			]
+            "-i",                 # use intensional constraints
+            0.0,                 # the margin of error of approximate equilibria
+            "false",             # true = mixed equilibria should be considered
+            "acyclic",             # the topology of the graph
+            list(range(2, 8)),     # the varying problem size
+            2,                     # for acyclic graphs, the branching factor
+            ]
 problemFile = "partyLeaute11.xml"
 problemFileMPC = "partyVickrey02.xml"
 nbrProblems = 7 # for each combination of generator options, the number of problems to run the algorithms on
@@ -55,28 +55,28 @@ nbrProblems = 7 # for each combination of generator options, the number of probl
 # Define the algorithms to run
 # Each algorithm is a list [algoName, solverClassName, agentConfigFilePath, inputProblemFilePath]
 algos = [
-# 		["ADOPT", "frodo2.algorithms.adopt.ADOPTsolver", "../agents/ADOPT/ADOPTagentJaCoP.xml", problemFile], 
+#         ["ADOPT", "frodo2.algorithms.adopt.ADOPTsolver", "../agents/ADOPT/ADOPTagentJaCoP.xml", problemFile], 
 # 
-# 		["AFB", "frodo2.algorithms.afb.AFBsolver", "../agents/AFB/AFBagentJaCoP.xml", problemFile], 
+#         ["AFB", "frodo2.algorithms.afb.AFBsolver", "../agents/AFB/AFBagentJaCoP.xml", problemFile], 
 # 
-		["DPOP", "frodo2.algorithms.dpop.DPOPsolver", "../agents/DPOP/DPOPagentJaCoP.xml", problemFile], 
-# 		["ASO-DPOP", "frodo2.algorithms.asodpop.ASODPOPsolver", "../agents/DPOP/ASO-DPOP/ASO-DPOPagentJaCoP.xml", problemFile], 
-# 		["MB-DPOP", "frodo2.algorithms.dpop.DPOPsolver", "../agents/DPOP/MB-DPOP/MB-DPOPagentJaCoP.xml", problemFile], 
-#  		["O-DPOP", "frodo2.algorithms.odpop.ODPOPsolver", "../agents/DPOP/O-DPOP/O-DPOPagentJaCoP.xml", problemFile], 
-		["P-DPOP", "frodo2.algorithms.dpop.privacy.P_DPOPsolver", "../agents/DPOP/P-DPOP/P-DPOPagentJaCoP.xml", problemFile], 
-		["P2-DPOP", "frodo2.algorithms.dpop.privacy.P2_DPOPsolver", "../agents/DPOP/P-DPOP/P2-DPOPagentJaCoP_DisCSP.xml", problemFile], 
+        ["DPOP", "frodo2.algorithms.dpop.DPOPsolver", "../agents/DPOP/DPOPagentJaCoP.xml", problemFile], 
+#         ["ASO-DPOP", "frodo2.algorithms.asodpop.ASODPOPsolver", "../agents/DPOP/ASO-DPOP/ASO-DPOPagentJaCoP.xml", problemFile], 
+#         ["MB-DPOP", "frodo2.algorithms.dpop.DPOPsolver", "../agents/DPOP/MB-DPOP/MB-DPOPagentJaCoP.xml", problemFile], 
+#          ["O-DPOP", "frodo2.algorithms.odpop.ODPOPsolver", "../agents/DPOP/O-DPOP/O-DPOPagentJaCoP.xml", problemFile], 
+        ["P-DPOP", "frodo2.algorithms.dpop.privacy.P_DPOPsolver", "../agents/DPOP/P-DPOP/P-DPOPagentJaCoP.xml", problemFile], 
+        ["P2-DPOP", "frodo2.algorithms.dpop.privacy.P2_DPOPsolver", "../agents/DPOP/P-DPOP/P2-DPOPagentJaCoP_DisCSP.xml", problemFile], 
 # 
-# 		["DSA", "frodo2.algorithms.localSearch.dsa.DSAsolver", "../agents/DSA/DSAagentJaCoP.xml", problemFile], 
+#         ["DSA", "frodo2.algorithms.localSearch.dsa.DSAsolver", "../agents/DSA/DSAagentJaCoP.xml", problemFile], 
 # 
-# 		["MaxSum", "frodo2.algorithms.maxsum.MaxSumSolver", "../agents/MaxSum/MaxSumAgentJaCoP.xml", problemFile], 
+#         ["MaxSum", "frodo2.algorithms.maxsum.MaxSumSolver", "../agents/MaxSum/MaxSumAgentJaCoP.xml", problemFile], 
 # 
-# 		["MGM", "frodo2.algorithms.localSearch.mgm.MGMsolver", "../agents/MGM/MGMagentJaCoP.xml", problemFile], 
-# 		["MGM2", "frodo2.algorithms.localSearch.mgm.mgm2.MGM2solver", "../agents/MGM/MGM2agentJaCoP.xml", problemFile], 
+#         ["MGM", "frodo2.algorithms.localSearch.mgm.MGMsolver", "../agents/MGM/MGMagentJaCoP.xml", problemFile], 
+#         ["MGM2", "frodo2.algorithms.localSearch.mgm.mgm2.MGM2solver", "../agents/MGM/MGM2agentJaCoP.xml", problemFile], 
 # 
-		["MPC-DisCSP4", "frodo2.algorithms.mpc_discsp.MPC_DisWCSP4solver", "../agents/MPC/MPC-DisCSP4_JaCoP.xml", problemFileMPC], 
+        ["MPC-DisCSP4", "frodo2.algorithms.mpc_discsp.MPC_DisWCSP4solver", "../agents/MPC/MPC-DisCSP4_JaCoP.xml", problemFileMPC], 
 
-# 		["SynchBB", "frodo2.algorithms.synchbb.SynchBBsolver", "../agents/SynchBB/SynchBBagentJaCoP.xml", problemFile], 
-		]
+#         ["SynchBB", "frodo2.algorithms.synchbb.SynchBBsolver", "../agents/SynchBB/SynchBBagentJaCoP.xml", problemFile], 
+        ]
 timeout = 600 # in seconds
 
 # The CSV file to which the statistics should be written
