@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!-- 
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2014  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2015  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -127,7 +127,7 @@ How to contact the authors:
 			<xs:documentation>Variables are allowed to take decimal values (positive or negative), and are also allowed be infinite (positively or negatively)</xs:documentation>
 		</xs:annotation>
 		<xs:restriction base="xs:string">
-			<xs:pattern value="(\+|-)?(infinity|\d+(\.\d*)?)"/>
+			<xs:pattern value="-?(infinity|\d+(\.\d*)?)"/>
 		</xs:restriction>
 	</xs:simpleType>
 	
@@ -140,7 +140,7 @@ How to contact the authors:
 				<xs:union memberTypes="variableValue">
 					<xs:simpleType>
 						<xs:restriction base="xs:string">
-							<xs:pattern value="(\+|-)?(infinity|\d+(\.\d*)?)\.\.(\+|-)?(infinity|\d+(\.\d*)?)"/>
+							<xs:pattern value="-?(infinity|\d+(\.\d*)?)\.\.-?(infinity|\d+(\.\d*)?)"/>
 						</xs:restriction>
 					</xs:simpleType>
 				</xs:union>
@@ -241,7 +241,7 @@ where variable values and utility values can be integer numbers, decimal numbers
 		</xs:annotation>
 		<xs:restriction base="xs:string">
 			<xs:whiteSpace value="collapse"/>
-			<xs:pattern value="(\+|-)?(infinity|\d+(\.\d*)?)\s?:\s?(\+|-)?(infinity|\d+(\.\d*)?)(\s(\+|-)?(infinity|\d+(\.\d*)?))*(\s?\|\s?((\+|-)?(infinity|\d+(\.\d*)?)\s?:\s?)?(\+|-)?(infinity|\d+(\.\d*)?)(\s(\+|-)?(infinity|\d+(\.\d*)?))*)*"/>
+			<xs:pattern value="-?(infinity|\d+(\.\d*)?)\s?:\s?-?(infinity|\d+(\.\d*)?)(\s-?(infinity|\d+(\.\d*)?))*(\s?\|\s?(-?(infinity|\d+(\.\d*)?)\s?:\s?)?-?(infinity|\d+(\.\d*)?)(\s-?(infinity|\d+(\.\d*)?))*)*"/>
 		</xs:restriction>
 	</xs:simpleType>
 

@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2014  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2015  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -47,18 +47,18 @@ import frodo2.solutionSpaces.hypercube.ScalarBasicHypercube;
 import frodo2.solutionSpaces.hypercube.ScalarHypercube;
 import frodo2.solutionSpaces.hypercube.ScalarSpaceIter;
 import frodo2.solutionSpaces.hypercube.Hypercube.NullHypercube;
-import com.orllc.orobjects.lib.graph.DuplicateVertexException;
-import com.orllc.orobjects.lib.graph.PointGraph;
-import com.orllc.orobjects.lib.graph.VertexNotFoundException;
-import com.orllc.orobjects.lib.graph.tsp.TwoOpt;
-import com.orllc.orobjects.lib.graph.vrp.BestOf;
-import com.orllc.orobjects.lib.graph.vrp.ClarkeWright;
-import com.orllc.orobjects.lib.graph.vrp.Composite;
-import com.orllc.orobjects.lib.graph.vrp.GillettMiller;
-import com.orllc.orobjects.lib.graph.vrp.ImproveI;
-import com.orllc.orobjects.lib.graph.vrp.ImproveWithTSP;
-import com.orllc.orobjects.lib.graph.vrp.SolutionNotFoundException;
-import com.orllc.orobjects.lib.graph.vrp.VRPException;
+import com.opsresearch.orobjects.lib.graph.DuplicateVertexException;
+import com.opsresearch.orobjects.lib.graph.PointGraph;
+import com.opsresearch.orobjects.lib.graph.VertexNotFoundException;
+import com.opsresearch.orobjects.lib.graph.tsp.TwoOpt;
+import com.opsresearch.orobjects.lib.graph.vrp.BestOf;
+import com.opsresearch.orobjects.lib.graph.vrp.ClarkeWright;
+import com.opsresearch.orobjects.lib.graph.vrp.Composite;
+import com.opsresearch.orobjects.lib.graph.vrp.GillettMiller;
+import com.opsresearch.orobjects.lib.graph.vrp.ImproveI;
+import com.opsresearch.orobjects.lib.graph.vrp.ImproveWithTSP;
+import com.opsresearch.orobjects.lib.graph.vrp.SolutionNotFoundException;
+import com.opsresearch.orobjects.lib.graph.vrp.VRPException;
 
 /** A solution space for Vehicle Routing Problems
  * @author Thomas Leaute
@@ -783,10 +783,10 @@ public class VehicleRoutingSpace < U extends Addable<U> > implements UtilitySolu
 			/// @todo Choose the algorithm more carefully
 			
 			// Choose the TSP sub-algorithm
-//			com.orllc.orobjects.lib.graph.tsp.ImproveI subalgo = null;
-			com.orllc.orobjects.lib.graph.tsp.ImproveI subalgo = new TwoOpt ();
-//			com.orllc.orobjects.lib.graph.tsp.ImproveI subalgo = new ThreeOpt ();
-//			com.orllc.orobjects.lib.graph.tsp.ImproveI subalgo = new Us(5);
+//			com.opsresearch.orobjects.lib.graph.tsp.ImproveI subalgo = null;
+			com.opsresearch.orobjects.lib.graph.tsp.ImproveI subalgo = new TwoOpt ();
+//			com.opsresearch.orobjects.lib.graph.tsp.ImproveI subalgo = new ThreeOpt ();
+//			com.opsresearch.orobjects.lib.graph.tsp.ImproveI subalgo = new Us(5);
 			
 			// Choose the number of restarts of the randomized construction algorithm
 			int nbrRestarts = 0;
@@ -806,7 +806,7 @@ public class VehicleRoutingSpace < U extends Addable<U> > implements UtilitySolu
 //			ImproveI improve = null;
 			ImproveI improve = new ImproveWithTSP(new TwoOpt ());
 //			ImproveI improve = new ImproveWithTSP(new ThreeOpt ());
-//			ImproveI improve = new ImproveWithTSP((com.orllc.orobjects.lib.graph.tsp.ImproveI) new Us(5));
+//			ImproveI improve = new ImproveWithTSP((com.opsresearch.orobjects.lib.graph.tsp.ImproveI) new Us(5));
 			
 			// Construct the solver
 			solver = new Composite (construct, improve);
