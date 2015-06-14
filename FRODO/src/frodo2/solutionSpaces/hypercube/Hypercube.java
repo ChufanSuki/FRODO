@@ -77,7 +77,7 @@ extends HypercubeLimited<V, U, U> implements UtilitySolutionSpace<V, U> {
 	 *
 	 * @warning variables_domains parameter needs to be sorted in ascending order.
 	 * @warning utility_values needs to be properly ordered, the first utility corresponds to the 
-	 * assignment in which each variable is assigned its smallest value.
+	 * assignment in which each variable is assigned its first value.
 	 */
 	@SuppressWarnings("unchecked")
 	protected Hypercube ( String[] variables_order, V[][] variables_domains, U[] utility_values, 
@@ -189,7 +189,7 @@ extends HypercubeLimited<V, U, U> implements UtilitySolutionSpace<V, U> {
 	 * @param infeasibleUtil 		-INF if we are maximizing, +INF if we are minimizing
 	 * @warning variables_domains parameter needs to be sorted in ascending order.
 	 * @warning utility_values needs to be properly ordered, the first utility corresponds to the 
-	 * assignment in which each variable is assigned its smallest value.
+	 * assignment in which each variable is assigned its first value.
 	 */
 	public Hypercube( String[] variables_order, V[][] variables_domains, U[] utility_values, U infeasibleUtil ) {
 		super(variables_order, variables_domains, utility_values, infeasibleUtil);
@@ -204,7 +204,7 @@ extends HypercubeLimited<V, U, U> implements UtilitySolutionSpace<V, U> {
 	 * @param problem 				the problem to be notified of constraint checks
 	 * @warning variables_domains parameter needs to be sorted in ascending order.
 	 * @warning utility_values needs to be properly ordered, the first utility corresponds to the 
-	 * assignment in which each variable is assigned its smallest value.
+	 * assignment in which each variable is assigned its first value.
 	 */
 	public Hypercube( String[] variables_order, V[][] variables_domains, U[] utility_values, U infeasibleUtil, ProblemInterface<V, U> problem ) {
 		super(variables_order, variables_domains, utility_values, infeasibleUtil, problem);

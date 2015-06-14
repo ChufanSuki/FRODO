@@ -37,6 +37,7 @@ import frodo2.algorithms.StatsReporter;
 import frodo2.algorithms.dpop.UTILpropagation;
 import frodo2.algorithms.dpop.stochastic.robust.WorstCaseUTIL;
 import frodo2.solutionSpaces.Addable;
+import frodo2.solutionSpaces.UtilitySolutionSpace;
 
 /** A StochDCOP solver using E[DPOP]
  * @author Thomas Leaute
@@ -66,6 +67,7 @@ public class E_DPOPsolver < V extends Addable<V>, U extends Addable<U> > extends
 
 		/** Constructor 
 		 * @param nbrVariables				the total number of variables in the problem
+		 * @param trueUtil 					the true utility, if it does not depend on anonymous variables
 		 * @param reportedUtil 				the total utility reported by the roots
 		 * @param expectedUtil 				the expected utility
 		 * @param worstUtil 				the worst-case utility
@@ -87,12 +89,12 @@ public class E_DPOPsolver < V extends Addable<V>, U extends Addable<U> > extends
 		 * @param moduleEndTimes 			each module's end time
 		 * @param treeWidth 				the width of the tree on which the algorithm has run
 		 */
-		public StochSolution (int nbrVariables, U reportedUtil, U expectedUtil, U worstUtil, U probOfOptimality, double centralization, Map<String, V> assignments, 
+		public StochSolution (int nbrVariables, U trueUtil, U reportedUtil, U expectedUtil, U worstUtil, U probOfOptimality, double centralization, Map<String, V> assignments, 
 				int nbrMsgs, TreeMap<String, Integer> msgNbrs, TreeMap<Object, Integer> msgsNbrsSentPerAgent, TreeMap<Object, Integer> msgsNbrsReceivedPerAgent, 
 				long totalMsgSize, TreeMap<String, Long> msgSizes, TreeMap<Object, Long> msgSizesSentPerAgent, TreeMap<Object, Long> msgSizesReveivedPerAgent, 
 				long maxMsgSize, TreeMap<String, Long> maxMsgSizes, 
 				long ncccCount, long timeNeeded, HashMap<String, Long> moduleEndTimes, int treeWidth) {
-			super(nbrVariables, reportedUtil, null, assignments, nbrMsgs, msgNbrs, msgsNbrsSentPerAgent, msgsNbrsReceivedPerAgent, totalMsgSize, msgSizes, msgSizesSentPerAgent, msgSizesReveivedPerAgent, maxMsgSize, maxMsgSizes, ncccCount, timeNeeded, moduleEndTimes, treeWidth, 0);
+			super(nbrVariables, reportedUtil, trueUtil, assignments, nbrMsgs, msgNbrs, msgsNbrsSentPerAgent, msgsNbrsReceivedPerAgent, totalMsgSize, msgSizes, msgSizesSentPerAgent, msgSizesReveivedPerAgent, maxMsgSize, maxMsgSizes, ncccCount, timeNeeded, moduleEndTimes, treeWidth, 0);
 			this.worstUtil = worstUtil;
 			this.expectedUtil = expectedUtil;
 			this.probOfOptimality = probOfOptimality;
@@ -216,7 +218,11 @@ public class E_DPOPsolver < V extends Addable<V>, U extends Addable<U> > extends
 		
 		this.dfsString = (this.samplingModule == null ? "" : this.samplingModule.dfsToString());
 		
-		return new StochSolution<V, U> (problem.getNbrVars(), utilModule.getOptUtil(), utilModule.getExpectedUtil(), utilModule.getWorstUtil(), utilModule.getProbOfOptimality(), 0.0, utilModule.getSolution(), 
+		// Report the true utility, if it does not depend on anonymous variables
+		UtilitySolutionSpace<V, U> trueUtil = this.problem.getUtility(this.utilModule.getSolution());
+		
+		return new StochSolution<V, U> (problem.getNbrVars(), (trueUtil.getNumberOfSolutions() == 1 ? trueUtil.getUtility(0) : null), 
+				utilModule.getOptUtil(), utilModule.getExpectedUtil(), utilModule.getWorstUtil(), utilModule.getProbOfOptimality(), 0.0, utilModule.getSolution(), 
 				factory.getNbrMsgs(), factory.getMsgNbrs(), this.factory.getMsgNbrsSentPerAgent(), this.factory.getMsgNbrsReceivedPerAgent(), 
 				factory.getTotalMsgSize(), factory.getMsgSizes(), this.factory.getMsgSizesSentPerAgent(), this.factory.getMsgSizesReceivedPerAgent(), 
 				factory.getOverallMaxMsgSize(), factory.getMaxMsgSizes(), factory.getNcccs(), factory.getTime(), null, utilModule.getMaxMsgDim());

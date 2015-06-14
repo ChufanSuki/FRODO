@@ -728,7 +728,7 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 					v = new IntVar(store, val, val);
 				// variable name
 				}else{
-					assert i < arity : "There are not enough tuples in the parameters of the global constraint";
+					assert i < arity : "The weightedSum constraint `" + constraint.getAttributeValue("name") + "' contains more terms than its arity (" + constraint.getAttributeValue("arity") + ")";
 					assert Arrays.asList(varNames).contains(m.group(2)): "mismatch between the constraint scope and the variables in parameters!";
 
 					v = (IntVar) store.findVariable(m.group(2));

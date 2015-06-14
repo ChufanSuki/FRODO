@@ -1,3 +1,15 @@
+CHANGES IN VERSION 2.13 SINCE VERSION 2.12.1
+
+Major changes: 
+	- Added support for the DUCT algorithm (Ottens, Dimitrakakis and Faltings, AAAI'12) (request by Yang Xiaolei). 
+	- FRODO is now compiled for Java 8, since Java 7 has reached end of life. 
+	- The HTML documentation for the FRODO API is now available at http://thomas.leaute.name/frodo/api/ (based on input from Xie Yi). 
+	
+Minor changes: 
+	- Improved the text of an assert error message in the JaCoP XCSP parser (based on input from Dimitrios Athanasiadis). 
+	- Minor improvement to the Hypercube constructor documentation (based on input from Xie Yi). 
+
+
 CHANGES IN VERSION 2.12.1 SINCE VERSION 2.12
 
 Major changes: 

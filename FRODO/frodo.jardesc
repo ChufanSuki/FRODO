@@ -14,6 +14,7 @@
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.daemon"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.solutionSpaces"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.asodpop.goodsTree.innerNodeTreeBinaryDomains"/>
+        <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.duct"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.maxsum.tests"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.odpop.goodsTree.InnerNodeTree"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.dpop.memory.tests"/>
@@ -59,6 +60,7 @@
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.odpop.tests"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.benchmarks.auctions.xcsp"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.solutionSpaces.hypercube.tests.files"/>
+        <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.duct.tests"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.dpop.count"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.solutionSpaces.hypercube"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.communication.mailer"/>
@@ -71,6 +73,7 @@
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.dpop.restart"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.solutionSpaces.JaCoP.tests.Instances.Ext"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.varOrdering.dfs"/>
+        <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.duct.samplingMethods"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.varOrdering.factorgraph"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.benchmarks.vehiclerouting"/>
@@ -80,6 +83,7 @@
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.dpop.stochastic.test"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.odpop"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.asodpop"/>
+        <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.duct.bound"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.dpop"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.synchbb"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.dpop.param"/>
@@ -102,5 +106,6 @@
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.asodpop.goodsTree.leafNodeTree"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.dpop.privacy"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.controller.userIO"/>
+        <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.duct.termination"/>
     </selectedElements>
 </jardesc>

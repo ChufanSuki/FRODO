@@ -40,6 +40,7 @@ import org.jdom2.Namespace;
 import org.jdom2.output.Format;
 import org.jdom2.output.XMLOutputter;
 
+import frodo2.algorithms.duct.tests.AllTestsDUCT;
 import frodo2.algorithms.RandGraphFactory;
 import frodo2.algorithms.XCSPparser;
 import frodo2.algorithms.RandGraphFactory.Edge;
@@ -118,6 +119,8 @@ public class AllTests {
 		suite.addTest(AllTestsAFB.suite());
 		
 		suite.addTest(MPC_DisWCSP4tests.suite());
+		
+		suite.addTest(AllTestsDUCT.suite());
 		//$JUnit-END$
 		return suite;
 	}

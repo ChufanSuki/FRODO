@@ -69,6 +69,8 @@ algos = [
 #  		["P3/2-DPOP", "frodo2.algorithms.dpop.privacy.P3halves_DPOPsolver", "../agents/DPOP/P-DPOP/P1.5-DPOPagent.xml", problemFile], 
 # 		["P2-DPOP", "frodo2.algorithms.dpop.privacy.P2_DPOPsolver", "../agents/DPOP/P-DPOP/P2-DPOPagent.xml", problemFile], 
 # 
+#       ["DUCT", "frodo2.algorithms.duct.DUCTsolver", "../agents/DUCT/DUCTagent.xml", problemFile], 
+#
 # 		["DSA", "frodo2.algorithms.localSearch.dsa.DSAsolver", "../agents/DSA/DSAagent.xml", problemFile], 
 # 
 # 		["MaxSum", "frodo2.algorithms.maxsum.MaxSumSolver", "../agents/MaxSum/MaxSumAgent.xml", problemFile], 
