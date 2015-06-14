@@ -30,6 +30,7 @@ import org.jdom2.Element;
 
 import frodo2.algorithms.StatsReporter;
 import frodo2.solutionSpaces.Addable;
+import frodo2.solutionSpaces.UtilitySolutionSpace;
 
 /** The solver for Comp-E[DPOP]
  * @author Thomas Leaute
@@ -106,7 +107,11 @@ public class Complete_E_DPOPsolver < V extends Addable<V>, U extends Addable<U> 
 		
 		this.dfsString = (this.samplingModule == null ? "" : this.samplingModule.dfsToString());
 		
-		return new StochSolution<V, U> (problem.getNbrVars(), utilModule.getOptUtil(), utilModule.getExpectedUtil(), utilModule.getWorstUtil(), utilModule.getProbOfOptimality(), utilModule.getCentralization(), utilModule.getSolution(), 
+		// Report the true utility, if it does not depend on anonymous variables
+		UtilitySolutionSpace<V, U> trueUtil = this.problem.getUtility(this.utilModule.getSolution());
+		
+		return new StochSolution<V, U> (problem.getNbrVars(), (trueUtil.getNumberOfSolutions() == 1 ? trueUtil.getUtility(0) : null), 
+				utilModule.getOptUtil(), utilModule.getExpectedUtil(), utilModule.getWorstUtil(), utilModule.getProbOfOptimality(), utilModule.getCentralization(), utilModule.getSolution(), 
 				factory.getNbrMsgs(), factory.getMsgNbrs(), this.factory.getMsgNbrsSentPerAgent(), this.factory.getMsgNbrsReceivedPerAgent(), 
 				factory.getTotalMsgSize(), factory.getMsgSizes(), this.factory.getMsgSizesSentPerAgent(), this.factory.getMsgSizesReceivedPerAgent(), 
 				factory.getOverallMaxMsgSize(), factory.getMaxMsgSizes(), factory.getNcccs(), factory.getTime(), null, utilModule.getMaxMsgDim());

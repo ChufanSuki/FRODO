@@ -651,6 +651,13 @@ public class SimpleGUI extends JFrame implements ActionListener, ItemListener {
 		if (enableJaCoP) 
 			agentNamesToPath.put("MaxSumAgentJaCoP.xml", "/frodo2/algorithms/maxsum/MaxSumAgentJaCoP.xml");
 		
+		// DUCT
+		this.agentNamesToPath.put("DUCTagent.xml", "/frodo2/algorithms/duct/DUCTagent.xml");
+		this.agentNamesToPath.put("DUCTagentChild.xml", "/frodo2/algorithms/duct/DUCTagentChild.xml");
+		this.agentNamesToPath.put("DUCTagentChildSearch.xml", "/frodo2/algorithms/duct/DUCTagentChildSearch.xml");
+		this.agentNamesToPath.put("DUCTagentPruning.xml", "/frodo2/algorithms/duct/DUCTagentPruning.xml");
+		this.agentNamesToPath.put("DUCTagentPruningSearch.xml", "/frodo2/algorithms/duct/DUCTagentPruningSearch.xml");
+		
 		List<String> keys = new ArrayList<String>(agentNamesToPath.keySet());
 		Collections.sort(keys);
 		return keys.toArray(new String [keys.size()]);
