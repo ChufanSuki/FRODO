@@ -52,7 +52,7 @@ genParams = [
 			[.4, .5, .6, .7, .8, .9, .99], # the varying target p2 values
 			]
 problemFile = "random_Max-DisCSP.xml"
-nbrProblems = 7 # for each combination of generator options, the number of problems to run the algorithms on
+nbrProblems = 101 # for each combination of generator options, the number of problems to run the algorithms on
 
 # Define the algorithms to run
 # Each algorithm is a list [algoName, solverClassName, agentConfigFilePath, inputProblemFilePath]

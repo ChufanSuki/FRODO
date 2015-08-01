@@ -36,7 +36,7 @@ javaParamsOld = [
             ]
 javaParamsNew = [
             "-Xmx2G", 
-            "-classpath", root + "bin:" + root + "lib/jacop-4.2.0.jar:" + root + "lib/jdom-2.0.6.jar", # includes the current version of FRODO
+            "-classpath", root + "bin:" + root + "lib/jacop-4.3.0.jar:" + root + "lib/jdom-2.0.6.jar", # includes the current version of FRODO
             ]
 
 # Partly define the problem generator (the input parameters will depend on the algorithm)
@@ -51,7 +51,7 @@ experiments = [
         ["previous ADOPT", "frodo2.algorithms.adopt.ADOPTsolver", root + "agents/ADOPT/ADOPTagentJaCoP.xml", problemFile, javaParamsOld], 
         ["new ADOPT", "frodo2.algorithms.adopt.ADOPTsolver", root + "agents/ADOPT/ADOPTagentJaCoP.xml", problemFile, javaParamsNew], 
             ]], 
-    ["AFB", ["-i", "-soft", list(range(15, 22)), .4, .0, 3], [
+    ["AFB", ["-i", "-soft", list(range(15, 21)), .4, .0, 3], [
         ["previous AFB", "frodo2.algorithms.afb.AFBsolver", root + "agents/AFB/AFBagentJaCoP.xml", problemFile, javaParamsOld], 
         ["new AFB", "frodo2.algorithms.afb.AFBsolver", root + "agents/AFB/AFBagentJaCoP.xml", problemFile, javaParamsNew], 
             ]],
@@ -157,6 +157,7 @@ for j in range(0, len(experiments)):
     # Scatter plot with one data point per instance, x = old algorithm and y = new algorithm
     xAlgo = exp[2][0][0]
     yAlgo = exp[2][1][0]
+    frodo2.plotScatter(output, xAlgo, yAlgo, metricsCol = 19, timeouts = False, block = False, loglog = False) # 19 = solution quality 
     frodo2.plotScatter(output, xAlgo, yAlgo, metricsCol = 15, timeouts = True, block = False) # 15 = message size
     frodo2.plotScatter(output, xAlgo, yAlgo, metricsCol = 15, timeouts = False, block = False) # 15 = message size
     frodo2.plotScatter(output, xAlgo, yAlgo, metricsCol = 13, timeouts = True, block = False) # 13 = runtime

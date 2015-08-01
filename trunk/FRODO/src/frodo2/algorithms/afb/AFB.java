@@ -990,12 +990,12 @@ public class AFB < V extends Addable<V>, U extends Addable<U> > implements Stats
 			ClusterInfo cluster = compInfo.clusterInfos.get(clusterIndex);
 			List<String> previousVars = new ArrayList<String>();
 			List<V> previousVals = new ArrayList<V>();
-			for(int i = pa.index - 1; i >= 0; i--){
+			for(int i = pa.index; i >= 0; i--){
 				previousVars.addAll(Arrays.asList(compInfo.order[i]));
 				previousVals.addAll(Arrays.asList(pa.assignments[i]));
 			}
 			if (groundClusterVars) {
-				assert clusterIndex >= pa.index;
+				assert clusterIndex > pa.index;
 				previousVars.addAll(Arrays.asList(cluster.vars));
 				previousVals.addAll(Arrays.asList(pa.assignments[clusterIndex]));
 			}
@@ -1038,6 +1038,7 @@ public class AFB < V extends Addable<V>, U extends Addable<U> > implements Stats
 			{
 				info.cpa.c = info.prevCost;
 				info.cpa.assignments[clusterIndex]=null;
+				info.cpa.index = clusterIndex - 1;
 			}
 			
 			// If we don't already have an iterator over the solutions of this cluster, we create it
@@ -1092,16 +1093,15 @@ public class AFB < V extends Addable<V>, U extends Addable<U> > implements Stats
 				{
 					// send CPA_MSG to the next variable
 					PA<V, U> pa = info.cpa.clone();
-					pa.index++;
 					if (verbose) 
-						System.out.println("sent CPA_MSG from " + Arrays.toString(compInfo.order[clusterIndex]) +" to "+ Arrays.toString(compInfo.order[clusterIndex+1]) +" with "+pa.clone());
+						System.out.println("sent CPA_MSG from " + Arrays.toString(compInfo.order[clusterIndex]) +" to "+ Arrays.toString(compInfo.order[clusterIndex+1]) +" with "+pa);
 					this.queue.sendMessage(info.nextAgent, new CPAmsg<V, U> (compInfo.order[clusterIndex+1][0],compInfo.order[clusterIndex][0], pa,info.timestamp.clone()));
 					
 					//send FB_CPA to all variables with lower priority
 					for (int j = compInfo.order.length - 1; j > clusterIndex; j--)
 					{  
-						if (verbose) System.out.println("Sent FB_CPA from "+ Arrays.toString(compInfo.order[clusterIndex]) +" to "+ Arrays.toString(compInfo.order[j]) +" with "+info.cpa.toString());
-						this.queue.sendMessage(compInfo.clusterAgents.get(j), new FbCpaMsg<V, U> (compInfo.order[j][0], compInfo.order[clusterIndex][0], info.cpa.clone(),info.timestamp.clone())); /// @bug Why hasn't the PA index been incremented? 
+						if (verbose) System.out.println("Sent FB_CPA from "+ Arrays.toString(compInfo.order[clusterIndex]) +" to "+ Arrays.toString(compInfo.order[j]) +" with "+pa);
+						this.queue.sendMessage(compInfo.clusterAgents.get(j), new FbCpaMsg<V, U> (compInfo.order[j][0], compInfo.order[clusterIndex][0], info.cpa.clone(),info.timestamp.clone()));
 					}
 				}
 			} // variable domain was not exhausted
@@ -1133,8 +1133,8 @@ public class AFB < V extends Addable<V>, U extends Addable<U> > implements Stats
 					// (Eg: when B is exceeded in processCPA by the previous agents assignments)
 					pa.c = info.prevCost;
 					pa.assignments[clusterIndex]=null;
+					pa.index = clusterIndex - 1;
 				}
-				pa.index--;
 
 				// reset the domain values for variable at position varIndex
 				info.iterator = null;
