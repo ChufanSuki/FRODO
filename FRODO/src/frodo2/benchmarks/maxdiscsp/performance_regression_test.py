@@ -36,7 +36,7 @@ javaParamsOld = [
             ]
 javaParamsNew = [
             "-Xmx2G", 
-            "-classpath", root + "bin:" + root + "lib/jacop-4.2.0.jar:" + root + "lib/jdom-2.0.6.jar", # includes the current version of FRODO
+            "-classpath", root + "bin:" + root + "lib/jacop-4.3.0.jar:" + root + "lib/jdom-2.0.6.jar", # includes the current version of FRODO
             ]
 
 # Partly define the problem generator (the input parameters will depend on the algorithm)
@@ -137,6 +137,7 @@ for j in range(0, len(experiments)):
     # Scatter plot with one data point per instance, x = old algorithm and y = new algorithm
     xAlgo = exp[2][0][0]
     yAlgo = exp[2][1][0]
+    frodo2.plotScatter(output, xAlgo, yAlgo, metricsCol = 18, timeouts = False, block = False, loglog = False) # 18 = solution quality 
     frodo2.plotScatter(output, xAlgo, yAlgo, metricsCol = 14, timeouts = True, block = False) # 14 = message size
     frodo2.plotScatter(output, xAlgo, yAlgo, metricsCol = 14, timeouts = False, block = False) # 14 = message size
     frodo2.plotScatter(output, xAlgo, yAlgo, metricsCol = 12, timeouts = True, block = False) # 12 = runtime

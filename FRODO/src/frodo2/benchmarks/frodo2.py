@@ -323,7 +323,7 @@ def run (java_i, javaParams_i, generator_i, genParams, nbrProblems, algos_i, tim
         runAtDepth(0, "\t", genParams)
         
 
-def plotScatter (resultsFile, xAlgo, yAlgo, metricsCol, timeouts = True, block = True):
+def plotScatter (resultsFile, xAlgo, yAlgo, metricsCol, timeouts = True, block = True, loglog = True):
     """ Plots one algorithm against another in a log-log scatter plot
     @param resultsFile   the CSV file containing the experimental results
     @param xAlgo         the algorithm to be put on the x axis
@@ -331,6 +331,7 @@ def plotScatter (resultsFile, xAlgo, yAlgo, metricsCol, timeouts = True, block =
     @param metricsCol    the index of he column in the CSV file containing the comparison metrics
     @param timeouts      if True, displays the timeouts; otherwise they are ignored (which might produce more readable graphs)
     @param block         whether to block for the matplotlib window to be closed to continue (default = True)
+    @parma loglog        whether to plot the results using log/log scales (default = True)
     """
     
     global drawGraphs
@@ -381,7 +382,7 @@ def plotScatter (resultsFile, xAlgo, yAlgo, metricsCol, timeouts = True, block =
         coord[algoIndex] = metricsVal
     
     if drawGraphs:
-        plotDataScatter(results, xAlgo, yAlgo, metricsName, block)
+        plotDataScatter(results, xAlgo, yAlgo, metricsName, block, loglog)
     else:
         saveDataScatter(resultsFile, results, xAlgo, yAlgo, metricsName)
     
@@ -479,14 +480,17 @@ def plot (resultsFile, xCol, yCol, block = True):
         saveData(resultsFile, results, xName, yName)
     
     
-def plotDataScatter (results, xAlgo, yAlgo, metricsName, block):
+def plotDataScatter (results, xAlgo, yAlgo, metricsName, block, loglog):
     """
     @param results         { instance1 : [xAlgo, yAlgo], ..., instanceN : [xAlgo, yAlgo] }
     """
     
     fig = plt.figure()
     
-    axes = fig.add_subplot(111, xscale = "log", yscale = "log")
+    if loglog: 
+        axes = fig.add_subplot(111, xscale = "log", yscale = "log")
+    else:
+        axes = fig.add_subplot(111)
     
     # Collect the x and y values
     xValues = []
@@ -504,9 +508,9 @@ def plotDataScatter (results, xAlgo, yAlgo, metricsName, block):
     plt.scatter(xValues, yValues, marker = "+")
     
     # Set the limits of the axes to make sure everything is visible and the axes are square
-    if xyMin != 0:
+    if loglog and xyMin != 0:
         xyMin = math.pow(10, math.floor(math.log10(xyMin)))
-    if xyMax != 0:
+    if loglog and xyMax != 0:
         xyMax = math.pow(10, math.ceil(math.log10(xyMax)))
     axes.set_xlim(xyMin, xyMax)
     axes.set_ylim(xyMin, xyMax)

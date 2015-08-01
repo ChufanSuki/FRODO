@@ -50,7 +50,7 @@ genParams = [
             ]
 problemFile = "partyLeaute11.xml"
 problemFileMPC = "partyVickrey02.xml"
-nbrProblems = 7 # for each combination of generator options, the number of problems to run the algorithms on
+nbrProblems = 101 # for each combination of generator options, the number of problems to run the algorithms on
 
 # Define the algorithms to run
 # Each algorithm is a list [algoName, solverClassName, agentConfigFilePath, inputProblemFilePath]

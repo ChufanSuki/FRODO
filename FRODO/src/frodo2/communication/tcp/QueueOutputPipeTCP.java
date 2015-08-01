@@ -59,6 +59,9 @@ public class QueueOutputPipeTCP implements Runnable, QueueOutputPipeInterface {
 
 	/** Output stream to which outgoing messages should be written */
 	private ObjectOutputStream output;
+	
+	/** The output socket */
+	private Socket socket;
 
 	/** The name of this pipe, used only by QueueOutputPipeTCP#toDOT() */
 	private String name;
@@ -264,7 +267,7 @@ public class QueueOutputPipeTCP implements Runnable, QueueOutputPipeInterface {
 		ObjectOutputStream out = null;
 		for (int i = 0; ; i++) {
 			try {
-				out = new ObjectOutputStream (new Socket (address, port).getOutputStream());
+				out = new ObjectOutputStream ((this.socket = new Socket (address, port)).getOutputStream());
 			} catch (UnknownHostException e) {
 				throw e;
 			} catch (IOException e) {
@@ -290,7 +293,7 @@ public class QueueOutputPipeTCP implements Runnable, QueueOutputPipeInterface {
 		ObjectOutputStream out = null;
 		for (int i = 0; ; i++) {
 			try {
-				out = new ObjectOutputStream (new Socket (address, port).getOutputStream());
+				out = new ObjectOutputStream ((this.socket = new Socket (address, port)).getOutputStream());
 			} catch (UnknownHostException e) {
 				throw e;
 			} catch (IOException e) {
@@ -319,6 +322,13 @@ public class QueueOutputPipeTCP implements Runnable, QueueOutputPipeInterface {
 	public void close () {
 		keepGoing = false;
 		myThread.interrupt();
+		
+		try {
+			this.socket.close();
+		} catch (IOException e1) {
+			e1.printStackTrace();
+		}
+		
 		if (rawDataServer != null) {
 			try {
 				rawDataServer.servSocket.close();

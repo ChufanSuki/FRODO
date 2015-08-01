@@ -1,3 +1,16 @@
+CHANGES IN VERSION 2.13.1 SINCE VERSION 2.13
+
+Major changes: 
+	- Upgraded to JaCoP version 4.3.0; the new JAR file must be manually downloaded from the JaCoP website and put in FRODO's lib folder. 
+	- Fixed a bug in AFB, following which the algorithm was not backtracking as early as it should (reported by Yang Xiaolei). 
+	This results in up to 25% median performance improvements on graph coloring problems (19 nodes, density 0.4, 3 colors), 
+	and up to 50 % median performance improvements on tight MaxDisCSPs (10 variables, p1 = 0.4, p2 = 0.9). 
+	
+Minor changes: 
+	- Now supports scatter plots in natural scale in addition to log/log scale. 
+	- Fixed a resource leak in the TCP communication layer (sockets were not being closed after use). 
+
+
 CHANGES IN VERSION 2.13 SINCE VERSION 2.12.1
 
 Major changes: 
