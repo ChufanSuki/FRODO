@@ -151,5 +151,15 @@ How to contact the authors:
 				terminationCondition = "frodo2.algorithms.duct.termination.TerminateBest_Child"
 				bound = "frodo2.algorithms.duct.bound.BoundLog" >
 		</module>
+		
+		<!-- Prints out all messages received and sent by the agent
+			WARNING! This can significantly affect runtime performance. Only use this module for debugging purposes. 
+				- hideSystemMessages: whether to display system messages (default: true)
+		 -->
+		<!--
+		<module className = "frodo2.algorithms.test.MessageDebugger" 
+		 		hideSystemMessages = "true" />
+		 -->
+		 
 	</modules>
 </agentDescription>

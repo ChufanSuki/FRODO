@@ -163,5 +163,15 @@ How to contact the authors:
 						  generator = "18261908958389154944274774667360451019974769453596444320512779869257372024106020602167056988140345164076916290105290743415373998274884678869342638514256724" 
 						  infinity = "1" />
 		</module>
+		
+		<!-- Prints out all messages received and sent by the agent
+			WARNING! This can significantly affect runtime performance. Only use this module for debugging purposes. 
+				- hideSystemMessages: whether to display system messages (default: true)
+		 -->
+		<!--
+		<module className = "frodo2.algorithms.test.MessageDebugger" 
+		 		hideSystemMessages = "true" />
+		 -->
+		 
 	</modules>
 </agentDescription>
