@@ -401,18 +401,20 @@ public class Queue implements Runnable {
 		try {
 			this.outPolicies_lock.lock();
 			
-			// Notify the outgoing message listeners registered for all messages
-			for (OutgoingMsgPolicyInterface<String> module : this.outPolicies.get(ALLMESSAGES)) 
-				if (module.notifyOut(msg) == OutgoingMsgPolicyInterface.Decision.DISCARD) 
-					discard = true;
-			
 			// Notify the listeners registered for this message's type
 			ArrayList< OutgoingMsgPolicyInterface<String> > modules = this.outPolicies.get(msg.getType()); /// @bug very rarely throws a NullPointerException
 			if (modules != null) 
-				for (OutgoingMsgPolicyInterface<String> module : modules) 
-					if (module.notifyOut(msg) == OutgoingMsgPolicyInterface.Decision.DISCARD) 
+				for (java.util.Iterator< OutgoingMsgPolicyInterface<String> > iter = modules.iterator(); !discard && iter.hasNext(); )
+					if (iter.next().notifyOut(msg) == OutgoingMsgPolicyInterface.Decision.DISCARD) 
 						discard = true;
 
+			// Notify the outgoing message listeners registered for all messages
+			if (!discard) 
+				for (java.util.Iterator< OutgoingMsgPolicyInterface<String> > iter = this.outPolicies.get(ALLMESSAGES).iterator(); 
+						!discard && iter.hasNext(); ) 
+					if (iter.next().notifyOut(msg) == OutgoingMsgPolicyInterface.Decision.DISCARD) 
+						discard = true;
+			
 		} finally {
 			this.outPolicies_lock.unlock();
 		}

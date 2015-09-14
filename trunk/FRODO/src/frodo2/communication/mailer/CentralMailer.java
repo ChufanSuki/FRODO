@@ -228,21 +228,19 @@ public class CentralMailer extends Thread {
 		@Override
 		protected boolean notifyOutListeners (Message msg) {
 
-			boolean discard = false;
-
-			// Notify the outgoing message listeners registered for all messages
-			for (OutgoingMsgPolicyInterface<String> module : this.outPolicies.get(ALLMESSAGES)) 
-				if (module.notifyOut(msg) == OutgoingMsgPolicyInterface.Decision.DISCARD) 
-					discard = true;
-
 			// Notify the listeners registered for this message's type
 			ArrayList< OutgoingMsgPolicyInterface<String> > modules = this.outPolicies.get(msg.getType());
 			if (modules != null) 
 				for (OutgoingMsgPolicyInterface<String> module : modules) 
 					if (module.notifyOut(msg) == OutgoingMsgPolicyInterface.Decision.DISCARD) 
-						discard = true;
+						return true;
 
-			return discard;
+			// Notify the outgoing message listeners registered for all messages
+			for (OutgoingMsgPolicyInterface<String> module : this.outPolicies.get(ALLMESSAGES)) 
+				if (module.notifyOut(msg) == OutgoingMsgPolicyInterface.Decision.DISCARD) 
+					return true;
+
+			return false;
 		}
 
 		/** @see Queue#recordStats(Object, Message) */
