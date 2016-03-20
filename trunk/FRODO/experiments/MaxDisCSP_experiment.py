@@ -1,6 +1,6 @@
 """
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2015  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2016  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -39,47 +39,47 @@ import frodo2
 # The command to call java and the JVM parameters
 java = "java"
 javaParams = [
-			"-Xmx2G", # sets the Java heap space to 2 GB
-			"-classpath", "../frodo2.jar", # sets the Java classpath to include FRODO
-			]
+            "-Xmx2G", # sets the Java heap space to 2 GB
+            "-classpath", "../frodo2.jar", # sets the Java classpath to include FRODO
+            ]
 
 # Define the random problems to be generated
 generator = "frodo2.benchmarks.maxdiscsp.MaxDisCSPProblemGenerator"
 genParams = [
-			10, # the number of variables
-			10, # the domain size
-			.4, # the target p1 value
-			[.4, .5, .6, .7, .8, .9, .99], # the varying target p2 values
-			]
+            10, # the number of variables
+            10, # the domain size
+            .4, # the target p1 value
+            [.4, .5, .6, .7, .8, .9, .99], # the varying target p2 values
+            ]
 problemFile = "random_Max-DisCSP.xml"
 nbrProblems = 101 # for each combination of generator options, the number of problems to run the algorithms on
 
 # Define the algorithms to run
 # Each algorithm is a list [algoName, solverClassName, agentConfigFilePath, inputProblemFilePath]
 algos = [
-		["ADOPT", "frodo2.algorithms.adopt.ADOPTsolver", "../agents/ADOPT/ADOPTagent.xml", problemFile], 
+        ["ADOPT", "frodo2.algorithms.adopt.ADOPTsolver", "../agents/ADOPT/ADOPTagent.xml", problemFile], 
 
-		["AFB", "frodo2.algorithms.afb.AFBsolver", "../agents/AFB/AFBagent.xml", problemFile], 
+        ["AFB", "frodo2.algorithms.afb.AFBsolver", "../agents/AFB/AFBagent.xml", problemFile], 
 
-		["DPOP", "frodo2.algorithms.dpop.DPOPsolver", "../agents/DPOP/DPOPagent.xml", problemFile], 
-# 		["ASO-DPOP", "frodo2.algorithms.asodpop.ASODPOPsolver", "../agents/DPOP/ASO-DPOP/ASO-DPOPagent.xml", problemFile], 
-# 		["MB-DPOP", "frodo2.algorithms.dpop.DPOPsolver", "../agents/DPOP/MB-DPOP/MB-DPOPagent.xml", problemFile], 
-#  		["O-DPOP", "frodo2.algorithms.odpop.ODPOPsolver", "../agents/DPOP/O-DPOP/O-DPOPagent.xml", problemFile], 
-#  		["P-DPOP", "frodo2.algorithms.dpop.privacy.P_DPOPsolver", "../agents/DPOP/P-DPOP/P-DPOPagent.xml", problemFile], 
-#  		["P3/2-DPOP", "frodo2.algorithms.dpop.privacy.P3halves_DPOPsolver", "../agents/DPOP/P-DPOP/P1.5-DPOPagent.xml", problemFile], 
-# 		["P2-DPOP", "frodo2.algorithms.dpop.privacy.P2_DPOPsolver", "../agents/DPOP/P-DPOP/P2-DPOPagent.xml", problemFile], 
+        ["DPOP", "frodo2.algorithms.dpop.DPOPsolver", "../agents/DPOP/DPOPagent.xml", problemFile], 
+#         ["ASO-DPOP", "frodo2.algorithms.asodpop.ASODPOPsolver", "../agents/DPOP/ASO-DPOP/ASO-DPOPagent.xml", problemFile], 
+#         ["MB-DPOP", "frodo2.algorithms.dpop.DPOPsolver", "../agents/DPOP/MB-DPOP/MB-DPOPagent.xml", problemFile], 
+#          ["O-DPOP", "frodo2.algorithms.odpop.ODPOPsolver", "../agents/DPOP/O-DPOP/O-DPOPagent.xml", problemFile], 
+#          ["P-DPOP", "frodo2.algorithms.dpop.privacy.P_DPOPsolver", "../agents/DPOP/P-DPOP/P-DPOPagent.xml", problemFile], 
+#          ["P3/2-DPOP", "frodo2.algorithms.dpop.privacy.P3halves_DPOPsolver", "../agents/DPOP/P-DPOP/P1.5-DPOPagent.xml", problemFile], 
+#         ["P2-DPOP", "frodo2.algorithms.dpop.privacy.P2_DPOPsolver", "../agents/DPOP/P-DPOP/P2-DPOPagent.xml", problemFile], 
 # 
 #       ["DUCT", "frodo2.algorithms.duct.DUCTsolver", "../agents/DUCT/DUCTagent.xml", problemFile], 
 #
-# 		["DSA", "frodo2.algorithms.localSearch.dsa.DSAsolver", "../agents/DSA/DSAagent.xml", problemFile], 
+#         ["DSA", "frodo2.algorithms.localSearch.dsa.DSAsolver", "../agents/DSA/DSAagent.xml", problemFile], 
 # 
-# 		["MaxSum", "frodo2.algorithms.maxsum.MaxSumSolver", "../agents/MaxSum/MaxSumAgent.xml", problemFile], 
+#         ["MaxSum", "frodo2.algorithms.maxsum.MaxSumSolver", "../agents/MaxSum/MaxSumAgent.xml", problemFile], 
 # 
-# 		["MGM", "frodo2.algorithms.localSearch.mgm.MGMsolver", "../agents/MGM/MGMagent.xml", problemFile], 
-# 		["MGM2", "frodo2.algorithms.localSearch.mgm.mgm2.MGM2solver", "../agents/MGM/MGM2agent.xml", problemFile], 
+#         ["MGM", "frodo2.algorithms.localSearch.mgm.MGMsolver", "../agents/MGM/MGMagent.xml", problemFile], 
+#         ["MGM2", "frodo2.algorithms.localSearch.mgm.mgm2.MGM2solver", "../agents/MGM/MGM2agent.xml", problemFile], 
 
-		["SynchBB", "frodo2.algorithms.synchbb.SynchBBsolver", "../agents/SynchBB/SynchBBagent.xml", problemFile], 
-		]
+        ["SynchBB", "frodo2.algorithms.synchbb.SynchBBsolver", "../agents/SynchBB/SynchBBagent.xml", problemFile], 
+        ]
 timeout = 120 # in seconds
 
 # The CSV file to which the statistics should be written
