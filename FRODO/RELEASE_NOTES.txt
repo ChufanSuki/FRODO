@@ -1,3 +1,12 @@
+CHANGES IN VERSION 2.13.3 SINCE VERSION 2.13.2
+
+Major changes: 
+	- Upgraded to JaCoP version 4.4.0; the new JAR file must be manually downloaded from the JaCoP website and put in FRODO's lib folder. 
+	
+Minor changes: 
+	- Fixed a too strict assert checking for integer overflows in the JaCoP XCSP parser (bug reported by Dimitrios Athanasiadis). 
+
+
 CHANGES IN VERSION 2.13.2 SINCE VERSION 2.13.1
 
 Major changes: none
@@ -104,7 +113,7 @@ CHANGES IN VERSION 2.11 SINCE VERSION 2.10.5
 
 Major changes: 
 	- Upgraded to JDOM version 2.0.5; the file jdom-2.0.5.jar must be manually downloaded from the JDOM website and saved in FRODO's lib folder. 
-	- Renamed FRODO's package from ch.epfl.lia.frodo to just frodo2. 
+	- Renamed FRODO's package from frodo2 to just frodo2. 
 	- Added support for a standardized way of running experiments using Python scripts. 
 	- Added new performance metrics reporting the size of the largest message. 
 	- Important performance improvements to the interface with JaCoP through the introduction of sparse solution iterators. 
@@ -538,7 +547,7 @@ Minor changes:
 	- Added a timeout to the simple mode. 
 	- Changes in the handling of NCCCs. NCCCs are currently only supported for O-DPOP and ADOPT. 
 	- Trashed DPOP's DomainSharing module. 
-	- Now provides an XML schema file for the XCSP format (ch/epfl/lia/frodo/algorithms/XCSPschema.xsd). 
+	- Now provides an XML schema file for the XCSP format (frodo2/algorithms/XCSPschema.xsd). 
 	- The simple mode now properly displays the number of messages and total information sent. 
 	- Changes in the required constructor signature for StatsReporters. 
 	- Removed busy waits in the unit tests. 

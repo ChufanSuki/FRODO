@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2015  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2016  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -44,12 +44,7 @@ import org.jacop.constraints.Cumulative;
 import org.jacop.constraints.Diff2;
 import org.jacop.constraints.ExtensionalConflictVA;
 import org.jacop.constraints.ExtensionalSupportSTR;
-import org.jacop.constraints.SumWeight;
-import org.jacop.constraints.XgtY;
-import org.jacop.constraints.XgteqY;
-import org.jacop.constraints.XltY;
-import org.jacop.constraints.XlteqY;
-import org.jacop.constraints.XneqY;
+import org.jacop.constraints.LinearInt;
 import org.jacop.core.IntDomain;
 import org.jacop.core.IntVar;
 import org.jacop.core.IntervalDomain;
@@ -280,16 +275,12 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 		AddableInteger[][] variables_domain = (AddableInteger[][]) Array.newInstance(variablesHashMap.values().iterator().next().getClass(), varNames.length);
 
 		int no = -1;
-		int size = 1;
 		boolean hasAnonymVar = false; // whether one variable in the scope has no specified owner
 		for (String n : varNames) {
 			hasAnonymVar = hasAnonymVar || (this.getOwner(n) == null);
 			no++;
 			variables_domain[no] = variablesHashMap.get(n);
 			assert variables_domain[no] != null : "Unknown domain for variable `" + n + "'";
-			assert Math.log((double) size) + Math.log((double) variables_domain[no].length) < Math.log(Integer.MAX_VALUE) : 
-				"Constraint `" + constraint.getAttributeValue("name") + "' has a solution space too large for an int";
-			size *= variables_domain[no].length;
 		}
 
 		// If required, ignore the constraint if its scope contains variables with unknown owners
@@ -740,50 +731,41 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 			}
 
 			IntVar rightHandVar = new IntVar(store, "rhs_" + new Object().hashCode(), rightHandVal, rightHandVal);
+			vars.add(rightHandVar);
+			weights.add(-1);
 
 			String atom = ((Element)constraint.getChild("parameters").getChildren().get(0)).getName();
-
-			IntVar sumVar = null;
+			String op = "";
 
 			if(atom.equals("eq")){
 
-				sumVar = rightHandVar;
+				op = "==";
 
 			}else if(atom.equals("ne")){
 
-				sumVar = new IntVar(store, "sum_" + new Object().hashCode(), IntervalDomain.MinInt, IntervalDomain.MaxInt);
-
-				store.impose(new XneqY(sumVar, rightHandVar)); 
+				op = "!=";
 
 			}else if(atom.equals("ge")){
 
-				sumVar = new IntVar(store, "sum_" + new Object().hashCode(), IntervalDomain.MinInt, IntervalDomain.MaxInt);
-
-				store.impose(new XgteqY(sumVar, rightHandVar)); 
+				op = ">="; 
 
 			}else if(atom.equals("gt")){
 
-				sumVar = new IntVar(store, "sum_" + new Object().hashCode(), IntervalDomain.MinInt, IntervalDomain.MaxInt);
-
-				store.impose(new XgtY(sumVar, rightHandVar));
+				op = ">";
 
 			}else if(atom.equals("le")){
 
-				sumVar = new IntVar(store, "sum_" + new Object().hashCode(), IntervalDomain.MinInt, IntervalDomain.MaxInt);
-
-				store.impose(new XlteqY(sumVar ,rightHandVar));
+				op = "<=";
 
 			}else if(atom.equals("lt")){
 
-				sumVar = new IntVar(store, "sum_" + new Object().hashCode(), IntervalDomain.MinInt, IntervalDomain.MaxInt);
-
-				store.impose(new XltY(sumVar, rightHandVar));
+				op = "<";
 
 			}else{
 				assert false: "atom " + atom + " not recognized!";
 			}
 
-			store.impose(new SumWeight(vars, weights, sumVar));
+			store.impose(new LinearInt(store, vars, weights, op, 0));
 
 		}else if(refName.equals("global:allDifferent")){
 			

@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2015  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2016  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -36,7 +36,7 @@ import java.util.Map;
 
 import org.jdom2.Element;
 
-import org.jacop.constraints.Sum;
+import org.jacop.constraints.SumInt;
 import org.jacop.constraints.XplusYeqC;
 import org.jacop.core.IntDomain;
 import org.jacop.core.IntVar;
@@ -943,13 +943,13 @@ public class JaCoPutilSpace < U extends Addable<U> > implements UtilitySolutionS
 		if(this.maximize == false){
 			// Construct the sum variable
 			IntVar utilVar = new IntVar (store, "util_total", sumDom);
-			store.impose(new Sum (utilVars, utilVar));
+			store.impose(new SumInt (store, utilVars, "==", utilVar));
 			// If it is a maximization problem, we need to create the total utility variable (that is the negation of the total cost variable)
 			// to be able to convert the problem into a minimization one as JaCoP can only handle those.
 		}else{
 			// Construct the sum variable
 			IntVar utilVar = new IntVar (store, "cost_total", sumDom);
-			store.impose(new Sum (utilVars, utilVar));
+			store.impose(new SumInt (store, utilVars, "==", utilVar));
 
 			// @todo compute the exact opposite domain of sumDom
 			IntervalDomain oppDom = new IntervalDomain(IntDomain.MinInt,IntDomain.MaxInt);
@@ -1465,6 +1465,7 @@ public class JaCoPutilSpace < U extends Addable<U> > implements UtilitySolutionS
 			builder.append(tuple);
 			relation.setText(builder.toString());
 			
+			assert Integer.parseInt(relation.getAttributeValue("nbTuples")) != Integer.MAX_VALUE : "Too many tuples to fit in an int";
 			relation.setAttribute("nbTuples", Integer.toString(1 + Integer.parseInt(relation.getAttributeValue("nbTuples"))));
 		}
 		

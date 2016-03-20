@@ -1,6 +1,6 @@
 """
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2015  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2016  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -36,7 +36,7 @@ javaParamsOld = [
             ]
 javaParamsNew = [
             "-Xmx2G", 
-            "-classpath", root + "bin:" + root + "lib/jacop-4.3.0.jar:" + root + "lib/jdom-2.0.6.jar", # includes the current version of FRODO
+            "-classpath", root + "bin:" + root + "lib/jacop-4.4.0.jar:" + root + "lib/jdom-2.0.6.jar", # includes the current version of FRODO
             ]
 
 # Partly define the problem generator (the input parameters will depend on the algorithm)

@@ -1,6 +1,6 @@
 """
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2015  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2016  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -41,7 +41,7 @@ output = ""
 outFile = None
 javaProcess = None
 
-print("""FRODO  Copyright (C) 2008-2015  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+print("""FRODO  Copyright (C) 2008-2016  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 This program comes with ABSOLUTELY NO WARRANTY.
 This is free software, and you are welcome to redistribute it
 under certain conditions.\n""");
