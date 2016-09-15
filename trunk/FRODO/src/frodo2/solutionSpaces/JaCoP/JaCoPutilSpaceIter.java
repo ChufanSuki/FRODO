@@ -35,7 +35,6 @@ import frodo2.solutionSpaces.hypercube.HypercubeIter;
 /** A solution iterator for JaCoPutilSpace
  * @author Arnaud Jutzeler, Thomas Leaute
  * @param <U> the type used for utility values
- * @todo Improve performance using a sparse iterator that keeps track of the skipped infeasible solutions
  */
 public class JaCoPutilSpaceIter < U extends Addable<U> > extends HypercubeIter<AddableInteger, U>{
 	
@@ -199,4 +198,24 @@ public class JaCoPutilSpaceIter < U extends Addable<U> > extends HypercubeIter<A
 		
 		return this.utility;
 	}
+	
+	/** @see HypercubeIter#toString() */
+	@Override
+	public String toString () {
+		StringBuilder builder = new StringBuilder (this.getClass().getSimpleName()).append("\n");
+		builder.append("\tnbrVars: " + this.nbrVars + "\n");
+		builder.append("\tvariables:\n");
+		for (int i = 0; i < this.nbrVars; i++) 
+			builder.append("\t\t" + this.variables[i] + ":\t" + Arrays.asList(this.domains[i]) + "\n");
+		
+		builder.append("\tnbrSols: " + this.nbrSols + "\n");
+		builder.append("\tnbrSolLeft: " + this.nbrSolLeft + "\n");
+		builder.append("\tsolution: " + (this.solution == null ? "null" : Arrays.asList(this.solution)) + "\n");
+		builder.append("\tutilIndex: " + this.utilIndex + "\n");
+		builder.append("\tutility: " + this.utility + "\n");
+		
+		builder.append("\tspace: " + this.space);
+		return builder.toString();
+	}
+
 }

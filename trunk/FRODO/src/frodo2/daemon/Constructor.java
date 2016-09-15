@@ -132,6 +132,8 @@ public class Constructor implements IncomingMsgPolicyInterface<String> {
 						msgR.getPayload1(), agentDoc, agentPort);	
 			}
 			
+			System.out.println("Received the ownership of Agent " + agent.getID());
+			
 			if(local) {
 				controller.addAgent(agent.getID(), agent);
 			} else {

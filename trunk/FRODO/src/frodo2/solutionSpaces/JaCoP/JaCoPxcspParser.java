@@ -594,10 +594,13 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 			}
 			vars[arity] = currentUtilVar;
 
-			ExtensionalSupportSTR ext = new ExtensionalSupportSTR(vars, solutions.toArray(new int[solutions.size()][arity+1]));
-			store.impose(ext);
+			// Create and impose the constraint
+			if (relation.getAttribute("hypercube") != null) // use a hypercube-based constraint
+				store.impose(new ExtensionalSupportHypercube (vars, solutions));
+			else 
+				store.impose(new ExtensionalSupportSTR(vars, solutions.toArray(new int[solutions.size()][arity+1])));
 
-		}else{
+		}else{ // hard constraint
 
 			// JaCoP Variables = variables of the hypercube + the utility variable
 			IntVar[] vars = new IntVar[varNames.length];

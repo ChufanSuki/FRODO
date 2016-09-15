@@ -1,3 +1,20 @@
+CHANGES IN VERSION 2.14 SINCE VERSION 2.13.3
+
+Major changes: 
+	- Major performance improvement in the way DPOP's UTIL messages are implemented in JaCoP (performance issue reported by Chirag Vartak). 
+	UTIL lookups are now cheaper (constant instead of linear in the number of allowed tuples), resulting in multiple-times speedups. 
+	- Fixed a bug in the random graph coloring problem generator, following which the unary constraints (when tightness > 0) 
+	used an inconsistent color numbering convention (bug reported by Duc Thien Nguyen). 
+	
+Minor changes: 
+	- DUCT now reports the cost/utility of the solution it returns. 
+	- In distributed submode, daemons now report which agents they own (request by Roger Tang). 
+	- Improvements to the error messages that could be thrown in advanced mode (support request by Roger Tang). 
+	- The XCSP parser now checks for unique constraint names when asserts are enabled (reported by Dipankar Niranjan). 
+	- User manual: fixed a few mistakes about Multi-Agent Systems (following a request for support by Partha Protim Mondal).
+	- User manual: added information about the distributed submode (request by Roger Tang). 
+
+
 CHANGES IN VERSION 2.13.3 SINCE VERSION 2.13.2
 
 Major changes: 
@@ -113,7 +130,7 @@ CHANGES IN VERSION 2.11 SINCE VERSION 2.10.5
 
 Major changes: 
 	- Upgraded to JDOM version 2.0.5; the file jdom-2.0.5.jar must be manually downloaded from the JDOM website and saved in FRODO's lib folder. 
-	- Renamed FRODO's package from frodo2 to just frodo2. 
+	- Renamed FRODO's package from ch.epfl.lia.frodo to just frodo2. 
 	- Added support for a standardized way of running experiments using Python scripts. 
 	- Added new performance metrics reporting the size of the largest message. 
 	- Important performance improvements to the interface with JaCoP through the introduction of sparse solution iterators. 
@@ -547,7 +564,7 @@ Minor changes:
 	- Added a timeout to the simple mode. 
 	- Changes in the handling of NCCCs. NCCCs are currently only supported for O-DPOP and ADOPT. 
 	- Trashed DPOP's DomainSharing module. 
-	- Now provides an XML schema file for the XCSP format (frodo2/algorithms/XCSPschema.xsd). 
+	- Now provides an XML schema file for the XCSP format (ch/epfl/lia/frodo/algorithms/XCSPschema.xsd). 
 	- The simple mode now properly displays the number of messages and total information sent. 
 	- Changes in the required constructor signature for StatsReporters. 
 	- Removed busy waits in the unit tests. 

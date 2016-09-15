@@ -556,13 +556,44 @@ public class ConfigurationManager implements IncomingMsgPolicyInterface <String>
 		
 		try {
 			// Get the problem definition
-			problemDoc = builder.build(workDir + filename);
+			try {
+				problemDoc = builder.build(workDir + filename);
+			} catch (JDOMException e) {
+				System.err.println("Error when parsing " + workDir + filename);
+				e.printStackTrace();
+				return;
+			} catch (Exception e) {
+				System.err.println("Error when attempting to read " + workDir + filename);
+				e.printStackTrace();
+				return;
+			}
+			
 			Document agentDescr = null;
 			// Get the agent description
 			if(agentDescriptionFile == null) {
-				agentDescr = builder.build(ConfigurationManager.class.getResourceAsStream("/frodo2/" + agentName));
+				try {
+					agentDescr = builder.build(ConfigurationManager.class.getResourceAsStream("/frodo2/" + agentName));
+				} catch (JDOMException e) {
+					System.err.println("Error when parsing internal resource /frodo2/" + agentName);
+					e.printStackTrace();
+					return;
+				} catch (Exception e) {
+					System.err.println("Error when attempting to read internal resource /frodo2/" + agentName);
+					e.printStackTrace();
+					return;
+				}
 			} else {
-				agentDescr = builder.build(new File(agentDescriptionFile));
+				try {
+					agentDescr = builder.build(new File(agentDescriptionFile));
+				} catch (JDOMException e) {
+					System.err.println("Error when parsing " + agentDescriptionFile);
+					e.printStackTrace();
+					return;
+				} catch (Exception e) {
+					System.err.println("Error when attempting to read " + agentDescriptionFile);
+					e.printStackTrace();
+					return;
+				}
 			}
 			
 			// Override the "measureTime" attribute since simulated time is not supported in advanced mode

@@ -230,8 +230,16 @@ public class Sampling <V extends Addable<V>> implements StatsReporter {
 		if (type.equals(ASS_MSG_TYPE)) {
 			AssignmentMessage<V> msgCast = (AssignmentMessage<V>)msg;
 			assignment.put(msgCast.getSender(), msgCast.getValue());
-			if(!silent)
+			if(!silent) {
 				System.out.println("Variable " + msgCast.getSender() + " = " + msgCast.getValue());
+
+				// When we have received all messages, print out the corresponding utility. 
+				/// @author Thomas Leaute
+				if (this.assignment.keySet().containsAll(this.problem.getVariables())) 
+					System.out.println("Total "
+							+ (this.problem.maximize() ? "utility: " : "cost: ")
+							+ this.problem.getUtility(this.assignment, true).getUtility(0));
+			}
 			return;
 		} else if (type.equals(BOUND_MSG_TYPE)) {
 			BoundStatsMsg msgCast = (BoundStatsMsg)msg;

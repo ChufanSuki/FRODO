@@ -414,6 +414,9 @@ public class Solution<V, U> {
 			builder.append("\n");
 			builder.append("\n\t- msgSizes: \t" + this.msgSizes);
 			builder.append("\n\t- totalMsgSize:\t" + formatter.format(this.totalMsgSize));
+			builder.append("\n");
+			builder.append("\n\t- maxMsgSizes: \t" + this.maxMsgSizes);
+			builder.append("\n\t- maxMsgSize:\t" + formatter.format(this.maxMsgSize));
 		}
 		
 		if (this.treeWidth > 0) 

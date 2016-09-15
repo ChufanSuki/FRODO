@@ -34,6 +34,7 @@ import org.jdom2.JDOMException;
 import org.jdom2.input.SAXBuilder;
 import org.jdom2.input.sax.XMLReaders;
 
+import frodo2.algorithms.AgentFactory;
 import frodo2.algorithms.MASparser;
 import frodo2.solutionSpaces.AddableInteger;
 
@@ -56,6 +57,7 @@ public class MASparserTest extends TestCase {
 		
 		suite.addTest(new MASparserTest ("testParseString"));
 		suite.addTest(new MASparserTest ("testGetSubProblemString"));
+		suite.addTest(new MASparserTest ("testSampleSolve"));
 		
 		return suite;
 	}
@@ -131,6 +133,16 @@ public class MASparserTest extends TestCase {
 			e.printStackTrace();
 		}
 		
+	}
+	
+	/** Solves a sample problem with a sample agent
+	 * @author Thomas Leaute
+	 */
+	public void testSampleSolve () {
+		
+		AgentFactory.main(new String[] {
+				"src/frodo2/algorithms/test/sampleMASproblem.xml", 
+				"src/frodo2/algorithms/test/sampleMASagents.xml"});
 	}
 
 }

@@ -381,6 +381,9 @@ public class JaCoPutilSpace < U extends Addable<U> > implements UtilitySolutionS
 		final int nbrSol = in.readInt();
 
 		rel.setAttribute("nbTuples", Integer.toString(nbrSol));
+		
+		// Flag the relation as one that should be parsed into an hypercube-based constraint
+		rel.setAttribute("hypercube", "true");
 
 		StringBuilder builder = new StringBuilder ("\n");
 
@@ -801,6 +804,9 @@ public class JaCoPutilSpace < U extends Addable<U> > implements UtilitySolutionS
 		final U inf = this.infeasibleUtil;
 		newRel.setAttribute("defaultCost", inf.toString());
 		
+		// Flag the relation as one that should be parsed into an hypercube-based constraint
+		newRel.setAttribute("hypercube", "true");
+
 		// The variables
 		HashMap<String, AddableInteger[]> newVars = new HashMap<String, AddableInteger[]>();
 		for(String v: this.vars) 
@@ -825,6 +831,8 @@ public class JaCoPutilSpace < U extends Addable<U> > implements UtilitySolutionS
 		final int nbrVarsMin1 = this.getNumberOfVariables() - 1;
 		int i;
 		for (U util = iter.nextUtility(); util != null; util = iter.nextUtility()) {
+			
+//			System.out.println(nbSol + "/" + this.getNumberOfSolutions() + ": " + iter.getCurrentUtility());
 			
 			// Record the tuple for this solution
 			if (sparse || ! inf.equals(util)) { // checks if the solution is feasible

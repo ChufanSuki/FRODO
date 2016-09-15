@@ -188,7 +188,7 @@ public class GraphColoring {
 					continue;
 				
 				ArrayList<Integer> colors = new ArrayList<Integer> (nbrColors);
-				for (int i = 0; i < nbrColors; i++) 
+				for (int i = 1; i <= nbrColors; i++) 
 					if (Math.random() <= tightness) 
 						colors.add(i);
 				
