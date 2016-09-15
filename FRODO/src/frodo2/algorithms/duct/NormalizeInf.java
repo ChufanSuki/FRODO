@@ -122,14 +122,14 @@ public class NormalizeInf <V extends Addable<V>> extends Normalize<V> {
 					listMin.add(min);
 					lower = lower == null ? min : lower.add(min);
 				} else
-					listMin.add(null);
+					listMin.add(null); /// @todo If we are minimizing, then we have detected infeasibility; terminate early
 				
 				lowerBounds.put(var, lower);
 				AddableReal upper = upperBounds.get(var);
 				AddableReal max = space.blindProjectAll(true);
-				if(max != this.infeasibleUtil)
+				if(max != this.infeasibleUtil) /// @todo Else, if we are maximizing, then we have detected infeasibility; terminate early
 					upper = upper == null ? max : upper.add(max);
-				assert upper != null;
+				assert upper != null; /// @bug Sometimes fails, most noticeably on locally infeasible problems (bug reported by Duc Thien Nguyen)
 				upperBounds.put(var, upper);
 			}
 			

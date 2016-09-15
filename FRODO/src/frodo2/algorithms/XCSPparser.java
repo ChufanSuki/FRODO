@@ -294,6 +294,8 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 		this.mpc = false;
 		this.countNCCCs = false;
 		this.spacesToIgnoreNcccs = new HashSet<String>();
+		
+		assert this.checkUniqueConstraintNames() : "Non-unique constraint names";
 	}
 
 	/** Constructor from a JDOM root Element in XCSP format
@@ -307,6 +309,8 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 		this.publicAgents = false;
 		this.mpc = false;
 		this.spacesToIgnoreNcccs = new HashSet<String>();
+		
+		assert this.checkUniqueConstraintNames() : "Non-unique constraint names";
 	}
 
 	/** Constructor from a JDOM root Element in XCSP format
@@ -331,6 +335,8 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 		this.publicAgents = publicAgents;
 		this.mpc = false;
 		this.spacesToIgnoreNcccs = new HashSet<String>();
+		
+		assert this.checkUniqueConstraintNames() : "Non-unique constraint names";
 	}
 
 	/** Constructor from a JDOM root Element in XCSP format
@@ -358,6 +364,26 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 		this.publicAgents = false;
 		this.mpc = mpc;
 		this.spacesToIgnoreNcccs = spacesToIgnoreNcccs;
+		
+		assert this.checkUniqueConstraintNames() : "Non-unique constraint names";
+	}
+
+	/** Checks that all constraints have unique names
+	 * @return false if constraints with the same name have been detected
+	 */
+	private boolean checkUniqueConstraintNames() {
+		
+		boolean out = true;
+		HashSet<String> names = new HashSet<String> ();
+		
+		for (Element cons : this.root.getChild("constraints").getChildren()) {
+			if (! names.add(cons.getAttributeValue("name"))) {
+				System.err.println("Non-unique constraint name: " + cons.getAttributeValue("name"));
+				out = false;
+			}
+		}
+		
+		return out;
 	}
 
 	/** Calls the corresponding constructor
@@ -485,6 +511,8 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 			for(Element classElmt : list)
 				this.spacesToIgnoreNcccs.add(classElmt.getText());
 		}
+		
+		assert this.checkUniqueConstraintNames() : "Non-unique constraint names";
 	}
 
 	/** @see DCOPProblemInterface#setDomClass(java.lang.Class) */

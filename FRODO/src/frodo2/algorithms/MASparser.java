@@ -372,4 +372,22 @@ public class MASparser <V extends Addable<V>, U extends Addable<U>> implements M
 	public long getNCCCs () {
 		return this.ncccCount;
 	}
+	
+	/** @see java.lang.Object#toString() */
+	@Override
+	public String toString () {
+		
+		StringBuilder builder = new StringBuilder ("MASparser");
+		
+		if (this.agentName != null) 
+			builder.append("\n\t agent name: " + this.agentName);
+		
+		if (this.type != null) 
+			builder.append("\n\t agent type: " + this.type);
+		
+		builder.append("\n\t problem:\n").append(XCSPparser.toString(this.root));
+		
+		return builder.toString();
+	}
+	
 }
