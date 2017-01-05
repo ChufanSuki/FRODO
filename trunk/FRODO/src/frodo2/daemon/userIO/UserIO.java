@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2016  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 How to contact the authors: 
-<http://frodo2.sourceforge.net/>
+<https://frodo-ai.tech>
 */
 
 /**
@@ -33,6 +33,7 @@ import java.util.Collection;
 import frodo2.communication.AgentAddress;
 import frodo2.communication.IncomingMsgPolicyInterface;
 import frodo2.communication.Message;
+import frodo2.communication.MessageWithPayload;
 import frodo2.communication.Queue;
 import frodo2.communication.QueueOutputPipeInterface;
 import frodo2.controller.messages.MessageAgentReporting;
@@ -43,7 +44,7 @@ import frodo2.controller.WhitePages;
 import frodo2.controller.ConfigurationManager;
 
 /**
- * @author brammertottens
+ * @author Brammert Ottens, Thomas Leaute
  *
  */
 public abstract class UserIO extends Thread implements IncomingMsgPolicyInterface<String> {
@@ -65,6 +66,7 @@ public abstract class UserIO extends Thread implements IncomingMsgPolicyInterfac
 		this.daemon = daemon;
 		msgTypes.add(WhitePages.KILL_AGENTS);
 		msgTypes.add(ConfigurationManager.AGENT_CONFIGURATION_MESSAGE);
+		msgTypes.add(frodo2.controller.userIO.UserIO.USER_NOTIFICATION_MSG);
 	}
 
 	/** @see java.lang.Thread#start() */
@@ -73,6 +75,15 @@ public abstract class UserIO extends Thread implements IncomingMsgPolicyInterfac
 		super.start();
 	}
 
+	/**
+	 * Used to load a new configuration file
+	 * @param filename the file to be loaded
+	 */
+	public void load(String filename) {
+		MessageWithPayload<String> msg = new MessageWithPayload<String>(frodo2.controller.userIO.UserIO.CONFIGURATION_MSG, filename);
+		this.queue.sendMessageToSelf(msg);
+	}
+	
 	/** 
 	 * @see frodo2.communication.IncomingMsgPolicyInterface#getMsgTypes()
 	 */
@@ -80,12 +91,12 @@ public abstract class UserIO extends Thread implements IncomingMsgPolicyInterfac
 		return msgTypes;
 	}
 
-	/** 
-	 * @see IncomingMsgPolicyInterface#notifyIn(Message)
-	 */
+	/** @see IncomingMsgPolicyInterface#notifyIn(Message) */
+	@SuppressWarnings("unchecked")
 	public void notifyIn(Message msg) {
-		/// @todo Auto-generated method stub
-		return;
+
+		if(msg.getType().equals(frodo2.controller.userIO.UserIO.USER_NOTIFICATION_MSG)) 
+			tellUser(((MessageWithPayload<String>)msg).getPayload());
 	}
 
 	/** 

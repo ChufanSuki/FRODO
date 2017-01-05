@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2016  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 How to contact the authors: 
-<http://frodo2.sourceforge.net/>
+<https://frodo-ai.tech>
 */
 
 /**
@@ -60,13 +60,13 @@ public class TestController extends TestCase {
 	private final int maxNbrEdges = 50;
 
 	/** Maximum number of agents */
-	private final int maxNbrAgents = 6;
+	private final int maxNbrAgents;
 	
 	/** The controller*/
 	ControllerExtension control;
 	
 	/** The daemon*/
-	Daemon daemon;
+	DaemonExtension daemon;
 	
 	/** The problem definition corresponding to the graph*/
 	Document problem;
@@ -121,11 +121,44 @@ public class TestController extends TestCase {
 		
 	}
 	
-	/**
-	 * @param name 	the name of the test method
+	/** A daemon with an API to pass the configuration file
+	 * @author Thomas Leaute
+	 */
+	private static class DaemonExtension extends Daemon {
+
+		/** Constructor */
+		public DaemonExtension() {
+			super(Controller.PipeFactoryInstance.getSelfAddress(Controller.PORT), false, testDir);
+		}
+		
+		/** Passes the configuration file to the daemon
+		 * @param configFileName 	the name of the configuration file
+		 */
+		public void setUp (String configFileName) {
+			MessageWithPayload<String> msg = new MessageWithPayload<String>(UserIO.CONFIGURATION_MSG, configFileName);
+			super.daemonQueue.sendMessageToSelf(msg);
+		}
+
+		/** @return whether the daemon is finished */
+		public boolean isFinished() {
+			return super.isFinished;
+		}
+	}
+	
+	/** Constructor
+	 * @param name 			the name of the test method
 	 */
 	public TestController(String name) {
+		this(name, 6);
+	}
+	
+	/** Constructor
+	 * @param name 			the name of the test method
+	 * @param maxNbrAgents 	the maximum number of agents
+	 */
+	public TestController(String name, int maxNbrAgents) {
 		super(name);
+		this.maxNbrAgents = maxNbrAgents;
 	}
 	
 	/** @return the test suite for this test */
@@ -136,8 +169,12 @@ public class TestController extends TestCase {
 		testLocal.addTest(new RepeatedTest (new TestController ("testControllerOnLocalProblem"), 50));
 		testSuite.addTest(testLocal);
 		
-		TestSuite testDistributed = new TestSuite("Test on a distributed problem");
-		testDistributed.addTest(new RepeatedTest (new TestController ("testControllerOnDistributedProblem"), 50));
+		TestSuite testDistributed = new TestSuite("Test on a distributed problem passed to the Controller");
+		testDistributed.addTest(new RepeatedTest (new TestController ("testOmniscientControllerOnDistributedProblem"), 50));
+		testSuite.addTest(testDistributed);
+		
+		testDistributed = new TestSuite("Test on a distributed problem passed to the Daemon");
+		testDistributed.addTest(new RepeatedTest (new TestController ("testNonOmniscientControllerOnDistributedProblem", 1), 50));
 		testSuite.addTest(testDistributed);
 		
 		return testSuite;
@@ -205,10 +242,10 @@ public class TestController extends TestCase {
 	 * set up.
 	 * @throws Exception 	if an error occurs
 	 */
-	public void testControllerOnDistributedProblem() throws Exception {
+	public void testOmniscientControllerOnDistributedProblem() throws Exception {
 		String problemFile = testDir + "randomProblem.xml";
 		control = new ControllerExtension(false, false, testDir);
-		daemon = new Daemon(Controller.PipeFactoryInstance.getSelfAddress(Controller.PORT), false);
+		daemon = new DaemonExtension();
 
 		BufferedWriter bw = new BufferedWriter(new FileWriter(problemFile));
 
@@ -228,6 +265,39 @@ public class TestController extends TestCase {
 		}
 		
 		assertTrue(control.isFinished);
+	}
+	
+	/** Test method for the distributed submode, in which the configuration file is passed to the daemons
+	 * @throws Exception 	if an error occurs
+	 */
+	public void testNonOmniscientControllerOnDistributedProblem() throws Exception {
+		
+		// Instantiate the controller and one daemon
+		control = new ControllerExtension(false, false, testDir);
+		daemon = new DaemonExtension();
+
+		// Create the problem instance for only one agent
+		/// @todo Test with more than one agent
+		/// @todo Test with more than one problem instance in the same experiment
+		String problemFile = testDir + "randomProblem.xml";
+		BufferedWriter bw = new BufferedWriter(new FileWriter(problemFile));
+		XMLOutputter out = new XMLOutputter(Format.getPrettyFormat());
+		problem.getRootElement().getChild("agents").setAttribute("self", "0");
+		out.output(problem, bw);
+
+		// Pass the configuration file to the daemon
+		daemon.setUp("testRandomConfig.xml");
+		Thread.sleep(500);
+		
+		// Start the experiment
+		long startTime = System.currentTimeMillis();
+		control.start();
+		
+		// Wait until the controller is finished
+		while(!daemon.isFinished() && (System.currentTimeMillis() - startTime) < timeOut) {
+			Thread.sleep(10);
+		}
+		assertTrue("Daemon timeout", daemon.isFinished());
 	}
 
 }

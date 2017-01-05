@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2016  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 How to contact the authors: 
-<http://frodo2.sourceforge.net/>
+<https://frodo-ai.tech>
 */
 
 package frodo2.algorithms.dpop.count;
@@ -118,8 +118,8 @@ implements StatsReporter {
 	/** The number of variables owned by this agents that still have not sent VALUE messages to all their children */
 	protected int remainingVars;
 		
-	/** Whether the stats reporter should print its stats */
-	protected boolean silent = false;
+	/** Whether to report stats */
+	private boolean reportStats = true;
 
 	/** The total number of solutions to the problem*/
 	protected int numberOfSolutions = 1;
@@ -173,6 +173,7 @@ implements StatsReporter {
 	 */
 	public CountSolutionsVALUE (DCOPProblemInterface<Val, U> problem, Element parameters) {
 		this.problem = problem;
+		this.reportStats = Boolean.parseBoolean(parameters.getAttributeValue("reportStats"));
 	}
 	
 	/** Parses the problem */
@@ -348,7 +349,7 @@ implements StatsReporter {
 
 	/** @see StatsReporter#setSilent(boolean) */
 	public void setSilent(boolean silent) {
-		this.silent  = silent;
+		this.reportStats = ! silent;
 	}
 	
 	/** Instantiates a VALUE message and sends it
@@ -479,9 +480,8 @@ implements StatsReporter {
 			}
 		}
 		
-		if(isLeaf.get(var)) {
+		if (this.reportStats && isLeaf.get(var)) 
 			this.queue.sendMessage(AgentInterface.STATS_MONITOR, new SolutionSizeMessage<Val>(var, variablesOut, valuesOut));
-		}
 		
 		// Check if the agent can terminate
 		if (children.isEmpty() && --this.remainingVars <= 0) 

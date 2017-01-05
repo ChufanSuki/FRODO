@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2016  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -17,11 +17,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 How to contact the authors: 
-<http://frodo2.sourceforge.net/>
+<https://frodo-ai.tech>
 */
 
 package frodo2.algorithms.varOrdering.factorgraph;
 
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -60,6 +61,9 @@ public class FactorGraphGen < V extends Addable<V>, U extends Addable<U> > imple
 	
 	/** Whether the agent must compile all its function nodes into one */
 	private final boolean compile;
+	
+	/** The maximum amplitude of the perturbation unary constraints */
+	private final double maxPerturb;
 
 	/** Constructor
 	 * @param problem 	this agent's problem
@@ -68,6 +72,9 @@ public class FactorGraphGen < V extends Addable<V>, U extends Addable<U> > imple
 	public FactorGraphGen (DCOPProblemInterface<V, U> problem, Element params) {
 		this.problem = problem;
 		this.compile = Boolean.parseBoolean(params.getAttributeValue("compile"));
+		
+		String perturb = params.getAttributeValue("maxPerturb");
+		this.maxPerturb = perturb == null ? 0 : Double.parseDouble(perturb);
 	}
 	
 	/** Constructor in stats gatherer mode
@@ -78,17 +85,21 @@ public class FactorGraphGen < V extends Addable<V>, U extends Addable<U> > imple
 		this.problem = problem;
 		this.compile = Boolean.parseBoolean(params.getAttributeValue("compile"));
 
+		String perturb = params.getAttributeValue("maxPerturb");
+		this.maxPerturb = perturb == null ? 0 : Double.parseDouble(perturb);
+
 		// Display the factor graph if required
 		if (params != null && Boolean.parseBoolean(params.getAttributeValue("reportStats"))) {
 			
 			String dotRendererClass = params.getAttributeValue("DOTrenderer");
 			if(dotRendererClass == null || dotRendererClass.equals("")) {
 				System.out.println("Factor graph:");
-				System.out.println(factorGraphToDOT());
+				System.out.println(factorGraphToDOT(this.maxPerturb > 0));
 			}
 			else {
 				try {
-					Class.forName(dotRendererClass).getConstructor(String.class, String.class).newInstance("Factor graph", factorGraphToDOT());
+					Class.forName(dotRendererClass).getConstructor(String.class, String.class).newInstance(
+							"Factor graph", factorGraphToDOT(this.maxPerturb > 0));
 				} 
 				catch(Exception e) {
 					System.out.println("Could not instantiate given DOT renderer class: " + dotRendererClass);
@@ -98,8 +109,11 @@ public class FactorGraphGen < V extends Addable<V>, U extends Addable<U> > imple
 		}
 	}
 
-	/** @return a DOT-formatted representation of the factor graph */
-	private String factorGraphToDOT() {
+	/** 
+	 * @param addUnaryConstraints whether to add unary perturbation constraints
+	 * @return a DOT-formatted representation of the factor graph 
+	 */
+	private String factorGraphToDOT(final boolean addUnaryConstraints) {
 		
 		List< ? extends UtilitySolutionSpace<V, U> > allSpaces = this.problem.getSolutionSpaces(true);
 		
@@ -120,6 +134,10 @@ public class FactorGraphGen < V extends Addable<V>, U extends Addable<U> > imple
 				if (agent.equals(owner) || owner == null && agent.equals(new TreeSet<String> (entry.getValue()).iterator().next())) {
 					out.append("\t\t" + var + " [shape = \"circle\"];\n");
 					myVars.add(var);
+					
+					// Add unary function node if required
+					if (addUnaryConstraints) 
+						out.append("\t\tperturb_" + var + " [shape = \"square\"];\n");
 				}
 			}
 			out.append("\n");
@@ -148,6 +166,9 @@ public class FactorGraphGen < V extends Addable<V>, U extends Addable<U> > imple
 			for (String var : space.getVariables()) 
 				out.append("\t" + space.getName() + "--" + var + ";\n");
 		}
+		if (addUnaryConstraints) 
+			for (String var : this.problem.getVariables()) 
+				out.append("\t" + var + "--perturb_" + var + ";\n");
 		out.append("\n");
 				
 		out.append("}\n");
@@ -184,6 +205,7 @@ public class FactorGraphGen < V extends Addable<V>, U extends Addable<U> > imple
 			if (! myName.equals(owner)) // I am not the exclusive owner of this space
 				owner = this.problem.getOwner(space.getVariable(0)); // by convention, the function node gets simulated by the owner of the first variable in the scope
 			
+			// Get the list of spaces for this owner
 			LinkedList< UtilitySolutionSpace<V, U> > spaces = newSpaces.get(owner);
 			if (spaces == null) {
 				spaces = new LinkedList< UtilitySolutionSpace<V, U> > ();
@@ -200,6 +222,40 @@ public class FactorGraphGen < V extends Addable<V>, U extends Addable<U> > imple
 			spaces.add(space);
 		}
 		
+		// Add perturbation function nodes if required
+		if (this.maxPerturb > 0) {
+			
+			// Get my list of spaces
+			LinkedList< UtilitySolutionSpace<V, U> > spaces = newSpaces.get(myName);
+			if (spaces == null) {
+				spaces = new LinkedList< UtilitySolutionSpace<V, U> > ();
+				newSpaces.put(myName, spaces);
+			}
+			
+			// Add one unary constraint per variable I control
+			for (VariableNode<V, U> varNode : variables.values()) {
+				if (myName.equals(varNode.getAgent())) {
+					
+					U zeroUtil = this.problem.getZeroUtility();
+					@SuppressWarnings("unchecked")
+					U[] perturbations = (U[]) Array.newInstance(zeroUtil.getClass(), varNode.dom.length);
+					for (int i = varNode.dom.length - 1; i >= 0; i--) 
+						perturbations[i] = zeroUtil.fromString(Double.toString(Math.random() * this.maxPerturb));
+					
+					UtilitySolutionSpace<V, U> space = this.problem.addUnarySpace("perturb_" + varNode.varName, varNode.varName, varNode.dom, perturbations);
+					
+					if (this.compile) {
+						if (! spaces.isEmpty()) 
+							space = space.join(spaces.removeLast());
+						space.setOwner(myName);
+						space.setName(myName);
+					}
+					
+					spaces.add(space);
+				}
+			}
+		}
+			
 		// Terminate immediately if I control no variable node and no function node
 		if (variables.isEmpty() && newSpaces.isEmpty()) {
 			this.queue.sendMessageToSelf(new Message (AgentInterface.AGENT_FINISHED));

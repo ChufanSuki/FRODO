@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2016  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 How to contact the authors: 
-<http://frodo2.sourceforge.net/>
+<https://frodo-ai.tech>
  */
 
 package frodo2.algorithms.odpop;
@@ -98,8 +98,8 @@ public class UTILpropagationFullDomain < Val extends Addable<Val>, U extends Add
 
 	// Variables used to collect statistics
 	
-	/** Whether the stats reporter should print its stats */
-	protected boolean silent = false;
+	/** Whether to report stats */
+	protected boolean reportStats = true;
 
 	/** The optimal, total utility reported to the stats gatherer */
 	protected U optTotalUtil;
@@ -173,12 +173,8 @@ public class UTILpropagationFullDomain < Val extends Addable<Val>, U extends Add
 	public UTILpropagationFullDomain (DCOPProblemInterface<Val, U> problem, Element parameters) {
 		this.problem = problem;
 		
-		String collectStatsString = parameters.getAttributeValue("collectStats");
-		if(collectStatsString == null)
-			collectStats = false;
-		else
-			collectStats = Boolean.parseBoolean(collectStatsString);
-		
+		this.collectStats = Boolean.parseBoolean(parameters.getAttributeValue("collectStats"));
+		this.reportStats = Boolean.parseBoolean(parameters.getAttributeValue("reportStats"));
 	}
 
 	/**
@@ -216,7 +212,7 @@ public class UTILpropagationFullDomain < Val extends Addable<Val>, U extends Add
 	
 	/** @see StatsReporter#setSilent(boolean) */
 	public void setSilent(boolean silent) {
-		this.silent = silent;		
+		this.reportStats = ! silent;		
 	}
 
 	/** @return the maximum number of variables in a UTIL message (in stats gatherer mode only) */
@@ -253,7 +249,7 @@ public class UTILpropagationFullDomain < Val extends Addable<Val>, U extends Add
 		// put the stats reporter stuff here
 		if(type.equals(OPT_UTIL_MSG_TYPE)) {
 			OptUtilMessage<U> msgCast = (OptUtilMessage<U>)msg;
-			if (!silent) 
+			if (this.reportStats) 
 				System.out.println("Optimal utility for component rooted at `" + msgCast.getVariable() + "\': " + msgCast.getUtility());
 			if (this.optTotalUtil == null) {
 				this.optTotalUtil = msgCast.getUtility();
@@ -374,7 +370,8 @@ public class UTILpropagationFullDomain < Val extends Addable<Val>, U extends Add
 
 			if(usedSpaceSize == 0 && numberOfChildren == 0) {
 				OptUtilMessage<U> output = new OptUtilMessage<U>(this.infeasibleUtil.getZero(), variable.variableID);
-				queue.sendMessage(AgentInterface.STATS_MONITOR, output);
+				if (this.reportStats) 
+					queue.sendMessage(AgentInterface.STATS_MONITOR, output);
 				queue.sendMessageToSelf(new GoodsTreeMessage<Val, U, Node<U>>(null, variable.variableID));
 			} else
 				startProcess(variable, varIndex);
@@ -454,17 +451,21 @@ public class UTILpropagationFullDomain < Val extends Addable<Val>, U extends Add
 				if(aMax == null) {
 					if(LOG)
 						log(variable.variableID, this.infeasibleUtil.toString());
-					OptUtilMessage<U> output = new OptUtilMessage<U>(this.infeasibleUtil, variable.variableID);
-					queue.sendMessage(AgentInterface.STATS_MONITOR, new StatsMessage(variable.tree.getFinalDomainSize().length));
-					queue.sendMessage(AgentInterface.STATS_MONITOR, output);
+					if (this.reportStats) {
+						OptUtilMessage<U> output = new OptUtilMessage<U>(this.infeasibleUtil, variable.variableID);
+						queue.sendMessage(AgentInterface.STATS_MONITOR, new StatsMessage(variable.tree.getFinalDomainSize().length));
+						queue.sendMessage(AgentInterface.STATS_MONITOR, output);
+					}
 					queue.sendMessageToSelf(new GoodsTreeMessage<Val, U, Node<U>>(null, variable.variableID));
 				} else {
 					if(LOG)
 						log(variable.variableID, aMax.toString());
 					variable.tree.removeAMax();
-					OptUtilMessage<U> output = new OptUtilMessage<U>(aMax.getUtility(), variable.variableID);
-					queue.sendMessage(AgentInterface.STATS_MONITOR, new StatsMessage(variable.tree.getFinalDomainSize().length));
-					queue.sendMessage(AgentInterface.STATS_MONITOR, output);
+					if (this.reportStats) {
+						OptUtilMessage<U> output = new OptUtilMessage<U>(aMax.getUtility(), variable.variableID);
+						queue.sendMessage(AgentInterface.STATS_MONITOR, new StatsMessage(variable.tree.getFinalDomainSize().length));
+						queue.sendMessage(AgentInterface.STATS_MONITOR, output);
+					}
 					queue.sendMessageToSelf(new GoodsTreeMessage<Val, U, L>(variable.tree, variable.variableID));
 				}
 			} else {
@@ -586,8 +587,10 @@ public class UTILpropagationFullDomain < Val extends Addable<Val>, U extends Add
 		if(aMax != null) {
 			variable.tree.removeAMax();
 			if(variable.root) {
-				queue.sendMessage(AgentInterface.STATS_MONITOR, new OptUtilMessage<U>(aMax.getUtility(), variable.variableID));
-				queue.sendMessage(AgentInterface.STATS_MONITOR, new StatsMessage(variable.tree.getFinalDomainSize().length));
+				if (this.reportStats) {
+					queue.sendMessage(AgentInterface.STATS_MONITOR, new OptUtilMessage<U>(aMax.getUtility(), variable.variableID));
+					queue.sendMessage(AgentInterface.STATS_MONITOR, new StatsMessage(variable.tree.getFinalDomainSize().length));
+				}
 				// start the VALUE propagation
 			} else {
 				if(variable.getNewVariable()) {
@@ -686,8 +689,10 @@ public class UTILpropagationFullDomain < Val extends Addable<Val>, U extends Add
 	 * @param inducedWidth  the induced with of the DFS tree used
 	 */
 	protected void utilPropagationFinished(String variableID, GoodsTree<Val, U, L> tree, U utility, int inducedWidth) {
-		queue.sendMessage(AgentInterface.STATS_MONITOR, new OptUtilMessage<U>(utility, variableID));
-		queue.sendMessage(AgentInterface.STATS_MONITOR, new StatsMessage(inducedWidth));
+		if (this.reportStats) {
+			queue.sendMessage(AgentInterface.STATS_MONITOR, new OptUtilMessage<U>(utility, variableID));
+			queue.sendMessage(AgentInterface.STATS_MONITOR, new StatsMessage(inducedWidth));
+		}
 		// start the VALUE propagation
 		queue.sendMessageToSelf(new GoodsTreeMessage<Val, U, L>(tree, variableID));
 	}

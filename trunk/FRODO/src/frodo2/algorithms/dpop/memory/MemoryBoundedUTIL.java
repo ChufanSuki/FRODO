@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2016  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 How to contact the authors: 
-<http://frodo2.sourceforge.net/>
+<https://frodo-ai.tech>
 */
 
 package frodo2.algorithms.dpop.memory;
@@ -350,7 +350,7 @@ public class MemoryBoundedUTIL < V extends Addable<V>, U extends Addable<U> > ex
 					assert projOutput.varsOut.length > 0;
 					assert info.parent != null;
 					String owner = this.problem.getOwner(info.parent);
-					if (! owner.equals(this.myID)) 
+					if (this.reportStats && ! owner.equals(this.myID)) 
 						queue.sendMessage(AgentInterface.STATS_MONITOR, new StatsMessage (projOutput.space.getNumberOfVariables()));
 					queue.sendMessage(owner, new UTILmsg<V, U> (self, super.myID, info.parent, projOutput.space));
 					queue.sendMessageToSelf(new SolutionMessage<V> (projOutput.varsOut[0], projOutput.varsOut, projOutput.getAssignments()));
@@ -358,7 +358,7 @@ public class MemoryBoundedUTIL < V extends Addable<V>, U extends Addable<U> > ex
 				} else { // CC; no projection needed
 					assert info.parent != null;
 					String owner = this.problem.getOwner(info.parent);
-					if (! owner.equals(this.myID)) 
+					if (this.reportStats && ! owner.equals(this.myID)) 
 						queue.sendMessage(AgentInterface.STATS_MONITOR, new StatsMessage (join.getNumberOfVariables()));
 					queue.sendMessage(owner, new UTILmsg<V, U> (self, this.myID, info.parent, join));
 					
@@ -424,7 +424,7 @@ public class MemoryBoundedUTIL < V extends Addable<V>, U extends Addable<U> > ex
 				
 				if (varInfo.parent != null) {
 					String owner = this.problem.getOwner(info.parent);
-					if (! owner.equals(this.myID)) 
+					if (this.reportStats && ! owner.equals(this.myID)) 
 						queue.sendMessage(AgentInterface.STATS_MONITOR, new StatsMessage (varInfo.projOutput.space.getNumberOfVariables()));
 					this.queue.sendMessage(owner, new UTILmsg<V, U> (self, this.myID, info.parent, varInfo.projOutput.space));
 				
@@ -432,7 +432,8 @@ public class MemoryBoundedUTIL < V extends Addable<V>, U extends Addable<U> > ex
 					assert varInfo.projOutput.space.getNumberOfVariables() == 0 : "Space output by the root " + self + " is not scalar:\n" + varInfo.projOutput.space;
 					OptUtilMessage<U> output = new OptUtilMessage<U> (varInfo.projOutput.space.getUtility(0), self);
 					queue.sendMessageToSelf(output);
-					queue.sendMessage(AgentInterface.STATS_MONITOR, output);
+					if (this.reportStats) 
+						queue.sendMessage(AgentInterface.STATS_MONITOR, output);
 				}
 				
 				// Send optimal assignments to the VALUE propagation protocol

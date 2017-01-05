@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2016  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 How to contact the authors: 
-<http://frodo2.sourceforge.net/>
+<https://frodo-ai.tech>
  */
 
 /** Classes implementing the DSA algorithm */
@@ -98,8 +98,8 @@ implements StatsReporterWithConvergence<Val> {
 	/** A list of buffered writers used to log information during debugging*/
 	protected HashMap<String, BufferedWriter> loggers;
 	
-	/** Whether the stats reporter should print its stats */
-	protected boolean silent = false;
+	/** Whether to report stats */
+	protected boolean reportStats = true;
 
 	/** Whether the listener should record the assignment history or not */
 	protected final boolean convergence;
@@ -175,11 +175,8 @@ implements StatsReporterWithConvergence<Val> {
 		if(p != null )
 			this.p = Double.parseDouble(p);
 
-		String convergence = parameters.getAttributeValue("convergence");
-		if(convergence != null)
-			this.convergence = Boolean.parseBoolean(convergence);
-		else
-			this.convergence = false;
+		this.convergence = Boolean.parseBoolean(parameters.getAttributeValue("convergence"));
+		this.reportStats = Boolean.parseBoolean(parameters.getAttributeValue("reportStats"));
 
 		String decisionStrategy = parameters.getAttributeValue("strategy");
 		if(decisionStrategy == null)
@@ -208,11 +205,8 @@ implements StatsReporterWithConvergence<Val> {
 		if(p != null )
 			this.p = Double.parseDouble(p);
 
-		String convergence = parameters.getAttributeValue("convergence");
-		if(convergence != null)
-			this.convergence = Boolean.parseBoolean(convergence);
-		else
-			this.convergence = false;
+		this.convergence = Boolean.parseBoolean(parameters.getAttributeValue("convergence"));
+		this.reportStats = Boolean.parseBoolean(parameters.getAttributeValue("reportStats"));
 
 		String decisionStrategy = parameters.getAttributeValue("strategy");
 		if(decisionStrategy == null)
@@ -280,7 +274,8 @@ implements StatsReporterWithConvergence<Val> {
 					queue.sendMessage(AgentInterface.STATS_MONITOR, new StatsReporterWithConvergence.ConvStatMessage<Val>(CONV_STATS_MSG_TYPE, var, history));
 				}
 
-				queue.sendMessage(AgentInterface.STATS_MONITOR, new AssignmentMessage<Val, U>(var, varInfo.currentValue, varInfo.currentUtility));
+				if (this.reportStats) 
+					queue.sendMessage(AgentInterface.STATS_MONITOR, new AssignmentMessage<Val, U>(var, varInfo.currentValue, varInfo.currentUtility));
 				if(++variableFinishedCounter == numberOfVariables) {
 					queue.sendMessageToSelf(new Message (AgentInterface.AGENT_FINISHED));
 					terminated = true;
@@ -369,11 +364,9 @@ implements StatsReporterWithConvergence<Val> {
 		return finalUtility;
 	}
 
-	/** 
-	 * @see frodo2.algorithms.StatsReporter#setSilent(boolean)
-	 */
+	/** @see StatsReporterWithConvergence#setSilent(boolean) */
 	public void setSilent(boolean silent) {
-		this.silent = silent;
+		this.reportStats = ! silent;
 	}
 
 	/** 
@@ -402,14 +395,14 @@ implements StatsReporterWithConvergence<Val> {
 			Val value = msgCast.getValue();
 			U utility = msgCast.getUtility();
 			assignment.put(variable, value);
-			if (!silent) 
+			if (this.reportStats) 
 				System.out.println("var `" + variable + "' = " + value + ", \t local utility = " + utility);
 
 			if(assignment.size() == numberOfVariables) {
 				UtilitySolutionSpace<Val, U> sol = problem.getUtility(assignment); 
 				finalUtility = sol.getUtility(0);
 				
-				if (! silent) {
+				if (this.reportStats) {
 					if (this.problem.maximize()) 
 						System.out.println("Total optimal utility: " + finalUtility);
 					else 
@@ -473,7 +466,8 @@ implements StatsReporterWithConvergence<Val> {
 						queue.sendMessage(AgentInterface.STATS_MONITOR, new StatsReporterWithConvergence.ConvStatMessage<Val>(CONV_STATS_MSG_TYPE, var, history));
 					}
 
-					queue.sendMessage(AgentInterface.STATS_MONITOR, new AssignmentMessage<Val, U>(var, varInfo.currentValue, varInfo.currentUtility));
+					if (this.reportStats) 
+						queue.sendMessage(AgentInterface.STATS_MONITOR, new AssignmentMessage<Val, U>(var, varInfo.currentValue, varInfo.currentUtility));
 					if(++variableFinishedCounter == numberOfVariables) {
 						queue.sendMessageToSelf(new Message (AgentInterface.AGENT_FINISHED));
 					}
@@ -493,7 +487,8 @@ implements StatsReporterWithConvergence<Val> {
 						queue.sendMessage(AgentInterface.STATS_MONITOR, new StatsReporterWithConvergence.ConvStatMessage<Val>(CONV_STATS_MSG_TYPE, var, history));
 					}
 
-					queue.sendMessage(AgentInterface.STATS_MONITOR, new AssignmentMessage<Val, U>(var, varInfo.currentValue, varInfo.currentUtility));
+					if (this.reportStats) 
+						queue.sendMessage(AgentInterface.STATS_MONITOR, new AssignmentMessage<Val, U>(var, varInfo.currentValue, varInfo.currentUtility));
 				}
 
 				queue.sendMessageToSelf(new Message (AgentInterface.AGENT_FINISHED));

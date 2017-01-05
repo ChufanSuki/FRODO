@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2016  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 How to contact the authors: 
-<http://frodo2.sourceforge.net/>
+<https://frodo-ai.tech>
  */
 
 /** Tests for the JaCoP-based spaces */
@@ -227,6 +227,9 @@ public class JaCoPtests extends TestCase {
 
 		suite.addTest(createSuite(Algorithm.MAXSUM,  (Class<? extends AbstractDCOPsolver<AddableInteger, AddableInteger, ?>>)MaxSumSolver.class
 				, "src/frodo2/algorithms/maxsum/MaxSumAgentJaCoP.xml"));
+		
+		suite.addTest(createSuite(Algorithm.MAXSUM,  (Class<? extends AbstractDCOPsolver<AddableInteger, AddableInteger, ?>>)MaxSumSolver.class
+				, "src/frodo2/algorithms/maxsum/MaxSumAgentPerturbedJaCoP.xml"));
 		
 		suite.addTest(createSuite(Algorithm.MB_DPOP, (Class<? extends AbstractDCOPsolver<AddableInteger, AddableInteger, ?>>) DPOPsolver.class
 				, "src/frodo2/algorithms/dpop/memory/MB-DPOPagentJaCoP.xml"));

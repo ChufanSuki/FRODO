@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2016  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 How to contact the authors: 
-<http://frodo2.sourceforge.net/>
+<https://frodo-ai.tech>
 */
 
 package frodo2.algorithms.dpop;
@@ -115,8 +115,8 @@ implements StatsReporter {
 	/** The optimal utility found to the problem */
 	protected U optUtil;
 	
-	/** Whether the stats reporter should print its stats */
-	protected boolean silent = false;
+	/** Whether to report stats */
+	protected boolean reportStats = true;
 	
 	/** The time when the last stat message has been received */
 	private long finalTime;
@@ -141,13 +141,8 @@ implements StatsReporter {
 	 */
 	public UTILpropagation (DCOPProblemInterface<Val, U> problem, Element parameters) {
 		this.problem = problem;
-		
-		// Parse whether to optimize runtime or NCCC count
-		String minNCCCs = parameters.getAttributeValue("minNCCCs");
-		if (minNCCCs != null) 
-			this.minNCCCs = Boolean.parseBoolean(minNCCCs);
-		else 
-			this.minNCCCs = false;
+		this.minNCCCs = Boolean.parseBoolean(parameters.getAttributeValue("minNCCCs"));
+		this.reportStats = Boolean.parseBoolean(parameters.getAttributeValue("reportStats"));
 	}
 	
 	/** Parses the problem */
@@ -337,7 +332,7 @@ implements StatsReporter {
 		if (type.equals(OPT_UTIL_MSG_TYPE)) { // we are in stats gatherer mode
 			
 			OptUtilMessage<U> msgCast = (OptUtilMessage<U>) msg;
-			if (!silent) {
+			if (this.reportStats) {
 				if (this.maximize) {
 					System.out.println("Optimal utility for component rooted at `" + msgCast.getRoot() + "\': " + msgCast.getUtility());
 				} else 
@@ -488,7 +483,7 @@ implements StatsReporter {
 
 	/** @see StatsReporter#setSilent(boolean) */
 	public void setSilent(boolean silent) {
-		this.silent  = silent;
+		this.reportStats = ! silent;
 	}
 	
 	/** @return the maximum number of variables in a UTIL message (in stats gatherer mode only) */
@@ -631,7 +626,7 @@ implements StatsReporter {
 	 */
 	protected void sendToParent (String var, String parentVar, String parentAgent, UtilitySolutionSpace<Val, U> space) {
 		queue.sendMessage(parentAgent, new UTILmsg<Val, U> (var, this.myID, parentVar, space));
-		if (! parentAgent.equals(this.myID)) 
+		if (this.reportStats && ! parentAgent.equals(this.myID)) 
 			queue.sendMessage(AgentInterface.STATS_MONITOR, new StatsMessage (space.getNumberOfVariables()));
 		infos.remove(var);
 	}
@@ -644,7 +639,8 @@ implements StatsReporter {
 		assert space.getNumberOfVariables() == 0 : "Space output by the root " + root + " is not scalar:\n" + space;
 		OptUtilMessage<U> output = new OptUtilMessage<U> (space.getUtility(0), root);
 		queue.sendMessageToSelf(output);
-		queue.sendMessage(AgentInterface.STATS_MONITOR, output);
+		if (this.reportStats) 
+			queue.sendMessage(AgentInterface.STATS_MONITOR, output);
 		infos.remove(root);
 	}
 

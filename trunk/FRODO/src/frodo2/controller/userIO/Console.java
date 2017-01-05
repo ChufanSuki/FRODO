@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2016  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 How to contact the authors: 
-<http://frodo2.sourceforge.net/>
+<https://frodo-ai.tech>
 */
 
 package frodo2.controller.userIO;
@@ -41,7 +41,7 @@ import frodo2.controller.Controller;
  * 		start
  * - to exit, type
  * 		exit
- * @author brammertottens
+ * @author Brammert Ottens, Thomas Leaute
  *
  */
 public class Console extends UserIO {
@@ -51,12 +51,16 @@ public class Console extends UserIO {
 	 */
 	boolean done = false;
 	
+	/** The command line prefix */
+	private final String prefix;
+	
 	/**
 	 * The constructor
 	 * @param control 	the controller
 	 */
 	public Console(Controller control) {
 		super(control);
+		this.prefix = "Controller > ";
 	}
 
 	/**
@@ -76,8 +80,8 @@ public class Console extends UserIO {
 	 */
 	@Override
 	public void tellUser(String message) {
-		System.out.println("\n>>" + message);
-		System.out.print(">");
+		System.out.println(message);
+		System.out.print(this.prefix);
 	}
 	
 	/**
@@ -90,7 +94,7 @@ public class Console extends UserIO {
 		for(Map.Entry<String, AgentAddress> entry : daemons.entrySet()) 
 			System.out.println(entry.getKey() + " -> " + entry.getValue());
 		System.out.println("-------------------------------");
-		System.out.print(">");
+		System.out.print(this.prefix);
 	}
 	
 	/**
@@ -103,7 +107,7 @@ public class Console extends UserIO {
 		for(Map.Entry<String, AgentAddress> entry : agents.entrySet()) 
 			System.out.println(entry.getKey() + " -> " + entry.getValue());
 		System.out.println("-------------------------------");
-		System.out.print(">");
+		System.out.print(this.prefix);
 	}
 	
 	/**
@@ -126,7 +130,7 @@ public class Console extends UserIO {
 			while(!done) {
 				// while the user does not want to stop
 				// parse the input
-				System.out.print(">");
+				System.out.print(this.prefix);
 				parseInput(br.readLine());
 			}
 		} catch(IOException ex) {

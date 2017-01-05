@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2016  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 How to contact the authors: 
-<http://frodo2.sourceforge.net/>
+<https://frodo-ai.tech>
 */
 
 package frodo2.algorithms.dpop.privacy;
@@ -101,8 +101,8 @@ public class RerootRequester < V extends Addable<V>, U extends Addable<U> > impl
 	/** The problem */
 	private DCOPProblemInterface<V, U> problem;
 
-	/** Whether the stats gatherer should print out the solution */
-	private boolean silent = false;
+	/** Whether to report stats */
+	private boolean reportStats = true;
 
 	/** For each internal variable, the number of variables it its constraint graph component */
 	private HashMap<String, Integer> countdownsInit = new HashMap<String, Integer> ();
@@ -138,6 +138,7 @@ public class RerootRequester < V extends Addable<V>, U extends Addable<U> > impl
 	 */
 	public RerootRequester (DCOPProblemInterface<V, U> problem, Element params) {
 		this.problem = problem;
+		this.reportStats = Boolean.parseBoolean(params.getAttributeValue("reportStats"));
 		
 		for (String var : problem.getMyVars()) {
 			this.countdownsInit.put(var, Integer.MAX_VALUE);
@@ -171,7 +172,7 @@ public class RerootRequester < V extends Addable<V>, U extends Addable<U> > impl
 			
 			this.solution.put(var, val);
 			
-			if (!this.silent) {
+			if (this.reportStats) {
 				if (--this.nbrVars <= 0) {
 					
 					// Display the solution found
@@ -202,7 +203,7 @@ public class RerootRequester < V extends Addable<V>, U extends Addable<U> > impl
 				
 				this.nbrVars = 0;
 				
-				if (!this.silent) {
+				if (this.reportStats) {
 					if (this.problem.maximize()) 
 						System.out.println("Total optimal utility: -infinity");
 					else 
@@ -289,7 +290,7 @@ public class RerootRequester < V extends Addable<V>, U extends Addable<U> > impl
 				V value = assignment.getUtility(0).get(0);
 
 				// Send assignment to stats gatherer
-				if (! this.infeasible) 
+				if (this.reportStats && ! this.infeasible) 
 					this.queue.sendMessage(AgentInterface.STATS_MONITOR, new RootValueMsg (var, value));
 
 				// Add constraint var = value
@@ -336,7 +337,7 @@ public class RerootRequester < V extends Addable<V>, U extends Addable<U> > impl
 			U util = msgCast.getUtility();
 			
 			// Report the utility to the stats gatherer only if this is the first UTIL propagation for this component
-			if (this.countdowns.get(root).equals(this.countdownsInit.get(root))) 
+			if (this.reportStats && this.countdowns.get(root).equals(this.countdownsInit.get(root))) 
 				this.queue.sendMessage(AgentInterface.STATS_MONITOR, new MessageWithPayload<U> (OPT_UTIL_MSG_TYPE, util));
 			
 			if (util.equals(problem.getMinInfUtility()) || util.equals(problem.getPlusInfUtility())) {
@@ -400,7 +401,7 @@ public class RerootRequester < V extends Addable<V>, U extends Addable<U> > impl
 
 	/** @see StatsReporter#setSilent(boolean) */
 	public void setSilent(boolean silent) {
-		this.silent = silent;
+		this.reportStats = ! silent;
 	}
 
 }

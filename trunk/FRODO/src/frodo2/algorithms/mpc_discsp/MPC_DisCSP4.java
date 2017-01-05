@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2016  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 How to contact the authors: 
-<http://frodo2.sourceforge.net/>
+<https://frodo-ai.tech>
 */
 
 /** The MPC-Dis(W)CSP algorithms by Marius-Calin Silaghi */
@@ -102,8 +102,8 @@ public class MPC_DisCSP4 < V extends Addable<V>, U extends Addable<U> > implemen
 	/** The problem */
 	protected DCOPProblemInterface<V, U> problem;
 	
-	/** Whether to print statistics */
-	private boolean silent;
+	/** Whether to report stats */
+	protected boolean reportStats = true;
 	
 	/** Whether the algorithm has been started */
 	protected boolean started = false;
@@ -257,6 +257,7 @@ public class MPC_DisCSP4 < V extends Addable<V>, U extends Addable<U> > implemen
 		assert this.modulo.compareTo(BigInteger.valueOf(Integer.MAX_VALUE)) < 0 : "The modulo is too big";
 		this.cryptoScheme = new PaillierCryptoScheme (Integer.parseInt(params.getAttributeValue("nbrBits")));
 		this.plusinf = plusinf;
+		this.reportStats = Boolean.parseBoolean(params.getAttributeValue("reportStats"));
 	}
 
 	/** Constructor in stats gatherer mode
@@ -293,7 +294,7 @@ public class MPC_DisCSP4 < V extends Addable<V>, U extends Addable<U> > implemen
 
 	/** @see StatsReporter#setSilent(boolean) */
 	public void setSilent(boolean silent) {
-		this.silent = silent;
+		this.reportStats = ! silent;
 	}
 
 	/** @see StatsReporter#getMsgTypes() */
@@ -324,20 +325,20 @@ public class MPC_DisCSP4 < V extends Addable<V>, U extends Addable<U> > implemen
 			String var = msgCast.getVar();
 			
 			if (var == null) { // infeasible
-				if (! this.silent) 
+				if (this.reportStats) 
 					System.out.println("Optimal total cost: infinity");
 				this.optCost = this.problem.getPlusInfUtility();
 				
 			} else { // feasible
 				V val = msgCast.getVal();
 				this.solution.put(var, val);
-				if (! this.silent) 
+				if (this.reportStats) 
 					System.out.println("var `" + var + "' = " + val);
 				
 				// If all optimal assignments have been received, compute the corresponding cost
 				if (this.solution.size() == this.problem.getNbrVars()) {
 					this.optCost = this.problem.getUtility(this.solution).getUtility(0);
-					if (! this.silent) 
+					if (this.reportStats) 
 						System.out.println("Optimal total cost: " + this.optCost);
 				}
 			}
@@ -810,7 +811,8 @@ public class MPC_DisCSP4 < V extends Addable<V>, U extends Addable<U> > implemen
 					// Store and report the solution
 					V val = this.problem.getDomain(var)[index.intValue()];
 					this.solution.put(var, val);
-					this.queue.sendMessage(AgentInterface.STATS_MONITOR, new SolutionMsg<V> (var, val));
+					if (this.reportStats) 
+						this.queue.sendMessage(AgentInterface.STATS_MONITOR, new SolutionMsg<V> (var, val));
 					
 //					System.out.println(var + " = " + val);
 				}
@@ -831,7 +833,8 @@ public class MPC_DisCSP4 < V extends Addable<V>, U extends Addable<U> > implemen
 
 		// The first agent notifies the stats gatherer of the infeasibility
 		if (this.myAgentID == 0) {
-			this.queue.sendMessage(AgentInterface.STATS_MONITOR, new SolutionMsg<V> (null, null));
+			if (this.reportStats) 
+				this.queue.sendMessage(AgentInterface.STATS_MONITOR, new SolutionMsg<V> (null, null));
 
 			// Also notify the empty agents
 			for (String agent : this.agents) 
@@ -986,7 +989,8 @@ public class MPC_DisCSP4 < V extends Addable<V>, U extends Addable<U> > implemen
 				// Check if the problem is infeasible
 				if (projOutput.space.getUtility(0).compareTo(plusinf) >= 0) { // infeasible
 
-					this.queue.sendMessage(AgentInterface.STATS_MONITOR, new SolutionMsg<V> (null, null));
+					if (this.reportStats) 
+						this.queue.sendMessage(AgentInterface.STATS_MONITOR, new SolutionMsg<V> (null, null));
 					this.queue.sendMessageToSelf(new Message (AgentInterface.AGENT_FINISHED));
 					return;
 				}
@@ -999,15 +1003,16 @@ public class MPC_DisCSP4 < V extends Addable<V>, U extends Addable<U> > implemen
 						V val = values.get(i);
 						this.solution.put(var, val);
 
-						this.queue.sendMessage(AgentInterface.STATS_MONITOR, new SolutionMsg<V> (var, val));
+						if (this.reportStats) 
+							this.queue.sendMessage(AgentInterface.STATS_MONITOR, new SolutionMsg<V> (var, val));
 					}
 				}
 			}
 			
-			// Assign random values to unconstrained variables
-			for (String var : this.problem.getMyVars()) 
-				if (! this.solution.containsKey(var)) 
-					this.queue.sendMessage(AgentInterface.STATS_MONITOR, new SolutionMsg<V> (var, this.problem.getDomain(var)[0]));
+			if (this.reportStats) // Assign random values to unconstrained variables
+				for (String var : this.problem.getMyVars()) 
+					if (! this.solution.containsKey(var)) 
+						this.queue.sendMessage(AgentInterface.STATS_MONITOR, new SolutionMsg<V> (var, this.problem.getDomain(var)[0]));
 			
 			this.queue.sendMessageToSelf(new Message (AgentInterface.AGENT_FINISHED));
 			return;
@@ -1125,7 +1130,7 @@ public class MPC_DisCSP4 < V extends Addable<V>, U extends Addable<U> > implemen
 		this.nbrSols = sPrimePrime.size();
 		
 		if (this.nbrSols == 0) { // infeasible
-			if (this.myAgentID == 0) 
+			if (this.myAgentID == 0 && this.reportStats) 
 				this.queue.sendMessage(AgentInterface.STATS_MONITOR, new SolutionMsg<V> (null, null));
 			this.queue.sendMessageToSelf(new Message (AgentInterface.AGENT_FINISHED));
 			return;

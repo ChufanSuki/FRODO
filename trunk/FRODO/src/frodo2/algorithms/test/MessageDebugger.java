@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2016  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 How to contact the authors: 
-<http://frodo2.sourceforge.net/>
+<https://frodo-ai.tech>
  */
 
 package frodo2.algorithms.test;
@@ -32,6 +32,7 @@ import frodo2.communication.IncomingMsgPolicyInterface;
 import frodo2.communication.Message;
 import frodo2.communication.OutgoingMsgPolicyInterface;
 import frodo2.communication.Queue;
+import frodo2.controller.Controller;
 import frodo2.controller.WhitePages;
 import frodo2.daemon.Daemon;
 import frodo2.solutionSpaces.DCOPProblemInterface;
@@ -86,6 +87,7 @@ public class MessageDebugger implements IncomingMsgPolicyInterface<String>, Outg
 			// Don't report messages sent by system agents
 			switch (this.agent) {
 			case Daemon.DAEMON:
+			case Controller.CONTROLLER:
 			case AgentInterface.STATS_MONITOR:
 				return Decision.DONTCARE;
 			}
@@ -121,7 +123,7 @@ public class MessageDebugger implements IncomingMsgPolicyInterface<String>, Outg
 			
 		}
 		
-		System.out.println("Agent `" + this.agent + " receives the following message:\n" + msg + "\n");
+		System.out.println("Agent `" + this.agent + "' receives the following message:\n" + msg + "\n");
 	}
 
 }

@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2016  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 How to contact the authors: 
-<http://frodo2.sourceforge.net/>
+<https://frodo-ai.tech>
  */
 
 /** Package handling the interface with the JaCoP solver */
@@ -92,22 +92,21 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 	}
 
 	/** Constructor from a JDOM root Element in XCSP format
-	 * @param agentName 					the name of the agent owning the input subproblem
 	 * @param root 							the JDOM root Element in XCSP format
 	 * @param countNCCCs 					Whether to count constraint checks
 	 * @param spacesToIgnoreNcccs			list of spaces for which NCCCs should NOT be counted
 	 * @param mpc 							Whether to behave in MPC mode
 	 */
-	protected JaCoPxcspParser (String agentName, Element root, boolean countNCCCs, HashSet<String> spacesToIgnoreNcccs, boolean mpc) {
-		super (agentName, root, countNCCCs, false, spacesToIgnoreNcccs, mpc);
+	protected JaCoPxcspParser (Element root, boolean countNCCCs, HashSet<String> spacesToIgnoreNcccs, boolean mpc) {
+		super (root, countNCCCs, false, spacesToIgnoreNcccs, mpc);
 
 		assert this.countNCCCs == false : "NCCCs not implemented"; /// @todo Implement NCCCs?
 
 	}
 
-	/** @see XCSPparser#newInstance(java.lang.String, org.jdom2.Element) */
-	protected JaCoPxcspParser<U> newInstance (String agent, Element instance) {
-		return new JaCoPxcspParser<U> (agent, instance, this.countNCCCs, this.spacesToIgnoreNcccs, super.mpc);
+	/** @see XCSPparser#newInstance(org.jdom2.Element) */
+	protected JaCoPxcspParser<U> newInstance (Element instance) {
+		return new JaCoPxcspParser<U> (instance, this.countNCCCs, this.spacesToIgnoreNcccs, super.mpc);
 	}
 
 	/** @see XCSPparser#setUtilClass(java.lang.Class) */
@@ -1061,6 +1060,7 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 		
 		// Create the agents
 		Element agents = new Element ("agents");
+		agents.setAttribute("self", agent);
 		instance.addContent(agents);
 		HashSet<String> knownAgents = new HashSet<String> ();
 		knownAgents.add(agent);
@@ -1353,7 +1353,7 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 		// Add the "constraints" element after the "relations" and "probabilities" element
 		instance.addContent(constraints);
 		
-		JaCoPxcspParser<U> out = newInstance (agent, instance);
+		JaCoPxcspParser<U> out = newInstance (instance);
 		return out;
 	}
 	

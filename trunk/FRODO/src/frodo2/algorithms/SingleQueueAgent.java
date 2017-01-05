@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2016  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 How to contact the authors: 
-<http://frodo2.sourceforge.net/>
+<https://frodo-ai.tech>
 */
 
 package frodo2.algorithms;
@@ -168,7 +168,7 @@ public class SingleQueueAgent < Val extends Addable<Val> > implements AgentInter
 		
 		localInputPipe = new QueueIOPipe(queue);
 		this.queue.addOutputPipe(this.agentID, new QueueIOPipe (this.queue, true));
-		this.queue.addOutputPipe(STATS_MONITOR, blackHole);
+		this.queue.addOutputPipe(Controller.CONTROLLER, blackHole);
 		
 		msgTypes.add(WhitePages.CONNECT_AGENT);
 		msgTypes.add(AgentInterface.START_AGENT);
@@ -265,7 +265,7 @@ public class SingleQueueAgent < Val extends Addable<Val> > implements AgentInter
 		neighboursConnected++;
 		
 		if(neighboursConnected == neighbours.size())  // we are ready to start
-			queue.sendMessage(AgentInterface.STATS_MONITOR, new Message(AgentInterface.AGENT_CONNECTED));
+			queue.sendMessage(Controller.CONTROLLER, new Message(AgentInterface.AGENT_CONNECTED));
 	}
 	
 	/** @see AgentInterface#connect() */
@@ -278,7 +278,7 @@ public class SingleQueueAgent < Val extends Addable<Val> > implements AgentInter
 		
 		// if there are no neighbours, you are by default connected to all your neighbours
 		if(neighbours.isEmpty()) 
-			queue.sendMessage(STATS_MONITOR, new Message(AgentInterface.AGENT_CONNECTED));
+			queue.sendMessage(Controller.CONTROLLER, new Message(AgentInterface.AGENT_CONNECTED));
 		
 		for(String neighbour : neighbours) {
 			
@@ -309,11 +309,16 @@ public class SingleQueueAgent < Val extends Addable<Val> > implements AgentInter
 	 */
 	public void start() { }
 
-	/** @see AgentInterface#setup(QueueOutputPipeInterface, QueueOutputPipeInterface, int) */
-	public void setup(QueueOutputPipeInterface toDaemonPipe, QueueOutputPipeInterface toControllerPipe, int port) {
+	/** @see AgentInterface#setup(QueueOutputPipeInterface, QueueOutputPipeInterface, boolean, int) */
+	@Override
+	public void setup(QueueOutputPipeInterface toDaemonPipe, QueueOutputPipeInterface toControllerPipe, boolean statsToController, int port) {
 		this.port = port;
-		this.queue.addOutputPipe(STATS_MONITOR, toControllerPipe);
+		this.queue.addOutputPipe(Controller.CONTROLLER, toControllerPipe);
 		this.queue.addOutputPipe(Daemon.DAEMON, toDaemonPipe);
+		if (statsToController) 
+			this.queue.addOutputPipe(AgentInterface.STATS_MONITOR, toControllerPipe);
+		else 
+			this.queue.addOutputPipe(AgentInterface.STATS_MONITOR, toDaemonPipe);
 
 		// Create input pipes
 		if (port >= 0) {
@@ -337,10 +342,9 @@ public class SingleQueueAgent < Val extends Addable<Val> > implements AgentInter
 	/** Sends a message to the controller saying that the agent has finished */
 	protected void finished () {
 		if (this.measureMsgs) // send a message with statistics
-			queue.sendMessage(STATS_MONITOR, new AgentFinishedMessage (this.agentID, queue.getMsgNbrs(), queue.getMsgNbrsSent(), 
+			queue.sendMessage(STATS_MONITOR, new ComStatsMessage (this.agentID, queue.getMsgNbrs(), queue.getMsgNbrsSent(), 
 					queue.getMsgSizes(), queue.getMsgSizesSent(), queue.getMaxMsgSizes()));
-		else 
-			queue.sendMessage(STATS_MONITOR, new Message(AGENT_FINISHED));
+		queue.sendMessage(STATS_MONITOR, new Message(AGENT_FINISHED));
 		queue.resetStats();
 	}
 

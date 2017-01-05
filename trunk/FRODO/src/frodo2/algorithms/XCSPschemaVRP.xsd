@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!-- 
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2016  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -18,7 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 How to contact the authors: 
-<http://frodo2.sourceforge.net/>
+<https://frodo-ai.tech>
 -->
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
 	<xs:annotation>
@@ -100,6 +100,7 @@ WARNING! This file is in format 1.1; a parser that supports this experimental fo
 				<xs:element maxOccurs="unbounded" minOccurs="0" ref="agent"/>
 			</xs:sequence>
 			<xs:attribute name="nbAgents" type="xs:positiveInteger" use="required"/>
+			<xs:attribute name="self" type="xs:IDREF" use="optional"/>
 		</xs:complexType>
 	</xs:element>
 	

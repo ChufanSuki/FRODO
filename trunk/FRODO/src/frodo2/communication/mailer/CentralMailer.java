@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2016  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 How to contact the authors: 
-<http://frodo2.sourceforge.net/>
+<https://frodo-ai.tech>
  */
 
 /** Special type of communication method that enforces that only one agent is awake at a time */
@@ -45,6 +45,7 @@ import frodo2.communication.OutgoingMsgPolicyInterface;
 import frodo2.communication.Queue;
 import frodo2.communication.QueueInputPipeInterface;
 import frodo2.communication.QueueOutputPipeInterface;
+import frodo2.controller.Controller;
 import frodo2.daemon.Daemon;
 
 /** Centralized mail man that enforces that only one agent is awake at a time, which is useful to measure distributed runtime. 
@@ -473,10 +474,10 @@ public class CentralMailer extends Thread {
 			if (this.stop) // run() isn't ready yet
 				this.msgDone.await();
 
-			int nbrAgentsLeft = this.queues.size() - 2; // -2 to not count the stats monitor nor the daemon
+			int nbrAgentsLeft = this.queues.size() - 3; // -3 to not count the stats monitor, the controller, nor the daemon
 			
 			// Initially, the outbox contains only messages sent by the controller
-			Object agent = AgentInterface.STATS_MONITOR;
+			Object agent = Controller.CONTROLLER;
 			FakeQueue queue = this.queues.get(agent);
 
 			while (true) {
@@ -596,7 +597,8 @@ public class CentralMailer extends Thread {
 						break;
 				}
 				
-				if (!agent.equals(AgentInterface.STATS_MONITOR) && wrap.getMessage().getType().equals(AgentInterface.AGENT_FINISHED)) 
+				if (!agent.equals(Controller.CONTROLLER) && !agent.equals(AgentInterface.STATS_MONITOR) 
+						&& wrap.getMessage().getType().equals(AgentInterface.AGENT_FINISHED)) 
 					nbrAgentsLeft--;
 			}
 			
@@ -735,12 +737,25 @@ public class CentralMailer extends Thread {
 	 * @return a queue
 	 */
 	public Queue newQueue (String agent, boolean updateTime) {
-
-		FakeQueue queue = new FakeQueue(agent, updateTime);
-		this.queues.put(agent, queue);
-
-		if (agent.equals(AgentInterface.STATS_MONITOR)) 
+		
+		FakeQueue queue;
+		
+		// Use the same queue for the stats monitor, the controller and the daemon
+		if (agent.equals(AgentInterface.STATS_MONITOR) 
+				|| agent.equals(Controller.CONTROLLER)
+				|| agent.equals(Daemon.DAEMON)) {
+			
+			// Look up the existing queue, if any
+			if ((queue = this.queues.get(AgentInterface.STATS_MONITOR)) == null) 
+				queue = new FakeQueue (AgentInterface.STATS_MONITOR, updateTime);
+			
+			this.queues.put(AgentInterface.STATS_MONITOR, queue);
+			this.queues.put(Controller.CONTROLLER, queue);
 			this.queues.put(Daemon.DAEMON, queue);
+		}
+
+		else 
+			this.queues.put(agent, queue = new FakeQueue(agent, updateTime));
 
 		return queue;
 	}
