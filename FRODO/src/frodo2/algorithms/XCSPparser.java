@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2016  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -17,12 +17,16 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 How to contact the authors: 
-<http://frodo2.sourceforge.net/>
+<https://frodo-ai.tech>
  */
 
 package frodo2.algorithms;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Array;
@@ -160,24 +164,85 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 		return new XMLOutputter(Format.getPrettyFormat()).outputString(root);
 	}
 
-	/** Prints the input problem in DOT format
-	 * @param args 				the path to the XCSP file
+	/** Parses the input problem 
+	 * @param args 			the path to the XCSP file
 	 * @throws Exception 	if an error occurs
 	 */
 	public static void main (String[] args) throws Exception {
 
 		// The GNU GPL copyright notice
-		System.out.println("FRODO  Copyright (C) 2008-2016  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek");
+		System.out.println("FRODO  Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek");
 		System.out.println("This program comes with ABSOLUTELY NO WARRANTY.");
 		System.out.println("This is free software, and you are welcome to redistribute it");
-		System.out.println("under certain conditions.\n");
+		System.out.println("under certain conditions. Use the option -license to display the license.\n");
 
-		if (args.length != 1) {
-			System.out.println("ERROR: Takes exactly one parameter: the path to the input XCSP file.");
+		ArrayList<String> argList = new ArrayList<String> (Arrays.asList(args));
+		
+		// If passed "-license", display the license and quit
+		if (argList.remove("-license")) {
+			try {
+				BufferedReader reader = new BufferedReader (new FileReader (new File ("LICENSE.txt")));
+				String line = reader.readLine();
+				while (line != null) {
+					System.out.println(line);
+					line = reader.readLine();
+				}
+				reader.close();
+			} catch (FileNotFoundException e) {
+				e.printStackTrace();
+				System.exit(1);
+			} catch (IOException e) {
+				e.printStackTrace();
+				System.exit(1);
+			}
 			return;
 		}
-
-		System.out.println(XCSPparser.toDOT(XCSPparser.parse(args[0], false)));
+		
+		final boolean printDot = argList.remove("-dot");
+		final boolean split = argList.remove("-split");
+		
+		if (argList.size() != 1) {
+			System.out.println(usage());
+			System.exit(1);
+		}
+		String probFile = argList.get(0);
+		
+		XCSPparser<AddableInteger, AddableInteger> parser = new XCSPparser<AddableInteger, AddableInteger> (parse(probFile, false));
+		System.out.println("Successfully parsed " + probFile);
+		
+		if (printDot) {
+			System.out.println("DOT representation of the constraint graph:");
+			System.out.println(parser.toDOT());
+		}
+		
+		if (split) {
+			
+			// Strip the filename extension
+			String outFilePrefix = probFile;
+			int indexOfExtension = probFile.lastIndexOf('.');
+			if (indexOfExtension > 0) 
+				outFilePrefix = outFilePrefix.substring(0, indexOfExtension);
+			
+			// Write each agent's subproblem
+			for (String agent : parser.getAgents()) {
+				String outFile = outFilePrefix + "-" + agent + ".xcsp";
+				new XMLOutputter(Format.getPrettyFormat()).output(parser.getSubProblem(agent).root, new FileWriter (outFile));
+				System.out.println("Wrote the subproblem for agent `" + agent + "' to " + outFile);
+			}
+		}
+	}
+	
+	/** @return a description of the allowed arguments for the main() method */
+	private static String usage () {
+		
+		StringBuffer buf = new StringBuffer ("Usage: XCSParser [-dot] [-split] file");
+		
+		buf.append("\n -license (optional): 	prints out FRODO's license and quits");
+		buf.append("\n -dot (optional): 		prints out a representation of the problem constraint graph in DOT format");
+		buf.append("\n -split (optional): 		splits the problem into each agent's subproblem and saves them to files");
+		buf.append("\n file: 				the problem instance in XCSP format");
+		
+		return buf.toString();
 	}
 
 	/** Returns the constraint graph in DOT format
@@ -196,7 +261,7 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 		StringBuilder out = new StringBuilder ("graph {\n\tnode [shape = \"circle\"];\n");
 
 		// Print the agents, with their respective variables
-		XCSPparser<AddableInteger, AddableInteger> parser = new XCSPparser<AddableInteger, AddableInteger> (null, root, false);
+		XCSPparser<AddableInteger, AddableInteger> parser = new XCSPparser<AddableInteger, AddableInteger> (root, false);
 		for (String agent : parser.getAgents()) {
 			out.append("\tsubgraph cluster_" + agent + " {\n");
 			out.append("\t\tlabel = " + agent + ";\n");
@@ -253,9 +318,6 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 	/** An instance of V */
 	protected V valInstance = (V) new AddableInteger ();
 
-	/** The name of the agent owning the problem */
-	protected String agentName;
-
 	/** If \c true, neighborhood relationships between decision variables are extended through random variables. 
 	 * 
 	 * In other words, for a given decision variable x, its neighborhood consists of: <br>
@@ -299,21 +361,6 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 	}
 
 	/** Constructor from a JDOM root Element in XCSP format
-	 * @param root 			the JDOM root Element in XCSP format
-	 * @param countNCCCs 	Whether to count constraint checks
-	 */
-	protected XCSPparser (Element root, boolean countNCCCs) {
-		this.root = root;
-		this.countNCCCs = countNCCCs;
-		this.extendedRandNeighborhoods = false;
-		this.publicAgents = false;
-		this.mpc = false;
-		this.spacesToIgnoreNcccs = new HashSet<String>();
-		
-		assert this.checkUniqueConstraintNames() : "Non-unique constraint names";
-	}
-
-	/** Constructor from a JDOM root Element in XCSP format
 	 * @param root 							the JDOM root Element in XCSP format
 	 * @param countNCCCs 					Whether to count constraint checks
 	 * @param extendedRandNeighborhoods 	whether we want extended random neighborhoods
@@ -340,24 +387,21 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 	}
 
 	/** Constructor from a JDOM root Element in XCSP format
-	 * @param agentName 	the name of the agent owning the input subproblem
 	 * @param root 			the JDOM root Element in XCSP format
 	 * @param countNCCCs 	Whether to count constraint checks
 	 */
-	protected XCSPparser (String agentName, Element root, boolean countNCCCs) {
-		this (agentName, root, countNCCCs, false, new HashSet<String>(), false);
+	protected XCSPparser (Element root, boolean countNCCCs) {
+		this (root, countNCCCs, false, new HashSet<String>(), false);
 	}
 	
 	/** Constructor from a JDOM root Element in XCSP format
-	 * @param agentName 					the name of the agent owning the input subproblem
 	 * @param root 							the JDOM root Element in XCSP format
 	 * @param countNCCCs 					Whether to count constraint checks
 	 * @param extendedRandNeighborhoods 	whether we want extended random neighborhoods
 	 * @param spacesToIgnoreNcccs			list of spaces for which NCCCs should NOT be counted
 	 * @param mpc 							Whether to behave in MPC mode
 	 */
-	protected XCSPparser (String agentName, Element root, boolean countNCCCs, boolean extendedRandNeighborhoods, HashSet<String> spacesToIgnoreNcccs, boolean mpc) {
-		this.agentName = agentName;
+	protected XCSPparser (Element root, boolean countNCCCs, boolean extendedRandNeighborhoods, HashSet<String> spacesToIgnoreNcccs, boolean mpc) {
 		this.root = root;
 		this.countNCCCs = countNCCCs;
 		this.extendedRandNeighborhoods = extendedRandNeighborhoods;
@@ -387,12 +431,11 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 	}
 
 	/** Calls the corresponding constructor
-	 * @param agent 	name of the agent
 	 * @param instance 	the agent's subproblem
 	 * @return a new instance of this class
 	 */
-	protected XCSPparser<V, U> newInstance (String agent, Element instance) {
-		return new XCSPparser<V, U> (agent, instance, this.countNCCCs, this.extendedRandNeighborhoods, this.spacesToIgnoreNcccs, this.mpc);
+	protected XCSPparser<V, U> newInstance (Element instance) {
+		return new XCSPparser<V, U> (instance, this.countNCCCs, this.extendedRandNeighborhoods, this.spacesToIgnoreNcccs, this.mpc);
 	}
 
 	/** Constructor from a JDOM Document in XCSP format
@@ -552,7 +595,7 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 
 	/** @see DCOPProblemInterface#getAgent() */
 	public String getAgent () {
-		return this.agentName;
+		return this.root.getChild("agents").getAttributeValue("self");
 	}
 
 	/** @see DCOPProblemInterface#getZeroUtility() */
@@ -1123,6 +1166,7 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 
 	/** @see DCOPProblemInterface#getNbrIntVars() */
 	public int getNbrIntVars () {
+		final String agentName = this.getAgent();
 		if (agentName != null) 
 			return this.getNbrVars(agentName);
 		return -1;
@@ -1167,7 +1211,8 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 
 	/** @see DCOPProblemInterface#getMyVars() */
 	public Set<String> getMyVars () {
-		if (this.agentName == null) 
+		final String agentName = this.getAgent();
+		if (agentName == null) 
 			return new HashSet<String> ();
 		else 
 			return this.getVariables(agentName);
@@ -1178,7 +1223,8 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 
 		HashSet<String> out = new HashSet<String> ();
 		
-		if (this.agentName == null) 
+		final String agentName = this.getAgent();
+		if (agentName == null) 
 			return out;
 
 		for (Element varElmt : (List<Element>) root.getChild("variables").getChildren()) {
@@ -1284,6 +1330,7 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 		
 		// Create the agents
 		Element agents = new Element ("agents");
+		agents.setAttribute("self", agent);
 		instance.addContent(agents);
 		HashSet<String> knownAgents = new HashSet<String> ();
 		knownAgents.add(agent);
@@ -1521,7 +1568,7 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 		// Add the "constraints" element after the "relations" and "probabilities" element
 		instance.addContent(constraints);
 
-		XCSPparser<V, U> out = newInstance (agent, instance);
+		XCSPparser<V, U> out = newInstance (instance);
 		out.setUtilClass(utilClass);
 		out.setDomClass(domClass);
 		return out;
@@ -1645,7 +1692,7 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 
 	/** @see DCOPProblemInterface#getNeighborhoods() */
 	public Map< String, HashSet<String> > getNeighborhoods () {
-		return this.getNeighborhoods(this.agentName);
+		return this.getNeighborhoods(this.getAgent());
 	}
 
 	/** Parses the problem description to construct, for each variable owned by the input agent, its list of neighbors with no specified owner
@@ -1658,7 +1705,7 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 
 	/** @see DCOPProblemInterface#getAnonymNeighborhoods() */
 	public Map< String, HashSet<String> > getAnonymNeighborhoods () {
-		return this.getAnonymNeighborhoods(agentName);
+		return this.getAnonymNeighborhoods(this.getAgent());
 	}
 
 	/** Parses the problem description to construct, for each variable owned by the input agent, its list of neighbors
@@ -1709,7 +1756,7 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 
 	/** @see DCOPProblemInterface#getNeighborhoodSizes() */
 	public Map<String, Integer> getNeighborhoodSizes () {
-		return this.getNeighborhoodSizes(this.agentName);
+		return this.getNeighborhoodSizes(this.getAgent());
 	}
 
 	/** Returns the neighboring agents of the input variable
@@ -1804,7 +1851,7 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 
 	/** @see DCOPProblemInterface#getAgentNeighborhoods() */
 	public Map< String, Collection<String> > getAgentNeighborhoods () {
-		return this.getAgentNeighborhoods(agentName);
+		return this.getAgentNeighborhoods(this.getAgent());
 	}
 
 	/** This method only makes sense in subclasses of XCSPparser that handle backyard variables
@@ -2083,7 +2130,7 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 
 	/** @see java.lang.Object#toString() */
 	public String toString () {
-		return "Problem for agent " + this.agentName + ":\n" + XCSPparser.toString(this.root);
+		return "Problem for agent " + this.getAgent() + ":\n" + XCSPparser.toString(this.root);
 	}
 
 	/**@return a DOT-formatted reprensentation of the problem */
@@ -2523,11 +2570,10 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 
 		assert newProblem instanceof XCSPparser : "Cannot reset an XCSPparser based on a problem of class: " + newProblem.getClass();
 
-	XCSPparser<V, U> prob = (XCSPparser<V, U>) newProblem;
-	this.agentName = prob.agentName;
-	this.root = prob.root;
-	this.utilClass = prob.utilClass;
-	this.valInstance = prob.valInstance;
+		XCSPparser<V, U> prob = (XCSPparser<V, U>) newProblem;
+		this.root = prob.root;
+		this.utilClass = prob.utilClass;
+		this.valInstance = prob.valInstance;
 	}
 
 	/** 
@@ -2570,6 +2616,21 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 	 */
 	protected boolean ignore(String spaceClass) {
 		return this.spacesToIgnoreNcccs.contains(spaceClass);
+	}
+
+	/** @see DCOPProblemInterface#addUnarySpace(String, String, Addable[], Addable[]) */
+	@Override
+	public UtilitySolutionSpace<V, U> addUnarySpace(String name, String var, V[] dom, U[] utils) {
+		
+		V[][] doms = (V[][]) Array.newInstance(dom.getClass(), 1);
+		doms[0] = dom;
+		
+		Hypercube<V, U> out = new Hypercube<V, U> (new String[] {var}, doms, utils, this.getInfeasibleUtil());
+		out.setName(name);
+		
+		this.addSolutionSpace(out);
+		
+		return out;
 	}
 
 }

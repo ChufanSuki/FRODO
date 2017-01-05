@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2016  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 How to contact the authors: 
-<http://frodo2.sourceforge.net/>
+<https://frodo-ai.tech>
 */
 
 package frodo2.algorithms.duct;
@@ -131,6 +131,9 @@ public class Normalize <V extends Addable<V>> implements StatsReporter {
 	
 	/** The penalty used to replace an infeasible value */
 	protected AddableReal penalty;
+
+	/** Whether to report stats */
+	protected boolean reportStats = true;
 	
 	/**
 	 * Constructor
@@ -143,6 +146,7 @@ public class Normalize <V extends Addable<V>> implements StatsReporter {
 		this.problem = problem;
 		reportSpaces = false;
 		this.infeasibleUtil = problem.maximize() ? problem.getMinInfUtility() : problem.getPlusInfUtility();
+		this.reportStats = Boolean.parseBoolean(parameters.getAttributeValue("reportStats"));
 		
 		String penalty = parameters.getAttributeValue("penalty");
 		if(penalty != null)
@@ -162,6 +166,7 @@ public class Normalize <V extends Addable<V>> implements StatsReporter {
 	public Normalize(DCOPProblemInterface<V, AddableReal> problem, Element parameters, boolean reportSpaces) {
 		this.problem = problem;
 		this.reportSpaces = reportSpaces;
+		this.reportStats = Boolean.parseBoolean(parameters.getAttributeValue("reportStats"));
 		this.infeasibleUtil = problem.maximize() ? problem.getMinInfUtility() : problem.getPlusInfUtility();
 	}
 	
@@ -253,8 +258,8 @@ public class Normalize <V extends Addable<V>> implements StatsReporter {
 					queue.sendMessage(owners.get(parent), new BOUNDmsg(BOUND_MSG_TYPE, parent, lower, upper, numberOfSpaces[index], domainSize, separators.get(var)));
 				}
 				
-				// send a statistics message
-				queue.sendMessage(AgentInterface.STATS_MONITOR, new BOUNDmsg(STATS_MSG_TYPE, null, lower, upper, 0, domainSize, separators.get(var)));
+				if (this.reportStats) // send a statistics message
+					queue.sendMessage(AgentInterface.STATS_MONITOR, new BOUNDmsg(STATS_MSG_TYPE, null, lower, upper, 0, domainSize, separators.get(var)));
 			}
 		}
 		
@@ -294,8 +299,8 @@ public class Normalize <V extends Addable<V>> implements StatsReporter {
 					queue.sendMessage(owners.get(parent), new BOUNDmsg(BOUND_MSG_TYPE, parent, lower, upper, numberOfSpaces[index], size, separators.get(var)));
 				}
 				
-				// send a statistics message
-				queue.sendMessage(AgentInterface.STATS_MONITOR, new BOUNDmsg(STATS_MSG_TYPE, null, lower, upper, 0, size, null));
+				if (this.reportStats) // send a statistics message
+					queue.sendMessage(AgentInterface.STATS_MONITOR, new BOUNDmsg(STATS_MSG_TYPE, null, lower, upper, 0, size, null));
 			}
 		}
 		
@@ -420,13 +425,10 @@ public class Normalize <V extends Addable<V>> implements StatsReporter {
 
 	}
 
-	/** 
-	 * @see frodo2.algorithms.StatsReporter#setSilent(boolean)
-	 */
+	/** @see StatsReporter#setSilent(boolean) */
 	@Override
 	public void setSilent(boolean silent) {
-		// @todo Auto-generated method stub
-
+		this.reportStats = ! silent;
 	}
 
 	/** 

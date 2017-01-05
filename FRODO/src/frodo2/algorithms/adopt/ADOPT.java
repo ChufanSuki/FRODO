@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2016  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 How to contact the authors: 
-<http://frodo2.sourceforge.net/>
+<https://frodo-ai.tech>
 */
 
 /** Classes implementing the ADOPT algorithm */
@@ -113,8 +113,8 @@ implements StatsReporterWithConvergence<Val> {
 	/** Variable that counts the number of variables that have terminated */
 	private int variableReadyCounter = 0;
 
-	/** Whether the stats reporter should print its stats */
-	private boolean silent = false;
+	/** Whether to report stats */
+	private boolean reportStats = true;
 	
 	/** The agent's problem */
 	private DCOPProblemInterface<Val, U> problem;
@@ -161,11 +161,8 @@ implements StatsReporterWithConvergence<Val> {
 			versionName = Original.class.getName();
 		setVersion(versionName);
 		
-		String convergence = parameters.getAttributeValue("convergence");
-		if(convergence != null)
-			this.convergence = Boolean.parseBoolean(convergence);
-		else
-			this.convergence = false;
+		this.convergence = Boolean.parseBoolean(parameters.getAttributeValue("convergence"));
+		this.reportStats = Boolean.parseBoolean(parameters.getAttributeValue("reportStats"));
 	}
 
 	/**
@@ -314,7 +311,7 @@ implements StatsReporterWithConvergence<Val> {
 				this.optTotalUtil = this.problem.getUtility(assignment).getUtility(0);
 			}
 			
-			if (!silent) {
+			if (this.reportStats) {
 				System.out.println("var `" + variable + "' = " + value);
 				
 				// If all solution message have been received, display the total optimal cost
@@ -416,8 +413,12 @@ implements StatsReporterWithConvergence<Val> {
 		variable.setCurrentAssignmentSingleton();
 		if(convergence)
 			assignmentHistoriesMap.get(variable.variableID).add(new CurrentAssignment<Val>(queue.getCurrentTime(), variable.currentAssignment));
-		AssignmentMessage<Val> output = new AssignmentMessage<Val> (variable.variableID, variable.currentAssignment);
-		queue.sendMessage(AgentInterface.STATS_MONITOR, output);
+		
+		if (this.reportStats) {
+			AssignmentMessage<Val> output = new AssignmentMessage<Val> (variable.variableID, variable.currentAssignment);
+			queue.sendMessage(AgentInterface.STATS_MONITOR, output);
+		}
+		
 		if(convergence)
 			queue.sendMessage(AgentInterface.STATS_MONITOR, new StatsReporterWithConvergence.ConvStatMessage<Val>(ADOPT.CONV_STATS_MSG_TYPE, variable.variableID, assignmentHistoriesMap.get(variable.variableID)));
 		variableReadyCounter++;
@@ -948,12 +949,14 @@ implements StatsReporterWithConvergence<Val> {
 					}
 
 					// If the variable is root
-					if (variable.separator[0] == null) {
-						AssignmentMessage<Val> output = new AssignmentMessage<Val> (variable.variableID, variable.currentAssignment);
-						adopt.queue.sendMessage(AgentInterface.STATS_MONITOR, output);
-					} else {
-						AssignmentMessage<Val> msg = new AssignmentMessage<Val>(variable.variableID, variable.currentAssignment);
-						adopt.queue.sendMessage(AgentInterface.STATS_MONITOR, msg);
+					if (this.adopt.reportStats) {
+						if (variable.separator[0] == null) {
+							AssignmentMessage<Val> output = new AssignmentMessage<Val> (variable.variableID, variable.currentAssignment);
+							adopt.queue.sendMessage(AgentInterface.STATS_MONITOR, output);
+						} else {
+							AssignmentMessage<Val> msg = new AssignmentMessage<Val>(variable.variableID, variable.currentAssignment);
+							adopt.queue.sendMessage(AgentInterface.STATS_MONITOR, msg);
+						}
 					}
 					
 					if(adopt.convergence)
@@ -1773,7 +1776,7 @@ implements StatsReporterWithConvergence<Val> {
 
 	/** @see StatsReporter#setSilent(boolean) */
 	public void setSilent(boolean silent) {
-		this.silent = silent;
+		this.reportStats = ! silent;
 	}
 
 	/** @return the optimal assignments to all variables */

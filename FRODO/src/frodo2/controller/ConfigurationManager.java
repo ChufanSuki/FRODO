@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2016  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 How to contact the authors: 
-<http://frodo2.sourceforge.net/>
+<https://frodo-ai.tech>
 */
 
 package frodo2.controller;
@@ -42,10 +42,11 @@ import frodo2.algorithms.AgentFactory;
 import frodo2.algorithms.AgentInterface;
 import frodo2.algorithms.StatsReporter;
 import frodo2.algorithms.XCSPparser;
-import frodo2.algorithms.AgentInterface.AgentFinishedMessage;
+import frodo2.algorithms.AgentInterface.ComStatsMessage;
+import frodo2.communication.AgentAddress;
 import frodo2.communication.IncomingMsgPolicyInterface;
 import frodo2.communication.Message;
-import frodo2.communication.MessageWith2Payloads;
+import frodo2.communication.MessageWith3Payloads;
 import frodo2.communication.MessageWithPayload;
 import frodo2.communication.MessageWrapper;
 import frodo2.communication.Queue;
@@ -58,7 +59,6 @@ import frodo2.solutionSpaces.ProblemInterface;
  * The ConfigurationManager takes care of setting up the experiments
  * @author Brammert Ottens
  * @author Thomas Leaute
- * @todo Listen to the stats sent by the agents.
  */
 public class ConfigurationManager implements IncomingMsgPolicyInterface <String> {
 	
@@ -81,7 +81,7 @@ public class ConfigurationManager implements IncomingMsgPolicyInterface <String>
 	public static final String END_TEXT = "All experiments are finished";
 	
 	/** The queue on which it should call sendMessage() */
-	private Queue queue;
+	protected Queue queue;
 	
 	/** contains the parsed XML tree with the configuration information*/
 	private Document configDoc;
@@ -106,32 +106,32 @@ public class ConfigurationManager implements IncomingMsgPolicyInterface <String>
 	private String resultFile;
 	
 	/** The list of messages types this listener wants to be notified of */
-	private ArrayList <String> msgTypes = new ArrayList <String> ();
+	protected ArrayList <String> msgTypes = new ArrayList <String> ();
 	
 	/** The list of daemons that are available*/
-	private HashMap<String, String[]> daemonList;
+	private HashMap<String, AgentAddress> daemonList;
 	
 	/** The main controller class */
 	private Controller control;
 	
 	/** After the configuration file has been loaded, this contains a list of problems that will be solved when the experiment starts*/
-	private Element problemList;
+	protected Element problemList;
 	
-	/** The JDOM Element describing the agent configuration */
-	private Element agentDescription;
+	/** The JDOM Document describing the agent configuration */
+	protected Document agentDescriptionDoc;
 	
 	/** The name of the agent, used to find the agent description when the configuration file is 
 	 * to be found in a jar file*/
 	private String agentName;
 	
 	/** the experiment that is currently run*/
-	private int problem;
+	protected int problem;
 	
 	/** Number of agents in the problem that is currently run*/
-	private int numberOfAgents;
+	protected int numberOfAgents;
 	
 	/** The number of agents that reported to be finished*/
-	private int numberOfAgentsFinished;
+	protected int numberOfAgentsFinished;
 	
 	/** The number of agents that reported to be white pages*/
 	private int numberOfAgentsReported;
@@ -143,7 +143,7 @@ public class ConfigurationManager implements IncomingMsgPolicyInterface <String>
 	private boolean local;
 
 	/** Folder containing the files mentioned in the configuration document. Must end with a slash. */
-	private String workDir;
+	protected String workDir;
 
 	/** The nccc stamp of the AGENT_FINISHED message with the highest nccc stamp*/
 	private long finalNCCCcount = -1;
@@ -177,6 +177,9 @@ public class ConfigurationManager implements IncomingMsgPolicyInterface <String>
 
 	/** The start time of the algorithm, in milliseconds */
 	private long startTime;
+	
+	/** Empty constructor */
+	protected ConfigurationManager () {};
 		
 	/**
 	 * The constructor of the Configuration manager
@@ -257,26 +260,29 @@ public class ConfigurationManager implements IncomingMsgPolicyInterface <String>
 		 *  the program is running. 
 		 */
 		if(msgType.equals(UserIO.START_MSG)) { // the user wants to start running the experiment
-			if(configDoc == null) {
-				// ask the white pages for the set of daemons available at the moment
-				tellUser("No configuration file has been specified!");
-			} else {
-				if(local) {
-					// run the first experiment. The next experiment is activated when all the agents finished the first
-					runExperiment(((Element)problemList.getChildren().get(problem)).getAttributeValue("fileName"));
-					problem++;
-				} else {
-					// before the experiment can start, first get an up to date list of the available daemons
-					Message newMsg = new Message(REQUEST_DAEMONS_CONFIG_MSG);
-					queue.sendMessageToSelf(newMsg);
+			
+			if (this.local) {
+				if (this.configDoc == null) {
+					tellUser("No configuration file has been specified!");
+					return;
 				}
+				
+				// run the first experiment. The next experiment is activated when all the agents finished the first
+				runExperiment(((Element)problemList.getChildren().get(problem)).getAttributeValue("fileName"));
+				problem++;
+				
+			} else { // distributed submode
+				
+				// before the experiment can start, first get an up to date list of the available daemons
+				Message newMsg = new Message(REQUEST_DAEMONS_CONFIG_MSG);
+				queue.sendMessageToSelf(newMsg);
 			}
 		}
 		
 		/** When the white pages return a set of daemons, the experiments can start*/
 		if(msgType.equals(WhitePages.DEAMONS_CONFIG_MSG)) { // the list of available daemons is received
 		
-			daemonList = ((MessageWithPayload<HashMap<String, String[]>>)msg).getPayload();
+			daemonList = ((MessageWithPayload<HashMap<String, AgentAddress>>)msg).getPayload();
 			problem = 0;
 			
 			if(daemonList.size() == 0) {
@@ -284,7 +290,13 @@ public class ConfigurationManager implements IncomingMsgPolicyInterface <String>
 				tellUser("There are no daemons available. Please specify a set of Daemons");
 			} else {
 				// run the first experiment. The next experiment is activated when all the agents finished the first
-				runExperiment(((Element)problemList.getChildren().get(problem)).getAttributeValue("fileName"));
+				
+				if (this.problemList != null) 
+					runExperiment(((Element)problemList.getChildren().get(problem)).getAttributeValue("fileName"));
+				
+				else // no configuration file has been provided to the controller; rely on the daemons having one
+					this.sendEmptyConfigs();
+				
 				problem++;
 			}
 		}
@@ -328,92 +340,19 @@ public class ConfigurationManager implements IncomingMsgPolicyInterface <String>
 			if (ncccs != -1 && ncccs > this.finalNCCCcount) 
 				this.finalNCCCcount = ncccs;
 			
-			// Record the stats
-			if (this.measureMsgs) {
-				
-				AgentFinishedMessage msgCast = (AgentFinishedMessage) msg;
-				
-				// Increment nbrMsgs
-				for (Map.Entry<String, Integer> entry : msgCast.getMsgNbrs().entrySet()) {
-					String type = entry.getKey();
-
-					Integer nbr = this.msgNbrs.get(type);
-					if (nbr == null) 
-						this.msgNbrs.put(type, entry.getValue());
-					else 
-						this.msgNbrs.put(type, nbr + entry.getValue());
-				}
-				
-				// Increment nbrMsgsSent & Received
-				int totalSent = 0;
-				for (Map.Entry<Object, Integer> entry : msgCast.getMsgNbrsSent().entrySet()) {
-					Object toAgent = entry.getKey();
-					totalSent += entry.getValue();
-
-					Integer nbr = this.msgNbrsReceivedPerAgent.get(toAgent);
-					if (nbr == null) 
-						this.msgNbrsReceivedPerAgent.put(toAgent, entry.getValue());
-					else 
-						this.msgNbrsReceivedPerAgent.put(toAgent, nbr + entry.getValue());
-				}
-				Object sender = msgCast.getSender();
-				Integer nbr = this.msgNbrsSentPerAgent.get(sender);
-				if (nbr == null) 
-					this.msgNbrsSentPerAgent.put(sender, totalSent);
-				else 
-					this.msgNbrsSentPerAgent.put(sender, nbr + totalSent);
-				
-				// Increment msgSizes
-				for (Map.Entry<String, Long> entry : msgCast.getMsgSizes().entrySet()) {
-					String type = entry.getKey();
-					
-					Long size = this.msgSizes.get(type);
-					if (size == null) 
-						this.msgSizes.put(type, entry.getValue());
-					else 
-						this.msgSizes.put(type, size + entry.getValue());
-				}
-				
-				// Increment msgSizesSent & Received
-				long totalInfoSent = 0;
-				for (Map.Entry<Object, Long> entry : msgCast.getMsgSizesSent().entrySet()) {
-					Object toAgent = entry.getKey();
-					totalInfoSent += entry.getValue();
-
-					Long info = this.msgSizesReceivedPerAgent.get(toAgent);
-					if (info == null) 
-						this.msgSizesReceivedPerAgent.put(toAgent, entry.getValue());
-					else 
-						this.msgSizesReceivedPerAgent.put(toAgent, info + entry.getValue());
-				}
-				Long info = this.msgSizesSentPerAgent.get(sender);
-				if (info == null) 
-					this.msgSizesSentPerAgent.put(sender, totalInfoSent);
-				else 
-					this.msgSizesSentPerAgent.put(sender, info + totalInfoSent);
-				
-				// Update maxMsgSizes
-				for (Map.Entry<String, Long> entry : msgCast.getMaxMsgSizes().entrySet()) {
-					String type = entry.getKey();
-					
-					Long maxSize = this.maxMsgSizes.get(type);
-					if (maxSize == null || entry.getValue() > maxSize) 
-						this.maxMsgSizes.put(type, entry.getValue());
-				}
-			}
-			
 			if(numberOfAgentsFinished == numberOfAgents){
 				// the problem has been solved, proceed to the next experiment the daemons 
 				// take care of deleting the agents and reporting to the white pages that they
 				// are done
 				
-				System.out.println("Algorithm finished in " + (System.currentTimeMillis() - this.startTime) + " ms");
+				if (this.startTime != 0) 
+					this.tellUser("Algorithm finished in " + (System.currentTimeMillis() - this.startTime) + " ms");
 				
 				NumberFormat formatter = NumberFormat.getInstance();
 
 				// Print NCCCs
 				if (this.finalNCCCcount > 0) 
-					System.out.println("Number of NCCCs = " + formatter.format(this.finalNCCCcount));
+					this.tellUser("Number of NCCCs = " + formatter.format(this.finalNCCCcount));
 				
 				if (this.measureMsgs) 
 					AgentFactory.printMsgStats(this.msgNbrs, this.msgNbrsSentPerAgent, this.msgNbrsReceivedPerAgent, this.msgSizes, 
@@ -425,9 +364,87 @@ public class ConfigurationManager implements IncomingMsgPolicyInterface <String>
 			}
 		}
 		
+		if(msgType.equals(AgentInterface.ComStatsMessage.COM_STATS_MSG_TYPE) 
+				&& this.measureMsgs) {
+
+			ComStatsMessage msgCast = (ComStatsMessage) msg;
+
+			// Increment nbrMsgs
+			for (Map.Entry<String, Integer> entry : msgCast.getMsgNbrs().entrySet()) {
+				String type = entry.getKey();
+
+				Integer nbr = this.msgNbrs.get(type);
+				if (nbr == null) 
+					this.msgNbrs.put(type, entry.getValue());
+				else 
+					this.msgNbrs.put(type, nbr + entry.getValue());
+			}
+
+			// Increment nbrMsgsSent & Received
+			int totalSent = 0;
+			for (Map.Entry<Object, Integer> entry : msgCast.getMsgNbrsSent().entrySet()) {
+				Object toAgent = entry.getKey();
+				totalSent += entry.getValue();
+
+				Integer nbr = this.msgNbrsReceivedPerAgent.get(toAgent);
+				if (nbr == null) 
+					this.msgNbrsReceivedPerAgent.put(toAgent, entry.getValue());
+				else 
+					this.msgNbrsReceivedPerAgent.put(toAgent, nbr + entry.getValue());
+			}
+			Object sender = msgCast.getSender();
+			Integer nbr = this.msgNbrsSentPerAgent.get(sender);
+			if (nbr == null) 
+				this.msgNbrsSentPerAgent.put(sender, totalSent);
+			else 
+				this.msgNbrsSentPerAgent.put(sender, nbr + totalSent);
+
+			// Increment msgSizes
+			for (Map.Entry<String, Long> entry : msgCast.getMsgSizes().entrySet()) {
+				String type = entry.getKey();
+
+				Long size = this.msgSizes.get(type);
+				if (size == null) 
+					this.msgSizes.put(type, entry.getValue());
+				else 
+					this.msgSizes.put(type, size + entry.getValue());
+			}
+
+			// Increment msgSizesSent & Received
+			long totalInfoSent = 0;
+			for (Map.Entry<Object, Long> entry : msgCast.getMsgSizesSent().entrySet()) {
+				Object toAgent = entry.getKey();
+				totalInfoSent += entry.getValue();
+
+				Long info = this.msgSizesReceivedPerAgent.get(toAgent);
+				if (info == null) 
+					this.msgSizesReceivedPerAgent.put(toAgent, entry.getValue());
+				else 
+					this.msgSizesReceivedPerAgent.put(toAgent, info + entry.getValue());
+			}
+			Long info = this.msgSizesSentPerAgent.get(sender);
+			if (info == null) 
+				this.msgSizesSentPerAgent.put(sender, totalInfoSent);
+			else 
+				this.msgSizesSentPerAgent.put(sender, info + totalInfoSent);
+
+			// Update maxMsgSizes
+			for (Map.Entry<String, Long> entry : msgCast.getMaxMsgSizes().entrySet()) {
+				String type = entry.getKey();
+
+				Long maxSize = this.maxMsgSizes.get(type);
+				if (maxSize == null || entry.getValue() > maxSize) 
+					this.maxMsgSizes.put(type, entry.getValue());
+			}
+		}
+		
 		/** All agents are killed, we are ready for the next problem to be solved*/
 		if(msgType.equals(WhitePages.ALL_AGENTS_KILLED)) {
-			if(problem == problemList.getChildren().size()) {
+			
+			if (this.problemList == null) // no global config file; just tell the daemons to keep solving the next problem (if any)
+				this.sendEmptyConfigs();
+			
+			else if(problem == problemList.getChildren().size()) {
 				cleanProblem();
 				problem = 0;
 				tellUser(END_TEXT);
@@ -438,6 +455,22 @@ public class ConfigurationManager implements IncomingMsgPolicyInterface <String>
 			}
 		}
 		
+	}
+
+	/** Sends empty configuration messages to all daemons, telling them to look up their own local config files */
+	private void sendEmptyConfigs() {
+		
+		// Assume one agent per daemon
+		numberOfAgents = this.daemonList.size();
+		numberOfAgentsFinished = 0;
+		numberOfAgentsReported = 0;
+		numberOfAgentsConnected = 0;
+		
+		// Send an empty AGENT_CONFIGURATION_MESSAGE to each daemon
+		MessageWith3Payloads <ProblemInterface<?, ?>, Document, Boolean> configMsg = 
+				new MessageWith3Payloads <ProblemInterface<?, ?>, Document, Boolean> (AGENT_CONFIGURATION_MESSAGE, null, null, null);
+		for (String daemon : this.daemonList.keySet()) 
+			this.queue.sendMessage(daemon, configMsg);
 	}
 
 	/**
@@ -452,7 +485,7 @@ public class ConfigurationManager implements IncomingMsgPolicyInterface <String>
 	 * This function is used to send a message to the user via the UI
 	 * @param message the message to be send to the user
 	 */
-	private void tellUser(String message) {
+	protected void tellUser(String message) {
 		Message msg = new MessageWithPayload <String> (UserIO.USER_NOTIFICATION_MSG, message);
 		queue.sendMessageToSelf(msg);
 	}
@@ -481,16 +514,16 @@ public class ConfigurationManager implements IncomingMsgPolicyInterface <String>
 		Element config = root.getChild("configuration");
 		
 		// which agent to use
-		agentDescription = config.getChild("agentDescription");
-		if(agentDescription == null) {
+		Element agentDescriptionElmt = config.getChild("agentDescription");
+		if(agentDescriptionElmt == null) {
 			// notify the user that the configuration file is incomplete
 			tellUser("The configuration file <" + configFile + "> is missing the <agentDecsription> tag!");
 			configDoc = null;
 			return -1;
 		} else {
-			String description = agentDescription.getAttributeValue("fileName");
+			String description = agentDescriptionElmt.getAttributeValue("fileName");
 			if(description == null) {
-				agentName = agentDescription.getAttributeValue("agentName");
+				agentName = agentDescriptionElmt.getAttributeValue("agentName");
 				if(agentName == null) {
 					tellUser("Error parsing configuration file: The agentDescription element should contain either a \"fileName\" or an \"agentName\" attribute!");
 					agentDescriptionFile = null;
@@ -500,6 +533,36 @@ public class ConfigurationManager implements IncomingMsgPolicyInterface <String>
 				agentDescriptionFile = workDir + description;
 			}
 		}
+		
+		// Get the agent description
+		if(agentDescriptionFile == null) {
+			try {
+				this.agentDescriptionDoc = builder.build(ConfigurationManager.class.getResourceAsStream("/frodo2/" + agentName));
+			} catch (JDOMException e) {
+				tellUser("Error when parsing internal resource /frodo2/" + agentName);
+				e.printStackTrace();
+				return -1;
+			} catch (Exception e) {
+				tellUser("Error when attempting to read internal resource /frodo2/" + agentName);
+				e.printStackTrace();
+				return -1;
+			}
+		} else {
+			try {
+				this.agentDescriptionDoc = builder.build(new File(agentDescriptionFile));
+			} catch (JDOMException e) {
+				tellUser("Error when parsing " + agentDescriptionFile);
+				e.printStackTrace();
+				return -1;
+			} catch (Exception e) {
+				tellUser("Error when attempting to read " + agentDescriptionFile);
+				e.printStackTrace();
+				return -1;
+			}
+		}
+		
+		// Override the "measureTime" attribute since simulated time is not supported in advanced mode
+		this.agentDescriptionDoc.getRootElement().setAttribute("measureTime", "false");
 		
 		// where to store the results
 		if(config.getChild("resultFile") == null) {
@@ -549,10 +612,9 @@ public class ConfigurationManager implements IncomingMsgPolicyInterface <String>
 	 * @param filename 		the name of the XCSP problem file (without the path)
 	 */
 	@SuppressWarnings({ "unchecked", "rawtypes" })
-	private void runExperiment(String filename) {
+	protected void runExperiment(String filename) {
 		SAXBuilder builder = new SAXBuilder();
 		Document problemDoc;
-		String[] dList = null;
 		
 		try {
 			// Get the problem definition
@@ -568,39 +630,8 @@ public class ConfigurationManager implements IncomingMsgPolicyInterface <String>
 				return;
 			}
 			
-			Document agentDescr = null;
-			// Get the agent description
-			if(agentDescriptionFile == null) {
-				try {
-					agentDescr = builder.build(ConfigurationManager.class.getResourceAsStream("/frodo2/" + agentName));
-				} catch (JDOMException e) {
-					System.err.println("Error when parsing internal resource /frodo2/" + agentName);
-					e.printStackTrace();
-					return;
-				} catch (Exception e) {
-					System.err.println("Error when attempting to read internal resource /frodo2/" + agentName);
-					e.printStackTrace();
-					return;
-				}
-			} else {
-				try {
-					agentDescr = builder.build(new File(agentDescriptionFile));
-				} catch (JDOMException e) {
-					System.err.println("Error when parsing " + agentDescriptionFile);
-					e.printStackTrace();
-					return;
-				} catch (Exception e) {
-					System.err.println("Error when attempting to read " + agentDescriptionFile);
-					e.printStackTrace();
-					return;
-				}
-			}
-			
-			// Override the "measureTime" attribute since simulated time is not supported in advanced mode
-			agentDescr.getRootElement().setAttribute("measureTime", "false");
-			
 			// Check whether we should be counting messages
-			String measureMsgs = agentDescr.getRootElement().getAttributeValue("measureMsgs");
+			String measureMsgs = this.agentDescriptionDoc.getRootElement().getAttributeValue("measureMsgs");
 			if (measureMsgs != null) {
 				this.msgNbrs = new TreeMap<String, Integer> ();
 				this.msgSizes = new TreeMap<String, Long> ();
@@ -611,7 +642,7 @@ public class ConfigurationManager implements IncomingMsgPolicyInterface <String>
 			
 			// Instantiate the parser
 			XCSPparser<?, ?> parser;
-			Element parserElmt = agentDescr.getRootElement().getChild("parser");
+			Element parserElmt = this.agentDescriptionDoc.getRootElement().getChild("parser");
 			if (parserElmt != null) {
 				String parserClassName = parserElmt.getAttributeValue("parserClass");
 				Class< ? extends XCSPparser<?, ?> > parserClass = (Class< ? extends XCSPparser<?, ?> >) Class.forName(parserClassName);
@@ -621,7 +652,7 @@ public class ConfigurationManager implements IncomingMsgPolicyInterface <String>
 				parser = new XCSPparser (problemDoc);
 			
 			// see if the agents will send stats. If yes, add the appropriate listeners to the queue
-			Element modsElmt = agentDescr.getRootElement().getChild("modules");
+			Element modsElmt = this.agentDescriptionDoc.getRootElement().getChild("modules");
 			if (modsElmt != null) {
 				List<Element> modules = modsElmt.getChildren();
 				statsReporters = new ArrayList<StatsReporter> (modules.size());
@@ -641,35 +672,45 @@ public class ConfigurationManager implements IncomingMsgPolicyInterface <String>
 				}
 			}
 			
-			// Get the list of agents in the problem
-			ArrayList<String> agents = new ArrayList<String> (parser.getAgents());			
-			numberOfAgents = agents.size();
-			numberOfAgentsFinished = 0;
-			numberOfAgentsReported = 0;
-			numberOfAgentsConnected = 0;
-			
-			// distribute the agents over the daemons
-			// For now, the agents are equally distributed among the
-			// available daemons
-			if(!local) {
-				dList = daemonList.keySet().toArray(new String[0]);
-			}
-			for(int agent = 0; agent < numberOfAgents; agent++) {
-				
-				// Get the problem description
-				ProblemInterface<?, ?> problem = parser.getSubProblem(agents.get(agent));
-				
-				MessageWith2Payloads <ProblemInterface<?, ?>, Document> msg = 
-					new MessageWith2Payloads <ProblemInterface<?, ?>, Document> (AGENT_CONFIGURATION_MESSAGE, problem, agentDescr);
-				if(local) {
-					queue.sendMessageToSelf(msg);
-				} else {
-					queue.sendMessage(dList[agent%dList.length], msg);
-				}
-			}
+			this.distributeAgents(parser);
 			
 		} catch (Exception e) {
 			e.printStackTrace();
+		}
+	}
+	
+	/** Distributes the agents among the daemons
+	 * @param parser 		the problem instance
+	 * @throws Exception 	if an error occurs
+	 */
+	protected void distributeAgents (XCSPparser<?, ?> parser) throws Exception {
+
+		// Get the list of agents in the problem
+		ArrayList<String> agents = new ArrayList<String> (parser.getAgents());			
+		numberOfAgents = agents.size();
+		numberOfAgentsFinished = 0;
+		numberOfAgentsReported = 0;
+		numberOfAgentsConnected = 0;
+
+		// distribute the agents over the daemons
+		// For now, the agents are equally distributed among the
+		// available daemons
+		String[] dList = null;
+		if(!local) {
+			dList = daemonList.keySet().toArray(new String[0]);
+		}
+		for(int agent = 0; agent < numberOfAgents; agent++) {
+
+			// Get the problem description
+			ProblemInterface<?, ?> problem = parser.getSubProblem(agents.get(agent));
+
+			MessageWith3Payloads <ProblemInterface<?, ?>, Document, Boolean> msg = 
+					new MessageWith3Payloads <ProblemInterface<?, ?>, Document, Boolean> (AGENT_CONFIGURATION_MESSAGE, problem, this.agentDescriptionDoc, true);
+			if(local) {
+				queue.sendMessageToSelf(msg);
+			} else {
+				queue.sendMessage(dList[agent%dList.length], msg);
+			}
 		}
 	}
 	
@@ -684,9 +725,7 @@ public class ConfigurationManager implements IncomingMsgPolicyInterface <String>
 		numberOfAgentsReported = 0;
 		numberOfAgentsConnected = 0;
 		if(statsReporters != null) {
-			for(StatsReporter s : statsReporters) {
-				queue.deleteIncomingMessagePolicy(s);
-			}
+			this.queue.deleteStatsReporters();
 			statsReporters.clear();
 		}
 	}
@@ -736,7 +775,7 @@ public class ConfigurationManager implements IncomingMsgPolicyInterface <String>
 	 * A getter function for testing purposes
 	 * @return daemonList
 	 */
-	public HashMap<String, String[]> getDaemonList() {
+	public HashMap<String, AgentAddress> getDaemonList() {
 		return daemonList;
 	}
 	

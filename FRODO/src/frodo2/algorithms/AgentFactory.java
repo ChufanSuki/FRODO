@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2016  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 How to contact the authors: 
-<http://frodo2.sourceforge.net/>
+<https://frodo-ai.tech>
  */
 
 package frodo2.algorithms;
@@ -43,7 +43,7 @@ import org.jdom2.Document;
 import org.jdom2.Element;
 import org.jdom2.JDOMException;
 
-import frodo2.algorithms.AgentInterface.AgentFinishedMessage;
+import frodo2.algorithms.AgentInterface.ComStatsMessage;
 import frodo2.algorithms.test.AllTests;
 import frodo2.communication.IncomingMsgPolicyInterface;
 import frodo2.communication.Message;
@@ -93,13 +93,29 @@ public class AgentFactory < V extends Addable<V> > implements IncomingMsgPolicyI
 	 */
 	public static < V extends Addable<V> > AgentInterface<V> createAgent (QueueOutputPipeInterface toDaemonPipe, QueueOutputPipeInterface toControllerPipe, 
 			ProblemInterface<V, ?> probDesc, Document agentDesc, int port) {
+		return createAgent(toDaemonPipe, toControllerPipe, probDesc, agentDesc, true, port);
+	}
+	
+	/** Creates an agent that connects with the controller through TCP
+	 * @param <V> 				the type used for variable values
+	 * @param toDaemonPipe 		output pipe used to send messages to the daemon
+	 * @param toControllerPipe 	output pipe used to send messages to the controller
+	 * @param probDesc 			the problem
+	 * @param agentDesc 		a JDOM Document describing the agent
+	 * @param statsToController if true, stats should be sent to the controller; else, to the daemon
+	 * @param port 				the port number on which the agent should listen
+	 * @return a new instance of an agent
+	 * @todo Make it possible to not have to manually choose the port number
+	 */
+	public static < V extends Addable<V> > AgentInterface<V> createAgent (QueueOutputPipeInterface toDaemonPipe, QueueOutputPipeInterface toControllerPipe, 
+			ProblemInterface<V, ?> probDesc, Document agentDesc, boolean statsToController, int port) {
 
 		assert ! Boolean.parseBoolean(agentDesc.getRootElement().getAttributeValue("measureTime")) :
 			"measureTime == true, but the Simulated Time metric does not support TCP pipes";
 
 		try {
 			AgentInterface<V> agent = instantiateAgent(probDesc, agentDesc, null);
-			agent.setup(toDaemonPipe, toControllerPipe, port);
+			agent.setup(toDaemonPipe, toControllerPipe, statsToController, port);
 			return agent;
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -121,7 +137,7 @@ public class AgentFactory < V extends Addable<V> > implements IncomingMsgPolicyI
 
 		try {
 			AgentInterface<V> agent = instantiateAgent(probDesc, agentDesc, mailman);
-			agent.setup(controllerPipe, controllerPipe, -1);
+			agent.setup(controllerPipe, controllerPipe, true, -1);
 			return agent;
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -167,7 +183,7 @@ public class AgentFactory < V extends Addable<V> > implements IncomingMsgPolicyI
 	public static void main (String[] args) {
 
 		// The GNU GPL copyright notice
-		System.out.println("FRODO  Copyright (C) 2008-2016  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek");
+		System.out.println("FRODO  Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek");
 		System.out.println("This program comes with ABSOLUTELY NO WARRANTY.");
 		System.out.println("This is free software, and you are welcome to redistribute it");
 		System.out.println("under certain conditions. Use the option -license to display the license.\n");
@@ -315,6 +331,9 @@ public class AgentFactory < V extends Addable<V> > implements IncomingMsgPolicyI
 
 	/** The statistics listeners */
 	private Collection<StatsReporter> statsReporters;
+	
+	/** If true, stats should be sent to the controller; else, to the daemon */
+	private boolean statsToController;
 
 	/** The start time of the algorithm, in milliseconds */
 	private long startTime;
@@ -368,7 +387,7 @@ public class AgentFactory < V extends Addable<V> > implements IncomingMsgPolicyI
 	 * @param agentDesc 	the agent description
 	 */
 	public AgentFactory (Document problemDesc, Document agentDesc) {
-		this (problemDesc, agentDesc, null, null);
+		this (problemDesc, agentDesc, null, null, true);
 	}
 
 	/** Constructor
@@ -377,7 +396,7 @@ public class AgentFactory < V extends Addable<V> > implements IncomingMsgPolicyI
 	 * @param timeout 		the timeout in milliseconds
 	 */
 	public AgentFactory (Document problemDesc, Document agentDesc, long timeout) {
-		this (problemDesc, agentDesc, null, timeout);
+		this (problemDesc, agentDesc, null, timeout, true);
 	}
 
 	/** Constructor
@@ -386,28 +405,32 @@ public class AgentFactory < V extends Addable<V> > implements IncomingMsgPolicyI
 	 * @param solGatherers 	listeners that will be notified of the statistics sent by the agents (if not \c null, behaves silently)
 	 */
 	public AgentFactory (Document problemDesc, Document agentDesc, Collection<? extends StatsReporter> solGatherers)  {
-		this(problemDesc, agentDesc, solGatherers, null);
+		this(problemDesc, agentDesc, solGatherers, null, true);
 	}
 
 	/** Constructor
-	 * @param problemDesc 	the problem description
-	 * @param agentDesc 	the agent description
-	 * @param solGatherers 	listeners that will be notified of the statistics sent by the agents (if not \c null, behaves silently)
-	 * @param timeout 		the timeout, in milliseconds. If \c null, uses the default timeout. 
+	 * @param problemDesc 		the problem description
+	 * @param agentDesc 		the agent description
+	 * @param solGatherers 		listeners that will be notified of the statistics sent by the agents (if not \c null, behaves silently)
+	 * @param timeout 			the timeout, in milliseconds. If \c null, uses the default timeout. 
+	 * @param statsToController if true, stats should be sent to the controller; else, to the daemon
 	 */
-	public AgentFactory (Document problemDesc, Document agentDesc, Collection<? extends StatsReporter> solGatherers, Long timeout)  {
-		this(problemDesc, agentDesc, solGatherers, timeout, false);
+	public AgentFactory (Document problemDesc, Document agentDesc, Collection<? extends StatsReporter> solGatherers, 
+			Long timeout, boolean statsToController)  {
+		this(problemDesc, agentDesc, solGatherers, timeout, false, statsToController);
 	}
 	
 	/** Constructor
-	 * @param problemDesc 	the problem description
-	 * @param agentDesc 	the agent description
-	 * @param solGatherers 	listeners that will be notified of the statistics sent by the agents (if not \c null, behaves silently)
-	 * @param timeout 		the timeout, in milliseconds. If \c null, uses the default timeout. 
-	 * @param useTCP 		Whether to use TCP pipes or shared memory pipes
+	 * @param problemDesc 		the problem description
+	 * @param agentDesc 		the agent description
+	 * @param solGatherers 		listeners that will be notified of the statistics sent by the agents (if not \c null, behaves silently)
+	 * @param timeout 			the timeout, in milliseconds. If \c null, uses the default timeout. 
+	 * @param useTCP 			Whether to use TCP pipes or shared memory pipes
+	 * @param statsToController if true, stats should be sent to the controller; else, to the daemon
 	 */
 	@SuppressWarnings("unchecked")
-	public AgentFactory (Document problemDesc, Document agentDesc, Collection<? extends StatsReporter> solGatherers, Long timeout, boolean useTCP)  {
+	public AgentFactory (Document problemDesc, Document agentDesc, Collection<? extends StatsReporter> solGatherers, 
+			Long timeout, boolean useTCP, boolean statsToController)  {
 
 		this.agentDesc = agentDesc;
 		this.useTCP = useTCP;
@@ -434,7 +457,7 @@ public class AgentFactory < V extends Addable<V> > implements IncomingMsgPolicyI
 		else 
 			this.measureMsgs = false;
 
-		this.init(solGatherers, timeout);
+		this.init(solGatherers, timeout, statsToController);
 	}
 	
 	/** Constructor
@@ -444,17 +467,31 @@ public class AgentFactory < V extends Addable<V> > implements IncomingMsgPolicyI
 	 * @param timeout 		the timeout, in milliseconds. If \c null, uses the default timeout. 
 	 */
 	public AgentFactory (ProblemInterface<V, ?> problem, Document agentDesc, Collection<? extends StatsReporter> solGatherers, Long timeout)  {
-		this(problem, agentDesc, solGatherers, timeout, false);
+		this(problem, agentDesc, solGatherers, timeout, false, true);
 	}
 	
 	/** Constructor
-	 * @param problem 		the problem
-	 * @param agentDesc 	the agent description
-	 * @param solGatherers 	listeners that will be notified of the statistics sent by the agents (if not \c null, behaves silently)
-	 * @param timeout 		the timeout, in milliseconds. If \c null, uses the default timeout. 
-	 * @param useTCP 		Whether to use TCP pipes or shared memory pipes
+	 * @param problem 			the problem
+	 * @param agentDesc 		the agent description
+	 * @param solGatherers 		listeners that will be notified of the statistics sent by the agents (if not \c null, behaves silently)
+	 * @param timeout 			the timeout, in milliseconds. If \c null, uses the default timeout. 
+	 * @param useTCP 			Whether to use TCP pipes or shared memory pipes
 	 */
-	public AgentFactory (ProblemInterface<V, ?> problem, Document agentDesc, Collection<? extends StatsReporter> solGatherers, Long timeout, boolean useTCP)  {
+	public AgentFactory (ProblemInterface<V, ?> problem, Document agentDesc, Collection<? extends StatsReporter> solGatherers, 
+			Long timeout, boolean useTCP)  {
+		this(problem, agentDesc, solGatherers, timeout, useTCP, true);
+	}
+	
+	/** Constructor
+	 * @param problem 			the problem
+	 * @param agentDesc 		the agent description
+	 * @param solGatherers 		listeners that will be notified of the statistics sent by the agents (if not \c null, behaves silently)
+	 * @param timeout 			the timeout, in milliseconds. If \c null, uses the default timeout. 
+	 * @param useTCP 			Whether to use TCP pipes or shared memory pipes
+	 * @param statsToController if true, stats should be sent to the controller; else, to the daemon
+	 */
+	public AgentFactory (ProblemInterface<V, ?> problem, Document agentDesc, Collection<? extends StatsReporter> solGatherers, 
+			Long timeout, boolean useTCP, boolean statsToController)  {
 		
 		this.agentDesc = agentDesc;
 		this.problem = problem;
@@ -474,17 +511,19 @@ public class AgentFactory < V extends Addable<V> > implements IncomingMsgPolicyI
 		else 
 			this.measureMsgs = false;
 
-		this.init(solGatherers, timeout);
+		this.init(solGatherers, timeout, statsToController);
 	}
 	
 	/** Convenience method called by constructors to reuse code
-	 * @param solGatherers 	listeners that will be notified of the statistics sent by the agents (if not \c null, behaves silently)
-	 * @param timeout 		the timeout, in milliseconds. If \c null, uses the default timeout. 
+	 * @param solGatherers 			listeners that will be notified of the statistics sent by the agents (if not \c null, behaves silently)
+	 * @param timeout 				the timeout, in milliseconds. If \c null, uses the default timeout. 
+	 * @param statsToController 	if true, stats should be sent to the controller; else, to the daemon
 	 */
 	@SuppressWarnings("unchecked")
-	private void init (Collection<? extends StatsReporter> solGatherers, Long timeout)  {
+	private void init (Collection<? extends StatsReporter> solGatherers, Long timeout, boolean statsToController)  {
 		
 		assert !this.measureMsgs || !useTCP : "Cannot measure simulated time while using TCP pipes";
+		this.statsToController = statsToController;
 		
 		if (timeout != null) 
 			this.timeout = (timeout <= 0 ? Long.MAX_VALUE : timeout);
@@ -505,7 +544,7 @@ public class AgentFactory < V extends Addable<V> > implements IncomingMsgPolicyI
 					mailman = constructor.newInstance(this.measureMsgs, Boolean.parseBoolean(agentDesc.getRootElement().getAttributeValue("useDelay")), mailmanElmt);
 				}
 
-				this.queue = mailman.newQueue(AgentInterface.STATS_MONITOR, false);
+				this.queue = mailman.newQueue(Controller.CONTROLLER, false);
 			}
 
 			// Set up the input pipe for the queue
@@ -529,7 +568,7 @@ public class AgentFactory < V extends Addable<V> > implements IncomingMsgPolicyI
 				for (String agent : agentNames) {
 					ProblemInterface<V, ?> subProb = problem.getSubProblem(agent);
 					if (this.useTCP) 
-						agents.put(agent, (AgentInterface<V>) AgentFactory.createAgent(pipe, pipe, subProb, agentDesc, ++port));
+						agents.put(agent, (AgentInterface<V>) AgentFactory.createAgent(pipe, pipe, subProb, agentDesc, statsToController, ++port));
 					else 
 						agents.put(agent, (AgentInterface<V>) AgentFactory.createAgent(pipe, subProb, agentDesc, mailman));
 					subProbs.put(agent, subProb);
@@ -683,7 +722,7 @@ public class AgentFactory < V extends Addable<V> > implements IncomingMsgPolicyI
 				} else { // new agent
 					ProblemInterface<V, ?> subProb = problem.getSubProblem(agentName);
 					if (this.useTCP) 
-						agents.put(agentName, (AgentInterface<V>) AgentFactory.createAgent(pipe, pipe, subProb, agentDesc, ++port));
+						agents.put(agentName, (AgentInterface<V>) AgentFactory.createAgent(pipe, pipe, subProb, agentDesc, statsToController, ++port));
 					else 
 						agents.put(agentName, (AgentInterface<V>) AgentFactory.createAgent(pipe, subProb, agentDesc, mailman));
 					this.subProbs.put(agentName, subProb);
@@ -714,13 +753,14 @@ public class AgentFactory < V extends Addable<V> > implements IncomingMsgPolicyI
 
 	/** @see frodo2.communication.IncomingMsgPolicyInterface#getMsgTypes() */
 	public Collection<String> getMsgTypes() {
-		ArrayList<String> types = new ArrayList<String> (5);
+		ArrayList<String> types = new ArrayList<String> (7);
 		types.add(AgentInterface.LOCAL_AGENT_REPORTING);
 		types.add(AgentInterface.LOCAL_AGENT_ADDRESS_REQUEST);
 		types.add(AgentInterface.AGENT_CONNECTED);
 		types.add(AgentInterface.AGENT_FINISHED);
 		types.add(CentralMailer.OutOfMemMsg);
 		types.add(CentralMailer.ERROR_MSG);
+		types.add(AgentInterface.ComStatsMessage.COM_STATS_MSG_TYPE);
 		return types;
 	}
 
@@ -764,24 +804,13 @@ public class AgentFactory < V extends Addable<V> > implements IncomingMsgPolicyI
 			}
 		}
 
-		else if (type.equals(AgentInterface.AGENT_FINISHED)) {
+		else if (type.equals(AgentInterface.ComStatsMessage.COM_STATS_MSG_TYPE)) {
 			synchronized (nbrAgentsFinished_lock) { /// @todo is this synchronization necessary?... 
-				MessageWrapper msgWrap = queue.getCurrentMessageWrapper();
-				long time = msgWrap.getTime();
-				if(finalTime < time) {
-					finalTime = time;
-				}
-
-				long nccc = msgWrap.getNCCCs();
-				if(finalNCCCcount < nccc) {
-					finalNCCCcount = nccc;
-				}
-
 
 				// Record the stats
 				if (this.measureMsgs) {
 
-					AgentFinishedMessage msgCast = (AgentFinishedMessage) msg;
+					ComStatsMessage msgCast = (ComStatsMessage) msg;
 
 					// Increment nbrMsgs
 					for (Map.Entry<String, Integer> entry : msgCast.getMsgNbrs().entrySet()) {
@@ -850,6 +879,21 @@ public class AgentFactory < V extends Addable<V> > implements IncomingMsgPolicyI
 						if (maxSize == null || entry.getValue() > maxSize) 
 							this.maxMsgSizes.put(msgType, entry.getValue());
 					}
+				}
+			}
+		}
+		
+		else if (type.equals(AgentInterface.AGENT_FINISHED)) {
+			synchronized (nbrAgentsFinished_lock) { /// @todo is this synchronization necessary?... 
+				MessageWrapper msgWrap = queue.getCurrentMessageWrapper();
+				long time = msgWrap.getTime();
+				if(finalTime < time) {
+					finalTime = time;
+				}
+
+				long nccc = msgWrap.getNCCCs();
+				if(finalNCCCcount < nccc) {
+					finalNCCCcount = nccc;
 				}
 
 				if (++nbrAgentsFinished >= nbrAgents) {

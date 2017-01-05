@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2016  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 How to contact the authors: 
-<http://frodo2.sourceforge.net/>
+<https://frodo-ai.tech>
 */
 
 package frodo2.algorithms.dpop.privacy;
@@ -77,8 +77,8 @@ implements StatsReporter {
 	/**Queue of this agent module */
 	private Queue queue;
 	
-	/** If this module is in statistics gathering mode, print out info. By default = true */
-	private boolean silent = true;
+	/** Whether to report stats */
+	private boolean reportStats = true;
 	
 	/** Constructor for the CryptoScheme */
 	private Constructor<? extends CryptoScheme<C,E,K>> cryptoConstr;
@@ -329,6 +329,7 @@ implements StatsReporter {
 				cryptoClass = (Class<? extends CryptoScheme<C, E, K>>) Class.forName(cryptoParams.getAttributeValue("className"));
 				this.cryptoParameter = cryptoParams;
 			}
+			this.reportStats = Boolean.parseBoolean(parameters.getAttributeValue("reportStats"));
 		}
 		
 		this.cryptoConstr = cryptoClass.getConstructor(Element.class);
@@ -341,11 +342,10 @@ implements StatsReporter {
 	public CollaborativeDecryption(Element parameters, DCOPProblemInterface<?, C> problem) {
 		this.problem = problem;
 
-		if (parameters != null) {
-			String silent = parameters.getAttributeValue("reportStats");
-			if (silent != null) 
-				this.silent = ! Boolean.parseBoolean(silent);
-		}
+		if (parameters != null) 
+			this.reportStats = Boolean.parseBoolean(parameters.getAttributeValue("reportStats"));
+		else 
+			this.reportStats = false;
 		
 		//initialize variables
 		requestCount = new HashMap<String,Integer>(); 
@@ -389,7 +389,7 @@ implements StatsReporter {
 				if (this.requestCount != null) 
 					requestCount.put(entry.getKey(), entry.getValue());
 					
-			if(!silent){
+			if(this.reportStats){
 				System.out.println("Number of decryptions performed by each variable:");
 				for (Entry<String,Integer> map : msgCast.getMap().entrySet()){
 					System.out.println("\t"+map.getKey()+": "+map.getValue());
@@ -404,8 +404,8 @@ implements StatsReporter {
 		
 		if (msgType.equals(AgentInterface.AGENT_FINISHED)){
 			
-			//Send information about decryption request to stat agent
-			this.queue.sendMessage(AgentInterface.STATS_MONITOR, new StatRequestOutput(this.requestCount));			
+			if (this.reportStats) //Send information about decryption request to stat agent
+				this.queue.sendMessage(AgentInterface.STATS_MONITOR, new StatRequestOutput(this.requestCount));			
 			this.reset();
 			
 		} else if (msgType.equals(REQUEST_TYPE)){
@@ -609,15 +609,15 @@ implements StatsReporter {
 		queue.addIncomingMessagePolicy(msgTypes, this);
 	}
 
-	/** @see frodo2.algorithms.StatsReporter#reset() */
+	/** @see StatsReporter#reset() */
 	public void reset() {
 		requestCount = null;
 		this.started = false;
 	}
 
-	/** @see frodo2.algorithms.StatsReporter#setSilent(boolean) */
+	/** @see StatsReporter#setSilent(boolean) */
 	public void setSilent(boolean silent) {
-		this.silent = silent;
+		this.reportStats = ! silent;
 	}
 	
 	/** @return the mapping of the number of decryption requests. Used in statistic gathering mode*/

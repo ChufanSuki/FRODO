@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2016  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 How to contact the authors: 
-<http://frodo2.sourceforge.net/>
+<https://frodo-ai.tech>
 */
 
 /** MB-DPOP's memory-bounded version of DPOP */
@@ -153,8 +153,8 @@ public class LabelingPhase < V extends Addable<V> > implements StatsReporter {
 	/** Each interval variable's VarInfo */
 	private HashMap<String, VarInfo> varInfos;
 
-	/** Whether to display the DFS with the clusters */
-	private boolean silent = false;
+	/** Whether to report stats */
+	private boolean reportStats = true;
 
 	/** The name of the class of the DOT renderer */
 	private String dotRendererClass = "";
@@ -167,6 +167,7 @@ public class LabelingPhase < V extends Addable<V> > implements StatsReporter {
 		this.problem = problem;
 		this.maxDim = Short.parseShort(params.getAttributeValue("maxDim"));
 		assert this.maxDim > 0 : "maxDim = " + this.maxDim + " <= 0";
+		this.reportStats = Boolean.parseBoolean(params.getAttributeValue("reportStats"));
 	}
 	
 	/** Constructor in stats gatherer mode
@@ -175,7 +176,7 @@ public class LabelingPhase < V extends Addable<V> > implements StatsReporter {
 	 */
 	public LabelingPhase (Element params, DCOPProblemInterface<V, ?> problem) {
 		this.problem = problem;
-		this.silent = ! Boolean.parseBoolean(params.getAttributeValue("reportStats"));
+		this.reportStats = Boolean.parseBoolean(params.getAttributeValue("reportStats"));
 		this.dotRendererClass = params.getAttributeValue("DOTrenderer");
 		this.maxDim = 0;
 		this.varInfos = new HashMap<String, VarInfo> (this.problem.getNbrVars());
@@ -202,7 +203,7 @@ public class LabelingPhase < V extends Addable<V> > implements StatsReporter {
 
 	/** @see StatsReporter#setSilent(boolean) */
 	public void setSilent(boolean silent) {
-		this.silent  = silent;
+		this.reportStats = ! silent;
 	}
 
 	/** @see StatsReporter#notifyIn(Message) */
@@ -222,7 +223,7 @@ public class LabelingPhase < V extends Addable<V> > implements StatsReporter {
 			for (String cc : msgCast.getPayload3()) 
 				varInfo.ccs.put(cc, null);
 			
-			if (!this.silent && this.varInfos.size() >= this.problem.getNbrVars()) 
+			if (this.reportStats && this.varInfos.size() >= this.problem.getNbrVars()) 
 				this.printDFS();
 			
 			return;
@@ -290,7 +291,8 @@ public class LabelingPhase < V extends Addable<V> > implements StatsReporter {
 		// Check whether I am cluster root
 		if (! varInfo.ccs.isEmpty() && varInfo.sep.size() <= this.maxDim && Collections.disjoint(varInfo.sep.keySet(), varInfo.ccs.keySet())) { // CR
 			
-			this.queue.sendMessage(AgentInterface.STATS_MONITOR, new StatsMsg<V> (varInfo.name, varInfo.dfsView, new HashSet<String> (varInfo.ccs.keySet())));
+			if (this.reportStats) 
+				this.queue.sendMessage(AgentInterface.STATS_MONITOR, new StatsMsg<V> (varInfo.name, varInfo.dfsView, new HashSet<String> (varInfo.ccs.keySet())));
 			this.queue.sendMessageToSelf(new OutputMsg<V> (varInfo.name, new HashMap<String, V[]> (varInfo.ccs)));
 			
 			varInfo.ccs.clear();
@@ -309,7 +311,8 @@ public class LabelingPhase < V extends Addable<V> > implements StatsReporter {
 				}
 			}
 			
-			this.queue.sendMessage(AgentInterface.STATS_MONITOR, new StatsMsg<V> (varInfo.name, varInfo.dfsView, new HashSet<String> (varInfo.ccs.keySet())));
+			if (this.reportStats) 
+				this.queue.sendMessage(AgentInterface.STATS_MONITOR, new StatsMsg<V> (varInfo.name, varInfo.dfsView, new HashSet<String> (varInfo.ccs.keySet())));
 			
 			if (varInfo.ccs.isEmpty()) // not part of any cluster
 				this.queue.sendMessageToSelf(new OutputMsg<V> (varInfo.name, null));

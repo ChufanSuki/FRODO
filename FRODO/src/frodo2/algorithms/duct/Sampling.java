@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2016  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 How to contact the authors: 
-<http://frodo2.sourceforge.net/>
+<https://frodo-ai.tech>
 */
 
 package frodo2.algorithms.duct;
@@ -92,8 +92,8 @@ public class Sampling <V extends Addable<V>> implements StatsReporter {
 	/** \c true when maximizing, and \c false when minimizing */
 	protected final boolean maximize;
 	
-	/** \c false when the stats reported should report the final assignment, and \c true otherwise */
-	protected boolean silent;
+	/** Whether to report stats */
+	protected boolean reportStats = true;
 	
 	/** For each variable the available information */
 	protected HashMap<String, VariableInfo> infos;
@@ -191,11 +191,7 @@ public class Sampling <V extends Addable<V>> implements StatsReporter {
 		else
 			this.penalty = maximize ? new AddableReal(-1000) : new AddableReal(1000);
 		
-		String ignoreInf = parameters.getAttributeValue("ignoreInf");
-		if(ignoreInf != null)
-			this.IGNORE_INF = Boolean.parseBoolean(ignoreInf);
-		else
-			this.IGNORE_INF = false;
+		this.IGNORE_INF = Boolean.parseBoolean(parameters.getAttributeValue("ignoreInf"));
 			
 		String samplingClass = parameters.getAttributeValue("samplingMethod");
 		if(samplingClass == null || samplingClass.length() == 0)
@@ -208,6 +204,8 @@ public class Sampling <V extends Addable<V>> implements StatsReporter {
 		String boundClass = parameters.getAttributeValue("bound");
 		if(boundClass == null || boundClass.length() == 0)
 			boundClass = BoundLog.class.getName();
+		
+		this.reportStats = Boolean.parseBoolean(parameters.getAttributeValue("reportStats"));
 		
 		try {
 			this.samplingClass = (Class< SamplingProcedure<V> >) Class.forName(samplingClass);
@@ -230,7 +228,7 @@ public class Sampling <V extends Addable<V>> implements StatsReporter {
 		if (type.equals(ASS_MSG_TYPE)) {
 			AssignmentMessage<V> msgCast = (AssignmentMessage<V>)msg;
 			assignment.put(msgCast.getSender(), msgCast.getValue());
-			if(!silent) {
+			if(this.reportStats) {
 				System.out.println("Variable " + msgCast.getSender() + " = " + msgCast.getValue());
 
 				// When we have received all messages, print out the corresponding utility. 
@@ -287,10 +285,12 @@ public class Sampling <V extends Addable<V>> implements StatsReporter {
 			if(finished) {
 				if(varInfo.leaf) {
 					varInfo.solveLeaf();
-					queue.sendMessage(AgentInterface.STATS_MONITOR, varInfo.getAssignmentMessage(varInfo.currentValue));
+					if (this.reportStats) 
+						queue.sendMessage(AgentInterface.STATS_MONITOR, varInfo.getAssignmentMessage(varInfo.currentValue));
 				} else {
 					reportValue(varInfo, finished);
-					queue.sendMessage(AgentInterface.STATS_MONITOR, varInfo.getAssignmentMessage(varInfo.currentValue));
+					if (this.reportStats) 
+						queue.sendMessage(AgentInterface.STATS_MONITOR, varInfo.getAssignmentMessage(varInfo.currentValue));
 				}
 				if(--this.numberOfActiveVariables == 0)
 					queue.sendMessageToSelf(new Message(AgentInterface.AGENT_FINISHED));
@@ -314,9 +314,11 @@ public class Sampling <V extends Addable<V>> implements StatsReporter {
 					if(!finished) // if not converged, perform sampling
 						varInfo.sample();
 					else { // report optimal value to the stats reporter
-						queue.sendMessage(AgentInterface.STATS_MONITOR, varInfo.getAssignmentMessage(varInfo.variableID, varInfo.currentValue));
-						if(varInfo.parent == null) // the root has finished
-							queue.sendMessage(AgentInterface.STATS_MONITOR, new BoundStatsMsg(varInfo.getFinalBound()));
+						if (this.reportStats) {
+							queue.sendMessage(AgentInterface.STATS_MONITOR, varInfo.getAssignmentMessage(varInfo.variableID, varInfo.currentValue));
+							if(varInfo.parent == null) // the root has finished
+								queue.sendMessage(AgentInterface.STATS_MONITOR, new BoundStatsMsg(varInfo.getFinalBound()));
+						}
 						if(--this.numberOfActiveVariables == 0)
 							queue.sendMessageToSelf(new Message(AgentInterface.AGENT_FINISHED));
 					}
@@ -345,7 +347,8 @@ public class Sampling <V extends Addable<V>> implements StatsReporter {
 					
 			if(varInfo.parent == null) {
 				if(varInfo.leaf) {
-					queue.sendMessage(AgentInterface.STATS_MONITOR, varInfo.getAssignmentMessage(receiver, varInfo.solveSingleton(maximize)));
+					if (this.reportStats) 
+						queue.sendMessage(AgentInterface.STATS_MONITOR, varInfo.getAssignmentMessage(receiver, varInfo.solveSingleton(maximize)));
 
 					if(--this.numberOfActiveVariables == 0) {
 						queue.sendMessageToSelf(new Message(AgentInterface.AGENT_FINISHED));
@@ -468,12 +471,10 @@ public class Sampling <V extends Addable<V>> implements StatsReporter {
 		queue.addIncomingMessagePolicy(BOUND_MSG_TYPE, this);
 	}
 
-	/** 
-	 * @see frodo2.algorithms.StatsReporter#setSilent(boolean)
-	 */
+	/** @see StatsReporter#setSilent(boolean) */
 	@Override
 	public void setSilent(boolean silent) {
-		this.silent = silent;
+		this.reportStats = ! silent;
 	}
 
 	/** 

@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2016  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 How to contact the authors: 
-<http://frodo2.sourceforge.net/>
+<https://frodo-ai.tech>
 */
 
 package frodo2.solutionSpaces;
@@ -254,6 +254,15 @@ public interface DCOPProblemInterface < V extends Addable<V>, U extends Addable<
 	 * @note Ignores the relation name of this space, if any
 	 */
 	public boolean addSolutionSpace (UtilitySolutionSpace<V, U> space);
+	
+	/** Add a unary solution space to the problem
+	 * @param name 			the name of the space
+	 * @param var 			the unique variable in the space's scope
+	 * @param dom 			the allowed variable values
+	 * @param valuations 	the valuation for each variable value
+	 * @return the newly added space
+	 */
+	public UtilitySolutionSpace<V, U> addUnarySpace (String name, String var, V[] dom, U[] valuations);
 	
 	/** Computes the total utility of the input assignment to variables, ignoring variables with no specified owner
 	 * 

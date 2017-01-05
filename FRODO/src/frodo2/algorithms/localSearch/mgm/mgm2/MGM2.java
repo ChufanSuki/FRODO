@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2016  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 How to contact the authors: 
-<http://frodo2.sourceforge.net/>
+<https://frodo-ai.tech>
  */
 
 /** The MGM algorithm */
@@ -124,8 +124,8 @@ public class MGM2 <V extends Addable<V>, U extends Addable<U>> implements StatsR
 
 	// stats reporter fields
 
-	/** Whether the stats reporter should print its stats */
-	private boolean silent = false;
+	/** Whether to report stats */
+	private boolean reportStats = true;
 
 	/** The global assignment */
 	private Map< String, V > assignment;
@@ -180,11 +180,8 @@ public class MGM2 <V extends Addable<V>, U extends Addable<U>> implements StatsR
 		this.problem = problem;
 		this.maximize = problem.maximize();
 
-		String convergence = parameters.getAttributeValue("convergence");
-		if(convergence != null)
-			this.convergence = Boolean.parseBoolean(convergence);
-		else
-			this.convergence = false;
+		this.convergence = Boolean.parseBoolean(parameters.getAttributeValue("convergence"));
+		this.reportStats = Boolean.parseBoolean(parameters.getAttributeValue("reportStats"));
 
 		String q = parameters.getAttributeValue("q");
 		if(q != null)
@@ -206,11 +203,9 @@ public class MGM2 <V extends Addable<V>, U extends Addable<U>> implements StatsR
 		queue.addIncomingMessagePolicy(OUTPUT_MSG_TYPE, this);
 	}
 
-	/** 
-	 * @see frodo2.algorithms.StatsReporter#setSilent(boolean)
-	 */
+	/** @see StatsReporterWithConvergence#setSilent(boolean) */
 	public void setSilent(boolean silent) {
-		this.silent = silent;
+		this.reportStats = ! silent;
 	}
 
 	/** 
@@ -230,7 +225,7 @@ public class MGM2 <V extends Addable<V>, U extends Addable<U>> implements StatsR
 			String var = msgCast.getVariable();
 			V value = msgCast.getValue();
 			assignment.put(var, value);
-			if (! this.silent) 
+			if (this.reportStats) 
 				System.out.println("var `" + var + "' = " + value);
 
 			if(assignment.size() == numberOfVariables) {
@@ -249,7 +244,7 @@ public class MGM2 <V extends Addable<V>, U extends Addable<U>> implements StatsR
 					finalUtility = finalUtility.add(space.getUtility(variables_names, variables_values));
 				}
 
-				if (! silent) {
+				if (this.reportStats) {
 					if (this.problem.maximize()) 
 						System.out.println("Total optimal utility: " + finalUtility);
 					else 
@@ -398,7 +393,8 @@ public class MGM2 <V extends Addable<V>, U extends Addable<U>> implements StatsR
 			if(!terminated) {
 			for(VariableInfo<V,U> varInfo : infos.values()) {
 				varInfo.terminated = true;
-				queue.sendMessage(AgentInterface.STATS_MONITOR, new AssignmentMessage<V>(varInfo.variableID, varInfo.currentValue));
+				if (this.reportStats) 
+					queue.sendMessage(AgentInterface.STATS_MONITOR, new AssignmentMessage<V>(varInfo.variableID, varInfo.currentValue));
 			}
 
 			queue.sendMessageToSelf(new Message(AgentInterface.AGENT_FINISHED));
@@ -451,7 +447,8 @@ public class MGM2 <V extends Addable<V>, U extends Addable<U>> implements StatsR
 
 			if(varInfo.neighbors.length == 1) {
 				varInfo.terminated = true;
-				queue.sendMessage(AgentInterface.STATS_MONITOR, new AssignmentMessage<V>(varInfo.variableID, varInfo.currentValue));
+				if (this.reportStats) 
+					queue.sendMessage(AgentInterface.STATS_MONITOR, new AssignmentMessage<V>(varInfo.variableID, varInfo.currentValue));
 				if(convergence)
 					queue.sendMessage(AgentInterface.STATS_MONITOR, new StatsReporterWithConvergence.ConvStatMessage<V>(CONV_STATS_MSG_TYPE, variable, this.assignmentHistoriesMap.get(variable)));
 
@@ -749,7 +746,8 @@ public class MGM2 <V extends Addable<V>, U extends Addable<U>> implements StatsR
 			String variable = varInfo.variableID;
 			V finalValue = varInfo.currentValue;
 			varInfo.terminated = true;
-			queue.sendMessage(AgentInterface.STATS_MONITOR, new AssignmentMessage<V>(variable, finalValue));
+			if (this.reportStats) 
+				queue.sendMessage(AgentInterface.STATS_MONITOR, new AssignmentMessage<V>(variable, finalValue));
 			if(convergence) {
 				ArrayList<CurrentAssignment<V>> history = assignmentHistoriesMap.get(variable);
 				history.add(new CurrentAssignment<V>(queue.getCurrentTime(), varInfo.termination_counter, finalValue));

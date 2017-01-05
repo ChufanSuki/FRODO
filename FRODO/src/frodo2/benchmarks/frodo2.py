@@ -1,6 +1,6 @@
 """
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2016  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 How to contact the authors: 
-<http://frodo2.sourceforge.net/>
+<https://frodo-ai.tech>
 """
 
 # @todo Write documentation (in which format?)
@@ -41,7 +41,7 @@ output = ""
 outFile = None
 javaProcess = None
 
-print("""FRODO  Copyright (C) 2008-2016  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+print("""FRODO  Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 This program comes with ABSOLUTELY NO WARRANTY.
 This is free software, and you are welcome to redistribute it
 under certain conditions.\n""");
@@ -240,8 +240,8 @@ def runAtDepth (depth, indent, genParams):
                 outFile.write(line)
                 break
             
-            thisSplit = line.split('\t')
-            nextSplit = nextLine.split('\t')
+            thisSplit = line.split(';')
+            nextSplit = nextLine.split(';')
             if thisSplit[0] != nextSplit[0] or thisSplit[2] != nextSplit[2]: # the algorithms or problem instances differ
                 outFile.write(line)
                 line = nextLine
@@ -341,7 +341,7 @@ def plotScatter (resultsFile, xAlgo, yAlgo, metricsCol, timeouts = True, block =
     file = open(resultsFile)
     
     # Read the column names
-    headers = file.readline().split('\t')
+    headers = file.readline().split(';')
     metricsName = headers[metricsCol]
     
     # results = { instance1 : [xAlgo, yAlgo], ..., instanceN : [xAlgo, yAlgo] }
@@ -354,7 +354,7 @@ def plotScatter (resultsFile, xAlgo, yAlgo, metricsCol, timeouts = True, block =
             break
            
         # Skip timeouts if required
-        lineSplit = line.split('\t')
+        lineSplit = line.split(';')
         if not timeouts:
             timeout = int(lineSplit[1]) # 0 = no timeout; 1 = timeout
             if timeout == 1:
@@ -387,12 +387,13 @@ def plotScatter (resultsFile, xAlgo, yAlgo, metricsCol, timeouts = True, block =
         saveDataScatter(resultsFile, results, xAlgo, yAlgo, metricsName)
     
     
-def plot (resultsFile, xCol, yCol, block = True):
+def plot (resultsFile, xCol, yCol, block = True, ylog = True):
     """ Plots the results
     @param resultsFile     the CSV file containing the experimental results
     @param xCol         the index of the column in the CSV file to be used for the x axis (the first column has index 0)
     @param yCol         the index of the column in the CSV file to be used for the y axis (the first column has index 0)
     @param block         whether to block for the matplotlib window to be closed to continue (default = True)
+    @param ylog         whether to use a log scale for the y axis
     """
     
     # @todo Allow to input column names rather than column indexes, and allow to input lists to get multiple graphs
@@ -405,7 +406,7 @@ def plot (resultsFile, xCol, yCol, block = True):
     file = open(resultsFile)
     
     # Read the column names
-    headers = file.readline().split('\t')
+    headers = file.readline().split(';')
     if len(headers) <= 1:
         print("ERROR: No headers found in the results file `" + resultsFile + "'")
         return
@@ -427,7 +428,7 @@ def plot (resultsFile, xCol, yCol, block = True):
             break
         
         # Parse the algorithm name and the (x, y) values
-        lineSplit = line.split('\t')
+        lineSplit = line.split(';')
         algoName = lineSplit[0]
         xValue = lineSplit[xIndex]
         yValue = float(lineSplit[yIndex])
@@ -475,7 +476,7 @@ def plot (resultsFile, xCol, yCol, block = True):
         yValues += [[timeout, yValue]]
     
     if drawGraphs: 
-        plotData(results, xMin, xMax, xName, yName, block)
+        plotData(results, xMin, xMax, xName, yName, block, ylog)
     else:
         saveData(resultsFile, results, xName, yName)
     
@@ -495,28 +496,31 @@ def plotDataScatter (results, xAlgo, yAlgo, metricsName, block, loglog):
     # Collect the x and y values
     xValues = []
     yValues = []
-    nan = float("NaN")
     xyMin = float("infinity")
     xyMax = float("-infinity")
     for xValue, yValue in results.values():
-        if not xValue == nan and not yValue == nan:
+        if not math.isnan(xValue) and not math.isnan(yValue) and (not loglog or (xValue > 0 and yValue > 0)):
             xValues += [xValue]
             yValues += [yValue]
             xyMin = min(xyMin, xValue, yValue)
             xyMax = max(xyMax, xValue, yValue)
-        
-    plt.scatter(xValues, yValues, marker = "+")
+
+    if not len(xValues) == 0: 
+        plt.scatter(xValues, yValues, marker = "+")
     
-    # Set the limits of the axes to make sure everything is visible and the axes are square
-    if loglog and xyMin != 0:
-        xyMin = math.pow(10, math.floor(math.log10(xyMin)))
-    if loglog and xyMax != 0:
-        xyMax = math.pow(10, math.ceil(math.log10(xyMax)))
-    axes.set_xlim(xyMin, xyMax)
-    axes.set_ylim(xyMin, xyMax)
+        # Set the limits of the axes to make sure everything is visible and the axes are square
+        if loglog:
+            xyMin = math.pow(10, math.floor(math.log10(xyMin)))
+            xyMax = math.pow(10, math.ceil(math.log10(xyMax)))
+        else: 
+            margin = abs(xyMax - xyMin) * 0.1
+            xyMin = xyMin - margin;
+            xyMax = xyMax + margin
+        axes.set_xlim(xyMin, xyMax)
+        axes.set_ylim(xyMin, xyMax)
     
-    # Plot the y = x line
-    plt.plot([xyMin, xyMax], [xyMin, xyMax], "--")
+        # Plot the y = x line
+        plt.plot([xyMin, xyMax], [xyMin, xyMax], "--")
     
     plt.grid(which="major")
     plt.xlabel(xAlgo)
@@ -526,7 +530,7 @@ def plotDataScatter (results, xAlgo, yAlgo, metricsName, block, loglog):
     plt.show(block = block)
 
 
-def plotData (results, xMin, xMax, xName, yName, block):
+def plotData (results, xMin, xMax, xName, yName, block, ylog = True):
     """
     @param results         { algoName : { xValue : [[timeout1, yValue1], ..., [timeoutN, yValueN]] } }
     """
@@ -538,8 +542,11 @@ def plotData (results, xMin, xMax, xName, yName, block):
 #     plt.rcParams["font.size"] = 9
 #     plt.rcParams["font.family"] = "Times New Roman"
 #     plt.rcParams["text.usetex"] = True
-
-    axes = fig.add_subplot(111, yscale = "log")
+    
+    if ylog:
+        axes = fig.add_subplot(111, yscale = "log")
+    else: 
+        axes = fig.add_subplot(111)
 
     # Compute the margins on the x-axis to make the confidence intervals visible
     margin = .025 * (xMax - xMin)
@@ -591,11 +598,11 @@ def saveDataScatter (resultsFile, results, xAlgo, yAlgo, metricsName):
     
     # Write the metrics name and the algorithm names
     outFile.write(metricsName + "\n")
-    outFile.write(xAlgo + "\t" + yAlgo + "\n")
+    outFile.write(xAlgo + ";" + yAlgo + "\n")
     
     # Write the data
     for x, y in results.values():
-        outFile.write(str(x) + "\t" + str(y) + "\n")
+        outFile.write(str(x) + ";" + str(y) + "\n")
     
     print("(Over)wrote " + outFilePath)
     outFile.close()
@@ -615,7 +622,7 @@ def saveData (resultsFile, results, xName, yName):
     outFile = open(outFilePath, 'w')
     
     # Write the y-axis label
-    outFile.write("y axis label:\t" + yName + "\n")
+    outFile.write("y axis label:;" + yName + "\n")
     
     # Get the list of all algorithms
     allAlgos = []
@@ -630,7 +637,7 @@ def saveData (resultsFile, results, xName, yName):
     yNegSuff = " length of below confidence half-interval"
     yPosSuff = " length of above confidence half-interval"
     for algoName in allAlgos:
-        outFile.write("\t" + algoName + "\t" + algoName + yNegSuff + "\t" + algoName + yPosSuff)
+        outFile.write(";" + algoName + ";" + algoName + yNegSuff + ";" + algoName + yPosSuff)
     outFile.write("\n")
 
     # Write the median an confidence intervals for each x value
@@ -639,10 +646,10 @@ def saveData (resultsFile, results, xName, yName):
         
         for algoName in allAlgos:
             if algoName not in data: 
-                outFile.write("\t\t\t")
+                outFile.write(";;;")
             else:
                 [yLow, yMed, yHigh] = getLowMedHigh(data[algoName])
-                outFile.write("\t" + str(yMed) + "\t" + str(yMed - yLow) + "\t" + str(yHigh - yMed))
+                outFile.write(";" + str(yMed) + ";" + str(yMed - yLow) + ";" + str(yHigh - yMed))
     
         outFile.write("\n")
     

@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2016  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 How to contact the authors: 
-<http://frodo2.sourceforge.net/>
+<https://frodo-ai.tech>
 */
 
 package frodo2.algorithms.afb;
@@ -264,8 +264,8 @@ public class AFB < V extends Addable<V>, U extends Addable<U> > implements Stats
 		/** The problem */
 		private DCOPProblemInterface<V, U> problem;
 		
-		/** Whether the stats gatherer should display the solution found */
-		private boolean silent = false;
+		/** Whether to report stats */
+		private boolean reportStats = true;
 		
 		/** Whether the module has already started the algorithm */
 		private boolean started = false;
@@ -321,11 +321,8 @@ public class AFB < V extends Addable<V>, U extends Addable<U> > implements Stats
 		public AFB (DCOPProblemInterface<V, U> problem, Element parameters) {
 			this.problem = problem;
 			
-			String convergence = parameters.getAttributeValue("convergence");
-			if(convergence != null)
-				this.convergence = Boolean.parseBoolean(convergence);
-			else
-				this.convergence = false;
+			this.convergence = Boolean.parseBoolean(parameters.getAttributeValue("convergence"));
+			this.reportStats = Boolean.parseBoolean(parameters.getAttributeValue("reportStats"));
 			
 			this.pendingSolMsgs = new LinkedList< SolutionMsg<V, U> > ();
 			this.pendingFbCpaMsgs = new LinkedList< FbCpaMsg<V, U> > ();
@@ -389,7 +386,7 @@ public class AFB < V extends Addable<V>, U extends Addable<U> > implements Stats
 
 		/** @see StatsReporterWithConvergence#setSilent(boolean) */
 		public void setSilent(boolean silent) {
-			this.silent = silent;
+			this.reportStats = ! silent;
 		}
 
 		/** @see StatsReporterWithConvergence#setQueue(Queue) */
@@ -648,7 +645,7 @@ public class AFB < V extends Addable<V>, U extends Addable<U> > implements Stats
 					if (msgCast.solution != null && msgCast.solution[i][j] != null) 
 						val = msgCast.solution[i][j];
 					this.solution.put(var, val);
-					if (! this.silent) 
+					if (this.reportStats) 
 						System.out.println("var `" + var + "' = " + val);
 				}
 			}
@@ -657,7 +654,7 @@ public class AFB < V extends Addable<V>, U extends Addable<U> > implements Stats
 				
 				this.optCost = this.problem.getUtility(solution).getUtility(0);
 				
-				if (! this.silent) 
+				if (this.reportStats) 
 					System.out.println("Total optimal " + (this.problem.maximize() ? "utility: " : "cost: ") + this.optCost);				
 			}
 			return;
@@ -1157,7 +1154,10 @@ public class AFB < V extends Addable<V>, U extends Addable<U> > implements Stats
 			{
 				if (verbose) System.out.println("Sent solution message to all: cost="+compInfo.B);
 				this.queue.sendMessageToMulti(compInfo.agents, new SolutionMsg<V, U> (OUTPUT_MSG_TYPE, compID, compInfo.bestSol, compInfo.B));
-				this.queue.sendMessage(AgentInterface.STATS_MONITOR, new SolutionMsg<V, U> (STATS_MSG_TYPE, compID, compInfo.bestSol, compInfo.B));
+				
+				if (this.reportStats) 
+					this.queue.sendMessage(AgentInterface.STATS_MONITOR, new SolutionMsg<V, U> (STATS_MSG_TYPE, compID, compInfo.bestSol, compInfo.B));
+				
 				compInfo.solutionSent = true;
 			}
 			

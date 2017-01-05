@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2016  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 How to contact the authors: 
-<http://frodo2.sourceforge.net/>
+<https://frodo-ai.tech>
 */
 
 package frodo2.algorithms.dpop.privacy;
@@ -71,8 +71,8 @@ public class SecureCircularRouting implements StatsReporter {
 	/** The agent's queue */
 	private Queue queue;
 	
-	/** Whether the stats gatherer should print out the circular ordering */
-	private boolean silent = true;
+	/** Whether to report stats */
+	private boolean reportStats = true;
 	
 	/** The problem */
 	private DCOPProblemInterface<?, ?> problem;
@@ -104,10 +104,7 @@ public class SecureCircularRouting implements StatsReporter {
 		dfs = new HashMap< String, DFSview<?, ?> > (problem.getVariables().size());
 		
 		if (params != null) {
-			String silent = params.getAttributeValue("reportStats");
-			if (silent != null) 
-				this.silent = ! Boolean.parseBoolean(silent);
-			
+			this.reportStats = Boolean.parseBoolean(params.getAttributeValue("reportStats"));
 			dotRendererClass = params.getAttributeValue("DOTrenderer");
 		}
 		if (this.dotRendererClass == null) 
@@ -120,6 +117,7 @@ public class SecureCircularRouting implements StatsReporter {
 	 */
 	public SecureCircularRouting (DCOPProblemInterface<?, ?> problem, Element params) {
 		this.problem = problem;
+		this.reportStats = Boolean.parseBoolean(params.getAttributeValue("reportStats"));
 	}
 	
 	/** Parses the problem */
@@ -147,7 +145,7 @@ public class SecureCircularRouting implements StatsReporter {
 
 	/** @see StatsReporter#setSilent(boolean) */
 	public void setSilent(boolean silent) {
-		this.silent = silent;
+		this.reportStats = ! silent;
 	}
 
 	/** @see StatsReporter#getMsgTypes() */
@@ -191,7 +189,7 @@ public class SecureCircularRouting implements StatsReporter {
 			// Record the variable's parent and children
 			this.dfs.put(var, neighbors);
 			
-			if (! this.silent && dfs.size() == problem.getVariables().size()) { // print out the linear ordering. 
+			if (this.reportStats && dfs.size() == problem.getVariables().size()) { // print out the linear ordering. 
 
 				Map< String, ? extends Collection<String> > neighborhoods = this.problem.getNeighborhoods();
 
@@ -288,7 +286,8 @@ public class SecureCircularRouting implements StatsReporter {
 			this.dfs.put(var, neighbors);
 			
 			// Report this part of the DFS to the stats gatherer
-			queue.sendMessage(AgentInterface.STATS_MONITOR, new DFSgeneration.MessageDFSoutput(STATS_MSG_TYPE, var, neighbors));
+			if (this.reportStats) 
+				queue.sendMessage(AgentInterface.STATS_MONITOR, new DFSgeneration.MessageDFSoutput(STATS_MSG_TYPE, var, neighbors));
 			
 			// Process pending messages, if any
 			List<Message> pending = this.pendingMsgs.remove(var);

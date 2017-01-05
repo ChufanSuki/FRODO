@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2016  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 How to contact the authors: 
-<http://frodo2.sourceforge.net/>
+<https://frodo-ai.tech>
 */
 
 package frodo2.algorithms.dpop.param;
@@ -122,7 +122,7 @@ extends UTILpropagation<Val, U> {
 		if (msg.getType().equals(OPT_PARAM_UTIL_MSG_TYPE)) { // we are in stats gatherer mode
 
 			OptUtilMessage<Val, U> msgCast = (OptUtilMessage<Val, U>) msg;
-			if (!silent) {
+			if (this.reportStats) {
 				if (this.maximize) {
 					System.out.println("Optimal parameterized utility for component rooted at `" + msgCast.getRoot() + "\': " + msgCast.getUtility());
 				} else 
@@ -153,7 +153,8 @@ extends UTILpropagation<Val, U> {
 	protected void sendOutput(UtilitySolutionSpace<Val, U> space, String root) {
 		OptUtilMessage<Val, U> output = new OptUtilMessage<Val, U> (space, root);
 		queue.sendMessageToSelf(output);
-		queue.sendMessage(AgentInterface.STATS_MONITOR, output);
+		if (this.reportStats) 
+			queue.sendMessage(AgentInterface.STATS_MONITOR, output);
 	}
 
 	/**

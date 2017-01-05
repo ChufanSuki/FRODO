@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2016  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 How to contact the authors: 
-<http://frodo2.sourceforge.net/>
+<https://frodo-ai.tech>
 */
 
 package frodo2.algorithms.dpop.stochastic;
@@ -272,7 +272,7 @@ public class CompleteUTIL < Val extends Addable<Val>, U extends Addable<U> > ext
 				// Compute the level of centralization
 				this.centralization();
 				
-				if (! this.silent) {
+				if (this.reportStats) {
 					if(dotRendererClass.equals("")) {
 						System.out.println("Chosen DFS tree, with random variables:");
 						System.out.println(dfsToString());
@@ -302,7 +302,7 @@ public class CompleteUTIL < Val extends Addable<Val>, U extends Addable<U> > ext
 				// Compute the level of centralization
 				this.centralization();
 				
-				if (! this.silent) {
+				if (this.reportStats) {
 					if(dotRendererClass.equals("")) {
 						System.out.println("Chosen DFS tree, with random variables:");
 						System.out.println(dfsToString());
@@ -340,7 +340,7 @@ public class CompleteUTIL < Val extends Addable<Val>, U extends Addable<U> > ext
 			for (int i = 0; i < vars.length; i++) {
 				String var = vars[i];
 				Val val = vals.get(i);
-				if (!silent) 
+				if (this.reportStats) 
 					System.out.println("var `" + var + "' = " + val);
 				solution.put(var, val);
 			}
@@ -348,17 +348,17 @@ public class CompleteUTIL < Val extends Addable<Val>, U extends Addable<U> > ext
 			// When we have received all messages, print out the corresponding utility. 
 			if (--this.remainingVars <= 0) {
 				
-				if (! this.silent) 
+				if (this.reportStats) 
 					System.out.println("Total reported " + (this.maximize ? "utility: " : "cost: ") + this.optUtil);
 				
 				this.expectedUtil = this.problem.getExpectedUtility(this.solution).getUtility(0);
-				if (! this.silent) 
+				if (this.reportStats) 
 					System.out.println("Total expected " + (this.maximize ? "utility: " : "cost: ") + this.expectedUtil);
 
 				// Compute the worst-case utility
 				UtilitySolutionSpace<Val, U> paramUtil = this.problem.getUtility(this.solution, true);
 				this.worstUtil = paramUtil.blindProjectAll(! this.maximize);;
-				if (! this.silent) 
+				if (this.reportStats) 
 					System.out.println("Total worst-case " + (this.maximize ? "utility: " : "cost: ") + this.worstUtil);
 
 				if (this.measureProbOfOpt) { // Compute the probability of optimality
@@ -402,11 +402,11 @@ public class CompleteUTIL < Val extends Addable<Val>, U extends Addable<U> > ext
 							}
 						}
 					}
-					if (!silent) 
+					if (this.reportStats) 
 						System.out.println("Probability of optimality: " + this.probOfOptimality);
 				}
 
-				if (!silent) 
+				if (this.reportStats) 
 					System.out.println("Level of centralization: " + (this.centralization * 100) + " %");
 			}
 
@@ -437,7 +437,8 @@ public class CompleteUTIL < Val extends Addable<Val>, U extends Addable<U> > ext
 				randVarsProjected.add(randVar);
 			}
 			this.randVarsToProject.put(var, randVarsProjected);
-			queue.sendMessage(AgentInterface.STATS_MONITOR, new RandVarsProjMsg (var, new ArrayList<String> (randVarsProjected)));
+			if (this.reportStats) 
+				queue.sendMessage(AgentInterface.STATS_MONITOR, new RandVarsProjMsg (var, new ArrayList<String> (randVarsProjected)));
 			this.randVarsToIgnore.put(var, randVarsIgnored);
 		}
 		

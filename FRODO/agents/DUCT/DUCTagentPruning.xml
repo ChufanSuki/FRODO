@@ -1,6 +1,6 @@
 <!-- 
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2016  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -17,14 +17,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 How to contact the authors: 
-<http://frodo2.sourceforge.net/>
+<https://frodo-ai.tech>
 -->
 
 <!-- Overall definition of the agent
 	- measureTime: whether the simulated time metric should be enabled instead of just measuring wall clock time
 	- measureMsgs: whether to measure the number of messages and the total amount of information sent (WARNING! This is computationally expensive)
  -->
-<agentDescription className = "frodo2.algorithms.SingleQueueAgent" measureTime = "true" measureMsgs = "false" >
+<agentDescription className = "frodo2.algorithms.SingleQueueAgent" measureTime = "true" measureMsgs = "true" >
 	
 	<!-- The MailMan used when measuring time
 		 - mailmanClass: the class of the mailman to be used
@@ -53,7 +53,7 @@ How to contact the authors:
 			domClass = "frodo2.solutionSpaces.AddableInteger" 
 			utilClass = "frodo2.solutionSpaces.AddableReal"
 			DOTrenderer = ""
-			countNCCCs = "false" />
+			countNCCCs = "true" />
 
 	<!-- A set of modules, each being parameterized by the following attributes: 
 		- className: the name of the class implementing the module

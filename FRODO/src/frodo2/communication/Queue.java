@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2016  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 How to contact the authors: 
-<http://frodo2.sourceforge.net/>
+<https://frodo-ai.tech>
 */
 
 /** This package contains classes that take care of communication between queues */
@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
@@ -35,7 +36,9 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.locks.ReentrantLock;
 
 import frodo2.algorithms.AgentInterface;
+import frodo2.algorithms.StatsReporter;
 import frodo2.communication.sharedMemory.QueueIOPipe;
+import frodo2.controller.Controller;
 import frodo2.daemon.Daemon;
 import frodo2.solutionSpaces.ProblemInterface;
 
@@ -402,6 +405,8 @@ public class Queue implements Runnable {
 			this.outPolicies_lock.lock();
 			
 			// Notify the listeners registered for this message's type
+			assert msg != null;
+			assert this.outPolicies != null;
 			ArrayList< OutgoingMsgPolicyInterface<String> > modules = this.outPolicies.get(msg.getType()); /// @bug very rarely throws a NullPointerException
 			if (modules != null) 
 				for (java.util.Iterator< OutgoingMsgPolicyInterface<String> > iter = modules.iterator(); !discard && iter.hasNext(); )
@@ -454,8 +459,8 @@ public class Queue implements Runnable {
 	 */
 	protected void recordStats (Object to, Message msg) {
 		
-		// Don't count this message if it was sent to the stats monitor or to the daemon 
-		if (to.equals(AgentInterface.STATS_MONITOR) || to.equals(Daemon.DAEMON)) 
+		// Don't count this message if it was sent to the stats monitor, the controller or to the daemon 
+		if (to.equals(AgentInterface.STATS_MONITOR) || to.equals(Controller.CONTROLLER) || to.equals(Daemon.DAEMON)) 
 			return;
 		
 		// Increment nbrMsgs
@@ -592,6 +597,22 @@ public class Queue implements Runnable {
 		}
 	}
 
+	/** Delete all StatsReporters */
+	public void deleteStatsReporters() {
+		try {
+			this.inPolicies_lock.lock();
+			
+			// Go through the list of policies, regardless of the message type
+			for (ArrayList< IncomingMsgPolicyInterface<String> > policies : inPolicies.values()) 
+				for (Iterator< IncomingMsgPolicyInterface<String> > iter = policies.iterator(); iter.hasNext(); ) 
+					if (iter.next() instanceof StatsReporter) 
+						iter.remove();
+			
+		} finally {
+			this.inPolicies_lock.unlock();
+		}
+	}
+	
 	/** Completely removes the outgoing message policy from all lists of listeners
 	 * @param policy 	the policy to be removed
 	 */

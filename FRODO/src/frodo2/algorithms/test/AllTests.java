@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2016  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 How to contact the authors: 
-<http://frodo2.sourceforge.net/>
+<https://frodo-ai.tech>
 */
 
 /** Tests for the classes in the algorithms package */
@@ -40,7 +40,6 @@ import org.jdom2.Namespace;
 import org.jdom2.output.Format;
 import org.jdom2.output.XMLOutputter;
 
-import frodo2.algorithms.duct.tests.AllTestsDUCT;
 import frodo2.algorithms.RandGraphFactory;
 import frodo2.algorithms.XCSPparser;
 import frodo2.algorithms.RandGraphFactory.Edge;
@@ -55,6 +54,7 @@ import frodo2.algorithms.dpop.privacy.test.AllTestsP_DPOP;
 import frodo2.algorithms.dpop.restart.test.AllTestsS_DPOP;
 import frodo2.algorithms.dpop.stochastic.test.AllTestsStochDPOP;
 import frodo2.algorithms.dpop.test.AllTestsDPOP;
+import frodo2.algorithms.duct.tests.AllTestsDUCT;
 import frodo2.algorithms.localSearch.dsa.tests.AllTestsDSA;
 import frodo2.algorithms.localSearch.mgm.mgm2.tests.MGM2agentTest;
 import frodo2.algorithms.localSearch.mgm.tests.MGMagentTest;

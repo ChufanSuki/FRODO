@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2016  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 How to contact the authors: 
-<http://frodo2.sourceforge.net/>
+<https://frodo-ai.tech>
  */
 
 package frodo2.algorithms.odpop;
@@ -87,7 +87,8 @@ public class UTILpropagationBinaryDomains < Val extends Addable<Val>, U extends 
 	/** @see frodo2.algorithms.odpop.UTILpropagationFullDomain#utilPropagationFinished(java.lang.String, frodo2.algorithms.odpop.goodsTree.GoodsTree, frodo2.solutionSpaces.Addable, int) */
 	@Override
 	protected void utilPropagationFinished(String variableID, GoodsTree<Val, U, LeafNode<U>> tree, U utility, int domainSize) {
-		queue.sendMessage(AgentInterface.STATS_MONITOR, new OptUtilMessage<U>(utility, variableID));
+		if (this.reportStats) 
+			queue.sendMessage(AgentInterface.STATS_MONITOR, new OptUtilMessage<U>(utility, variableID));
 		// start the VALUE propagation
 		queue.sendMessageToSelf(new GoodsTreeMessage<Val, U, LeafNode<U>>(tree, variableID));
 	}

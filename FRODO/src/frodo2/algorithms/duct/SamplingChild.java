@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2016  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 How to contact the authors: 
-<http://frodo2.sourceforge.net/>
+<https://frodo-ai.tech>
 */
 
 package frodo2.algorithms.duct;
@@ -84,7 +84,7 @@ public class SamplingChild <V extends Addable<V>> extends SamplingPruning<V> {
 		if (type.equals(ASS_MSG_TYPE)) {
 			AssignmentMessage<V> msgCast = (AssignmentMessage<V>)msg;
 			assignment.put(msgCast.getSender(), msgCast.getValue());
-			if(!silent) {
+			if(this.reportStats) {
 				System.out.println("Variable " + msgCast.getSender() + " = " + msgCast.getValue());
 
 				// When we have received all messages, print out the corresponding utility. 
@@ -146,10 +146,12 @@ public class SamplingChild <V extends Addable<V>> extends SamplingPruning<V> {
 			if(finished) {
 				if(varInfo.leaf) {
 					varInfo.solveLeaf();
-					queue.sendMessage(AgentInterface.STATS_MONITOR, varInfo.getAssignmentMessage(varInfo.currentValue));
+					if (this.reportStats) 
+						queue.sendMessage(AgentInterface.STATS_MONITOR, varInfo.getAssignmentMessage(varInfo.currentValue));
 				} else {
 					reportValue(varInfo, finished);
-					queue.sendMessage(AgentInterface.STATS_MONITOR, varInfo.getAssignmentMessage(varInfo.currentValue));
+					if (this.reportStats) 
+						queue.sendMessage(AgentInterface.STATS_MONITOR, varInfo.getAssignmentMessage(varInfo.currentValue));
 				}
 				if(--this.numberOfActiveVariables == 0)
 					queue.sendMessageToSelf(new Message(AgentInterface.AGENT_FINISHED));
@@ -173,9 +175,11 @@ public class SamplingChild <V extends Addable<V>> extends SamplingPruning<V> {
 					if(!finished) // if not converged, perform sampling
 						varInfo.sample();
 					else { // report optimal value to the stats reporter
-						queue.sendMessage(AgentInterface.STATS_MONITOR, varInfo.getAssignmentMessage(varInfo.variableID, varInfo.currentValue));
-						if(varInfo.parent == null) // the root has finished
-							queue.sendMessage(AgentInterface.STATS_MONITOR, new BoundStatsMsg(varInfo.getFinalBound()));
+						if (this.reportStats) {
+							queue.sendMessage(AgentInterface.STATS_MONITOR, varInfo.getAssignmentMessage(varInfo.variableID, varInfo.currentValue));
+							if(varInfo.parent == null) // the root has finished
+								queue.sendMessage(AgentInterface.STATS_MONITOR, new BoundStatsMsg(varInfo.getFinalBound()));
+						}
 						if(--this.numberOfActiveVariables == 0)
 							queue.sendMessageToSelf(new Message(AgentInterface.AGENT_FINISHED));
 					}
@@ -203,7 +207,8 @@ public class SamplingChild <V extends Addable<V>> extends SamplingPruning<V> {
 					
 			if(varInfo.parent == null) {
 				if(varInfo.leaf) {
-					queue.sendMessage(AgentInterface.STATS_MONITOR, varInfo.getAssignmentMessage(receiver, varInfo.solveSingleton(maximize)));
+					if (this.reportStats) 
+						queue.sendMessage(AgentInterface.STATS_MONITOR, varInfo.getAssignmentMessage(receiver, varInfo.solveSingleton(maximize)));
 
 					if(--this.numberOfActiveVariables == 0) {
 						queue.sendMessageToSelf(new Message(AgentInterface.AGENT_FINISHED));

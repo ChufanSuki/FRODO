@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2016  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 How to contact the authors: 
-<http://frodo2.sourceforge.net/>
+<https://frodo-ai.tech>
 */
 
 package frodo2.algorithms.duct.tests;
@@ -48,7 +48,7 @@ import frodo2.algorithms.AgentFactory;
 import frodo2.algorithms.AgentInterface;
 import frodo2.algorithms.RandGraphFactory;
 import frodo2.algorithms.XCSPparser;
-import frodo2.algorithms.AgentInterface.AgentFinishedMessage;
+import frodo2.algorithms.AgentInterface.ComStatsMessage;
 import frodo2.algorithms.duct.Normalize;
 import frodo2.algorithms.duct.Sampling;
 import frodo2.algorithms.duct.bound.BoundLog;
@@ -785,17 +785,19 @@ public class DUCTagentTest extends TestCase implements IncomingMsgPolicyInterfac
 			if (this.useCentralMailer) 
 				assertTrue (queue.getCurrentMessageWrapper().getTime() >= 0);
 			
-			if (this.measureMsgs) {
-				AgentFinishedMessage msgCast = (AgentFinishedMessage) msg;
-				assertFalse (msgCast.getMsgNbrs() == null);
-				assertFalse (msgCast.getMsgSizes() == null);
-				assertFalse (msgCast.getMaxMsgSizes() == null);
-			}
-
 			this.finished_lock.lock();
 			if (++nbrAgentsFinished >= this.nbrAgents) 
 				this.finished.signal();
 			this.finished_lock.unlock();
+		}
+		
+		else if (msg.getType().equals(AgentInterface.ComStatsMessage.COM_STATS_MSG_TYPE) 
+				&& this.measureMsgs) {
+			
+			ComStatsMessage msgCast = (ComStatsMessage) msg;
+			assertFalse (msgCast.getMsgNbrs() == null);
+			assertFalse (msgCast.getMsgSizes() == null);
+			assertFalse (msgCast.getMaxMsgSizes() == null);
 		}
 		
 	}

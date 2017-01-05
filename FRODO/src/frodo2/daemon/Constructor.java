@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2016  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 How to contact the authors: 
-<http://frodo2.sourceforge.net/>
+<https://frodo-ai.tech>
 */
 
 /**
@@ -34,16 +34,18 @@ import frodo2.algorithms.AgentFactory;
 import frodo2.algorithms.AgentInterface;
 import frodo2.communication.IncomingMsgPolicyInterface;
 import frodo2.communication.Message;
-import frodo2.communication.MessageWith2Payloads;
+import frodo2.communication.MessageWith3Payloads;
+import frodo2.communication.MessageWithPayload;
 import frodo2.communication.Queue;
 import frodo2.communication.QueueOutputPipeInterface;
 import frodo2.communication.sharedMemory.QueueIOPipe;
 import frodo2.controller.ConfigurationManager;
 import frodo2.controller.Controller;
+import frodo2.controller.userIO.UserIO;
 import frodo2.solutionSpaces.ProblemInterface;
 
 /**
- * @author brammertottens
+ * @author Brammert Ottens, Thomas Leaute
  *
  */
 public class Constructor implements IncomingMsgPolicyInterface<String> {
@@ -115,10 +117,17 @@ public class Constructor implements IncomingMsgPolicyInterface<String> {
 		
 		if(type.equals(ConfigurationManager.AGENT_CONFIGURATION_MESSAGE)) {
 			agentPort += 10;
-			MessageWith2Payloads<ProblemInterface<?, ?>, Document> msgR = (MessageWith2Payloads<ProblemInterface<?, ?>, Document>)msg;
+			MessageWith3Payloads<ProblemInterface<?, ?>, Document, Boolean> msgR = 
+					(MessageWith3Payloads<ProblemInterface<?, ?>, Document, Boolean>)msg;
+			ProblemInterface<?, ?> prob = msgR.getPayload1();
+			Document agentDoc = msgR.getPayload2();
+			Boolean statsToController = msgR.getPayload3();
+			
+			// If any of the payloads is missing, then ignore this message; we should wait for the LocalConfigManager's
+			if (agentDoc == null || prob == null || statsToController == null) 
+				return;
 			
 			// Check that we are not using the simulated time metric, which is not supported in this mode
-			Document agentDoc = msgR.getPayload2();
 			String measureTime = agentDoc.getRootElement().getAttributeValue("measureTime");
 			if (Boolean.parseBoolean(measureTime)) { // using the simulated time metric
 				System.err.println("The simulated time metric (measureTime = true) is not supported in this mode");
@@ -126,13 +135,13 @@ public class Constructor implements IncomingMsgPolicyInterface<String> {
 			}
 			
 			if(local) {
-				agent = AgentFactory.createAgent(outputToDaemon, msgR.getPayload1(), agentDoc, null);
+				agent = AgentFactory.createAgent(outputToDaemon, prob, agentDoc, null);
 			} else {
 				agent = AgentFactory.createAgent(outputToDaemon, queue.getOutputPipe(LocalWhitePages.CONTROLLER_ID), 
-						msgR.getPayload1(), agentDoc, agentPort);	
+						prob, agentDoc, statsToController, agentPort);	
 			}
 			
-			System.out.println("Received the ownership of Agent " + agent.getID());
+			tellUser("Taking ownership of Agent " + agent.getID());
 			
 			if(local) {
 				controller.addAgent(agent.getID(), agent);
@@ -142,6 +151,14 @@ public class Constructor implements IncomingMsgPolicyInterface<String> {
 		}
 	}
 	
+	/**
+	 * This function is used to send a message to the user via the UI
+	 * @param message the message to be send to the user
+	 */
+	private void tellUser(String message) {
+		Message msg = new MessageWithPayload <String> (UserIO.USER_NOTIFICATION_MSG, message);
+		queue.sendMessageToSelf(msg);
+	}
 	
 	/** 
 	 * @see frodo2.communication.IncomingMsgPolicyInterface#setQueue(frodo2.communication.Queue)

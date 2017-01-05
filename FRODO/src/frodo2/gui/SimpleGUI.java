@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2016  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 How to contact the authors: 
-<http://frodo2.sourceforge.net/>
+<https://frodo-ai.tech>
  */
 
 package frodo2.gui;
@@ -287,7 +287,7 @@ public class SimpleGUI extends JFrame implements ActionListener, ItemListener {
 	public static void main(String[] args) {
 
 		// The GNU GPL copyright notice
-		System.out.println("FRODO  Copyright (C) 2008-2016  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek");
+		System.out.println("FRODO  Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek");
 		System.out.println("This program comes with ABSOLUTELY NO WARRANTY.");
 		System.out.println("This is free software, and you are welcome to redistribute it");
 		System.out.println("under certain conditions. \n");
@@ -646,10 +646,13 @@ public class SimpleGUI extends JFrame implements ActionListener, ItemListener {
 
 		// Max-Sum
 		agentNamesToPath.put("MaxSumAgent.xml", "/frodo2/algorithms/maxsum/MaxSumAgent.xml");
+		agentNamesToPath.put("MaxSumAgentPerturbed.xml", "/frodo2/algorithms/maxsum/MaxSumAgentPerturbed.xml");
 		if (enableVRP) 
 			agentNamesToPath.put("MaxSumAgentVRP.xml", "/frodo2/algorithms/maxsum/MaxSumAgentVRP.xml");
-		if (enableJaCoP) 
+		if (enableJaCoP) {
 			agentNamesToPath.put("MaxSumAgentJaCoP.xml", "/frodo2/algorithms/maxsum/MaxSumAgentJaCoP.xml");
+			agentNamesToPath.put("MaxSumAgentPerturbedJaCoP.xml", "/frodo2/algorithms/maxsum/MaxSumAgentPerturbedJaCoP.xml");
+		}
 		
 		// DUCT
 		this.agentNamesToPath.put("DUCTagent.xml", "/frodo2/algorithms/duct/DUCTagent.xml");

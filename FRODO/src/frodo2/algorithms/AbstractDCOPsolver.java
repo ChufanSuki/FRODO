@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2016  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 How to contact the authors: 
-<http://frodo2.sourceforge.net/>
+<https://frodo-ai.tech>
 */
 
 package frodo2.algorithms;
@@ -82,7 +82,7 @@ public abstract class AbstractDCOPsolver < V extends Addable<V>, U extends Addab
 		
 		if (sol != null) {
 			writer.append(algoName);
-			writer.append("\t0"); // 0 = no timeout; 1 = timeout
+			writer.append(";0"); // 0 = no timeout; 1 = timeout
 
 			// First write statistics about the problem instance
 			writer.append(solver.getProbStats(problemFile));
@@ -102,9 +102,9 @@ public abstract class AbstractDCOPsolver < V extends Addable<V>, U extends Addab
 		
 		StringBuffer buf = new StringBuffer ("algorithm");
 
-		buf.append("\ttimed out"); // 0 if the algorithm terminated, 1 if it timed out
+		buf.append(";timed out"); // 0 if the algorithm terminated, 1 if it timed out
 
-		buf.append("\tproblem instance"); // the name of the problem instance, assumed unique
+		buf.append(";problem instance"); // the name of the problem instance, assumed unique
 
 		// Write statistics about the problem instance, added by the problem generator to the XCSP file
 		Element presElmt = problemFile.getRootElement().getChild("presentation");
@@ -112,22 +112,22 @@ public abstract class AbstractDCOPsolver < V extends Addable<V>, U extends Addab
 		for (Element child : presElmt.getChildren()) 
 			stats.add(child.getAttributeValue("name"));
 		for (String name : stats) 
-			buf.append("\t").append(name);
+			buf.append(";").append(name);
 		
 		// Continue with the statistics about the solution
-		buf.append("\tNCCCs");
-		buf.append("\tsimulated time (in ms)");
+		buf.append(";NCCCs");
+		buf.append(";simulated time (in ms)");
 		
-		buf.append("\tnumber of messages");
-		buf.append("\ttotal message size (in bytes)");
-		buf.append("\tmaximum message size (in bytes)");
+		buf.append(";number of messages");
+		buf.append(";total message size (in bytes)");
+		buf.append(";maximum message size (in bytes)");
 		
-		buf.append("\tinduced treewidth");
+		buf.append(";induced treewidth");
 		
 		if (Boolean.parseBoolean(presElmt.getAttributeValue("maximize"))) 
-			buf.append("\treported utility").append("\ttrue utility");
+			buf.append(";reported utility").append(";true utility");
 		else 
-			buf.append("\treported cost").append("\ttrue cost");
+			buf.append(";reported cost").append(";true cost");
 		
 		return buf.toString();
 	}
@@ -142,14 +142,14 @@ public abstract class AbstractDCOPsolver < V extends Addable<V>, U extends Addab
 		
 		// Write the name of this problem instance (assuming it is unique)
 		Element presElmt = problemFile.getRootElement().getChild("presentation");
-		buf.append("\t").append(presElmt.getAttributeValue("name"));
+		buf.append(";").append(presElmt.getAttributeValue("name"));
 		
 		// Write statistics about the problem instance
 		TreeMap<String, String> stats = new TreeMap<String, String> ();
 		for (Element child : presElmt.getChildren()) 
 			stats.put(child.getAttributeValue("name"), child.getText());
 		for (String value : stats.values()) 
-			buf.append("\t").append(value);
+			buf.append(";").append(value);
 		
 		return buf.toString();
 	}
@@ -163,22 +163,22 @@ public abstract class AbstractDCOPsolver < V extends Addable<V>, U extends Addab
 		
 		StringBuffer buf = new StringBuffer (algoName);
 		
-		buf.append("\t1"); // 0 = no timeout; 1 = timeout
+		buf.append(";1"); // 0 = no timeout; 1 = timeout
 		
 		buf.append(this.getProbStats(problemFile));
 		
 		// Continue with statistics about the solution
-		buf.append("\t").append(Long.MAX_VALUE); // NCCCs
-		buf.append("\t").append(Long.MAX_VALUE); // runtime
+		buf.append(";").append(Long.MAX_VALUE); // NCCCs
+		buf.append(";").append(Long.MAX_VALUE); // runtime
 		
-		buf.append("\t").append(Integer.MAX_VALUE); // nbrMessages
-		buf.append("\t").append(Long.MAX_VALUE); // total msg size
-		buf.append("\t").append(Long.MAX_VALUE); // max msg size
+		buf.append(";").append(Integer.MAX_VALUE); // nbrMessages
+		buf.append(";").append(Long.MAX_VALUE); // total msg size
+		buf.append(";").append(Long.MAX_VALUE); // max msg size
 		
-		buf.append("\t").append(Integer.MAX_VALUE); // treewidth
+		buf.append(";").append(Integer.MAX_VALUE); // treewidth
 		
-		buf.append("\tNaN"); // reported util
-		buf.append("\tNaN"); // true util
+		buf.append(";NaN"); // reported util
+		buf.append(";NaN"); // true util
 
 		return buf.toString();
 	}

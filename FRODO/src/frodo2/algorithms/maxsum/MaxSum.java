@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2016  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 How to contact the authors: 
-<http://frodo2.sourceforge.net/>
+<https://frodo-ai.tech>
  */
 
 package frodo2.algorithms.maxsum;
@@ -202,8 +202,8 @@ public class MaxSum < V extends Addable<V>, U extends Addable<U> > implements St
 	/** The problem */
 	private DCOPProblemInterface<V, U> problem;
 	
-	/** Whether the stats gatherer should display the solution found */
-	private boolean silent = false;
+	/** Whether to report stats */
+	private boolean reportStats = true;
 
 	/** Whether the module has already started the algorithm */
 	private boolean started = false;
@@ -249,12 +249,9 @@ public class MaxSum < V extends Addable<V>, U extends Addable<U> > implements St
 		this.infeasibleUtil = (this.maximize ? problem.getMinInfUtility() : problem.getPlusInfUtility());
 		this.zero = this.problem.getZeroUtility();
 
-		String convergence = parameters.getAttributeValue("convergence");
-		if(convergence != null)
-			this.convergence = Boolean.parseBoolean(convergence);
-		else
-			this.convergence = false;
+		this.convergence = Boolean.parseBoolean(parameters.getAttributeValue("convergence"));
 		this.assignmentHistoriesMap = (this.convergence ? new HashMap< String, ArrayList< CurrentAssignment<V> > >() : null);
+		this.reportStats = Boolean.parseBoolean(parameters.getAttributeValue("reportStats"));
 
 		String maxNbrIter = parameters.getAttributeValue("maxNbrIter");
 		if(maxNbrIter == null)
@@ -302,7 +299,8 @@ public class MaxSum < V extends Addable<V>, U extends Addable<U> > implements St
 			// Check if this variable is unconstrained
 			if (varInfo.getFunctions().isEmpty()) {
 				
-				this.queue.sendMessage(AgentInterface.STATS_MONITOR, new MessageWith2Payloads<String, V> (SOLUTION_MSG_TYPE, varInfo.getVarName(), varInfo.optVal));
+				if (this.reportStats) 
+					this.queue.sendMessage(AgentInterface.STATS_MONITOR, new MessageWith2Payloads<String, V> (SOLUTION_MSG_TYPE, varInfo.getVarName(), varInfo.optVal));
 
 				if(convergence) {
 					ArrayList< CurrentAssignment<V> > history = this.assignmentHistoriesMap.get(varInfo.getVarName());
@@ -354,7 +352,7 @@ public class MaxSum < V extends Addable<V>, U extends Addable<U> > implements St
 
 	/** @see StatsReporterWithConvergence#setSilent(boolean) */
 	public void setSilent(boolean silent) {
-		this.silent = silent;
+		this.reportStats = ! silent;
 	}
 
 	/** @see StatsReporterWithConvergence#setQueue(Queue) */
@@ -384,12 +382,12 @@ public class MaxSum < V extends Addable<V>, U extends Addable<U> > implements St
 			
 			this.solution.put(var, val);
 			
-			if (! this.silent) 
+			if (this.reportStats) 
 				System.out.println("var `" + var + "' = " + val);
 			
 			if (this.solution.size() == this.problem.getNbrVars()) {
 				this.optCost = this.problem.getUtility(this.solution, true).getUtility(0);
-				if (! this.silent) 
+				if (this.reportStats) 
 					System.out.println((this.maximize ? "Utility" : "Cost") + " of solution found: " + this.optCost);
 			}
 			
@@ -446,104 +444,89 @@ public class MaxSum < V extends Addable<V>, U extends Addable<U> > implements St
 			assert varInfo.optVal != null : "Received a message for a variable node I do not control";
 			String functionNode = msgCast.getFunctionNode();
 			
-			// If this message hasn't changed since the last message received from this function node, don't respond 
-			if (marginalUtil.equivalent(varInfo.lastMsgsIn.put(functionNode, marginalUtil))) {
-				
-				if (--varInfo.nbrIter == 0) {
-					this.queue.sendMessage(AgentInterface.STATS_MONITOR, new MessageWith2Payloads<String, V> (SOLUTION_MSG_TYPE, varInfo.getVarName(), varInfo.optVal));
-					if(convergence)
-						queue.sendMessage(AgentInterface.STATS_MONITOR, new StatsReporterWithConvergence.ConvStatMessage<V>(CONV_STATS_MSG_TYPE, var, assignmentHistoriesMap.get(varInfo.getVarName())));
-					
-					this.checkForTermination();
-				}
-
-				return;
-			}
-
-			// Compute the new optimal assignment to the destination variable, as the argmax of the join of the marginal utilities received from all function nodes
-			int newOptIndex = 0;
-			U newOpt = this.infeasibleUtil;
-			final int domSize = (int) marginalUtil.getNumberOfSolutions();
-			for (int i = 0; i < domSize; i++) { // for each possible assignment to my variable
-				
-				AddableDelayed<U> sumDelayed = this.zero.addDelayed();
-				for (UtilitySolutionSpace<V, U> space : varInfo.lastMsgsIn.values()) 
-					sumDelayed.addDelayed(space.getUtility(i));
-				U sum = sumDelayed.resolve();
-				
-				if (this.maximize ? sum.compareTo(newOpt) >= 0 : sum.compareTo(newOpt) <= 0) {
-					newOpt = sum;
-					newOptIndex = i;
-				}
-			}
-			V newOptVal = varInfo.getDom()[newOptIndex];
-			
-			// Report the new optimal assignment if it has changed
-			if (! newOptVal.equals(varInfo.optVal)) {
-				varInfo.optVal = newOptVal;
-				
-//				System.out.println("var `" + varInfo.varName + "' gets assigned " + varInfo.optVal);
-				
-				if (this.convergence) 
-					assignmentHistoriesMap.get(var).add(new CurrentAssignment<V>(queue.getCurrentTime(), 0, newOptVal));
-				
-				if (--varInfo.nbrIter <= 0) {
-					this.queue.sendMessage(AgentInterface.STATS_MONITOR, new MessageWith2Payloads<String, V> (SOLUTION_MSG_TYPE, varInfo.getVarName(), varInfo.optVal));
-					if(convergence)
-						queue.sendMessage(AgentInterface.STATS_MONITOR, new StatsReporterWithConvergence.ConvStatMessage<V>(CONV_STATS_MSG_TYPE, var, assignmentHistoriesMap.get(varInfo.getVarName())));
-					
-					if (varInfo.nbrIter == 0) 
-						this.checkForTermination();
-					
-					return;
-				}
-				
-			} else if (--varInfo.nbrIter == 0) {
-				this.queue.sendMessage(AgentInterface.STATS_MONITOR, new MessageWith2Payloads<String, V> (SOLUTION_MSG_TYPE, varInfo.getVarName(), varInfo.optVal));
-				if(convergence)
-					queue.sendMessage(AgentInterface.STATS_MONITOR, new StatsReporterWithConvergence.ConvStatMessage<V>(CONV_STATS_MSG_TYPE, var, assignmentHistoriesMap.get(varInfo.getVarName())));
-				this.checkForTermination();
-				
-				return;
-			} else if (varInfo.nbrIter < 0) 
+			// Ignore this message if the recipient variable node has already terminated
+			if (--varInfo.nbrIter < 0) 
 				return;
 			
-			// Compute and send a new message to each neighboring function node
-			for (FunctionNode<V, U> function : varInfo.getFunctions()) {
-				
-				// Join all last marginal utilities received from all neighboring function nodes except the current one
-				marginalUtil = this.zeroSpace(varInfo.getVarName(), varInfo.getDom());
-				for (Map.Entry< String, UtilitySolutionSpace<V, U> > entry : varInfo.lastMsgsIn.entrySet()) {
-					if (! function.getName().equals(entry.getKey())) {
-						UtilitySolutionSpace<V, U> space = entry.getValue();
-						for (int i = 0; i < domSize; i++) {
-							U util = space.getUtility(i);
-							marginalUtil.setUtility(i, marginalUtil.getUtility(i).add(util));
+			// Only respond if this message has changed since the last message received from this function node 
+			if (! marginalUtil.equivalent(varInfo.lastMsgsIn.put(functionNode, marginalUtil))) {
+
+				// Compute the new optimal assignment to the destination variable, as the argmax of the join of the marginal utilities received from all function nodes
+				int newOptIndex = 0;
+				U newOpt = this.infeasibleUtil;
+				final int domSize = (int) marginalUtil.getNumberOfSolutions();
+				for (int i = 0; i < domSize; i++) { // for each possible assignment to my variable
+
+					AddableDelayed<U> sumDelayed = this.zero.addDelayed();
+					for (UtilitySolutionSpace<V, U> space : varInfo.lastMsgsIn.values()) 
+						sumDelayed.addDelayed(space.getUtility(i));
+					U sum = sumDelayed.resolve();
+
+					if (this.maximize ? sum.compareTo(newOpt) >= 0 : sum.compareTo(newOpt) <= 0) {
+						newOpt = sum;
+						newOptIndex = i;
+					}
+				}
+				V newOptVal = varInfo.getDom()[newOptIndex];
+
+				// Record the new optimal assignment if it has changed
+				if (! newOptVal.equals(varInfo.optVal)) {
+					varInfo.optVal = newOptVal;
+
+					// System.out.println("var `" + varInfo.varName + "' gets assigned " + varInfo.optVal);
+
+					if (this.convergence) 
+						assignmentHistoriesMap.get(var).add(new CurrentAssignment<V>(queue.getCurrentTime(), 0, newOptVal));
+				}
+
+				// Compute and send a new message to each neighboring function node
+				for (FunctionNode<V, U> function : varInfo.getFunctions()) {
+
+					// Join all last marginal utilities received from all neighboring function nodes except the current one
+					marginalUtil = this.zeroSpace(varInfo.getVarName(), varInfo.getDom());
+					for (Map.Entry< String, UtilitySolutionSpace<V, U> > entry : varInfo.lastMsgsIn.entrySet()) {
+						if (! function.getName().equals(entry.getKey())) {
+							UtilitySolutionSpace<V, U> space = entry.getValue();
+							for (int i = 0; i < domSize; i++) {
+								U util = space.getUtility(i);
+								marginalUtil.setUtility(i, marginalUtil.getUtility(i).add(util));
+							}
 						}
 					}
-				}
-				
-				// Look up the number of feasible utilities
-				AddableDelayed<U> scalarDelayed = this.zero.addDelayed();
-				int nbrNonINFutils = 0;
-				U util;
-				for (int i = 0; i < domSize; i++) {
-					if (! this.infeasibleUtil.equals(util = marginalUtil.getUtility(i))) {
-						scalarDelayed.addDelayed(util);
-						nbrNonINFutils++;
+
+					// Look up the number of feasible utilities
+					AddableDelayed<U> scalarDelayed = this.zero.addDelayed();
+					int nbrNonINFutils = 0;
+					U util;
+					for (int i = 0; i < domSize; i++) {
+						if (! this.infeasibleUtil.equals(util = marginalUtil.getUtility(i))) {
+							scalarDelayed.addDelayed(util);
+							nbrNonINFutils++;
+						}
 					}
+
+					// Rescale the join such that its utilities sum up to zero (ignoring infeasible ones)
+					if (nbrNonINFutils > 0) {
+						U scalar = scalarDelayed.resolve();
+						scalar = scalar.divide(scalar.fromString(Integer.toString(nbrNonINFutils)));
+						for (int i = 0; i < domSize; i++) 
+							marginalUtil.setUtility(i, marginalUtil.getUtility(i).subtract(scalar));
+					}
+
+					// Send the message
+					this.queue.sendMessage(function.getAgent(), new VariableMsg<V, U> (function.getName(), marginalUtil));
 				}
-				
-				// Rescale the join such that its utilities sum up to zero (ignoring infeasible ones)
-				if (nbrNonINFutils > 0) {
-					U scalar = scalarDelayed.resolve();
-					scalar = scalar.divide(scalar.fromString(Integer.toString(nbrNonINFutils)));
-					for (int i = 0; i < domSize; i++) 
-						marginalUtil.setUtility(i, marginalUtil.getUtility(i).subtract(scalar));
-				}
-				
-				// Send the message
-				this.queue.sendMessage(function.getAgent(), new VariableMsg<V, U> (function.getName(), marginalUtil));
+
+			}
+			
+			// Report the final solution if we have reached the last iteration
+			if (varInfo.nbrIter == 0) {
+				if (this.reportStats) 
+					this.queue.sendMessage(AgentInterface.STATS_MONITOR, new MessageWith2Payloads<String, V> (SOLUTION_MSG_TYPE, varInfo.getVarName(), varInfo.optVal));
+				if(convergence)
+					queue.sendMessage(AgentInterface.STATS_MONITOR, new StatsReporterWithConvergence.ConvStatMessage<V>(CONV_STATS_MSG_TYPE, var, assignmentHistoriesMap.get(varInfo.getVarName())));
+
+				this.checkForTermination();
 			}
 			
 			
@@ -619,7 +602,8 @@ public class MaxSum < V extends Addable<V>, U extends Addable<U> > implements St
 				if (varInfo.nbrIter > 0 && ! varInfo.getFunctions().isEmpty()) { // unconstrained variables and variables with exhausted iterations have already been terminated
 					
 					assert varInfo.optVal != null;
-					this.queue.sendMessage(AgentInterface.STATS_MONITOR, new MessageWith2Payloads<String, V> (SOLUTION_MSG_TYPE, varInfo.getVarName(), varInfo.optVal));
+					if (this.reportStats) 
+						this.queue.sendMessage(AgentInterface.STATS_MONITOR, new MessageWith2Payloads<String, V> (SOLUTION_MSG_TYPE, varInfo.getVarName(), varInfo.optVal));
 					if(convergence)
 						queue.sendMessage(AgentInterface.STATS_MONITOR, new StatsReporterWithConvergence.ConvStatMessage<V>(CONV_STATS_MSG_TYPE, varInfo.getVarName(), assignmentHistoriesMap.get(varInfo.getVarName())));
 				}

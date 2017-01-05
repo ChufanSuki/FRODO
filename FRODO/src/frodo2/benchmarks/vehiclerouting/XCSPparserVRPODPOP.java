@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2016  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 How to contact the authors: 
-<http://frodo2.sourceforge.net/>
+<https://frodo-ai.tech>
 */
 
 package frodo2.benchmarks.vehiclerouting;
@@ -64,15 +64,14 @@ public class XCSPparserVRPODPOP <U extends Addable<U>> extends XCSPparserVRP<U> 
 	}
 	
 	/** Constructor from a JDOM root Element in XCSP format
-	 * @param agent 						the name of the agent owning the input subproblem
 	 * @param instance 						the JDOM root Element in XCSP format
 	 * @param countNCCCs 					Whether to count constraint checks
 	 * @param extendedRandNeighborhoods 	whether we want extended random neighborhoods
 	 * @param spacesToIgnoreNcccs			list of spaces for which NCCCs should NOT be counted
 	 * @param mpc 							Whether to behave in MPC mode
 	 */
-	protected XCSPparserVRPODPOP(String agent, Element instance, boolean countNCCCs, boolean extendedRandNeighborhoods, HashSet<String> spacesToIgnoreNcccs, boolean mpc) {
-		super (agent, instance, countNCCCs, extendedRandNeighborhoods, spacesToIgnoreNcccs, mpc);
+	protected XCSPparserVRPODPOP(Element instance, boolean countNCCCs, boolean extendedRandNeighborhoods, HashSet<String> spacesToIgnoreNcccs, boolean mpc) {
+		super (instance, countNCCCs, extendedRandNeighborhoods, spacesToIgnoreNcccs, mpc);
 	}
 
 	/**
@@ -110,12 +109,10 @@ public class XCSPparserVRPODPOP <U extends Addable<U>> extends XCSPparserVRP<U> 
 		return compoundSpaces;
 	}
 	
-	/**
-	 * @see frodo2.benchmarks.vehiclerouting.XCSPparserVRP#newInstance(java.lang.String, org.jdom2.Element)
-	 */
+	/** @see XCSPparserVRP#newInstance(org.jdom2.Element) */
 	@Override
-	protected XCSPparserVRPODPOP<U> newInstance (String agent, Element instance) {
-		return new XCSPparserVRPODPOP<U> (agent, instance, this.countNCCCs, false, new HashSet<String>(), super.mpc);
+	protected XCSPparserVRPODPOP<U> newInstance (Element instance) {
+		return new XCSPparserVRPODPOP<U> (instance, this.countNCCCs, false, new HashSet<String>(), super.mpc);
 	}
 	
 }

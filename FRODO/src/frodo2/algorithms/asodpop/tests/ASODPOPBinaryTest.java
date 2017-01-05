@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2016  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 How to contact the authors: 
-<http://frodo2.sourceforge.net/>
+<https://frodo-ai.tech>
 */
 
 package frodo2.algorithms.asodpop.tests;
@@ -145,6 +145,7 @@ public class ASODPOPBinaryTest < V extends Addable<V>, U extends Addable<U> > ex
 		assignments = new HashMap<String, V>();
 		
 		parameters = new Element ("module");
+		parameters.setAttribute("reportStats", "true");
 	}
 
 	/** 
@@ -246,6 +247,7 @@ public class ASODPOPBinaryTest < V extends Addable<V>, U extends Addable<U> > ex
 				// Create the description of the parameters
 				parameters = new Element ("module");
 				parameters.setAttribute("combination", combination);
+				parameters.setAttribute("reportStats", "true");
 				
 				// Instantiate the listener using reflection
 				XCSPparser<V, U> subprob = parser.getSubProblem(agent);

@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2016  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 How to contact the authors: 
-<http://frodo2.sourceforge.net/>
+<https://frodo-ai.tech>
 */
 
 package frodo2.algorithms.dpop.param;
@@ -160,7 +160,7 @@ extends VALUEpropagation<Val> {
 		if (type.equals(PARAM_OUTPUT_MSG_TYPE)) { // we are in stats gatherer mode
 			
 			AssignmentMessage<Val> msgCast = (AssignmentMessage<Val>) msg;
-			if (!silent) 
+			if (this.reportStats) 
 				System.out.println("variables " + Arrays.asList(msgCast.getVariables()) + " = " + msgCast.getValues());
 			solution.put(msgCast.getVariables(), msgCast.getValues());
 
@@ -360,7 +360,8 @@ extends VALUEpropagation<Val> {
 		} else 
 			optVals = optAssignments.compose(separator, substitution);
 		solution.put(vars, optVals);
-		queue.sendMessage(AgentInterface.STATS_MONITOR, new AssignmentMessage<Val> (vars, optVals));
+		if (this.reportStats) 
+			queue.sendMessage(AgentInterface.STATS_MONITOR, new AssignmentMessage<Val> (vars, optVals));
 		
 		// Go through the list of children of the first variable 
 		// For each child, check if we already know its separator 

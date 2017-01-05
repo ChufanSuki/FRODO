@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2016  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 How to contact the authors: 
-<http://frodo2.sourceforge.net/>
+<https://frodo-ai.tech>
 */
 
 package frodo2.algorithms.adopt.test;
@@ -153,6 +153,7 @@ public class testADOPT extends TestCase implements IncomingMsgPolicyInterface<St
 
 		parameters = new Element ("module");
 		parameters.setAttribute("version", ADOPT.Original.class.getName());
+		parameters.setAttribute("reportStats", "true");
 	}
 
 	/** 
@@ -223,6 +224,7 @@ public class testADOPT extends TestCase implements IncomingMsgPolicyInterface<St
 				// Create the parameters for the preprocessing phase
 				Element parameters = new Element ("module");
 				parameters.setAttribute("heuristic", Preprocessing.SimpleHeuristic.class.getName());
+				parameters.setAttribute("reportStats", "true");
 				
 				// Create the preprocessing module
 				XCSPparser<AddableInteger, AddableInteger> subprob = parser.getSubProblem(agent);
@@ -239,6 +241,7 @@ public class testADOPT extends TestCase implements IncomingMsgPolicyInterface<St
 				// Create the description of the parameters
 				parameters = new Element ("module");
 				parameters.setAttribute("version", version);
+				parameters.setAttribute("reportStats", "true");
 
 				// Instantiate the listener using reflection
 				parTypes = new Class[2];

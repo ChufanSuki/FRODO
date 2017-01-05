@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2016  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 How to contact the authors: 
-<http://frodo2.sourceforge.net/>
+<https://frodo-ai.tech>
 */
 
 /**
@@ -210,9 +210,10 @@ public class TestLocalWhitePages extends TestCase {
 		}
 
 		/** Does nothing
-		 * @see AgentInterface#setup(QueueOutputPipeInterface, QueueOutputPipeInterface, int)
+		 * @see AgentInterface#setup(QueueOutputPipeInterface, QueueOutputPipeInterface, boolean, int)
 		 */
-		public void setup(QueueOutputPipeInterface toDaemonPipe, QueueOutputPipeInterface toControllerPipe, int port) { }
+		@Override
+		public void setup(QueueOutputPipeInterface toDaemonPipe, QueueOutputPipeInterface toControllerPipe, boolean statsToController, int port) { }
 
 		/** 
 		 * @see AgentInterface#getCurrentSolution()

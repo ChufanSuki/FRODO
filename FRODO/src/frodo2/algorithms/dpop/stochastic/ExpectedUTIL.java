@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2016  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 How to contact the authors: 
-<http://frodo2.sourceforge.net/>
+<https://frodo-ai.tech>
 */
 
 /** Classes implementing the E[DPOP] family of algorithms for Stochastic DCOP */
@@ -221,24 +221,24 @@ extends UTILpropagation<Val, U> {
 			for (int i = 0; i < vars.length; i++) {
 				String var = vars[i];
 				Val val = vals.get(i);
-				if (val != null && solution.put(var, val) == null && !silent) 
+				if (val != null && solution.put(var, val) == null && this.reportStats) 
 					System.out.println("var `" + var + "' = " + val);
 			}
 			
 			// When we have received all messages, print out the corresponding utility. 
 			if (--this.remainingVars <= 0) {
 				
-				if (! this.silent) 
+				if (this.reportStats) 
 					System.out.println("Total reported " + (this.maximize ? "utility: " : "cost: ") + this.optUtil);
 				
 				this.expectedUtil = this.problem.getExpectedUtility(this.solution).getUtility(0);
-				if (! this.silent) 
+				if (this.reportStats) 
 					System.out.println("Total expected " + (this.maximize ? "utility: " : "cost: ") + this.expectedUtil);
 
 				// Compute the worst-case utility
 				UtilitySolutionSpace<Val, U> paramUtil = this.problem.getUtility(this.solution, true);
 				this.worstUtil = paramUtil.blindProjectAll(! this.maximize);
-				if (! this.silent) 
+				if (this.reportStats) 
 					System.out.println("Total worst-case " + (this.maximize ? "utility: " : "cost: ") + this.worstUtil);
 				
 				if (this.measureProbOfOpt) { // Compute the probability of optimality
@@ -282,7 +282,7 @@ extends UTILpropagation<Val, U> {
 							}
 						}
 					}
-					if (!silent) 
+					if (this.reportStats) 
 						System.out.println("Probability of optimality: " + this.probOfOptimality);
 				}
 			}

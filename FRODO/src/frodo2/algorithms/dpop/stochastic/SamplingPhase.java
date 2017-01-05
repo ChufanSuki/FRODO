@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2016  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 How to contact the authors: 
-<http://frodo2.sourceforge.net/>
+<https://frodo-ai.tech>
 */
 
 package frodo2.algorithms.dpop.stochastic;
@@ -110,8 +110,8 @@ public class SamplingPhase < V extends Addable<V>, U extends Addable<U> > extend
 	 */
 	private HashMap< String, DFSview<V, ?> > relationships;
 
-	/** Whether the stats reporter should print its stats */
-	private boolean silent = false;
+	/** Whether to report stats */
+	protected boolean reportStats = true;
 	
 	/** Renderer to display DOT code */
 	private String dotRendererClass;
@@ -145,6 +145,7 @@ public class SamplingPhase < V extends Addable<V>, U extends Addable<U> > extend
 	public SamplingPhase (DCOPProblemInterface<V, U> problem, Element parameters) {
 		this.problem = problem;
 		this.nbrSamples = Integer.parseInt(parameters.getAttributeValue("nbrSamples"));
+		this.reportStats = Boolean.parseBoolean(parameters.getAttributeValue("reportStats"));
 		
 		// Parse and record where to project
 		String whereToProj = parameters.getAttributeValue("whereToProject");
@@ -250,7 +251,7 @@ public class SamplingPhase < V extends Addable<V>, U extends Addable<U> > extend
 			relationships.put(msgCast.getVar(), msgCast.getNeighbors());
 			
 			// If all information has been received from all variables, print it
-			if (--this.nbrStatsMsgs <= 0 && !silent) {
+			if (--this.nbrStatsMsgs <= 0 && this.reportStats) {
 				if(dotRendererClass.length() == 0) {
 					System.out.println("Chosen DFS tree, with random variables:");
 					System.out.println(dfsToString());
@@ -274,7 +275,7 @@ public class SamplingPhase < V extends Addable<V>, U extends Addable<U> > extend
 			this.randVarsProj.put(msgCast.getVariable(), msgCast.getRandVars());
 			
 			// If all information has been received from all variables, print it
-			if (--this.nbrStatsMsgs <= 0 && !silent) {
+			if (--this.nbrStatsMsgs <= 0 && this.reportStats) {
 				if(dotRendererClass.length() == 0) {
 					System.out.println("Chosen DFS tree, with random variables:");
 					System.out.println(dfsToString());
@@ -341,7 +342,7 @@ public class SamplingPhase < V extends Addable<V>, U extends Addable<U> > extend
 
 	/** @see StatsReporter#setSilent(boolean) */
 	public void setSilent(boolean silent) {
-		this.silent  = silent;
+		this.reportStats = ! silent;
 	}
 	
 	/** The version of the SamplingPhase that samples at the leaves
@@ -396,7 +397,8 @@ public class SamplingPhase < V extends Addable<V>, U extends Addable<U> > extend
 
 				// Send the message telling where to project random variables
 				queue.sendMessageToSelf(new RandVarsProjMsg (var, randVars));
-				queue.sendMessage(AgentInterface.STATS_MONITOR, new RandVarsProjMsg (var, (HashSet<String>) randVars.clone()));
+				if (this.reportStats) 
+					queue.sendMessage(AgentInterface.STATS_MONITOR, new RandVarsProjMsg (var, (HashSet<String>) randVars.clone()));
 			}
 		}
 		
@@ -683,11 +685,13 @@ public class SamplingPhase < V extends Addable<V>, U extends Addable<U> > extend
 			// Send the message telling where to project random variables
 			if (this.proj == this.whereToProject) { // project at lcas
 				queue.sendMessageToSelf(new RandVarsProjMsg (node, nodeInfo.lcas));
-				queue.sendMessage(AgentInterface.STATS_MONITOR, new RandVarsProjMsg (node, (HashSet<String>) nodeInfo.lcas.clone()));
+				if (this.reportStats) 
+					queue.sendMessage(AgentInterface.STATS_MONITOR, new RandVarsProjMsg (node, (HashSet<String>) nodeInfo.lcas.clone()));
 			}
 			else if (this.proj == WhereToProject.LEAVES) { // project at leaves
 				queue.sendMessageToSelf(new RandVarsProjMsg (node, nodeInfo.myFlags));
-				queue.sendMessage(AgentInterface.STATS_MONITOR, new RandVarsProjMsg (node, (HashSet<String>) nodeInfo.myFlags.clone()));
+				if (this.reportStats) 
+					queue.sendMessage(AgentInterface.STATS_MONITOR, new RandVarsProjMsg (node, (HashSet<String>) nodeInfo.myFlags.clone()));
 			}
 		}
 		
@@ -782,11 +786,13 @@ public class SamplingPhase < V extends Addable<V>, U extends Addable<U> > extend
 			// Send the message telling where to project random variables
 			if (this.proj == this.whereToProject) { // project at lcas
 				queue.sendMessageToSelf(new RandVarsProjMsg (node, nodeInfo.lcas));
-				queue.sendMessage(AgentInterface.STATS_MONITOR, new RandVarsProjMsg (node, (HashSet<String>) nodeInfo.lcas.clone()));
+				if (this.reportStats) 
+					queue.sendMessage(AgentInterface.STATS_MONITOR, new RandVarsProjMsg (node, (HashSet<String>) nodeInfo.lcas.clone()));
 			}
 			else if (this.proj == WhereToProject.LEAVES) { // project at leaves
 				queue.sendMessageToSelf(new RandVarsProjMsg (node, nodeInfo.myFlags));
-				queue.sendMessage(AgentInterface.STATS_MONITOR, new RandVarsProjMsg (node, (HashSet<String>) nodeInfo.myFlags.clone()));
+				if (this.reportStats) 
+					queue.sendMessage(AgentInterface.STATS_MONITOR, new RandVarsProjMsg (node, (HashSet<String>) nodeInfo.myFlags.clone()));
 			}
 		}
 		
@@ -827,6 +833,7 @@ public class SamplingPhase < V extends Addable<V>, U extends Addable<U> > extend
 						"' for the option `whereToProject' of module SamplingPhase$AtRoots being overridden with default value `roots'");
 			this.proj = WhereToProject.ROOTS;
 			this.whereToProject = WhereToProject.ROOTS;
+			this.reportStats = Boolean.parseBoolean(parameters.getAttributeValue("reportStats"));
 		}
 		
 		/** @see SamplingPhase.AtLCAs#notifyIn(Message) */

@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2016  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 How to contact the authors: 
-<http://frodo2.sourceforge.net/>
+<https://frodo-ai.tech>
 */
 
 package frodo2.algorithms;
@@ -160,7 +160,7 @@ public class Problem < V extends Addable<V>, U extends Addable<U> > implements D
 			for (String var : prob.getVariables()) 
 				newDomains.put(var, prob.getDomain(var));
 			
-			this.reset(prob.agentName, prob.getOwners(), newDomains, prob.getSolutionSpaces(), prob.maximize());
+			this.reset(prob.getAgent(), prob.getOwners(), newDomains, prob.getSolutionSpaces(), prob.maximize());
 			
 			if (prob.isCountingNCCCs()) 
 				for (UtilitySolutionSpace<V, U> space : this.spaces) 
@@ -862,6 +862,22 @@ public class Problem < V extends Addable<V>, U extends Addable<U> > implements D
 		/// @todo Auto-generated method stub
 		assert false : "Not yet implemented";
 		return null;
+	}
+
+	/** @see DCOPProblemInterface#addUnarySpace(String, String, Addable[], Addable[]) */
+	@Override
+	public UtilitySolutionSpace<V, U> addUnarySpace(String name, String var, V[] dom, U[] utils) {
+		
+		@SuppressWarnings("unchecked")
+		V[][] doms = (V[][]) Array.newInstance(dom.getClass(), 1);
+		doms[0] = dom;
+		
+		Hypercube<V, U> out = new Hypercube<V, U> (new String[] {var}, doms, utils, this.getInfeasibleUtil());
+		out.setName(name);
+		
+		this.addSolutionSpace(out);
+		
+		return out;
 	}
 	
 }

@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2016  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 How to contact the authors: 
-<http://frodo2.sourceforge.net/>
+<https://frodo-ai.tech>
 */
 
 package frodo2.daemon.userIO;
@@ -38,7 +38,7 @@ import frodo2.daemon.Daemon;
  * 		controller [IP of the controller] 3000 (the latter is the port of the controller)
  * - to exit, type
  * 		exit
- * @author brammertottens
+ * @author Brammert Ottens, Thomas Leaute
  *
  */
 public class Console extends UserIO {
@@ -48,12 +48,16 @@ public class Console extends UserIO {
 	 */
 	boolean done = false;
 	
+	/** The command line prefix */
+	private final String prefix;
+	
 	/**
 	 * The constructor
 	 * @param daemon 	the daemon
 	 */
 	public Console(Daemon daemon) {
 		super(daemon);
+		this.prefix = "Daemon " + daemon.daemonId + " > ";
 	}
 
 	/**
@@ -62,7 +66,8 @@ public class Console extends UserIO {
 	 */
 	@Override
 	public void tellUser(String message) {
-		System.out.println(">>" + message);
+		System.out.println(message);
+		System.out.print(this.prefix);
 	}
 	
 	/**
@@ -85,7 +90,7 @@ public class Console extends UserIO {
 			while(!done) {
 				// while the user does not want to stop
 				// parse the input
-				System.out.print(">");
+				System.out.print(this.prefix);
 				parseInput(br.readLine());
 			}
 		} catch(IOException ex) {
@@ -103,7 +108,16 @@ public class Console extends UserIO {
 		if(parts[0].equals("controller")) {
 			/// @todo The controller's port should be parameterizable
 			registerController(new TCPAddress(parts[1], Controller.PORT));
-		} else if(parts[0].equals("exit")) {
+		} 
+		
+		else if (parts[0].equals("open")) 
+			try {
+				this.load(parts[1]);
+			} catch(ArrayIndexOutOfBoundsException ex) {
+				tellUser("When opening a file you must give a filename!");
+			}
+					
+		else if(parts[0].equals("exit")) {
 			this.exit();
 			done = true;
 		}

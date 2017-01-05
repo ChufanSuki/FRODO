@@ -1,6 +1,6 @@
 <!-- 
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2016  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 How to contact the authors: 
-<http://frodo2.sourceforge.net/>
+<https://frodo-ai.tech>
 -->
 
 <!-- Overall definition of the agent
@@ -45,7 +45,7 @@ How to contact the authors:
 			domClass = "frodo2.solutionSpaces.AddableInteger" 
 			utilClass = "frodo2.solutionSpaces.AddableReal"
 			DOTrenderer = ""
-			countNCCCs = "true" />
+			countNCCCs = "false" />
 
 	<!-- A set of modules, each being parameterized by the following attributes: 
 		- className: the name of the class implementing the module
@@ -136,7 +136,8 @@ How to contact the authors:
 		</module>
 		
 		<!-- Passes information through the variables for them to collaboratively decrypt it -->
-		<module className = "frodo2.algorithms.dpop.privacy.CollaborativeDecryption" >
+		<module className = "frodo2.algorithms.dpop.privacy.CollaborativeDecryption" 
+				reportStats = "true" >
 			
 			<!-- The cryptographic scheme used. Possible schemes are: 
 				- frodo2.solutionSpaces.crypto.ElGamalScheme, which takes the following parameters:

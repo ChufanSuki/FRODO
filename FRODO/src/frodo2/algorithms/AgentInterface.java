@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2016  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 How to contact the authors: 
-<http://frodo2.sourceforge.net/>
+<https://frodo-ai.tech>
 */
 
 /** Package containing various algorithms */
@@ -57,11 +57,14 @@ public interface AgentInterface < V extends Addable<V> > {
 	/** The message sent when it has been detected that all agents are waiting for messages, but there are no more messages on the way */
 	public static final String ALL_AGENTS_IDLE = "ALL_AGENTS_IDLE";
 	
-	/** An AGENT_FINISHED message containing statistics about messages sent
+	/** A message containing statistics about messages sent
 	 * @author Thomas Leaute
 	 */
-	public static class AgentFinishedMessage extends MessageWith3Payloads< HashMap<String, Integer>, HashMap<String, Long>, HashMap<String, Long> > {
+	public static class ComStatsMessage extends MessageWith3Payloads< HashMap<String, Integer>, HashMap<String, Long>, HashMap<String, Long> > {
 
+		/** The type of this message */
+		public static final String COM_STATS_MSG_TYPE = "Communication statistics";
+		
 		/** The sender agent */
 		private Object sender;
 		
@@ -72,7 +75,7 @@ public interface AgentInterface < V extends Addable<V> > {
 		private HashMap<Object, Long> msgSizesSent;
 		
 		/** Empty constructor used for externalization */
-		public AgentFinishedMessage () { }
+		public ComStatsMessage () { }
 
 		/** Constructor
 		 * @param sender 			the sender agent
@@ -82,9 +85,9 @@ public interface AgentInterface < V extends Addable<V> > {
 		 * @param msgSizesSent 		the amount of information sent to each other agent, in bytes
 		 * @param maxMsgSizes 		for each message type, the size (in bytes) of the largest message of this type
 		 */
-		public AgentFinishedMessage(Object sender, HashMap<String, Integer> msgNbrs, HashMap<Object, Integer> msgNbrsSent, 
+		public ComStatsMessage(Object sender, HashMap<String, Integer> msgNbrs, HashMap<Object, Integer> msgNbrsSent, 
 				HashMap<String, Long> msgSizes, HashMap<Object, Long> msgSizesSent, HashMap<String, Long> maxMsgSizes) {
-			super(AGENT_FINISHED, msgNbrs, msgSizes, maxMsgSizes);
+			super(COM_STATS_MSG_TYPE, msgNbrs, msgSizes, maxMsgSizes);
 			this.sender = sender;
 			this.msgNbrsSent = msgNbrsSent;
 			this.msgSizesSent = msgSizesSent;
@@ -217,7 +220,8 @@ public interface AgentInterface < V extends Addable<V> > {
 	/** Sets up the agent to communicate with a daemon, a controller, and its neighbors
 	 * @param toDaemonPipe output pipe to the daemon
 	 * @param toControllerPipe the output pipe that should be used to communicate with the controller
+	 * @param statsToController if true, stats should be sent to the controller; else, to the daemon
 	 * @param port the port the agent is listening on. If < 0, no TCP pipe should be created. 
 	 */
-	public void setup (QueueOutputPipeInterface toDaemonPipe, QueueOutputPipeInterface toControllerPipe, int port);
+	public void setup (QueueOutputPipeInterface toDaemonPipe, QueueOutputPipeInterface toControllerPipe, boolean statsToController, int port);
 }

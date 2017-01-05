@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2016  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 How to contact the authors: 
-<http://frodo2.sourceforge.net/>
+<https://frodo-ai.tech>
  */
 
 package frodo2.algorithms.odpop;
@@ -90,7 +90,7 @@ public class UTILpropagation < Val extends Addable<Val>, U extends Addable<U> > 
 		// put the stats reporter stuff here
 		if(type.equals(OPT_UTIL_MSG_TYPE)) {
 			OptUtilMessage<U> msgCast = (OptUtilMessage<U>)msg;
-			if (!silent) 
+			if (this.reportStats) 
 				System.out.println("Optimal utility for component rooted at `" + msgCast.getVariable() + "\': " + msgCast.getUtility());
 			if (this.optTotalUtil == null) {
 				this.optTotalUtil = msgCast.getUtility();
@@ -182,8 +182,10 @@ public class UTILpropagation < Val extends Addable<Val>, U extends Addable<U> > 
 	/** @see frodo2.algorithms.odpop.UTILpropagationFullDomain#utilPropagationFinished(java.lang.String, frodo2.algorithms.odpop.goodsTree.GoodsTree, frodo2.solutionSpaces.Addable, int) */
 	@Override
 	protected void utilPropagationFinished(String variableID, GoodsTree<Val, U, LeafNode<U>> tree, U utility, int domainSize) {
-		queue.sendMessage(AgentInterface.STATS_MONITOR, new OptUtilMessage<U>(utility, variableID));
-		queue.sendMessage(AgentInterface.STATS_MONITOR, new StatsMessage(domainSize));
+		if (this.reportStats) {
+			queue.sendMessage(AgentInterface.STATS_MONITOR, new OptUtilMessage<U>(utility, variableID));
+			queue.sendMessage(AgentInterface.STATS_MONITOR, new StatsMessage(domainSize));
+		}
 		// start the VALUE propagation
 		queue.sendMessageToSelf(new GoodsTreeMessage<Val, U, LeafNode<U>>(tree, variableID));
 	}
@@ -258,8 +260,10 @@ public class UTILpropagation < Val extends Addable<Val>, U extends Addable<U> > 
 				variable.tree.removeAMax();
 				if(!variable.terminated) {
 					variable.terminated = true;
-					queue.sendMessage(AgentInterface.STATS_MONITOR, new OptUtilMessage<U>(aMax.getUtility(), variable.variableID));
-					queue.sendMessage(AgentInterface.STATS_MONITOR, new StatsMessage(variable.tree.getFinalDomainSize().length));
+					if (this.reportStats) {
+						queue.sendMessage(AgentInterface.STATS_MONITOR, new OptUtilMessage<U>(aMax.getUtility(), variable.variableID));
+						queue.sendMessage(AgentInterface.STATS_MONITOR, new StatsMessage(variable.tree.getFinalDomainSize().length));
+					}
 					// start the VALUE propagation
 					queue.sendMessageToSelf(new GoodsTreeMessage<Val, U, LeafNode<U>>(variable.tree, variable.variableID));
 				}
@@ -298,8 +302,10 @@ public class UTILpropagation < Val extends Addable<Val>, U extends Addable<U> > 
 		if(aMax != null) {
 			variable.tree.removeAMax();
 			if(variable.root) {
-				queue.sendMessage(AgentInterface.STATS_MONITOR, new OptUtilMessage<U>(aMax.getUtility(), variable.variableID));
-				queue.sendMessage(AgentInterface.STATS_MONITOR, new StatsMessage(variable.tree.getFinalDomainSize().length));
+				if (this.reportStats) {
+					queue.sendMessage(AgentInterface.STATS_MONITOR, new OptUtilMessage<U>(aMax.getUtility(), variable.variableID));
+					queue.sendMessage(AgentInterface.STATS_MONITOR, new StatsMessage(variable.tree.getFinalDomainSize().length));
+				}
 				// start the VALUE propagation
 			} else {
 				if(variable.getNewVariable()) {
@@ -357,15 +363,19 @@ public class UTILpropagation < Val extends Addable<Val>, U extends Addable<U> > 
 				variable.tree.removeAMax();
 				if(!variable.terminated) {
 					variable.terminated = true;
-					queue.sendMessage(AgentInterface.STATS_MONITOR, new OptUtilMessage<U>(aMax.getUtility(), variable.variableID));
-					queue.sendMessage(AgentInterface.STATS_MONITOR, new StatsMessage(variable.tree.getFinalDomainSize().length));
+					if (this.reportStats) {
+						queue.sendMessage(AgentInterface.STATS_MONITOR, new OptUtilMessage<U>(aMax.getUtility(), variable.variableID));
+						queue.sendMessage(AgentInterface.STATS_MONITOR, new StatsMessage(variable.tree.getFinalDomainSize().length));
+					}
 					// start the VALUE propagation
 					queue.sendMessageToSelf(new GoodsTreeMessage<Val, U, LeafNode<U>>(variable.tree, variable.variableID));
 				}
 			} else if(variable.infeasible && !variable.terminated) {
 				variable.terminated = true;
-				queue.sendMessage(AgentInterface.STATS_MONITOR, new OptUtilMessage<U>(this.infeasibleUtil, variable.variableID));
-				queue.sendMessage(AgentInterface.STATS_MONITOR, new StatsMessage(variable.tree.getFinalDomainSize().length));
+				if (this.reportStats) {
+					queue.sendMessage(AgentInterface.STATS_MONITOR, new OptUtilMessage<U>(this.infeasibleUtil, variable.variableID));
+					queue.sendMessage(AgentInterface.STATS_MONITOR, new StatsMessage(variable.tree.getFinalDomainSize().length));
+				}
 				// start the VALUE propagation
 				queue.sendMessageToSelf(new GoodsTreeMessage<Val, U, LeafNode<U>>(null, variable.variableID));
 			}

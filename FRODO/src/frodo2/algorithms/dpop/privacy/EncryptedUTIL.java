@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2016  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 How to contact the authors: 
-<http://frodo2.sourceforge.net/>
+<https://frodo-ai.tech>
 */
 
 package frodo2.algorithms.dpop.privacy;
@@ -124,6 +124,9 @@ implements StatsReporter, OutgoingMsgPolicyInterface<String> {
 	
 	/** A set of UTIL messages sent, used to detect when one leaves the agent, so as only to re-encrypt it then */
 	private HashMap< EncrUTIL<V, U, E>, VariableInfo > utilSent = new HashMap< EncrUTIL<V, U, E>, VariableInfo > ();
+
+	/** Whether to report stats */
+	private boolean reportStats = true;
 	
 	/** A convenience class used to store information about a variable */
 	private class VariableInfo {
@@ -307,21 +310,15 @@ implements StatsReporter, OutgoingMsgPolicyInterface<String> {
 		
 		this.problem = problem;
 		
-		// Parse whether to optimize runtime or NCCC count
-		String minNCCCs = parameters.getAttributeValue("minNCCCs");
-		if (minNCCCs != null) 
-			this.minNCCCs = Boolean.parseBoolean(minNCCCs);
-		else 
-			this.minNCCCs = false;
+		this.minNCCCs = Boolean.parseBoolean(parameters.getAttributeValue("minNCCCs"));
 		
 		// Parse which class should be used for utilities values
 		this.problem.setUtilClass((Class<U>) AddableInteger.class);
 		Class<E> eUtilClass = (Class<E>) Class.forName(parameters.getAttributeValue("encryptUtilClass"));
 		this.encryptedUtilClass = eUtilClass;
 
-		String mergeArg = parameters.getAttributeValue("mergeBack");
-		if (mergeArg == null) mergeBack = false;
-		else mergeBack = Boolean.parseBoolean(mergeArg);
+		this.mergeBack = Boolean.parseBoolean(parameters.getAttributeValue("mergeBack"));
+		this.reportStats = Boolean.parseBoolean(parameters.getAttributeValue("reportStats"));
 
 		/// @todo Use the ProblemRescaler to support arbitrary problems. 
 		assert ! problem.maximize() : "P2-DPOP currently only supports minimization problems with non-negative costs";
@@ -353,7 +350,9 @@ implements StatsReporter, OutgoingMsgPolicyInterface<String> {
 	}
 
 	/** @see StatsReporter#setSilent(boolean) */
-	public void setSilent(boolean silent) { }
+	public void setSilent(boolean silent) {
+		this.reportStats = ! silent;
+	}
 
 	/** @see StatsReporter#setQueue(Queue) */
 	public void setQueue(Queue queue) {
@@ -1009,7 +1008,8 @@ implements StatsReporter, OutgoingMsgPolicyInterface<String> {
 				for(BasicUtilitySolutionSpace.Iterator<V,E> iterator = space.iterator(); iterator.hasNext(); ) 
 					iterator.setCurrentUtility(info.reencrypt(iterator.nextUtility()));
 
-				queue.sendMessage(AgentInterface.STATS_MONITOR, new StatsMessage (space.getNumberOfVariables()));
+				if (this.reportStats) 
+					queue.sendMessage(AgentInterface.STATS_MONITOR, new StatsMessage (space.getNumberOfVariables()));
 
 				return Decision.DONTCARE;
 			}

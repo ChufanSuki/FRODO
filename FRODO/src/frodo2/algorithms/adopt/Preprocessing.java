@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2016  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 How to contact the authors: 
-<http://frodo2.sourceforge.net/>
+<https://frodo-ai.tech>
 */
 
 package frodo2.algorithms.adopt;
@@ -66,6 +66,9 @@ implements StatsReporter {
 	
 	/** The type of the heuristics stats message*/
 	public final static String HEURISTICS_STAT_MSG_TYPE = "Heuristics stat";
+
+	/** Whether to report stats */
+	private boolean reportStats = true;
 
 	/** A list of variables this agent owns */
 	private ArrayList<String> variables = new ArrayList<String> ();
@@ -142,6 +145,8 @@ implements StatsReporter {
 		if (heuristicName == null) 
 			heuristicName = SimpleHeuristic.class.getName();
 		setHeuristics(heuristicName);
+		
+		this.reportStats = Boolean.parseBoolean(parameters.getAttributeValue("reportStats"));
 	}
 	
 	/** Parses the problem */
@@ -233,12 +238,9 @@ implements StatsReporter {
 		return this.reportedHeuristics;
 	}
 
-	/** 
-	 * @see frodo2.algorithms.StatsReporter#setSilent(boolean)
-	 */
+	/** @see StatsReporter#setSilent(boolean) */
 	public void setSilent(boolean silent) {
-		// TODO Auto-generated method stub
-		
+		this.reportStats = ! silent;
 	}
 
 	/** @see IncomingMsgPolicyInterface#getMsgTypes() */
@@ -300,7 +302,10 @@ implements StatsReporter {
 			
 			if(varInfo.isHeuristicReady()) {
 				varInfo.heuristicSent = true;
-				queue.sendMessage(AgentInterface.STATS_MONITOR, new BoundsMsg<Val, U>(HEURISTICS_STAT_MSG_TYPE, varInfo.variableID, null, varInfo.h));
+				
+				if (this.reportStats) 
+					queue.sendMessage(AgentInterface.STATS_MONITOR, new BoundsMsg<Val, U>(HEURISTICS_STAT_MSG_TYPE, varInfo.variableID, null, varInfo.h));
+				
 				queue.sendMessageToSelf(new BoundsMsg<Val, U>(HEURISTICS_MSG_TYPE, varInfo.variableID, null, varInfo.h));
 				if(varInfo.parent != null) {
 					String destAgent = owners.get(varInfo.parent);
@@ -318,7 +323,10 @@ implements StatsReporter {
 			
 			if(varInfo.isHeuristicReady()) {
 				varInfo.heuristicSent = true;
-				queue.sendMessage(AgentInterface.STATS_MONITOR, new BoundsMsg<Val, U>(HEURISTICS_STAT_MSG_TYPE, varInfo.variableID, null, varInfo.h));
+				
+				if (this.reportStats) 
+					queue.sendMessage(AgentInterface.STATS_MONITOR, new BoundsMsg<Val, U>(HEURISTICS_STAT_MSG_TYPE, varInfo.variableID, null, varInfo.h));
+				
 				queue.sendMessageToSelf(new BoundsMsg<Val, U>(HEURISTICS_MSG_TYPE, varInfo.variableID, null, varInfo.h));
 				if(varInfo.parent != null) {
 					String destAgent = owners.get(varInfo.parent);

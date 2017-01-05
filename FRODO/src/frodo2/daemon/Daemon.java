@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2016  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 How to contact the authors: 
-<http://frodo2.sourceforge.net/>
+<https://frodo-ai.tech>
 */
 
 /**
@@ -45,7 +45,7 @@ import frodo2.daemon.userIO.Console;
 import frodo2.daemon.userIO.UserIO;
 
 /**
- * @author brammertottens
+ * @author Brammert Ottens, Thomas Leaute
  * This is the client side daemon that spawns
  * new agents for the experiments
  */
@@ -55,7 +55,7 @@ public class Daemon {
 	private static final int DEFAULT_PORT = 25000;
 	
 	/** The id of the daemon */
-	public static final String DAEMON = "deamon";
+	public static final String DAEMON = "frodo2.daemon.Daemon";
 	
 	/** The pipe for receiving internal messages*/
 	private QueueIOPipe inputInternal;
@@ -67,7 +67,7 @@ public class Daemon {
 	public AgentAddress daemonAddress;
 	
 	/** The daemons queue*/
-	Queue daemonQueue;
+	protected Queue daemonQueue;
 	
 	/** User interface*/
 	private UserIO ui;
@@ -84,6 +84,12 @@ public class Daemon {
 	/** The port number that the daemon listens on */
 	private int port;
 
+	/** The local configuration manager */
+	private LocalConfigManager configMan;
+
+	/** When the controller is non-omniscient, keeps track of whether the daemon has run out of problem instances to solve */
+	protected boolean isFinished = false;
+
 	/**
 	 * The constructor
 	 * @param useUI 	whether or not to use the User Interface
@@ -98,8 +104,18 @@ public class Daemon {
 	 * @param port 		the port number the daemon listens on
 	 */
 	public Daemon(boolean useUI, int port) {
+		this(useUI, port, "");
+	}
+	
+	/**
+	 * The constructor
+	 * @param useUI 	whether or not to use the User Interface
+	 * @param port 		the port number the daemon listens on
+	 * @param workDir 	the working directory
+	 */
+	public Daemon(boolean useUI, int port, String workDir) {
 		this.port = port;
-		init(useUI);
+		init(useUI, workDir);
 	}
 	
 	/**
@@ -108,7 +124,17 @@ public class Daemon {
 	 * @param useUI 				whether or not to use the User Interface
 	 */
 	public Daemon(AgentAddress controllerAddress, boolean useUI) {
-		this(controllerAddress, useUI, Daemon.DEFAULT_PORT);
+		this(controllerAddress, useUI, "");
+	}
+	
+	/**
+	 * A constructor that tells the daemon the controller's address
+	 * @param controllerAddress 	address of the controller
+	 * @param useUI 				whether or not to use the User Interface
+	 * @param workDir 				the working directory
+	 */
+	public Daemon(AgentAddress controllerAddress, boolean useUI, String workDir) {
+		this(controllerAddress, useUI, Daemon.DEFAULT_PORT, workDir);
 	}
 	
 	/**
@@ -118,16 +144,28 @@ public class Daemon {
 	 * @param port 					the port number the daemon listens on
 	 */
 	public Daemon(AgentAddress controllerAddress, boolean useUI, int port) {
+		this(controllerAddress, useUI, port, "");
+	}
+	
+	/**
+	 * A constructor that tells the daemon the controller's address
+	 * @param controllerAddress 	address of the controller
+	 * @param useUI 				whether or not to use the User Interface
+	 * @param port 					the port number the daemon listens on
+	 * @param workDir 				the working directory
+	 */
+	public Daemon(AgentAddress controllerAddress, boolean useUI, int port, String workDir) {
 		this.port = port;
-		init(useUI);
+		init(useUI, workDir);
 		ui.registerController(controllerAddress);
 	}
 	
 	/**
 	 * Initialisation
 	 * @param useUI 	whether or not to use the User Interface
+	 * @param workDir 	the working directory
 	 */
-	private void init(boolean useUI) {
+	private void init(boolean useUI, String workDir) {
 		
 		// get the local address
 	
@@ -149,11 +187,13 @@ public class Daemon {
 		if(useUI) {
 			ui.start();
 		}
+		this.configMan = new LocalConfigManager(this, workDir);
 		
 		// add the listeners and pipes to the queue
 		daemonQueue.addIncomingMessagePolicy(ui);
 		daemonQueue.addIncomingMessagePolicy(lwp);
 		daemonQueue.addIncomingMessagePolicy(constructor);
+		daemonQueue.addIncomingMessagePolicy(this.configMan);
 	}
 	
 	/**
@@ -162,7 +202,7 @@ public class Daemon {
 	public static void main(String[] args) {
 		
 		// The GNU GPL copyright notice
-		System.out.println("FRODO  Copyright (C) 2008-2016  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek");
+		System.out.println("FRODO  Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek");
 		System.out.println("This program comes with ABSOLUTELY NO WARRANTY.");
 		System.out.println("This is free software, and you are welcome to redistribute it");
 		System.out.println("under certain conditions. Use the option -license to display the license.\n");
@@ -170,6 +210,7 @@ public class Daemon {
 		// Loop through the list of input arguments 
 		String controllerIP = null;
 		int daemonPort = DEFAULT_PORT;
+		String workDir = "";
 		for (int i = 0; i < args.length; i++) {
 			
 			// If passed "-license", display the license and quit
@@ -200,6 +241,9 @@ public class Daemon {
 			} else if (args[i].equals("-daemonport") && ++i < args.length) {
 				daemonPort = Integer.parseInt(args[i]);
 				continue;
+			} else if (args[i].equals("-workdir") && ++i < args.length) {
+				workDir = args[i];
+				continue;
 			}
 
 			System.err.println("Invalid arguments given. Please use one of the following arguments");
@@ -207,13 +251,20 @@ public class Daemon {
 			System.err.println("\n-license\t\t to print the license");
 			System.err.println("-controller ip-address\t to give the IP address of the controller");
 			System.err.println("-daemonport port\t to give the port number the daemon should listen on");
+			System.err.println("-workdir dir\t to set the working directory");
 			System.exit(1);
 		}
 		
+		if (workDir.length() > 0) {
+			if (! workDir.endsWith("/")) 
+				workDir = workDir + "/";
+			System.out.println("The working directory is set to: " + workDir);
+		}
+		
 		if (controllerIP != null) 
-			new Daemon (new TCPAddress(controllerIP, Controller.PORT), true, daemonPort); 
+			new Daemon (new TCPAddress(controllerIP, Controller.PORT), true, daemonPort, workDir); 
 		else 
-			new Daemon(true, daemonPort);
+			new Daemon(true, daemonPort, workDir);
 	}
 	
 	/** @return the port number that the daemon listens on */

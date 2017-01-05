@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2016  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 How to contact the authors: 
-<http://frodo2.sourceforge.net/>
+<https://frodo-ai.tech>
 */
 
 package frodo2.algorithms.dpop;
@@ -112,8 +112,8 @@ implements StatsReporter {
 	/** The number of variables owned by this agents that have already sent VALUE messages to all their children */
 	protected int nbrVarsDone = 0;
 	
-	/** Whether the stats reporter should print its stats */
-	protected boolean silent = false;
+	/** Whether to report stats */
+	protected boolean reportStats = true;
 
 	/** If \c true, conditional optimal assignments are swapped until the VALUE message is received */
 	private final boolean swap;
@@ -180,12 +180,8 @@ implements StatsReporter {
 	public VALUEpropagation (DCOPProblemInterface<Val, ?> problem, Element parameters) {
 		this.problem = problem;
 		if(parameters != null) {
-			String swap = parameters.getAttributeValue("swap");
-			if(swap != null)
-				this.swap = Boolean.parseBoolean(swap);
-			else 
-				this.swap = false;
-
+			this.swap = Boolean.parseBoolean(parameters.getAttributeValue("swap"));
+			this.reportStats = Boolean.parseBoolean(parameters.getAttributeValue("reportStats"));
 		} else {
 			this.swap = false;
 		}
@@ -257,7 +253,7 @@ implements StatsReporter {
 			for (int i = 0; i < vars.length; i++) {
 				String var = vars[i];
 				Val val = vals.get(i);
-				if (val != null && solution.put(var, val) == null && !silent) 
+				if (val != null && solution.put(var, val) == null && this.reportStats) 
 					System.out.println("var `" + var + "' = " + val);
 			}
 			
@@ -268,7 +264,7 @@ implements StatsReporter {
 				finalTime = time;
 			
 			// When we have received all messages, print out the corresponding utility. 
-			if (!silent && this.solution.keySet().containsAll(this.problem.getVariables())) {
+			if (this.reportStats && this.solution.keySet().containsAll(this.problem.getVariables())) {
 				if (this.problem.maximize()) 
 					System.out.println("Total optimal utility: " + this.problem.getUtility(this.solution, true).getUtility(0));
 				else 
@@ -443,7 +439,7 @@ implements StatsReporter {
 
 	/** @see StatsReporter#setSilent(boolean) */
 	public void setSilent(boolean silent) {
-		this.silent  = silent;
+		this.reportStats = ! silent;
 	}
 	
 	/** Instantiates a VALUE message and sends it
@@ -494,7 +490,9 @@ implements StatsReporter {
 				if (value != null) 
 					solution.put(vars[i], value);
 			}
-			queue.sendMessage(AgentInterface.STATS_MONITOR, new AssignmentsMessage<Val> (vars, optVals));
+			
+			if (this.reportStats) 
+				queue.sendMessage(AgentInterface.STATS_MONITOR, new AssignmentsMessage<Val> (vars, optVals));
 		}
 		
 		// Go through the list of children 

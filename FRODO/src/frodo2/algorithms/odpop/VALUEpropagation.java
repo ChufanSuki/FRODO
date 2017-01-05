@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2016  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 How to contact the authors: 
-<http://frodo2.sourceforge.net/>
+<https://frodo-ai.tech>
 */
 package frodo2.algorithms.odpop;
 
@@ -70,8 +70,8 @@ public class VALUEpropagation < Val extends Addable<Val>, U extends Addable<U> >
 	
 	// Variables used to collect statistics
 
-	/** Whether the stats reporter should print its stats */
-	private boolean silent = false;
+	/** Whether to report stats */
+	private boolean reportStats = true;
 	
 	/** A repository for variable assignments collected in stats mode*/
 	private HashMap<String, Val> assignments;
@@ -162,6 +162,7 @@ public class VALUEpropagation < Val extends Addable<Val>, U extends Addable<U> >
 	 */
 	public VALUEpropagation(DCOPProblemInterface<Val, U> problem, Element parameters) {
 		this.problem = problem;
+		this.reportStats = Boolean.parseBoolean(parameters.getAttributeValue("reportStats"));
 	}
 	
 	/**
@@ -232,11 +233,9 @@ public class VALUEpropagation < Val extends Addable<Val>, U extends Addable<U> >
 		return this.maximalCutSum;
 	}
 
-	/**
-	 * @see frodo2.algorithms.StatsReporter#setSilent(boolean)
-	 */
+	/** @see StatsReporter#setSilent(boolean) */
 	public void setSilent(boolean silent) {
-		this.silent = silent;
+		this.reportStats = ! silent;
 	}
 
 	/**
@@ -274,7 +273,7 @@ public class VALUEpropagation < Val extends Addable<Val>, U extends Addable<U> >
 			this.spaceSize = msgCast.getSpaceSize();
 			this.maximalCutSum = this.maximalCutSum == null ? msgCast.getMaximalCut() : maximalCutSum.add(msgCast.getMaximalCut());
 
-			if (!silent) 
+			if (this.reportStats) 
 				System.out.println("var `" + msgCast.getVariable() + "' = " + msgCast.getValue());
 			long time = queue.getCurrentMessageWrapper().getTime();
 			if(finalTime < time)
@@ -427,7 +426,8 @@ public class VALUEpropagation < Val extends Addable<Val>, U extends Addable<U> >
 				VALUEmsgWithVars<Val> msg = new VALUEmsgWithVars<Val>(child, null);
 				sendMessageToVariable(child, msg);
 			}
-			queue.sendMessage(AgentInterface.STATS_MONITOR, new VALUEpropagation.AssignmentMessage<Val, U> (varID, val, 1, 1, 1, 1, 1, problem.getZeroUtility()));
+			if (this.reportStats) 
+				queue.sendMessage(AgentInterface.STATS_MONITOR, new VALUEpropagation.AssignmentMessage<Val, U> (varID, val, 1, 1, 1, 1, 1, problem.getZeroUtility()));
 		} else {
 			HashMap<String, Val> currentContext = contextMap.get(varIndex);
 			tree.getBestAssignmentForOwnVariable(currentContext);
@@ -441,7 +441,8 @@ public class VALUEpropagation < Val extends Addable<Val>, U extends Addable<U> >
 				VALUEmsgWithVars<Val> msg = new VALUEmsgWithVars<Val>(child, tree.getChildValues(currentContext, i));
 				sendMessageToVariable(child, msg);
 			}
-			queue.sendMessage(AgentInterface.STATS_MONITOR, new VALUEpropagation.AssignmentMessage<Val, U> (varID, val, tree.getTreeFillPercentage(), tree.getDummiesFillPercentage(), tree.getNumberOfDummies(), tree.getNumberOfGoodsSent(), tree.getSizeOfSpace(), tree.getMaximalCut()));
+			if (this.reportStats) 
+				queue.sendMessage(AgentInterface.STATS_MONITOR, new VALUEpropagation.AssignmentMessage<Val, U> (varID, val, tree.getTreeFillPercentage(), tree.getDummiesFillPercentage(), tree.getNumberOfDummies(), tree.getNumberOfGoodsSent(), tree.getSizeOfSpace(), tree.getMaximalCut()));
 		}
 		
 

@@ -1,6 +1,6 @@
 """
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2016  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 How to contact the authors: 
-<http://frodo2.sourceforge.net/>
+<https://frodo-ai.tech>
 """
 
 """ This script attempts to reproduce the experimental results in the following paper. 
@@ -39,18 +39,18 @@ import frodo2
 # The command to call java and the JVM parameters
 java = "java"
 javaParams = [
-            "-Xmx2G", # sets the Java heap space to 2 GB
-            "-classpath", "../frodo2.jar", # sets the Java classpath to include FRODO
-            ]
+			"-Xmx2G", # sets the Java heap space to 2 GB
+			"-classpath", "../frodo2.jar", # sets the Java classpath to include FRODO
+			]
 
 # Define the random problems to be generated
 generator = "frodo2.benchmarks.maxdiscsp.MaxDisCSPProblemGenerator"
 genParams = [
-            10, # the number of variables
-            10, # the domain size
-            .4, # the target p1 value
-            [.4, .5, .6, .7, .8, .9, .99], # the varying target p2 values
-            ]
+			10, # the number of variables
+			10, # the domain size
+			.4, # the target p1 value
+			[.4, .5, .6, .7, .8, .9, .99], # the varying target p2 values
+			]
 problemFile = "random_Max-DisCSP.xml"
 nbrProblems = 101 # for each combination of generator options, the number of problems to run the algorithms on
 
