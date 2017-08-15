@@ -93,13 +93,13 @@ public class CATSToXCSP {
 
 	
 	/** Pattern to identify the desired number of bids, which may be lower than the actual number of bids */
-	private static final Pattern nbrBidsPattern = Pattern.compile("%.*;\\sBids:\\s(\\d+).*");
+	private static final Pattern nbrBidsPattern = Pattern.compile("\\s*bids\\s+(\\d+)\\s*");
 	
 	/**Pattern used to identify the \'goods\' line in the source file*/
-	private static final Pattern goodsPattern = Pattern.compile(".*goods\\s*(\\d*).*");
+	private static final Pattern goodsPattern = Pattern.compile("\\s*goods\\s+(\\d+)\\s*");
 
 	/**Pattern used to identify the bids in the source file*/
-	private static final Pattern bidPattern = Pattern.compile("(\\d+)\\s+(-?\\d+(\\.\\d+)?)(\\s+\\d+)+\\s*#");
+	private static final Pattern bidPattern = Pattern.compile("\\s*(\\d+)\\s+(-?\\d+(\\.\\d*)?)(\\s+-?\\d+)+\\s*#");
 
 
 	/**
@@ -167,6 +167,7 @@ public class CATSToXCSP {
 		Scanner fileScanner = null;
 		int lineNumber = 1;
 		int nbrBids = -1;
+		nbGoods = -1;
 		try{
 			fileScanner = new Scanner(new File(sourceFileName));
 			String line = "";
@@ -174,26 +175,22 @@ public class CATSToXCSP {
 			Matcher goodsMatcher;
 			Matcher bidMatcher;
 			
-			// Parse the desired number of bids
-			while(fileScanner.hasNextLine() && nbrBids == - 1) {
-				nbrBidsMatcher = nbrBidsPattern.matcher(fileScanner.nextLine());
-				if (nbrBidsMatcher.find()) 
-					nbrBids = Integer.parseInt(nbrBidsMatcher.group(1));
-			}
-			
-			// Parse the number of goods
-			nbGoods = -1;
-			while(fileScanner.hasNextLine() && nbGoods == - 1) {
+			// Parse the desired number of bids and goods
+			while(fileScanner.hasNextLine() && (nbrBids == - 1 || nbGoods == -1)) {
 				line = fileScanner.nextLine();
-
-				// Look for the number of goods
-				if(nbGoods == -1) {
-					goodsMatcher = goodsPattern.matcher(line);
-					if(goodsMatcher.find()) {
-						nbGoods = Integer.parseInt(goodsMatcher.group(1));
-					}
-				}
 				lineNumber++;
+				
+				// Check if this is the "bids" line 
+				nbrBidsMatcher = nbrBidsPattern.matcher(line);
+				if (nbrBidsMatcher.find()) {
+					nbrBids = Integer.parseInt(nbrBidsMatcher.group(1));
+					continue;
+				}
+				
+				// Check if this is the "goods" line 
+				goodsMatcher = goodsPattern.matcher(line);
+				if(goodsMatcher.find()) 
+					nbGoods = Integer.parseInt(goodsMatcher.group(1));
 			}
 
 			// Initialize the auction and create all the goods sold in this auction
@@ -464,11 +461,11 @@ public class CATSToXCSP {
 				goodID = Integer.parseInt(good);
 
 				//"Normal" good
-				if(goodID < nbGoods) {
+				if(0 <= goodID && goodID < nbGoods) {
 					goodsList.add(auction.getGood(goodID));
 				}
 
-				//Dummy good; Good ID is higher than number of goods. Check whether there already exists a bidder for this dummy good ID
+				//Dummy good; Good ID is negative or higher than number of goods. Check whether there already exists a bidder for this dummy good ID
 				else {
 					bidder = dummyGoodsToBiddersMap.get(goodID);
 

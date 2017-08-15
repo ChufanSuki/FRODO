@@ -372,7 +372,7 @@ public class MGM <V extends Addable<V>, U extends Addable<U>> implements StatsRe
 		}
 
 		if(varInfo.can_move) {
-			boolean changed = !varInfo.currentValue.equals(varInfo.newValue);
+			boolean changed = (varInfo.currentValueIndex != varInfo.newValue);
 			varInfo.currentValueIndex = varInfo.newValue;
 			varInfo.currentValue = varInfo.domain[varInfo.newValue];
 			varInfo.agent_view[0] = varInfo.currentValue;
