@@ -433,6 +433,7 @@ public class Queue implements Runnable {
 	 * @param msgWrap	The wrapped message
 	 * @warning Does not notify outgoing message listeners. 
 	 */
+	@SuppressWarnings("unlikely-arg-type")
 	public void sendMessage (Object to, MessageWrapper msgWrap) {
 		QueueOutputPipeInterface outPipe;
 		

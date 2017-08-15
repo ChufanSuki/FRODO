@@ -761,12 +761,12 @@ public class MGM2 <V extends Addable<V>, U extends Addable<U>> implements StatsR
 		}
 
 		if(varInfo.can_move) {
-			varInfo.currentValueIndex = varInfo.newValue;
 			varInfo.currentValue = varInfo.neighborDomains[0][varInfo.newValue];
 			varInfo.agent_view[0] = varInfo.currentValue;
-			if(convergence && !varInfo.currentValue.equals(varInfo.newValue)){
+			if(convergence && varInfo.currentValueIndex != varInfo.newValue){
 				this.assignmentHistoriesMap.get(varInfo.variableID).add(new CurrentAssignment<V>(queue.getCurrentTime(), varInfo.termination_counter, varInfo.currentValue));
 			}
+			varInfo.currentValueIndex = varInfo.newValue;
 
 		}
 

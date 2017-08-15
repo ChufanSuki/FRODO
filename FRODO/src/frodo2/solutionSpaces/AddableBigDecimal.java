@@ -26,7 +26,6 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.math.BigDecimal;
-import java.math.BigInteger;
 
 /** An arbitrary-precision real number that implements Addable
  * @author Thomas Leaute, Eric Zbinden
@@ -603,16 +602,16 @@ public class AddableBigDecimal implements Addable<AddableBigDecimal> {
 		public void multiplyDelayed(AddableBigDecimal a) {
 			
 			if (this.val == null) { // I am infinite
-				assert ! a.val.equals(BigInteger.ZERO) : "Multiplying 0 with infinity";
+				assert ! a.val.equals(BigDecimal.ZERO) : "Multiplying 0 with infinity";
 				this.infSign = (this.infSign == (a.val.signum() >= 0));
 				
 			} else if (a == PlusInfinity.PLUS_INF) {
-				assert ! this.val.equals(BigInteger.ZERO) : "Multiplying 0 with +INF";
+				assert ! this.val.equals(BigDecimal.ZERO) : "Multiplying 0 with +INF";
 				this.infSign = (this.val.signum() > 0);
 				this.val = null;
 				
 			} else if (a == MinInfinity.MIN_INF) {
-				assert ! this.val.equals(BigInteger.ZERO) : "Multiplying 0 with -INF";
+				assert ! this.val.equals(BigDecimal.ZERO) : "Multiplying 0 with -INF";
 				this.infSign = (this.val.signum() < 0);
 				this.val = null;
 				

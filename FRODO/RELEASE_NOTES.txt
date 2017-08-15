@@ -1,3 +1,13 @@
+CHANGES IN VERSION 2.15.1 SINCE VERSION 2.15
+
+Major changes: 
+	- Improved the CATS parser to support SATS (http://spectrumauctions.org) outputs (request by Sankarshan Damle). 
+	
+Minor changes: 
+	- Fixed bugs in MGM & MGM2 following which, when measuring convergence, more data points than necessary were collected. 
+	- Minor code cleanups. 
+
+
 CHANGES IN VERSION 2.15 SINCE VERSION 2.14
 
 Major changes: 
