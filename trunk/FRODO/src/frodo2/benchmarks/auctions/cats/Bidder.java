@@ -92,4 +92,16 @@ public class Bidder {
 		this.isFake = isFake;
 	}
 
+	/** 
+	 * @see java.lang.Object#toString() 
+	 * @author Thomas Leaute
+	 */
+	@Override
+	public String toString() {
+		StringBuilder builder = new StringBuilder ("Bidder ");
+		builder.append(this.bidderID);
+		if (this.isFake) 
+			builder.append(" (fake)");
+		return builder.toString();
+	}
 }

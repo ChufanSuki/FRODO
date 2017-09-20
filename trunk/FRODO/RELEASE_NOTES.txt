@@ -1,3 +1,12 @@
+CHANGES IN VERSION 2.15.2 SINCE VERSION 2.15.1
+
+Major changes: 
+	- n/a  
+	
+Minor changes: 
+	- Fixed a bug in the CATS parser triggered by negative bid values from bidders with multiple bids (reported by Sankarshan Damle). 
+
+
 CHANGES IN VERSION 2.15.1 SINCE VERSION 2.15
 
 Major changes: 

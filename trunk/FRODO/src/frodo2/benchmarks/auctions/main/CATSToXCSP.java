@@ -455,7 +455,12 @@ public class CATSToXCSP {
 		assert price >= 0 || goods.length==1 : "Reserve prices are only allowed for one good and not for bundles of goods.";		
 		assert price >= 0 || !goodsWithRP.contains(auction.getGood(Integer.parseInt(goods[0]))) : "A good can have only one reserve price.";
 
-		if((price < 0 && goods.length==1 && !goodsWithRP.contains(auction.getGood(Integer.parseInt(goods[0])))) || price >= 0){ //avoids strange fake bidders which bids negative price for more than one good or redundant reserve price
+		// Avoid strange fake bidders which bids negative price for more than one good or redundant reserve price
+		if(		price >= 0 
+			|| 	(	(	goods.length == 1 // single good 
+					|| (goods.length == 2 && (Integer.parseInt(goods[1]) < 0 || Integer.parseInt(goods[1])  >= nbGoods)) // single good + dummy good
+				&& 	!goodsWithRP.contains(auction.getGood(Integer.parseInt(goods[0])))))) {
+			
 			//Iteration over parsed good IDs
 			for(String good : goods) {
 				goodID = Integer.parseInt(good);
@@ -483,12 +488,13 @@ public class CATSToXCSP {
 			if(bidder == null) {
 				bidder = new Bidder();
 				auction.addBidder(bidder);
-			}
-			if(price < 0){  //if it is a fake bidder
-				assert methodID == 2 || methodID == 3 : "Reserve prices are not supported when using method " + methodID;
-				auction.getGood(Integer.parseInt(goods[0])).setReservePrice(Math.abs(price));
-				bidder.setFake(true);
-				goodsWithRP.add(auction.getGood(Integer.parseInt(goods[0])));
+				
+				if(price < 0){  //if it is a fake bidder
+					assert methodID == 2 || methodID == 3 : "Reserve prices are not supported when using method " + methodID;
+					auction.getGood(Integer.parseInt(goods[0])).setReservePrice(Math.abs(price));
+					bidder.setFake(true);
+					goodsWithRP.add(auction.getGood(Integer.parseInt(goods[0])));
+				}
 			}
 
 			auction.addBid(new Bid(bidID, bidder, price, goodsList));
