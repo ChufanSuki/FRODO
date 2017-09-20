@@ -87,4 +87,20 @@ public class Bid {
 	public List<Good> getGoodsList() {
 		return goodsList;
 	}
+	
+	/** 
+	 * @see java.lang.Object#toString() 
+	 * @author Thomas Leaute
+	 */
+	@Override
+	public String toString() {
+		StringBuilder builder = new StringBuilder ("Bid ");
+		builder.append(this.bidID);
+		builder.append(" for ").append(this.price);
+		builder.append(" from ").append(this.bidder);
+		builder.append(" on ");
+		for (Good good : this.goodsList) 
+			builder.append(good).append(", ");
+		return builder.toString();
+	}
 }

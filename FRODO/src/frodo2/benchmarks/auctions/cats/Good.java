@@ -92,4 +92,17 @@ public class Good {
 	public void setReservePrice(double reservePrice) {
 		this.reservePrice = reservePrice;
 	}
+	
+	/** 
+	 * @see java.lang.Object#toString() 
+	 * @author Thomas Leaute
+	 */
+	@Override
+	public String toString() {
+		StringBuilder builder = new StringBuilder ("Good ");
+		builder.append(this.goodID);
+		if (this.reservePrice != 0.0) 
+			builder.append(" (reserve price = ").append(this.reservePrice).append(")");
+		return builder.toString();
+	}
 }

@@ -121,4 +121,28 @@ public class Auction {
 			goodsList.add(new Good(i));
 		}
 	}
+	
+	/** 
+	 * @see java.lang.Object#toString() 
+	 * @author Thomas Leaute
+	 */
+	@Override
+	public String toString() {
+		StringBuilder builder = new StringBuilder ("Auction\n");
+		
+		builder.append("\tGoods:\n");
+		for (Good good : this.goodsList) 
+			builder.append("\t\t").append(good).append("\n");
+		
+		builder.append("\tBidders:\n");
+		for (Bidder bidder : this.biddersList) {
+			builder.append("\t\t").append(bidder).append("\n");
+			
+			builder.append("\t\t\tBids:\n");
+			for (Bid bid : bidder.getBidsList()) 
+				builder.append("\t\t\t\t").append(bid).append("\n");
+		}
+		
+		return builder.toString();
+	}
 }
