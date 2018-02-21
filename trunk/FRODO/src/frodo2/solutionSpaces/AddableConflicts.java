@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2018  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -240,6 +240,14 @@ public class AddableConflicts < U extends Addable<U>> implements Addable<Addable
 		/// @todo Auto-generated method stub
 		assert false : "Not yet implemented";
 		return 0;
+	}
+
+	/** @see Addable#fromInt(int) */
+	@Override
+	public AddableConflicts<U> fromInt(int nbr) {
+		/// @todo Auto-generated method stub
+		assert false : "Not yet implemented";
+		return null;
 	}
 
 }

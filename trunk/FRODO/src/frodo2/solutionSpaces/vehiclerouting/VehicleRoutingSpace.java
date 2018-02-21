@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2018  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -1186,7 +1186,7 @@ public class VehicleRoutingSpace < U extends Addable<U> > implements UtilitySolu
 		AddableInteger[][] domsKept = new AddableInteger [nbrVarsKept][];
 		for (int i = 0; i < nbrVarsKept; i++) 
 			domsKept[i] = this.getDomain(varsKeptArray[i]);
-		Class<U> utilClass = (Class<U>) this.infeasibleUtil.fromString("0").getClass();
+		Class<U> utilClass = (Class<U>) this.infeasibleUtil.fromInt(0).getClass();
 		Hypercube<AddableInteger, U> space = new Hypercube<AddableInteger, U> (varsKeptArray, domsKept, (U[]) Array.newInstance(utilClass, nbrUtilsKept), this.infeasibleUtil);
 		BasicHypercube< AddableInteger, ArrayList<AddableInteger> > assignments = 
 			new BasicHypercube< AddableInteger, ArrayList<AddableInteger> > (varsKeptArray, domsKept, (ArrayList<AddableInteger>[]) new ArrayList [nbrUtilsKept], null);

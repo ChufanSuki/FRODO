@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2018  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -115,7 +115,7 @@ extends UTILpropagation<Val, U> {
 	public ExpectedUTIL (DCOPProblemInterface<Val, U> problem, Element parameters) {
 		super (problem, parameters);
 		this.zero = problem.getZeroUtility();
-		this.one = this.zero.fromString("1");
+		this.one = this.zero.fromInt(1);
 		withAnonymVars = true;
 		this.parseMethod(parameters);
 	}
@@ -150,7 +150,7 @@ extends UTILpropagation<Val, U> {
 		this.remainingVars = problem.getNbrVars();
 		this.problem = problem;
 		this.zero = problem.getZeroUtility();
-		this.one = this.zero.fromString("1");
+		this.one = this.zero.fromInt(1);
 		if (parameters != null) 
 			this.measureProbOfOpt = Boolean.parseBoolean(parameters.getAttributeValue("probOfOptimality"));
 	}

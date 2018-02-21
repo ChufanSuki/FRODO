@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2018  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -51,6 +51,7 @@ import frodo2.solutionSpaces.AddableBigDecimal;
 import frodo2.solutionSpaces.AddableInteger;
 import frodo2.solutionSpaces.AddableReal;
 import frodo2.solutionSpaces.UtilitySolutionSpace;
+import frodo2.solutionSpaces.crypto.AddableBigInteger;
 import frodo2.solutionSpaces.BasicUtilitySolutionSpace.Iterator;
 import frodo2.solutionSpaces.vehiclerouting.VehicleRoutingSpace;
 import junit.extensions.RepeatedTest;
@@ -168,7 +169,7 @@ public class VRPtests extends TestCase {
 	public void test () throws Exception {
 		
 		// The timeout, in ms
-		long timeout = 10000L;
+		long timeout = 20000L;
 		
 		// Solve with DPOP
 		Document agentDoc = XCSPparser.parse("src/frodo2/algorithms/dpop/DPOPagentVRP.xml", false);
@@ -224,19 +225,13 @@ public class VRPtests extends TestCase {
 		
 		// Compare with P-DPOP
 		agentDoc = XCSPparser.parse("src/frodo2/algorithms/dpop/privacy/P-DPOPagentVRP.xml", false);
-		solReal = new P_DPOPsolver<AddableInteger, AddableReal> (agentDoc).solve(problem, timeout);
-		assertNotNull("P-DPOP failed to find a solution", solReal);
-		utilReal = solReal.getUtility();
-//		assertTrue( "DPOP and P-DPOP disagree: " + dpopUtil + " != " + pdpopUtil, dpopUtil.equals(synchBButil, 1E-6));
-		assert dpopSolReal.getAssignments().equals(solReal.getAssignments()) || dpopUtilReal.equals(utilReal, 1E-6) : "DPOP and P-DPOP disagree: " + dpopUtilReal + " != " + utilReal;
+		Solution<AddableInteger, AddableBigInteger> solBigInteger = new P_DPOPsolver<AddableInteger> (agentDoc).solve(problem, timeout);
+		assertNotNull("P-DPOP failed to find a solution", solBigInteger);
 		
 		// Compare with P2-DPOP
 		agentDoc = XCSPparser.parse("src/frodo2/algorithms/dpop/privacy/P2-DPOPagentVRP.xml", false);
 		solReal = new P2_DPOPsolver<AddableInteger, AddableReal> (agentDoc).solve(problem, timeout * 12, (int) dpopSolReal.getUtility().doubleValue() + 1);
 		assertNotNull("P2-DPOP failed to find a solution", solReal);
-		utilReal = solReal.getUtility();
-//		assertTrue( "DPOP and P2-DPOP disagree: " + dpopUtil + " != " + p2dpopUtil, dpopUtil.equals(synchBButil, 1E-6));
-		assert dpopSolReal.getAssignments().equals(solReal.getAssignments()) || dpopUtilReal.equals(utilReal, 1E-6) : "DPOP and P2-DPOP disagree: " + dpopUtilReal + " != " + utilReal;
 		
 		// Compare with ADOPT
 		agentDoc = XCSPparser.parse("src/frodo2/algorithms/adopt/ADOPTagentVRP.xml", false);

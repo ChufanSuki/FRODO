@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2018  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -94,9 +94,24 @@ public class AddableInteger implements Addable<AddableInteger> {
 			} catch (NumberFormatException e) { // does not look like an int
 				
 				// Try to parse it as a double, and truncate
+				System.err.println("WARNING! Attempting to parse `" + str + "' as a double and truncate it to an int");
 				return new AddableInteger ((int) Double.parseDouble(str));
 			}
 		}
+	}
+	
+	/** @see Addable#fromInt(int) */
+	@Override
+	public AddableInteger fromInt(int nbr) {
+		
+		if (nbr <= Integer.MIN_VALUE) 
+			return MinInfinity.MIN_INF;
+		
+		else if (nbr >= Integer.MAX_VALUE) 
+			return PlusInfinity.PLUS_INF;
+		
+		else 
+			return new AddableInteger (nbr);
 	}
 	
 	/** @return the value as an int */
@@ -127,6 +142,7 @@ public class AddableInteger implements Addable<AddableInteger> {
 		} else if(o == MinInfinity.MIN_INF) {
 			return MinInfinity.MIN_INF;
 		}
+		assert Math.addExact(this.integer, o.integer) == this.integer + o.integer : "Integer overflow";
 		return new AddableInteger(integer + o.integer);
 	}
 	
@@ -135,6 +151,7 @@ public class AddableInteger implements Addable<AddableInteger> {
 	 * @return the resulting new AddableInteger
 	 */
 	public AddableInteger add(int o) {
+		assert Math.addExact(this.integer, o) == this.integer + o : "Integer overflow";
 		return new AddableInteger(integer + o);
 	}
 	
@@ -149,6 +166,7 @@ public class AddableInteger implements Addable<AddableInteger> {
 		} else if(o == MinInfinity.MIN_INF) {
 			return PlusInfinity.PLUS_INF;
 		}
+		assert Math.subtractExact(this.integer, o.integer) == this.integer - o.integer : "Integer overflow";
 		return new AddableInteger(integer - o.integer);
 	}
 	
@@ -157,6 +175,7 @@ public class AddableInteger implements Addable<AddableInteger> {
 	 * @return 		the result of the subtraction
 	 */
 	public AddableInteger subtract(int o) {
+		assert Math.subtractExact(this.integer, o) == this.integer - o : "Integer overflow";
 		return new AddableInteger(integer - o);
 	}
 	
@@ -184,6 +203,7 @@ public class AddableInteger implements Addable<AddableInteger> {
 				return PlusInfinity.PLUS_INF;
 
 		} else 
+			assert Math.multiplyExact(this.integer, o.integer) == this.integer * o.integer : "Integer overflow";
 			return new AddableInteger(integer * o.integer);
 	}
 	
@@ -608,6 +628,7 @@ public class AddableInteger implements Addable<AddableInteger> {
 				sum = -1;
 				
 			} else {
+				assert Math.addExact(this.sum, a.integer) == this.sum + a.integer : "Integer overflow";
 				sum += a.integer;
 			}
 		}

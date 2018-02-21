@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2018  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -85,7 +85,7 @@ public class ProblemRescaler< U extends Addable<U> > implements IncomingMsgPolic
 	/** @see IncomingMsgPolicyInterface#notifyIn(Message) */
 	public void notifyIn(Message msg) {
 
-		this.problem.rescale((this.problem.maximize() != this.maximize ? this.shift.fromString("-1") : this.shift.fromString("1"))
+		this.problem.rescale((this.problem.maximize() != this.maximize ? this.shift.fromInt(-1) : this.shift.fromInt(1))
 				, this.shift);
 		this.problem.setMaximize(maximize);
 

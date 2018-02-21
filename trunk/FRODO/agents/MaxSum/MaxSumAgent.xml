@@ -1,6 +1,6 @@
 <!-- 
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2018  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -81,11 +81,14 @@ How to contact the authors:
 		<!-- The Max-Sum algorithm. Each factor node with no specified owner agent is by convention simulated by the agent owning the first variable in its scope. 
 			- maxNbrIter: the desired maximum number of iterations per node
 			- randomInit (default = true): whether the algorithm should be initialized with random messages (otherwise, the initialization messages are full of zeros)
+			- synchronous (default = false): whether each function/variable node immediately responds to each message received (synchronous = false), 
+				or waits until it has received a message from each neighbor to respond (synchronous = true, i.e. round-based). 
 		 -->
 		<module className = "frodo2.algorithms.maxsum.MaxSum" 
 				reportStats = "true" 
 				maxNbrIter = "200" 
-				randomInit = "true" />
+				randomInit = "true" 
+				synchronous = "false" />
 		
 		<!-- Prints out all messages received and sent by the agent
 			WARNING! This can significantly affect runtime performance. Only use this module for debugging purposes. 

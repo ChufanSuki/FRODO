@@ -1,6 +1,6 @@
 <!-- 
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2018  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -40,8 +40,7 @@ How to contact the authors:
 			- frodo2.solutionSpaces.AddableInteger 	(default) for integer-valued variables
 			- frodo2.solutionSpaces.AddableReal 		for (finite-domain) real-valued variables
 		- utilClass: the class to be used for utility values; the supported values are: 
-			- frodo2.solutionSpaces.AddableInteger 	(default) for integer utilities
-			- frodo2.solutionSpaces.AddableReal 		for decimal utilities
+			- frodo2.solutionSpaces.crypto.AddableBigInteger 	
 		- DOTrenderer: the class to be used to display the constraint graph. Supported values:
 			- empty string: displays the constraint graph in DOT format in the console; 
 			- frodo2.gui.DOTrenderer: renders the constraint graph in a new window. Assumes that Graphviz' "dot" command is on the shell path. 
@@ -50,7 +49,7 @@ How to contact the authors:
 	<parser parserClass = "frodo2.algorithms.XCSPparser" 
 			displayGraph = "true" 
 			domClass = "frodo2.solutionSpaces.AddableInteger" 
-			utilClass = "frodo2.solutionSpaces.AddableInteger"
+			utilClass = "frodo2.solutionSpaces.crypto.AddableBigInteger"
 			DOTrenderer = ""
 			countNCCCs = "true" />
 

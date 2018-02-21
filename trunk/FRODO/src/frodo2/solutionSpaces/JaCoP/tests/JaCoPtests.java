@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2018  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -64,21 +64,25 @@ import frodo2.algorithms.odpop.ODPOPsolver;
 import frodo2.algorithms.reformulation.ProblemRescaler;
 import frodo2.algorithms.synchbb.SynchBBsolver;
 import frodo2.algorithms.test.AllTests;
+import frodo2.solutionSpaces.Addable;
 import frodo2.solutionSpaces.AddableInteger;
+import frodo2.solutionSpaces.UtilitySolutionSpace;
 import frodo2.solutionSpaces.JaCoP.JaCoPutilSpace;
 import frodo2.solutionSpaces.JaCoP.JaCoPxcspParser;
+import frodo2.solutionSpaces.crypto.AddableBigInteger;
 
 /** JUnit test for JaCoPutilSpace
  * @author Arnaud Jutzeler, Thomas Leaute
+ * @param <U> class of utility values
  *
  */
-public class JaCoPtests extends TestCase {
+public class JaCoPtests < U extends Addable<U> > extends TestCase {
 
 	/** The description file of the agent */
 	private Document agentDescDoc;
 
 	/** The solver used */
-	private Class<? extends AbstractDCOPsolver<AddableInteger, AddableInteger, ?>> solverClass;
+	private Class<? extends AbstractDCOPsolver<AddableInteger, U, ?>> solverClass;
 
 	/** If we use the TCP pipes or not */
 	private boolean useTCP;
@@ -144,28 +148,37 @@ public class JaCoPtests extends TestCase {
 	/** The algorithm being tested */
 	private Algorithm currentAlgorithm;
 
+	/** The class of utility values */
+	private final Class<U> classOfU;
+
 	/** Constructor
-	 * @param name 				name of the test method
-	 * @param algorithm			the algorithm tested
-	 * @param agentDescFile		the description file of the agent
-	 * @param solverClass		the class of the tested solver
+	 * @param name 			name of the test method
+	 * @param algorithm		the algorithm tested
+	 * @param agentDescFile	the description file of the agent
+	 * @param solverClass	the class of the tested solver
+	 * @param classOfU 		the class of utility values
 	 * @param useTCP			if we test with TCP pipes or not
-	 * @param maximize			the optimization type of random problems
+	 * @param maximize		the optimization type of random problems
 	 */
-	public JaCoPtests(String name, Algorithm algorithm, String agentDescFile, Class<? extends AbstractDCOPsolver<AddableInteger, AddableInteger, ?>> solverClass , boolean useTCP, boolean maximize) {
-		this (name, algorithm, agentDescFile, solverClass, useTCP, maximize, null);
+	public JaCoPtests(String name, Algorithm algorithm, String agentDescFile, 
+			Class<? extends AbstractDCOPsolver<AddableInteger, U, ?>> solverClass, Class<U> classOfU, 
+					boolean useTCP, boolean maximize) {
+		this (name, algorithm, agentDescFile, solverClass, classOfU, useTCP, maximize, null);
 	}
 
 	/** Constructor that takes in a File
-	 * @param name 				name of the test method
-	 * @param algorithm			the algorithm tested
-	 * @param agentDescFile		the description file of the agent
-	 * @param solverClass		the class of the tested solver
+	 * @param name 			name of the test method
+	 * @param algorithm		the algorithm tested
+	 * @param agentDescFile	the description file of the agent
+	 * @param solverClass	the class of the tested solver
+	 * @param classOfU 		the class of utility values
 	 * @param useTCP			if we test with TCP pipes or not
-	 * @param maximize			the optimization type of random problems
-	 * @param probFile 			the problem file
+	 * @param maximize		the optimization type of random problems
+	 * @param probFile 		the problem file
 	 */
-	public JaCoPtests(String name, Algorithm algorithm, String agentDescFile, Class<? extends AbstractDCOPsolver<AddableInteger, AddableInteger, ?>> solverClass , boolean useTCP, boolean maximize, File probFile) {
+	public JaCoPtests(String name, Algorithm algorithm, String agentDescFile, 
+			Class<? extends AbstractDCOPsolver<AddableInteger, U, ?>> solverClass, Class<U> classOfU, 
+					boolean useTCP, boolean maximize, File probFile) {
 		super(name);
 
 		try {
@@ -176,6 +189,7 @@ public class JaCoPtests extends TestCase {
 
 		this.currentAlgorithm = algorithm;
 		this.solverClass = solverClass;
+		this.classOfU = classOfU;
 		this.useTCP = useTCP;
 		this.maximize = maximize;
 		this.probFile = probFile;
@@ -186,56 +200,56 @@ public class JaCoPtests extends TestCase {
 	public static TestSuite suite () {
 		TestSuite suite = new TestSuite ("Tests for the JaCoP spaces");
 		
-		suite.addTest(createSuite(Algorithm.DPOP, (Class<? extends AbstractDCOPsolver<AddableInteger, AddableInteger, ?>>) DPOPsolver.class
-				, "src/frodo2/algorithms/dpop/DPOPagentJaCoP.xml"));
+		suite.addTest(createSuite(Algorithm.DPOP, (Class<? extends AbstractDCOPsolver<AddableInteger, AddableInteger, ?>>) DPOPsolver.class, 
+				AddableInteger.class, "src/frodo2/algorithms/dpop/DPOPagentJaCoP.xml"));
 		
-		suite.addTest(createSuite(Algorithm.P_DPOP, (Class<? extends AbstractDCOPsolver<AddableInteger, AddableInteger, ?>>) P_DPOPsolver.class
-				, "src/frodo2/algorithms/dpop/privacy/P-DPOPagentJaCoP.xml"));
+		suite.addTest(createSuite(Algorithm.P_DPOP, (Class<? extends AbstractDCOPsolver<AddableInteger, AddableBigInteger, ?>>) P_DPOPsolver.class, 
+				AddableBigInteger.class, "src/frodo2/algorithms/dpop/privacy/P-DPOPagentJaCoP.xml"));
 		
-		suite.addTest(createSuite(Algorithm.P3halves_DPOP, (Class<? extends AbstractDCOPsolver<AddableInteger, AddableInteger, ?>>) P3halves_DPOPsolver.class
-				, "src/frodo2/algorithms/dpop/privacy/P1.5-DPOPagentJaCoP.xml"));
+		suite.addTest(createSuite(Algorithm.P3halves_DPOP, (Class<? extends AbstractDCOPsolver<AddableInteger, AddableBigInteger, ?>>) P3halves_DPOPsolver.class, 
+				AddableBigInteger.class, "src/frodo2/algorithms/dpop/privacy/P1.5-DPOPagentJaCoP.xml"));
 		
-		suite.addTest(createSuite(Algorithm.P2_DPOP, (Class<? extends AbstractDCOPsolver<AddableInteger, AddableInteger, ?>>) P2_DPOPsolver.class
-				, "src/frodo2/algorithms/dpop/privacy/P2-DPOPagentJaCoP.xml"));
+		suite.addTest(createSuite(Algorithm.P2_DPOP, (Class<? extends AbstractDCOPsolver<AddableInteger, AddableInteger, ?>>) P2_DPOPsolver.class, 
+				AddableInteger.class, "src/frodo2/algorithms/dpop/privacy/P2-DPOPagentJaCoP.xml"));
 		
-		suite.addTest(createSuite(Algorithm.ASODPOP,  (Class<? extends AbstractDCOPsolver<AddableInteger, AddableInteger, ?>>) ASODPOPsolver.class
-				, "src/frodo2/algorithms/asodpop/ASODPOPagentJaCoP.xml"));
+		suite.addTest(createSuite(Algorithm.ASODPOP,  (Class<? extends AbstractDCOPsolver<AddableInteger, AddableInteger, ?>>) ASODPOPsolver.class, 
+				AddableInteger.class, "src/frodo2/algorithms/asodpop/ASODPOPagentJaCoP.xml"));
 		
-		suite.addTest(createSuite(Algorithm.ODPOP,  (Class<? extends AbstractDCOPsolver<AddableInteger, AddableInteger, ?>>) ODPOPsolver.class
-				, "src/frodo2/algorithms/odpop/ODPOPagentJaCoP.xml"));
+		suite.addTest(createSuite(Algorithm.ODPOP,  (Class<? extends AbstractDCOPsolver<AddableInteger, AddableInteger, ?>>) ODPOPsolver.class, 
+				AddableInteger.class, "src/frodo2/algorithms/odpop/ODPOPagentJaCoP.xml"));
 		
-		suite.addTest(createSuite(Algorithm.SYNCHBB,  (Class<? extends AbstractDCOPsolver<AddableInteger, AddableInteger, ?>>) SynchBBsolver.class
-				, "src/frodo2/algorithms/synchbb/SynchBBagentJaCoP.xml"));
+		suite.addTest(createSuite(Algorithm.SYNCHBB,  (Class<? extends AbstractDCOPsolver<AddableInteger, AddableInteger, ?>>) SynchBBsolver.class, 
+				AddableInteger.class, "src/frodo2/algorithms/synchbb/SynchBBagentJaCoP.xml"));
 		
-		suite.addTest(createSuite(Algorithm.ADOPT,  (Class<? extends AbstractDCOPsolver<AddableInteger, AddableInteger, ?>>) ADOPTsolver.class
-				, "src/frodo2/algorithms/adopt/ADOPTagentJaCoP.xml"));
+		suite.addTest(createSuite(Algorithm.ADOPT,  (Class<? extends AbstractDCOPsolver<AddableInteger, AddableInteger, ?>>) ADOPTsolver.class, 
+				AddableInteger.class, "src/frodo2/algorithms/adopt/ADOPTagentJaCoP.xml"));
 		
-		suite.addTest(createSuite(Algorithm.DSA,  (Class<? extends AbstractDCOPsolver<AddableInteger, AddableInteger, ?>>)DSAsolver.class
-				, "src/frodo2/algorithms/localSearch/dsa/DSAagentJaCoP.xml"));
+		suite.addTest(createSuite(Algorithm.DSA,  (Class<? extends AbstractDCOPsolver<AddableInteger, AddableInteger, ?>>)DSAsolver.class, 
+				AddableInteger.class, "src/frodo2/algorithms/localSearch/dsa/DSAagentJaCoP.xml"));
 		
-		suite.addTest(createSuite(Algorithm.MGM,  (Class<? extends AbstractDCOPsolver<AddableInteger, AddableInteger, ?>>)MGMsolver.class
-				, "src/frodo2/algorithms/localSearch/mgm/MGMagentJaCoP.xml"));
+		suite.addTest(createSuite(Algorithm.MGM,  (Class<? extends AbstractDCOPsolver<AddableInteger, AddableInteger, ?>>)MGMsolver.class, 
+				AddableInteger.class, "src/frodo2/algorithms/localSearch/mgm/MGMagentJaCoP.xml"));
 		
-		suite.addTest(createSuite(Algorithm.MGM2,  (Class<? extends AbstractDCOPsolver<AddableInteger, AddableInteger, ?>>)MGM2solver.class
-				, "src/frodo2/algorithms/localSearch/mgm/mgm2/MGM2agentJaCoP.xml"));
+		suite.addTest(createSuite(Algorithm.MGM2,  (Class<? extends AbstractDCOPsolver<AddableInteger, AddableInteger, ?>>)MGM2solver.class, 
+				AddableInteger.class, "src/frodo2/algorithms/localSearch/mgm/mgm2/MGM2agentJaCoP.xml"));
 
-		suite.addTest(createSuite(Algorithm.MPC_DisCSP4,  (Class<? extends AbstractDCOPsolver<AddableInteger, AddableInteger, ?>>)MPC_DisWCSP4solver.class
-				, "src/frodo2/algorithms/mpc_discsp/MPC-DisCSP4_JaCoP.xml"));
+		suite.addTest(createSuite(Algorithm.MPC_DisCSP4,  (Class<? extends AbstractDCOPsolver<AddableInteger, AddableInteger, ?>>)MPC_DisWCSP4solver.class, 
+				AddableInteger.class, "src/frodo2/algorithms/mpc_discsp/MPC-DisCSP4_JaCoP.xml"));
 		
-		suite.addTest(createSuite(Algorithm.MPC_DisWCSP4,  (Class<? extends AbstractDCOPsolver<AddableInteger, AddableInteger, ?>>)MPC_DisWCSP4solver.class
-				, "src/frodo2/algorithms/mpc_discsp/MPC-DisWCSP4_JaCoP.xml"));
+		suite.addTest(createSuite(Algorithm.MPC_DisWCSP4,  (Class<? extends AbstractDCOPsolver<AddableInteger, AddableInteger, ?>>)MPC_DisWCSP4solver.class, 
+				AddableInteger.class, "src/frodo2/algorithms/mpc_discsp/MPC-DisWCSP4_JaCoP.xml"));
 
-		suite.addTest(createSuite(Algorithm.MAXSUM,  (Class<? extends AbstractDCOPsolver<AddableInteger, AddableInteger, ?>>)MaxSumSolver.class
-				, "src/frodo2/algorithms/maxsum/MaxSumAgentJaCoP.xml"));
+		suite.addTest(createSuite(Algorithm.MAXSUM,  (Class<? extends AbstractDCOPsolver<AddableInteger, AddableInteger, ?>>)MaxSumSolver.class, 
+				AddableInteger.class, "src/frodo2/algorithms/maxsum/MaxSumAgentJaCoP.xml"));
 		
-		suite.addTest(createSuite(Algorithm.MAXSUM,  (Class<? extends AbstractDCOPsolver<AddableInteger, AddableInteger, ?>>)MaxSumSolver.class
-				, "src/frodo2/algorithms/maxsum/MaxSumAgentPerturbedJaCoP.xml"));
+		suite.addTest(createSuite(Algorithm.MAXSUM,  (Class<? extends AbstractDCOPsolver<AddableInteger, AddableInteger, ?>>)MaxSumSolver.class, 
+				AddableInteger.class, "src/frodo2/algorithms/maxsum/MaxSumAgentPerturbedJaCoP.xml"));
 		
-		suite.addTest(createSuite(Algorithm.MB_DPOP, (Class<? extends AbstractDCOPsolver<AddableInteger, AddableInteger, ?>>) DPOPsolver.class
-				, "src/frodo2/algorithms/dpop/memory/MB-DPOPagentJaCoP.xml"));
+		suite.addTest(createSuite(Algorithm.MB_DPOP, (Class<? extends AbstractDCOPsolver<AddableInteger, AddableInteger, ?>>) DPOPsolver.class, 
+				AddableInteger.class, "src/frodo2/algorithms/dpop/memory/MB-DPOPagentJaCoP.xml"));
 		
-		suite.addTest(createSuite(Algorithm.AFB, (Class<? extends AbstractDCOPsolver<AddableInteger, AddableInteger, ?>>) AFBsolver.class
-				, "src/frodo2/algorithms/afb/AFBagentJaCoP.xml"));
+		suite.addTest(createSuite(Algorithm.AFB, (Class<? extends AbstractDCOPsolver<AddableInteger, AddableInteger, ?>>) AFBsolver.class, 
+				AddableInteger.class, "src/frodo2/algorithms/afb/AFBagentJaCoP.xml"));
 
 		return suite;
 	}
@@ -254,25 +268,27 @@ public class JaCoPtests extends TestCase {
 	@SuppressWarnings("unchecked")
 	public void testPureExtensionalProblem() throws Exception {
 		
-		DPOPsolver<AddableInteger, AddableInteger> dpopSolver = new DPOPsolver<AddableInteger, AddableInteger>();
+		DPOPsolver<AddableInteger, U> dpopSolver = new DPOPsolver<AddableInteger, U>(AddableInteger.class, this.classOfU);
 
 		Document problemDoc = XCSPparser.parse(this.probFile.getCanonicalFile(), false);
 
-		Solution<AddableInteger, AddableInteger> dpopSol = dpopSolver.solve(problemDoc, 10000L);
+		Solution<AddableInteger, U> dpopSol = dpopSolver.solve(problemDoc, 10000L);
 		assertFalse("DPOP timed out", dpopSol == null);
 		
-		AbstractDCOPsolver<AddableInteger, AddableInteger, ?> jacopSolver = solverClass.getConstructor(Document.class, boolean.class).newInstance(this.agentDescDoc, this.useTCP);
-		Solution<AddableInteger, AddableInteger> jaCoPSol;
+		AbstractDCOPsolver<AddableInteger, U, ?> jacopSolver = solverClass.getConstructor(Document.class, boolean.class).newInstance(this.agentDescDoc, this.useTCP);
+		Solution<AddableInteger, U> jaCoPSol;
 		switch (this.currentAlgorithm) {
 		case MPC_DisWCSP4:
-			XCSPparser<AddableInteger, AddableInteger> parser = new XCSPparser<AddableInteger, AddableInteger> (problemDoc);
+			XCSPparser<AddableInteger, U> parser = new XCSPparser<AddableInteger, U> (problemDoc);
+			parser.setUtilClass(this.classOfU);
 			final int nbrConstraints = parser.getSolutionSpaces().size();
-			jaCoPSol = ((MPC_DisWCSP4solver<AddableInteger, AddableInteger>)jacopSolver)
+			jaCoPSol = ((MPC_DisWCSP4solver<AddableInteger, U>)jacopSolver)
 				.solve(problemDoc, false, 300000L, 10 * nbrConstraints, 10 * nbrConstraints * parser.getAgents().size());
 			break;
 		case P2_DPOP:
-			parser = new XCSPparser<AddableInteger, AddableInteger> (problemDoc);
-			jaCoPSol = ((P2_DPOPsolver<AddableInteger, AddableInteger>) jacopSolver).solve(problemDoc, 60000L, 1);
+			parser = new XCSPparser<AddableInteger, U> (problemDoc);
+			parser.setUtilClass(this.classOfU);
+			jaCoPSol = ((P2_DPOPsolver<AddableInteger, U>) jacopSolver).solve(problemDoc, 60000L, 1);
 			break;
 		default:
 			jaCoPSol = jacopSolver.solve(problemDoc, 300000L);
@@ -289,10 +305,11 @@ public class JaCoPtests extends TestCase {
 			}
 		// Complete solver	
 		}else{
-			assertEquals (dpopSol.getUtility(), jaCoPSol.getUtility());
+			assertEquals (problemDoc.getRootElement().getChild("presentation").getAttributeValue("name"), dpopSol.getUtility(), jaCoPSol.getUtility());
 			// If the two solutions have the same utility but are different we test that the solution obtained with the agents using JaCoP is valid
 			if(!dpopSol.getAssignments().equals(jaCoPSol.getAssignments())){
-				XCSPparser<AddableInteger, AddableInteger> parser = new XCSPparser<AddableInteger, AddableInteger>(problemDoc);
+				XCSPparser<AddableInteger, U> parser = new XCSPparser<AddableInteger, U>(problemDoc);
+				parser.setUtilClass(this.classOfU);
 				assertEquals(jaCoPSol.getUtility(), parser.getUtility(jaCoPSol.getAssignments()).getUtility(0));
 			}
 		}
@@ -304,15 +321,7 @@ public class JaCoPtests extends TestCase {
 	@SuppressWarnings("unchecked")
 	public void testRandomExtensionalProblem() throws Exception {
 
-		// Fix the ProblemRescaler's shift
-		for (Element module : (List<Element>) this.agentDescDoc.getRootElement().getChild("modules").getChildren()) {
-			if (module.getAttributeValue("className").equals(ProblemRescaler.class.getName())) {
-				module.setAttribute("shift", "10000");
-				break;
-			}
-		}
-
-		DPOPsolver<AddableInteger, AddableInteger> dpopSolver = new DPOPsolver<AddableInteger, AddableInteger>();
+		DPOPsolver<AddableInteger, U> dpopSolver = new DPOPsolver<AddableInteger, U>(AddableInteger.class, this.classOfU);
 
 		Document problemDoc;
 
@@ -332,7 +341,7 @@ public class JaCoPtests extends TestCase {
 		    	problemDoc = AllTests.createRandProblem(4, 6, 5, maximize, 0);
 		    	break;
 		    case P2_DPOP: 
-		    	problemDoc = AllTests.createRandProblem(3, 3, 3, maximize, +1, 10);
+		    	problemDoc = AllTests.createRandProblem(3, 3, 3, maximize, 0, 10);
 		    	break;
 		    case ASODPOP:
 		    	problemDoc = AllTests.createRandProblem(4, 10, 5, maximize, 0);
@@ -359,7 +368,7 @@ public class JaCoPtests extends TestCase {
 		    	problemDoc = AllTests.createRandProblem(5, 10, 4, false, +1, 0);
 		    	break;
 		    case MPC_DisWCSP4:
-		    	problemDoc = AllTests.createRandProblem(3, 3, 3, false, +1, 4);
+		    	problemDoc = AllTests.createRandProblem(3, 3, 3, maximize, 0, 4);
 		    	break;
 		    case MAXSUM:
 		    	problemDoc = AllTests.createRandProblem(5, 10, 5, maximize, 0);
@@ -371,19 +380,39 @@ public class JaCoPtests extends TestCase {
 		    	problemDoc = AllTests.createRandProblem(7, 20, 5, maximize, 0);   
 		}
 
-		XCSPparser<AddableInteger, AddableInteger> parser = new XCSPparser<AddableInteger, AddableInteger> (problemDoc);
-		Solution<AddableInteger, AddableInteger> dpopSol = dpopSolver.solve(problemDoc, parser.getNbrVars(), 10000L);
+		XCSPparser<AddableInteger, U> parser = new XCSPparser<AddableInteger, U> (problemDoc);
+		parser.setUtilClass(this.classOfU);
+		Solution<AddableInteger, U> dpopSol = dpopSolver.solve(problemDoc, parser.getNbrVars(), 10000L);
 		assertFalse("DPOP timed out", dpopSol == null);
-		AbstractDCOPsolver<AddableInteger, AddableInteger, ?> jacopSolver = solverClass.getConstructor(Document.class, boolean.class).newInstance(this.agentDescDoc, this.useTCP);
-		Solution<AddableInteger, AddableInteger> jaCoPSol;
+
+		// Fix the ProblemRescaler's shift
+		int shift = 0;
+		for (Element module : (List<Element>) this.agentDescDoc.getRootElement().getChild("modules").getChildren()) {
+			if (module.getAttributeValue("className").equals(ProblemRescaler.class.getName())) {
+				
+				// Compute the minimum required shift
+				for (UtilitySolutionSpace<AddableInteger, U> space : parser.getSolutionSpaces()) {
+					if (maximize) 
+						shift = Math.max(shift, Math.max(0, space.blindProjectAll(true).intValue()));
+					else 
+						shift = Math.max(shift, - Math.min(0, space.blindProjectAll(false).intValue()));
+				}
+				
+				module.setAttribute("shift", Integer.toString(shift));
+				break;
+			}
+		}
+		
+		AbstractDCOPsolver<AddableInteger, U, ?> jacopSolver = solverClass.getConstructor(Document.class, boolean.class).newInstance(this.agentDescDoc, this.useTCP);
+		Solution<AddableInteger, U> jaCoPSol;
 		switch (this.currentAlgorithm) {
 		case MPC_DisWCSP4:
 			final int nbrConstraints = parser.getSolutionSpaces().size();
-			jaCoPSol = ((MPC_DisWCSP4solver<AddableInteger, AddableInteger>)jacopSolver)
+			jaCoPSol = ((MPC_DisWCSP4solver<AddableInteger, U>)jacopSolver)
 				.solve(problemDoc, false, 300000L, 10 * nbrConstraints, 10 * nbrConstraints * parser.getAgents().size());
 			break;
 		case P2_DPOP:
-			jaCoPSol = ((P2_DPOPsolver<AddableInteger, AddableInteger>) jacopSolver).solve(problemDoc, parser.getNbrVars(), 60000L, 10 * parser.getSolutionSpaces().size());
+			jaCoPSol = ((P2_DPOPsolver<AddableInteger, U>) jacopSolver).solve(problemDoc, parser.getNbrVars(), 60000L, shift + 10 * parser.getSolutionSpaces().size());
 			break;
 		default:
 			jaCoPSol = jacopSolver.solve(problemDoc, parser.getNbrVars(), 60000L);
@@ -412,30 +441,32 @@ public class JaCoPtests extends TestCase {
 	 */
 	@SuppressWarnings("unchecked")
 	public void testPureIntensionalProblem() throws Exception {
-		AbstractDCOPsolver<AddableInteger, AddableInteger, ?> jacopDCOPsolver = solverClass.getConstructor(Document.class, boolean.class).newInstance(this.agentDescDoc, this.useTCP);
+		AbstractDCOPsolver<AddableInteger, U, ?> jacopDCOPsolver = solverClass.getConstructor(Document.class, boolean.class).newInstance(this.agentDescDoc, this.useTCP);
 
 		Document problemDoc = XCSPparser.parse(this.probFile.getCanonicalFile(), false);
 		addRandomOwners(problemDoc, 3);
 		
-		Solution<AddableInteger, AddableInteger> jacopDCOPsol;
+		Solution<AddableInteger, U> jacopDCOPsol;
 		switch (this.currentAlgorithm) {
 		case MPC_DisWCSP4:
-			XCSPparser<AddableInteger, AddableInteger> parser = new XCSPparser<AddableInteger, AddableInteger> (problemDoc);
-			jacopDCOPsol = ((MPC_DisWCSP4solver<AddableInteger, AddableInteger>)jacopDCOPsolver)
+			XCSPparser<AddableInteger, U> parser = new XCSPparser<AddableInteger, U> (problemDoc);
+			parser.setUtilClass(this.classOfU);
+			jacopDCOPsol = ((MPC_DisWCSP4solver<AddableInteger, U>)jacopDCOPsolver)
 				.solve(problemDoc, false, 300000L, 1, parser.getAgents().size());
 			break;
 		case P2_DPOP:
-			parser = new XCSPparser<AddableInteger, AddableInteger> (problemDoc);
-			jacopDCOPsol = ((P2_DPOPsolver<AddableInteger, AddableInteger>) jacopDCOPsolver).solve(problemDoc, 300000L, 1);
+			parser = new XCSPparser<AddableInteger, U> (problemDoc);
+			parser.setUtilClass(this.classOfU);
+			jacopDCOPsol = ((P2_DPOPsolver<AddableInteger, U>) jacopDCOPsolver).solve(problemDoc, 300000L, 1);
 			break;
 		default:
 			jacopDCOPsol = jacopDCOPsolver.solve(problemDoc, 300000L);
 		}
 		assertFalse("Timed out on " + this.probFile.getName(), jacopDCOPsol == null);
 
-		AddableInteger utility = jacopDCOPsol.getUtility();
+		U utility = jacopDCOPsol.getUtility();
 
-		AddableInteger centralizedJaCoPresult = solveCentralizedProblem(problemDoc);
+		U centralizedJaCoPresult = solveCentralizedProblem(problemDoc);
 		
 		// Incomplete solver
 		if(currentAlgorithm == Algorithm.DSA || currentAlgorithm == Algorithm.MGM || currentAlgorithm == Algorithm.MGM2 || this.currentAlgorithm == Algorithm.MAXSUM){
@@ -488,8 +519,10 @@ public class JaCoPtests extends TestCase {
 	 * We get the variables and predicates with the JaCoPxcspParser class that we assume is correct (see JaCoPxcspParserTest)
 	 * @param problemDoc	the description file of the pure intensional problem
 	 * @return				the solution of the CSP
+	 * @throws IllegalAccessException thrown when failing to create a utility instance
+	 * @throws InstantiationException thrown when failing to create a utility instance
 	 */
-	private AddableInteger solveCentralizedProblem(Document problemDoc){
+	private U solveCentralizedProblem(Document problemDoc) throws InstantiationException, IllegalAccessException{
 
 		Store store = new Store();
 
@@ -497,11 +530,11 @@ public class JaCoPtests extends TestCase {
 		params.setAttribute("parserClass", "frodo2.solutionSpaces.JaCoP.JaCoPxcspParser");
 		params.setAttribute("displayGraph", "false");
 		params.setAttribute("domClass", "frodo2.solutionSpaces.AddableInteger");
-		params.setAttribute("utilClass", "frodo2.solutionSpaces.AddableInteger");
+		params.setAttribute("utilClass", this.classOfU.getName());
 		params.setAttribute("DOTrenderer", "");
 		params.setAttribute("countNCCCs", "false");
 
-		JaCoPxcspParser<AddableInteger> parser = new JaCoPxcspParser<AddableInteger> (problemDoc, params);
+		JaCoPxcspParser<U> parser = new JaCoPxcspParser<U> (problemDoc, params);
 
 		AddableInteger[] domain;
 		Set<String> vars = parser.getVariables();
@@ -512,11 +545,11 @@ public class JaCoPtests extends TestCase {
 			varsSet.put(var, domain);
 		}
 
-		AddableInteger infeasibleUtil;
+		U infeasibleUtil;
 		if(maximize){
-			infeasibleUtil = AddableInteger.MinInfinity.MIN_INF;
+			infeasibleUtil = this.classOfU.newInstance().getMinInfinity();
 		}else{
-			infeasibleUtil = AddableInteger.PlusInfinity.PLUS_INF;
+			infeasibleUtil = this.classOfU.newInstance().getPlusInfinity();
 		}
 
 
@@ -539,7 +572,7 @@ public class JaCoPtests extends TestCase {
 		}
 
 		// We only create a JaCoPutilSpace containing the whole problem to call createStore()
-		JaCoPutilSpace<AddableInteger> centralized = new JaCoPutilSpace<AddableInteger> ("centralized", constraints, references, varsSet, 
+		JaCoPutilSpace<U> centralized = new JaCoPutilSpace<U> ("centralized", constraints, references, varsSet, 
 				varsSet.keySet().toArray(new String[varsSet.size()]), new String[0], new String[0], this.maximize, infeasibleUtil.getZero(), infeasibleUtil);
 
 
@@ -572,7 +605,7 @@ public class JaCoPtests extends TestCase {
 
 		boolean result = search.labeling(store, new InputOrderSelect<IntVar> (store, jacopVars, new IndomainMin<IntVar>()), utilVar);
 
-		AddableInteger costValue;
+		U costValue;
 
 		if(!result){
 			// The solution given in argument is inconsistent!
@@ -586,7 +619,7 @@ public class JaCoPtests extends TestCase {
 				cost *= -1;
 			}
 
-			costValue = new AddableInteger(cost);
+			costValue = this.classOfU.newInstance().fromInt(cost);
 		}
 		
 		return costValue;
@@ -598,34 +631,37 @@ public class JaCoPtests extends TestCase {
 	 * @param assignment	the assignment of variable that we want to check
 	 * @param problemDoc	the description file of the pure intensional problem
 	 * @return				true if the assignment is a solution of the CSP
+	 * @throws IllegalAccessException thrown when failing to create a utility instance
+	 * @throws InstantiationException thrown when failing to create a utility instance
 	 */
-	private boolean checkSolutionCentralizedProblem(Map<String, AddableInteger> assignment, Document problemDoc){
+	private boolean checkSolutionCentralizedProblem(Map<String, AddableInteger> assignment, Document problemDoc) throws InstantiationException, IllegalAccessException{
 		Store store = new Store();
 
 		Element params = new Element("parser");
 		params.setAttribute("parserClass", "frodo2.solutionSpaces.JaCoP.JaCoPxcspParser");
 		params.setAttribute("displayGraph", "false");
 		params.setAttribute("domClass", "frodo2.solutionSpaces.AddableInteger");
-		params.setAttribute("utilClass", "frodo2.solutionSpaces.AddableInteger");
+		params.setAttribute("utilClass", this.classOfU.getName());
 		params.setAttribute("DOTrenderer", "");
 		params.setAttribute("countNCCCs", "false");
 
-		JaCoPxcspParser<AddableInteger> parser = new JaCoPxcspParser<AddableInteger> (problemDoc, params);
+		JaCoPxcspParser<U> parser = new JaCoPxcspParser<U> (problemDoc, params);
 
 		AddableInteger[] domain;
 		Set<String> vars = parser.getVariables();
 
 		HashMap<String, AddableInteger[]> varsSet = new HashMap<String, AddableInteger[]>(vars.size());
 		for(String var: vars){
+			assert assignment.get(var) != null : "No assignment to variable `" + var + "' in " + assignment;
 			domain = new AddableInteger[] {assignment.get(var)};
 			varsSet.put(var, domain);
 		}
 
-		AddableInteger infeasibleUtil;
+		U infeasibleUtil;
 		if(maximize){
-			infeasibleUtil = AddableInteger.MinInfinity.MIN_INF;
+			infeasibleUtil = this.classOfU.newInstance().getMinInfinity();
 		}else{
-			infeasibleUtil = AddableInteger.PlusInfinity.PLUS_INF;
+			infeasibleUtil = this.classOfU.newInstance().getPlusInfinity();
 		}
 
 
@@ -648,7 +684,7 @@ public class JaCoPtests extends TestCase {
 		}
 		
 		// We only create a JaCoPutilSpace containing the whole problem to call createStore()
-		JaCoPutilSpace<AddableInteger> centralized = new JaCoPutilSpace<AddableInteger> ("centralized", constraints, references, varsSet, 
+		JaCoPutilSpace<U> centralized = new JaCoPutilSpace<U> ("centralized", constraints, references, varsSet, 
 				varsSet.keySet().toArray(new String[varsSet.size()]), new String[0], new String[0], this.maximize, infeasibleUtil.getZero(), infeasibleUtil);
 
 
@@ -687,42 +723,42 @@ public class JaCoPtests extends TestCase {
 	/**
 	 * @param algorithm			the name of the tested algorithm
 	 * @param solverClass		the class of the solver corresponding to the tested algorithm
+	 * @param classOfU 			the class of utility values
 	 * @param AgentDescFile		the agent description file that use the JaCoPxcspParser and the tested algorithm
 	 * @return		the testSuite containing the tests with every combination of parameters: minimization/maximization,
 	 * 				with/without TCP pipes, on random extensional/intensional/global constrained problems
 	 */
-	private static TestSuite createSuite(Algorithm algorithm, Class<? extends AbstractDCOPsolver<AddableInteger, AddableInteger, ?>> solverClass, String AgentDescFile){
+	private static < U extends Addable<U> > TestSuite createSuite(Algorithm algorithm, 
+			Class<? extends AbstractDCOPsolver<AddableInteger, U, ?>> solverClass, Class<U> classOfU, String AgentDescFile){
 		
 		TestSuite algoTestSuite = new TestSuite ("Tests " + algorithm + " using JaCoP solution spaces");
 		
 		TestSuite tmp = new TestSuite ("Minimization problems with extensional constraints without TCP pipes");
-		tmp.addTest(new RepeatedTest (new JaCoPtests("testRandomExtensionalProblem", algorithm, AgentDescFile, solverClass, false, false), 200));
+		tmp.addTest(new RepeatedTest (new JaCoPtests<U> ("testRandomExtensionalProblem", algorithm, AgentDescFile, solverClass, classOfU, false, false), 200));
 		algoTestSuite.addTest(tmp);
 
-		if (algorithm != Algorithm.MPC_DisCSP4 && algorithm != Algorithm.MPC_DisWCSP4 && algorithm != Algorithm.P2_DPOP) {
+		if (algorithm != Algorithm.MPC_DisCSP4) {
 			tmp = new TestSuite ("Maximization problems with extensional constraints without TCP pipes");
-			tmp.addTest(new RepeatedTest (new JaCoPtests("testRandomExtensionalProblem", algorithm, AgentDescFile, solverClass, false, true), 200));
+			tmp.addTest(new RepeatedTest (new JaCoPtests<U> ("testRandomExtensionalProblem", algorithm, AgentDescFile, solverClass, classOfU, false, true), 200));
 			algoTestSuite.addTest(tmp);
 		}
 
 		if (algorithm == Algorithm.DPOP || algorithm == Algorithm.MB_DPOP || algorithm == Algorithm.P_DPOP || algorithm == Algorithm.P3halves_DPOP 
-				|| algorithm == Algorithm.P2_DPOP || algorithm == Algorithm.ADOPT || algorithm == Algorithm.AFB) {
+				|| algorithm == Algorithm.P2_DPOP || algorithm == Algorithm.ADOPT || algorithm == Algorithm.AFB || algorithm == Algorithm.MPC_DisWCSP4) {
 			tmp = new TestSuite ("Minimization problems with extensional constraints and TCP pipes");
-			tmp.addTest(new RepeatedTest (new JaCoPtests("testRandomExtensionalProblem", algorithm, AgentDescFile, solverClass, true, false), 200));
+			tmp.addTest(new RepeatedTest (new JaCoPtests<U> ("testRandomExtensionalProblem", algorithm, AgentDescFile, solverClass, classOfU, true, false), 200));
 			algoTestSuite.addTest(tmp);
 
-			if (algorithm != Algorithm.P2_DPOP) {
-				tmp = new TestSuite ("Maximization problems with extensional constraints and TCP pipes");
-				tmp.addTest(new RepeatedTest (new JaCoPtests("testRandomExtensionalProblem", algorithm, AgentDescFile, solverClass, true, true), 200));
-				algoTestSuite.addTest(tmp);
-			}
+			tmp = new TestSuite ("Maximization problems with extensional constraints and TCP pipes");
+			tmp.addTest(new RepeatedTest (new JaCoPtests<U> ("testRandomExtensionalProblem", algorithm, AgentDescFile, solverClass, classOfU, true, true), 200));
+			algoTestSuite.addTest(tmp);
 		}
 		
 		tmp = new TestSuite ("Problems with constraints in extensions with different semantics, and syntaxic subtleties");
 		for (File probFile : new File("src/frodo2/solutionSpaces/JaCoP/tests/Instances/Ext").listFiles())
 			if (probFile.isFile()) 
 				if (! probFile.getName().contains("party_ext") || (algorithm != Algorithm.P3halves_DPOP && algorithm != Algorithm.P2_DPOP)) 
-					tmp.addTest(new JaCoPtests("testPureExtensionalProblem", algorithm, AgentDescFile, solverClass, false, false, probFile));
+					tmp.addTest(new JaCoPtests<U> ("testPureExtensionalProblem", algorithm, AgentDescFile, solverClass, classOfU, false, false, probFile));
 		algoTestSuite.addTest(tmp);
 		
 		///@todo create a real set of test problems
@@ -947,15 +983,15 @@ public class JaCoPtests extends TestCase {
 		tmp = new TestSuite ("Problems with intensional constraints without TCP pipes");
 		for (File probFile : allIntProblems.values())
 			if (probFile.isFile()) 
-				tmp.addTest(new JaCoPtests("testPureIntensionalProblem", algorithm, AgentDescFile, solverClass, false, false, probFile));
+				tmp.addTest(new JaCoPtests<U> ("testPureIntensionalProblem", algorithm, AgentDescFile, solverClass, classOfU, false, false, probFile));
 		algoTestSuite.addTest(tmp);
 
 		if (algorithm == Algorithm.DPOP || algorithm == Algorithm.MB_DPOP || algorithm == Algorithm.P_DPOP || algorithm == Algorithm.P3halves_DPOP 
-				|| algorithm == Algorithm.P2_DPOP || algorithm == Algorithm.ADOPT || algorithm == Algorithm.AFB) {
+				|| algorithm == Algorithm.P2_DPOP || algorithm == Algorithm.ADOPT || algorithm == Algorithm.AFB || algorithm == Algorithm.MPC_DisWCSP4) {
 			tmp = new TestSuite ("Problems with intensional constraints and TCP pipes");
 			for (File probFile : allIntProblems.values())
 				if (probFile.isFile()) 
-					tmp.addTest(new JaCoPtests("testPureIntensionalProblem", algorithm, AgentDescFile, solverClass, true, false, probFile));
+					tmp.addTest(new JaCoPtests<U> ("testPureIntensionalProblem", algorithm, AgentDescFile, solverClass, classOfU, true, false, probFile));
 			algoTestSuite.addTest(tmp);
 		}
 		
@@ -1033,15 +1069,15 @@ public class JaCoPtests extends TestCase {
 		tmp = new TestSuite ("Problems with global constraints without TCP pipes");
 		for (File probFile : allGlbProblems.values())
 			if (probFile.isFile()) 
-				tmp.addTest(new JaCoPtests("testPureIntensionalProblem", algorithm, AgentDescFile, solverClass, false, false, probFile));
+				tmp.addTest(new JaCoPtests<U> ("testPureIntensionalProblem", algorithm, AgentDescFile, solverClass, classOfU, false, false, probFile));
 		algoTestSuite.addTest(tmp);
 
 		if (algorithm == Algorithm.DPOP || algorithm == Algorithm.MB_DPOP || algorithm == Algorithm.P_DPOP || algorithm == Algorithm.P3halves_DPOP 
-				|| algorithm == Algorithm.P2_DPOP || algorithm == Algorithm.ADOPT || algorithm == Algorithm.AFB) {
+				|| algorithm == Algorithm.P2_DPOP || algorithm == Algorithm.ADOPT || algorithm == Algorithm.AFB || algorithm == Algorithm.MPC_DisWCSP4) {
 			tmp = new TestSuite ("Problems with global constraints and TCP pipes");
 			for (File probFile : allGlbProblems.values())
 				if (probFile.isFile()) 
-					tmp.addTest(new JaCoPtests("testPureIntensionalProblem", algorithm, AgentDescFile , solverClass, true, false, probFile));
+					tmp.addTest(new JaCoPtests<U> ("testPureIntensionalProblem", algorithm, AgentDescFile , solverClass, classOfU, true, false, probFile));
 			algoTestSuite.addTest(tmp);
 		}
 		

@@ -1,6 +1,6 @@
 """
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2018  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -88,9 +88,9 @@ experiments = [
         ["previous DSA", "frodo2.algorithms.localSearch.dsa.DSAsolver", root + "agents/DSA/DSAagent.xml", problemFilePEAV, javaParamsOld], 
         ["new DSA", "frodo2.algorithms.localSearch.dsa.DSAsolver", root + "agents/DSA/DSAagent.xml", problemFilePEAV, javaParamsNew], 
             ]],
-    ["MaxSum", ["-EAV", "-infinity", 1000, "-maxCost", 10, 3, list(range(1, 7)), 2, 8], [
-        ["previous MaxSum", "frodo2.algorithms.maxsum.MaxSumSolver", root + "agents/MaxSum/MaxSumAgentPerturbed.xml", problemFileEAV, javaParamsOld], 
-        ["new MaxSum", "frodo2.algorithms.maxsum.MaxSumSolver", root + "agents/MaxSum/MaxSumAgentPerturbed.xml", problemFileEAV, javaParamsNew], 
+    ["MaxSum", ["-PEAV", "-infinity", 1000, "-maxCost", 10, 3, list(range(1, 7)), 2, 8], [
+        ["previous MaxSum", "frodo2.algorithms.maxsum.MaxSumSolver", root + "agents/MaxSum/MaxSumAgentPerturbed.xml", problemFilePEAV, javaParamsOld], 
+        ["new MaxSum", "frodo2.algorithms.maxsum.MaxSumSolver", root + "agents/MaxSum/MaxSumAgentPerturbed.xml", problemFilePEAV, javaParamsNew], 
             ]],
     ["MGM", ["-PEAV", "-infinity", 1000, "-maxCost", 10, 3, list(range(1, 7)), 2, 8], [
         ["previous MGM", "frodo2.algorithms.localSearch.mgm.MGMsolver", root + "agents/MGM/MGMagent.xml", problemFilePEAV, javaParamsOld], 

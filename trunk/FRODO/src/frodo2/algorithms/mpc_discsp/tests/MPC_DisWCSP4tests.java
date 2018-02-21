@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2018  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -33,10 +33,13 @@ import org.jdom2.Element;
 import frodo2.algorithms.Solution;
 import frodo2.algorithms.XCSPparser;
 import frodo2.algorithms.dpop.DPOPsolver;
+import frodo2.algorithms.mpc_discsp.MPC_DisCSP4;
+import frodo2.algorithms.mpc_discsp.MPC_DisWCSP4;
 import frodo2.algorithms.mpc_discsp.MPC_DisWCSP4solver;
+import frodo2.algorithms.reformulation.ProblemRescaler;
 import frodo2.algorithms.test.AllTests;
 import frodo2.solutionSpaces.AddableInteger;
-
+import frodo2.solutionSpaces.UtilitySolutionSpace;
 import junit.extensions.RepeatedTest;
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
@@ -55,11 +58,31 @@ public class MPC_DisWCSP4tests extends TestCase {
 		TestSuite suite = new TestSuite ("All tests for MPC-Dis[W]CSP4");
 		
 		TestSuite tmp = new TestSuite ("Tests for MPC-DisCSP4");
-		tmp.addTest(new RepeatedTest (new MPC_DisWCSP4tests (false), 200));
+		tmp.addTest(new RepeatedTest (new MPC_DisWCSP4tests (false, false, +1, false), 200));
 		suite.addTest(tmp);
 		
-		tmp = new TestSuite ("Tests for MPC-DisWCSP4");
-		tmp.addTest(new RepeatedTest (new MPC_DisWCSP4tests (true), 200));
+		tmp = new TestSuite ("Tests for MPC-DisCSP4 with TCP pipes");
+		tmp.addTest(new RepeatedTest (new MPC_DisWCSP4tests (false, false, +1, true), 200));
+		suite.addTest(tmp);
+		
+		tmp = new TestSuite ("Tests for MPC-DisWCSP4 on minimization problems with non-negative costs");
+		tmp.addTest(new RepeatedTest (new MPC_DisWCSP4tests (true, false, +1, false), 200));
+		suite.addTest(tmp);
+		
+		tmp = new TestSuite ("Tests for MPC-DisWCSP4 on minimization problems with non-negative costs with TCP pipes");
+		tmp.addTest(new RepeatedTest (new MPC_DisWCSP4tests (true, false, +1, true), 200));
+		suite.addTest(tmp);
+		
+		tmp = new TestSuite ("Tests for MPC-DisWCSP4 on minimization problems with arbitrarily signed costs");
+		tmp.addTest(new RepeatedTest (new MPC_DisWCSP4tests (true, false, 0, false), 200));
+		suite.addTest(tmp);
+		
+		tmp = new TestSuite ("Tests for MPC-DisWCSP4 on maximization problems with non-positive utilities");
+		tmp.addTest(new RepeatedTest (new MPC_DisWCSP4tests (true, true, -1, false), 200));
+		suite.addTest(tmp);
+		
+		tmp = new TestSuite ("Tests for MPC-DisWCSP4 on maximization problems with arbitrarily signed utilities");
+		tmp.addTest(new RepeatedTest (new MPC_DisWCSP4tests (true, true, 0, false), 200));
 		suite.addTest(tmp);
 		
 		return suite;
@@ -71,12 +94,27 @@ public class MPC_DisWCSP4tests extends TestCase {
 	/** The agent configuration file */
 	private Document agentConfig;
 
+	/** Whether to test on maximization or minimization problems */
+	private final boolean maximize;
+
+	/** The sign of the utilities/costs */
+	private final int sign;
+
+	/** Whether to use TCP pipes */
+	private final boolean tcp;
+
 	/** Constructor 
-	 * @param w 	if true, use MPC-DisWCSP4
+	 * @param w 			if true, use MPC-DisWCSP4
+	 * @param maximize 	whether to test on maximization or minimization problems
+	 * @param sign 		the sign of the utilities/costs
+	 * @param tcp 		whether to use TCP pipes
 	 */
-	public MPC_DisWCSP4tests(boolean w) {
+	public MPC_DisWCSP4tests(boolean w, boolean maximize, int sign, boolean tcp) {
 		super ("test");
 		this.costAmplitude = (w ? 5 : 0);
+		this.maximize = maximize;
+		this.sign = sign;
+		this.tcp = tcp;
 		try {
 			this.agentConfig = XCSPparser.parse("src/frodo2/algorithms/mpc_discsp/MPC-Dis" + (w ? "W" : "") + "CSP4.xml", false);
 		} catch (Exception e) {
@@ -88,7 +126,7 @@ public class MPC_DisWCSP4tests extends TestCase {
 	@Override
 	protected void setUp() throws Exception {
 		super.setUp();
-		this.problem = AllTests.createRandProblem(3, 3, 3, false, +1, costAmplitude);
+		this.problem = AllTests.createRandProblem(3, 3, 3, this.maximize, this.sign, costAmplitude);
 	}
 
 	/** @see junit.framework.TestCase#tearDown() */
@@ -126,13 +164,34 @@ public class MPC_DisWCSP4tests extends TestCase {
 				constElmt.setAttribute("agent", owner);
 		}
 		
+		// Compute the required ProblemRescaler shift
+		int shift = 0;
+		for (UtilitySolutionSpace<AddableInteger, AddableInteger> space : parser.getSolutionSpaces()) {
+			if (maximize) 
+				shift = Math.max(shift, Math.max(0, space.blindProjectAll(true).intValue()));
+			else 
+				shift = Math.max(shift, - Math.min(0, space.blindProjectAll(false).intValue()));
+		}
+		
+		// Set the module parameters 
+		for (Element module : (List<Element>) agentConfig.getRootElement().getChild("modules").getChildren()) {
+			String className = module.getAttributeValue("className");
+			
+			if (className.equals(ProblemRescaler.class.getName())) 
+				module.setAttribute("shift", Integer.toString(shift));
+			
+			else if (className.equals(MPC_DisWCSP4.class.getName()) || className.equals(MPC_DisCSP4.class.getName())) 
+				module.setAttribute("nbrBits", "64"); // to speed up the tests
+		}
+		
 		// Solve the problem using MPC-DisWCSP4
 		final int nbrConstraints = parser.getSolutionSpaces().size();
-		Solution<AddableInteger, AddableInteger> sol = new MPC_DisWCSP4solver<AddableInteger, AddableInteger> (this.agentConfig)
-			.solve(problem, false, 600000L, costAmplitude * nbrConstraints, costAmplitude * nbrConstraints * parser.getAgents().size());
-		assertNotNull("timeout", sol);
+		Solution<AddableInteger, AddableInteger> sol = new MPC_DisWCSP4solver<AddableInteger, AddableInteger> (this.agentConfig, this.tcp)
+			.solve(problem, false, 60000L, (shift + costAmplitude) * nbrConstraints, 
+					(shift + costAmplitude) * nbrConstraints * parser.getAgents().size());
+		assertNotNull("timeout", sol); /// @bug Rarely times out
 		
-		assertEquals(optCost, sol.getUtility());
+		assertEquals(optCost, sol.getUtility()); /// @bug Very rarely fails
 	}
 
 }

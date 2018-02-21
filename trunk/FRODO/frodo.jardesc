@@ -56,7 +56,6 @@
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.dpop.count"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.odpop.goodsTree.InnerNodeTree"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.solutionSpaces.JaCoP.tests.Instances.Glb"/>
-        <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.benchmarks.maxdiscsp"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.solutionSpaces.hypercube"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.solutionSpaces.JaCoP.tests.Instances.Int"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.daemon"/>
@@ -77,13 +76,15 @@
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.heuristics"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.odpop.goodsTree"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.benchmarks.party"/>
-        <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.benchmarks.meetings"/>
+        <file path="/FRODO_release/src/frodo2/benchmarks/maxdiscsp/performance_regression_test.py"/>
+        <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.benchmarks.maxdiscsp{MaxDisCSPProblemGenerator.java"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.asodpop.goodsTree.leafNodeTree"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.solutionSpaces.JaCoP.tests.Instances.Ext"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.communication.sharedMemory"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.odpop.goodsTree.leafNodeTree"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.dpop.test"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.solutionSpaces.tests"/>
+        <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.benchmarks.meetings{MeetingScheduling.java"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.communication"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.mpc_discsp.tests"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.dpop.restart.test"/>
@@ -91,6 +92,7 @@
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.odpop"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.odpop.tests"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.dpop.count.test"/>
+        <file path="/FRODO_release/src/frodo2/benchmarks/meetings/performance_regression_test.py"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.solutionSpaces.hypercube.tests.files"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.afb"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.mpc_discsp"/>

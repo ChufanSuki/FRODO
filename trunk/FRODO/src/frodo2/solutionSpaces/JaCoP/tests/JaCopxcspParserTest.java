@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2018  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -51,6 +51,9 @@ public class JaCopxcspParserTest extends TestCase {
 	
 	/** All the variables created in the store */
 	private IntVar[] allVars;
+	
+	/** The name of the constraint */
+	private String constraintName;
 
 	/** @return the test suite for this test */
 	public static TestSuite suite () {
@@ -122,34 +125,43 @@ public class JaCopxcspParserTest extends TestCase {
 		TestSuite globalConsSuite = new TestSuite ("Tests global constraints parsing");
 		suite.addTest(globalConsSuite);
 
-		globalConsSuite.addTest(new JaCopxcspParserTest ("testGlobalConstraintWeightedSumEqParser"));
+		globalConsSuite.addTest(new JaCopxcspParserTest ("testGlobalConstraintWeightedSumEqParser", "global:weightedSum"));
 
-		globalConsSuite.addTest(new JaCopxcspParserTest ("testGlobalConstraintWeightedSumNeParser"));
+		globalConsSuite.addTest(new JaCopxcspParserTest ("testGlobalConstraintWeightedSumNeParser", "global:weightedSum"));
 
-		globalConsSuite.addTest(new JaCopxcspParserTest ("testGlobalConstraintWeightedSumGeParser"));
+		globalConsSuite.addTest(new JaCopxcspParserTest ("testGlobalConstraintWeightedSumGeParser", "global:weightedSum"));
 
-		globalConsSuite.addTest(new JaCopxcspParserTest ("testGlobalConstraintWeightedSumGtParser"));
+		globalConsSuite.addTest(new JaCopxcspParserTest ("testGlobalConstraintWeightedSumGtParser", "global:weightedSum"));
 
-		globalConsSuite.addTest(new JaCopxcspParserTest ("testGlobalConstraintWeightedSumLeParser"));
+		globalConsSuite.addTest(new JaCopxcspParserTest ("testGlobalConstraintWeightedSumLeParser", "global:weightedSum"));
 
-		globalConsSuite.addTest(new JaCopxcspParserTest ("testGlobalConstraintWeightedSumLtParser"));
+		globalConsSuite.addTest(new JaCopxcspParserTest ("testGlobalConstraintWeightedSumLtParser", "global:weightedSum"));
 
-		globalConsSuite.addTest(new JaCopxcspParserTest ("testGlobalConstraintAllDifferentParser"));
+		globalConsSuite.addTest(new JaCopxcspParserTest ("testGlobalConstraintAllDifferentParser", "global:allDifferent"));
 		
-		globalConsSuite.addTest(new JaCopxcspParserTest ("testGlobalConstraintCumulativeParser"));
+		globalConsSuite.addTest(new JaCopxcspParserTest ("testGlobalConstraintCumulativeParser", "global:cumulative"));
 
-		globalConsSuite.addTest(new JaCopxcspParserTest ("testGlobalConstraintElementParser"));
+		globalConsSuite.addTest(new JaCopxcspParserTest ("testGlobalConstraintElementParser", "global:element"));
 
 		return suite;
 	}
 
 	/** Generates a test using the specified method
-	 * @param name 	name of the method
+	 * @param name 				name of the method
+	 * @param constraintName 	name of the constraint
 	 */
-	public JaCopxcspParserTest(String name) {
+	public JaCopxcspParserTest(String name, String constraintName) {
 		super(name);
 		this.store = null;
 		this.allVars = null;
+		this.constraintName = constraintName;
+	}
+
+	/** Generates a test using the specified method
+	 * @param name 				name of the method
+	 */
+	public JaCopxcspParserTest(String name) {
+		this(name, null);
 	}
 
 	/** @see junit.framework.TestCase#setUp() */
@@ -885,13 +897,13 @@ public class JaCopxcspParserTest extends TestCase {
 		
 		resetStore();
 		
-		createConstraint("v1", "v1 10 1", "eq(pow(X0, X1), X2)"); ///@bug
+		createConstraint("v1", "v1 10 1", "eq(pow(X0, X1), X2)");
 
 		assertTrue(getSolution());
 		
 		resetStore();
 		
-		createConstraint("v5", "0 v5 0", "eq(pow(X0, X1), X2)"); ///@bug
+		createConstraint("v5", "0 v5 0", "eq(pow(X0, X1), X2)");
 
 		assertTrue(getSolution());
 		
@@ -927,13 +939,13 @@ public class JaCopxcspParserTest extends TestCase {
 		
 		resetStore();
 		
-		createConstraint("v1 vm2", "v1 vm2 1", "eq(pow(X0, X1), X2)"); ///@bug
+		createConstraint("v1 vm2", "v1 vm2 1", "eq(pow(X0, X1), X2)");
 
 		assertTrue(getSolution());
 		
 		resetStore();
 		
-		createConstraint("vm1 vm2", "vm1 vm2 1", "eq(pow(X0, X1), X2)"); ///@bug
+		createConstraint("vm1 vm2", "vm1 vm2 1", "eq(pow(X0, X1), X2)");
 
 		 assertTrue(getSolution());
 		
@@ -1140,7 +1152,7 @@ public class JaCopxcspParserTest extends TestCase {
 		cons.setAttribute("name", "c_1");
 		cons.setAttribute("arity", "3");
 		cons.setAttribute("scope", "v1 v2 v3");
-		cons.setAttribute("reference", "global:allDifferent");
+		cons.setAttribute("reference", this.constraintName);
 		Element params = new Element ("parameters");
 		cons.addContent(params);
 		params.setText("\n [\n v1 \n v2 v3 ] \n");
@@ -1178,7 +1190,7 @@ public class JaCopxcspParserTest extends TestCase {
 		cons.setAttribute("name", "c_1");
 		cons.setAttribute("arity", "3");
 		cons.setAttribute("scope", "v1 v2 v3");
-		cons.setAttribute("reference", "global:allDifferent"); 	
+		cons.setAttribute("reference", this.constraintName); 	
 		params = new Element ("parameters");
 		cons.addContent(params);
 		params.setText(" [ v1 v2 v3 ] ");
@@ -1203,7 +1215,7 @@ public class JaCopxcspParserTest extends TestCase {
 		cons.setAttribute("name", "c_1");
 		cons.setAttribute("arity", "3");
 		cons.setAttribute("scope", "v1 v2 v3");
-		cons.setAttribute("reference", "global:allDifferent"); 	
+		cons.setAttribute("reference", this.constraintName); 	
 		params = new Element ("parameters");
 		cons.addContent(params);
 		params.setText(" [ v1 v2 v3 0 ] ");
@@ -1218,7 +1230,7 @@ public class JaCopxcspParserTest extends TestCase {
 		cons.setAttribute("name", "c_1");
 		cons.setAttribute("arity", "3");
 		cons.setAttribute("scope", "v1 v2 v3");
-		cons.setAttribute("reference", "global:allDifferent"); 	
+		cons.setAttribute("reference", this.constraintName); 	
 		params = new Element ("parameters");
 		cons.addContent(params);
 		params.setText(" [ 1 v1 v2 v3 ] ");
@@ -1238,7 +1250,7 @@ public class JaCopxcspParserTest extends TestCase {
 		cons.setAttribute("name", "c_1");
 		cons.setAttribute("arity", "3");
 		cons.setAttribute("scope", "v4 v2 v5");
-		cons.setAttribute("reference", "global:cumulative");
+		cons.setAttribute("reference", this.constraintName);
 		Element param = new Element ("parameters");
 		param.addContent("\n [ \n {\n 1 \n v4 3 \n} \n {v2 6 v5} \n] ").addContent(new Element ("le")).addContent(" 7");
 		cons.addContent(param);
@@ -1254,7 +1266,7 @@ public class JaCopxcspParserTest extends TestCase {
 		cons.setAttribute("name", "c_1");
 		cons.setAttribute("arity", "3");
 		cons.setAttribute("scope", "v4 v2 v5");
-		cons.setAttribute("reference", "global:cumulative");
+		cons.setAttribute("reference", this.constraintName);
 		param = new Element ("parameters");
 		param.addContent("[ {1 v4 3} {v2 6 v5} ] ").addContent(new Element ("eq")).addContent(" 7");
 		cons.addContent(param);
@@ -1270,7 +1282,7 @@ public class JaCopxcspParserTest extends TestCase {
 		cons.setAttribute("name", "c_1");
 		cons.setAttribute("arity", "4");
 		cons.setAttribute("scope", "v1 v3 v6 v8");
-		cons.setAttribute("reference", "global:cumulative");
+		cons.setAttribute("reference", this.constraintName);
 		param = new Element ("parameters");
 		param.addContent("[ {v1 4 v3} {2 v6 5} ] ").addContent(new Element ("le")).addContent(" v8");
 		cons.addContent(param);
@@ -1286,7 +1298,7 @@ public class JaCopxcspParserTest extends TestCase {
 		cons.setAttribute("name", "c_1");
 		cons.setAttribute("arity", "4");
 		cons.setAttribute("scope", "v1 v3 v6 v8");
-		cons.setAttribute("reference", "global:cumulative");
+		cons.setAttribute("reference", this.constraintName);
 		param = new Element ("parameters");
 		param.addContent("[ {v1 4 v3} {2 v6 5} ] ").addContent(new Element ("eq")).addContent(" v8");
 		cons.addContent(param);
@@ -1302,7 +1314,7 @@ public class JaCopxcspParserTest extends TestCase {
 		cons.setAttribute("name", "c_1");
 		cons.setAttribute("arity", "4");
 		cons.setAttribute("scope", "v1 v3 v6");
-		cons.setAttribute("reference", "global:cumulative");
+		cons.setAttribute("reference", this.constraintName);
 		param = new Element ("parameters");
 		param.addContent("[ {v1 4 v3} {2 v6 5} ] ").addContent(new Element ("eq")).addContent(" 9");
 		cons.addContent(param);
@@ -1318,7 +1330,7 @@ public class JaCopxcspParserTest extends TestCase {
 		cons.setAttribute("name", "c_1");
 		cons.setAttribute("arity", "4");
 		cons.setAttribute("scope", "v1 v3 v6");
-		cons.setAttribute("reference", "global:cumulative");
+		cons.setAttribute("reference", this.constraintName);
 		param = new Element ("parameters");
 		param.addContent("[ {v1 4 v3} {2 v6 5} ] ").addContent(new Element ("le")).addContent(" 9");
 		cons.addContent(param);
@@ -1337,7 +1349,7 @@ public class JaCopxcspParserTest extends TestCase {
 		cons.setAttribute("name", "c_1");
 		cons.setAttribute("arity", "3");
 		cons.setAttribute("scope", "v1 v2 v3");
-		cons.setAttribute("reference", "global:weightedSum"); 	
+		cons.setAttribute("reference", this.constraintName); 	
 		Element param = new Element("parameters");
 		param.setText("\n [\n {\n 1 \n v2 \n} \n { 1 v1 } { 1 v3 } ] \n 6 \n");
 		param.addContent(new Element("eq"));
@@ -1353,7 +1365,7 @@ public class JaCopxcspParserTest extends TestCase {
 		cons.setAttribute("name", "c_1");
 		cons.setAttribute("arity", "3");
 		cons.setAttribute("scope", "v1 v2 v3");
-		cons.setAttribute("reference", "global:weightedSum"); 	
+		cons.setAttribute("reference", this.constraintName); 	
 		param = new Element("parameters");
 		param.setText("[ { 1 v1 } { 1 v2 } { 1 v3 } ]  \n \n 6");
 		param.addContent(new Element("eq"));
@@ -1369,7 +1381,7 @@ public class JaCopxcspParserTest extends TestCase {
 		cons.setAttribute("name", "c_1");
 		cons.setAttribute("arity", "3");
 		cons.setAttribute("scope", "v1 v2 v3");
-		cons.setAttribute("reference", "global:weightedSum"); 	
+		cons.setAttribute("reference", this.constraintName); 	
 		param = new Element("parameters");
 		param.setText("[ { 1 v2 } { 1 v1 } { 1 v3 } ] \n 5");
 		param.addContent(new Element("eq"));
@@ -1377,7 +1389,7 @@ public class JaCopxcspParserTest extends TestCase {
 
 		JaCoPxcspParser.parseGlobalConstraint(cons, store);
 
-		assertFalse(getSolution());
+		assertFalse(getSolution()); /// @bug Bug in JaCoP: infeasible LinearInt constraints are not imposed https://github.com/radsz/jacop/issues/21
 		
 		resetStore();
 		
@@ -1385,7 +1397,7 @@ public class JaCopxcspParserTest extends TestCase {
 		cons.setAttribute("name", "c_1");
 		cons.setAttribute("arity", "2");
 		cons.setAttribute("scope", "v1 v2");
-		cons.setAttribute("reference", "global:weightedSum"); 	
+		cons.setAttribute("reference", this.constraintName); 	
 		param = new Element("parameters");
 		param.setText("[ { 1 v2 } { 1 v1 } { 1 3 } ] \n 6");
 		param.addContent(new Element("eq"));
@@ -1401,7 +1413,7 @@ public class JaCopxcspParserTest extends TestCase {
 		cons.setAttribute("name", "c_1");
 		cons.setAttribute("arity", "2");
 		cons.setAttribute("scope", "v1 v2");
-		cons.setAttribute("reference", "global:weightedSum"); 	
+		cons.setAttribute("reference", this.constraintName); 	
 		param = new Element("parameters");
 		param.setText("[ { 1 v2 } { 1 v1 } { 1 3 } ] \n 5");
 		param.addContent(new Element("eq"));
@@ -1429,7 +1441,7 @@ public class JaCopxcspParserTest extends TestCase {
 		cons.setAttribute("name", "c_1");
 		cons.setAttribute("arity", "4");
 		cons.setAttribute("scope", "v1 v2 v3 v4");
-		cons.setAttribute("reference", "global:weightedSum"); 	
+		cons.setAttribute("reference", this.constraintName); 	
 		Element param = new Element("parameters");
 		param.setText("[ { 1 v1 } { 5 v2 } { 1 v3 } { 1 v4 } ]  8");
 		param.addContent(new Element("ne"));
@@ -1477,7 +1489,7 @@ public class JaCopxcspParserTest extends TestCase {
 		cons.setAttribute("name", "c_1");
 		cons.setAttribute("arity", "4");
 		cons.setAttribute("scope", "v4 v3 v2 v1");
-		cons.setAttribute("reference", "global:weightedSum"); 	
+		cons.setAttribute("reference", this.constraintName); 	
 		Element param = new Element("parameters");
 		param.setText("[ { 1 v4 } { 2 v2 } { 2 v3 } { 1 v1 } ]  17");
 		param.addContent(new Element("ge"));
@@ -1525,7 +1537,7 @@ public class JaCopxcspParserTest extends TestCase {
 		cons.setAttribute("name", "c_1");
 		cons.setAttribute("arity", "4");
 		cons.setAttribute("scope", "v4 v3 v2 v1");
-		cons.setAttribute("reference", "global:weightedSum"); 	
+		cons.setAttribute("reference", this.constraintName); 	
 		Element param = new Element("parameters");
 		param.setText("[ { 1 v4 } { 2 v2 } { 2 v3 } { 1 v1 } ]  17");
 		param.addContent(new Element("gt"));
@@ -1560,7 +1572,7 @@ public class JaCopxcspParserTest extends TestCase {
 		cons.setAttribute("name", "c_2");
 		cons.setAttribute("arity", "4");
 		cons.setAttribute("scope", "v6 v7 v5 v8");
-		cons.setAttribute("reference", "global:weightedSum"); 	
+		cons.setAttribute("reference", this.constraintName); 	
 		param = new Element("parameters");
 		param.setText("[ { 2 v6 } { 2 v7 } { 1 v5 } { 1 v8 } ]  16");
 		param.addContent(new Element("gt"));
@@ -1608,7 +1620,7 @@ public class JaCopxcspParserTest extends TestCase {
 		cons.setAttribute("name", "c_1");
 		cons.setAttribute("arity", "4");
 		cons.setAttribute("scope", "v4 v3 v2 v1");
-		cons.setAttribute("reference", "global:weightedSum"); 	
+		cons.setAttribute("reference", this.constraintName); 	
 		Element param = new Element("parameters");
 		param.setText("[ { -1 v4 } { 1 v2 } { 1 v3 } { 1 v1 } ]  5");
 		param.addContent(new Element("le"));
@@ -1656,7 +1668,7 @@ public class JaCopxcspParserTest extends TestCase {
 		cons.setAttribute("name", "c_1");
 		cons.setAttribute("arity", "4");
 		cons.setAttribute("scope", "v4 v3 v2 v1");
-		cons.setAttribute("reference", "global:weightedSum"); 	
+		cons.setAttribute("reference", this.constraintName); 	
 		Element param = new Element("parameters");
 		param.setText("[ { -1 v4 } { 1 v2 } { 1 v3 } { 1 v1 } ]  5");
 		param.addContent(new Element("lt"));
@@ -1691,7 +1703,7 @@ public class JaCopxcspParserTest extends TestCase {
 		cons.setAttribute("name", "c_2");
 		cons.setAttribute("arity", "4");
 		cons.setAttribute("scope", "v6 v7 v5 v8");
-		cons.setAttribute("reference", "global:weightedSum"); 	
+		cons.setAttribute("reference", this.constraintName); 	
 		param = new Element("parameters");
 		param.setText("[ { 1 v6 } { 1 v7 } { 1 v5 } { -1 v8 } ]  6");
 		param.addContent(new Element("lt"));
@@ -1742,7 +1754,7 @@ public class JaCopxcspParserTest extends TestCase {
 		cons.setAttribute("name", "constraint");
 		cons.setAttribute("arity", "4");
 		cons.setAttribute("scope", "i x0 x1 v");
-		cons.setAttribute("reference", "global:element"); 	
+		cons.setAttribute("reference", this.constraintName); 	
 		Element param = new Element("parameters");
 		param.setText("\n i \n [\n -1 \n x0 -2..-1 x1 \n] \n v \n");
 		cons.addContent(param);
@@ -1767,7 +1779,7 @@ public class JaCopxcspParserTest extends TestCase {
 		cons.setAttribute("name", "constraint");
 		cons.setAttribute("arity", "4");
 		cons.setAttribute("scope", "i x0 x1");
-		cons.setAttribute("reference", "global:element"); 	
+		cons.setAttribute("reference", this.constraintName); 	
 		param = new Element("parameters");
 		param.setText("i [1 x0 1..2 x1] -1");
 		cons.addContent(param);

@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2018  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -339,11 +339,10 @@ implements StatsReporter {
 					System.out.println("Optimal cost for component rooted at `" + msgCast.getRoot() + "\': " + msgCast.getUtility());
 			}
 			
-			// Going through a String to get the utility in case the agents have used a different class from the stats gatherer
 			if (this.optUtil == null) {
-				this.optUtil = this.problem.getZeroUtility().fromString(msgCast.getUtility().toString());
+				this.optUtil = msgCast.getUtility();
 			} else 
-				this.optUtil = this.optUtil.add(this.problem.getZeroUtility().fromString(msgCast.getUtility().toString()));
+				this.optUtil = this.optUtil.add(msgCast.getUtility());
 
 			Long time = queue.getCurrentMessageWrapper().getTime();
 			if(finalTime < time)

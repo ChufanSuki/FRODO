@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2018  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -253,7 +253,7 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 		String name = constraint.getAttributeValue("name");
 		String owner = constraint.getAttributeValue("agent");
 
-		//int arity = Integer.valueOf(constraint.getAttributeValue("arity"));
+		//int arity = Integer.parseInt(constraint.getAttributeValue("arity"));
 		String scope = constraint.getAttributeValue("scope").trim();
 
 		Pattern pattern = Pattern.compile("\\s+");
@@ -371,9 +371,9 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 
 		Pattern pattern = Pattern.compile("\\s+");
 		String[] varNames = pattern.split(scope);
-		int nbTuples = Integer.valueOf(relation.getAttributeValue("nbTuples"));
+		int nbTuples = Integer.parseInt(relation.getAttributeValue("nbTuples"));
 		String name = relation.getAttributeValue("name");
-		int arity = Integer.valueOf(relation.getAttributeValue("arity"));
+		int arity = Integer.parseInt(relation.getAttributeValue("arity"));
 
 		String tuplesString = relation.getText();
 
@@ -429,7 +429,7 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 						if(pair[0].trim().equals("-infinity") || pair[0].trim().equals("infinity")){
 							isInfinity = true;
 						}else{
-							currentUtil = Integer.valueOf(pair[0].trim());
+							currentUtil = parseInt(pair[0].trim());
 							isInfinity = false;
 						}
 					}
@@ -444,7 +444,7 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 						assert vals.length == varNames.length : "The tuple " + tuples[i].trim() + " does not specify a value for every variable!";
 						
 						for (int j = 0; j < varNames.length; j++) {
-							tuple[j] = Integer.valueOf(vals[j]);
+							tuple[j] = parseInt(vals[j]);
 
 							// the value of the variable is no more contained in its domain (due to a previous slice operation)
 							if(!vars[j].dom().contains(tuple[j]))
@@ -465,7 +465,7 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 				// As the ExtensionalSupport constraint in JaCoP are not PrimitiveConstraint we cannot use control constraints such as IfThenElse, Or, ...
 				// I do not see any tricks to avoid building the complete list of tuples when the default utility is specified and is not equal to the infeasible utility.
 
-				int defaultUtil = Integer.valueOf(defaultCost);
+				int defaultUtil = parseInt(defaultCost);
 				// Add the default value to the domain of the utility variable
 				utilDom.addDom(new IntervalDomain (defaultUtil, defaultUtil));
 
@@ -516,7 +516,7 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 						if(pair[0].trim().equals("-infinity") || pair[0].trim().equals("infinity")){
 							isInfinity = true;
 						}else{
-							currentUtil = Integer.valueOf(pair[0].trim());
+							currentUtil = parseInt(pair[0].trim());
 							isInfinity = false;
 						}
 					}
@@ -526,7 +526,7 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 					assert vals.length == varNames.length : "The tuple " + tuples[i].trim() + " does not specify a value for every variable!";
 					
 					for (int j = 0; j < varNames.length; j++) {
-						tuple[j] = Integer.valueOf(vals[j]);
+						tuple[j] = parseInt(vals[j]);
 
 						// the value of the variable is no more contained in its domain (due to a previous slice operation)
 						if(!vars[j].dom().contains(tuple[j]))
@@ -626,7 +626,7 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 				assert vals.length == varNames.length : "The tuple " + tuples[i].trim() + " does not specify a value for every variable!";
 
 				for (int j = 0; j < varNames.length; j++) {
-					tuple[j] = Integer.valueOf(vals[j]);
+					tuple[j] = parseInt(vals[j]);
 
 					// if the value of the variable in the current tuple is not contained in the domain this variable,
 					// we do not need to add the tuple in the constraint. Besides ExtensionalConflict would crash.
@@ -691,7 +691,7 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 		Pattern pattern = Pattern.compile("\\s+");
 		String[] varNames = pattern.split(scope);
 
-		int arity = Integer.valueOf(constraint.getAttributeValue("arity"));
+		int arity = Integer.parseInt(constraint.getAttributeValue("arity"));
 		String refName = constraint.getAttributeValue("reference");
 
 		if(refName.equals("global:weightedSum")){
@@ -705,7 +705,7 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 
 			Matcher m = pattern.matcher(parameters);
 			m.find();
-			int rightHandVal = Integer.parseInt(m.group(2));
+			int rightHandVal = parseInt(m.group(2));
 
 			m = pattern2.matcher(m.group(1));
 			
@@ -717,7 +717,7 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 				
 				// constant parameter
 				if(constantPat.matcher(m.group(2)).matches()){
-					int val = Integer.parseInt(m.group(2));
+					int val = parseInt(m.group(2));
 					v = new IntVar(store, val, val);
 				// variable name
 				}else{
@@ -729,7 +729,7 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 					assert v != null: "The variable " + m.group(2) + " cannot be found in the store!";
 				}
 				vars.add(v);
-				weights.add(Integer.parseInt(m.group(1)));
+				weights.add(parseInt(m.group(1)));
 			}
 
 			IntVar rightHandVar = new IntVar(store, "rhs_" + new Object().hashCode(), rightHandVal, rightHandVal);
@@ -787,7 +787,7 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 			for(int i = 0; i < paramVarNames.length; i++){
 				// constant parameter
 				if(constantPat.matcher(paramVarNames[i]).matches()){
-					int val = Integer.parseInt(paramVarNames[i]);
+					int val = parseInt(paramVarNames[i]);
 					v = new IntVar(store, val, val);
 				// variable name
 				}else{	
@@ -839,7 +839,7 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 						// Create auxiliary grounded variables to replace constants
 						/// @todo Reuse code by creating a method for this
 						if (constPat.matcher(var).matches()) {
-							int constant = Integer.parseInt(var);
+							int constant = parseInt(var);
 							rectVars.add(new IntVar (store, constant, constant));
 						} else {
 							assert store.findVariable(var) != null : "Unknown variable: " + var;
@@ -867,7 +867,7 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 			Pattern constPat = Pattern.compile("-?\\d+"); // a constant (vs. a variable)
 			/// @todo Reuse code by creating a method for this
 			if (constPat.matcher(limit).matches()) { // a constant
-				int constant = Integer.parseInt(limit);
+				int constant = parseInt(limit);
 				limitVar = new IntVar (store, constant, constant);
 			} else {
 				assert store.findVariable(limit) != null : "Unknown variable: " + limit;
@@ -899,7 +899,7 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 					
 					/// @todo Reuse code by creating a method for this
 					if (constPat.matcher(var).matches()) { // a constant
-						int constant = Integer.parseInt(var);
+						int constant = parseInt(var);
 						vars[j][i] = new IntVar (store, constant, constant);
 					} else {
 						assert store.findVariable(var) != null : "Unknown variable: " + var;
@@ -932,7 +932,7 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 			Pattern constPat = Pattern.compile("-?\\d+"); // a constant (vs. a variable)
 			/// @todo Reuse code by creating a method for this
 			if (constPat.matcher(varStr).matches()) { // a constant
-				int constant = Integer.parseInt(varStr);
+				int constant = parseInt(varStr);
 				var = new IntVar (store, constant, constant);
 			} else {
 				assert store.findVariable(varStr) != null : "Unknown variable: " + varStr;
@@ -950,11 +950,11 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 			
 			if (onlyConst) { // use ElementInteger
 				
-				int[] list = new int [listSize];
+				ArrayList<Integer> list = new ArrayList<Integer> (listSize);
 				for (int i = 0; i < listSize; i++) 
-					list[i] = Integer.parseInt(strList[i]);
+					list.add(parseInt(strList[i]));
 				
-				store.impose(new org.jacop.constraints.Element(indexVar, list, var));
+				store.impose(new org.jacop.constraints.ElementInteger(indexVar, list, var));
 				
 			} else { // use ElementVariable
 				
@@ -964,11 +964,11 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 				for (int i = 0; i < listSize; i++) {
 					
 					if (constPat.matcher(elem = strList[i].trim()).matches()) { // a constant
-						int constant = Integer.parseInt(elem);
+						int constant = parseInt(elem);
 						list[i] = new IntVar (store, constant, constant);
 					} else if (intervPat.matcher(elem).matches()) { // an interval 
 						String[] interval = elem.split("\\.\\.");
-						list[i] = new IntVar (store, Integer.parseInt(interval[0]), Integer.parseInt(interval[1]));
+						list[i] = new IntVar (store, parseInt(interval[0]), parseInt(interval[1]));
 					} else { // a variable
 						assert store.findVariable(elem) != null : "Unknown variable: " + elem;
 						list[i] = (IntVar) store.findVariable(elem);
@@ -1361,6 +1361,19 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 	@Override
 	protected void foundUndefinedRelations(HashSet<String> relationNames) {
 		System.err.println("Undefined relations: " + relationNames);
+	}
+	
+	/** Attempts to parse a string as an int, warning for double truncation
+	 * @param str 	the input string 
+	 * @return 		the parsed int, possibly truncated
+	 */
+	private static int parseInt (String str) {
+		try {
+			return Integer.parseInt(str);
+		} catch (NumberFormatException e) { // not an int; try to parse as a double and truncate
+			System.err.println("WARNING! Attempting to parse `" + str + "' as a double and truncate it to an int");
+			return (int) Double.parseDouble(str);
+		}
 	}
 }
 

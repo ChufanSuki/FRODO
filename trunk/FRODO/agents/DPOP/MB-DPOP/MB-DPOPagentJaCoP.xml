@@ -1,6 +1,6 @@
 <!-- 
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2018  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -134,7 +134,7 @@ How to contact the authors:
 		<module className = "frodo2.algorithms.dpop.memory.LabelingPhase" 
 				reportStats = "true" 
 				DOTrenderer = "" 
-				maxDim = "7" />
+				maxDim = "10" />
 		
 		<!-- MB-DPOP's memory-bounded UTIL propagation phase -->
 		<module className = "frodo2.algorithms.dpop.memory.MemoryBoundedUTIL" 

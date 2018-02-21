@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2018  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -71,6 +71,7 @@ public class PaillierPublicKey implements Externalizable {
 	/** @see java.io.Externalizable#writeExternal(java.io.ObjectOutput) */
 	public void writeExternal(ObjectOutput out) throws IOException {
 		out.writeObject(this.n);
+		out.writeInt(this.bitLength);
 		out.writeObject(this.g);
 	}
 	
@@ -78,6 +79,7 @@ public class PaillierPublicKey implements Externalizable {
 	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
 		this.n = (BigInteger) in.readObject();
 		this.nsquare = this.n.multiply(this.n);
+		this.bitLength = in.readInt();
 		this.g = (BigInteger) in.readObject();
 	}
 
@@ -89,6 +91,7 @@ public class PaillierPublicKey implements Externalizable {
 		
 		// Generate a random r (!= 0) mod n
 		BigInteger r = new BigInteger(bitLength, this.rand);
+		assert this.bitLength > 0 : "Infinite loop detected: impossible to generate a random, non-zero BigInteger of bit length 0";
 		while (r.equals(BigInteger.ZERO) || r.compareTo(n) >= 0)
 			r = new BigInteger(bitLength, this.rand);
 

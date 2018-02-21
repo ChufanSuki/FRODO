@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2018  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -64,6 +64,12 @@ public class FactorGraphGen < V extends Addable<V>, U extends Addable<U> > imple
 	
 	/** The maximum amplitude of the perturbation unary constraints */
 	private final double maxPerturb;
+	
+	/** The prefix appended to variable node names to avoid name clashes with function node names */
+	private final String VAR_PREFIX = "var_";
+	
+	/** The prefix appended to function node names to avoid name clashes with variable node names */
+	private final String FUNC_PREFIX = "func_";
 
 	/** Constructor
 	 * @param problem 	this agent's problem
@@ -132,7 +138,7 @@ public class FactorGraphGen < V extends Addable<V>, U extends Addable<U> > imple
 				String var = entry.getKey();
 				String owner = this.problem.getOwner(var);
 				if (agent.equals(owner) || owner == null && agent.equals(new TreeSet<String> (entry.getValue()).iterator().next())) {
-					out.append("\t\t" + var + " [shape = \"circle\"];\n");
+					out.append("\t\t" + VAR_PREFIX + var + " [shape = \"circle\", label = \"" + var + "\"];\n");
 					myVars.add(var);
 					
 					// Add unary function node if required
@@ -148,7 +154,7 @@ public class FactorGraphGen < V extends Addable<V>, U extends Addable<U> > imple
 				if (agent.equals(space.getOwner()) || space.getOwner() == null && agent.equals(this.problem.getOwner(space.getVariable(0)))) {
 					if (this.compile) 
 						space.setName(agent);
-					out.append("\t\t" + space.getName() + " [shape = \"square\"];\n");
+					out.append("\t\t" + FUNC_PREFIX + space.getName() + " [shape = \"square\", label = \"" + space.getName() + "\"];\n");
 					noFunction = false;
 				}
 			}
@@ -164,11 +170,11 @@ public class FactorGraphGen < V extends Addable<V>, U extends Addable<U> > imple
 		// Print the edges between variable nodes and function nodes
 		for (UtilitySolutionSpace<V, U> space : allSpaces) {
 			for (String var : space.getVariables()) 
-				out.append("\t" + space.getName() + "--" + var + ";\n");
+				out.append("\t" + FUNC_PREFIX + space.getName() + "--" + VAR_PREFIX + var + ";\n");
 		}
 		if (addUnaryConstraints) 
 			for (String var : this.problem.getVariables()) 
-				out.append("\t" + var + "--perturb_" + var + ";\n");
+				out.append("\t" + VAR_PREFIX + var + "--perturb_" + var + ";\n");
 		out.append("\n");
 				
 		out.append("}\n");

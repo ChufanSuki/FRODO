@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2018  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -95,10 +95,13 @@ public class CATSToXCSP {
 	/** Pattern to identify the desired number of bids, which may be lower than the actual number of bids */
 	private static final Pattern nbrBidsPattern = Pattern.compile("\\s*bids\\s+(\\d+)\\s*");
 	
-	/**Pattern used to identify the \'goods\' line in the source file*/
+	/** Pattern used to identify the \'goods\' line in the source file*/
 	private static final Pattern goodsPattern = Pattern.compile("\\s*goods\\s+(\\d+)\\s*");
 
-	/**Pattern used to identify the bids in the source file*/
+	/** Pattern used to identify the \'dummy\' line in the source file*/
+	private static final Pattern dummyPattern = Pattern.compile("\\s*dummy\\s+(\\d+)\\s*");
+
+	/** Pattern used to identify the bids in the source file*/
 	private static final Pattern bidPattern = Pattern.compile("\\s*(\\d+)\\s+(-?\\d+(\\.\\d*)?)(\\s+-?\\d+)+\\s*#");
 
 
@@ -111,7 +114,7 @@ public class CATSToXCSP {
 	public static void main(String[] args) {
 
 		// The GNU GPL copyright notice
-		System.out.println("FRODO  Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek");
+		System.out.println("FRODO  Copyright (C) 2008-2018  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek");
 		System.out.println("This program comes with ABSOLUTELY NO WARRANTY.");
 		System.out.println("This is free software, and you are welcome to redistribute it");
 		System.out.println("under certain conditions. Use the option -license to display the license.\n");
@@ -168,15 +171,17 @@ public class CATSToXCSP {
 		int lineNumber = 1;
 		int nbrBids = -1;
 		nbGoods = -1;
+		int nbrDummyGoods = -1;
 		try{
 			fileScanner = new Scanner(new File(sourceFileName));
 			String line = "";
 			Matcher nbrBidsMatcher;
 			Matcher goodsMatcher;
 			Matcher bidMatcher;
+			Matcher dummyMatcher;
 			
 			// Parse the desired number of bids and goods
-			while(fileScanner.hasNextLine() && (nbrBids == - 1 || nbGoods == -1)) {
+			while(fileScanner.hasNextLine() && (nbrBids == - 1 || nbGoods == -1 || nbrDummyGoods == -1)) {
 				line = fileScanner.nextLine();
 				lineNumber++;
 				
@@ -189,8 +194,15 @@ public class CATSToXCSP {
 				
 				// Check if this is the "goods" line 
 				goodsMatcher = goodsPattern.matcher(line);
-				if(goodsMatcher.find()) 
+				if(goodsMatcher.find()) {
 					nbGoods = Integer.parseInt(goodsMatcher.group(1));
+					continue;
+				}
+
+				// Check if this is the "dummy" line 
+				dummyMatcher = dummyPattern.matcher(line);
+				if(dummyMatcher.find()) 
+					nbrDummyGoods = Integer.parseInt(dummyMatcher.group(1));
 			}
 
 			// Initialize the auction and create all the goods sold in this auction
@@ -208,6 +220,13 @@ public class CATSToXCSP {
 				lineNumber++;
 			}
 			fileScanner.close();
+			
+			// Check whether we found more dummy goods than announced
+			if (dummyGoodsToBiddersMap.size() > nbrDummyGoods) {
+				System.err.println("Error! Found the following " + dummyGoodsToBiddersMap.size() + 
+						" dummy goods, but was only expecting " + nbrDummyGoods + ": " + dummyGoodsToBiddersMap.keySet());
+				System.exit(1);
+			}
 		}
 		catch(NumberFormatException e) {
 			if(nbGoods == -1) {

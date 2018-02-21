@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2018  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -84,6 +84,12 @@ public class AddableReal implements Addable<AddableReal> {
 			return MinInfinity.MIN_INF;
 		} else 
 			return new AddableReal (Double.parseDouble(str));
+	}
+	
+	/** @see Addable#fromInt(int) */
+	@Override
+	public AddableReal fromInt(int nbr) {
+		return new AddableReal ((double) nbr);
 	}
 	
 	/** @see java.lang.Object#toString() */

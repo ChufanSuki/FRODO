@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2018  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -36,21 +36,21 @@ import frodo2.algorithms.varOrdering.dfs.DFSgeneration;
 import frodo2.algorithms.varOrdering.election.LeaderElectionMaxID;
 import frodo2.solutionSpaces.Addable;
 import frodo2.solutionSpaces.AddableInteger;
+import frodo2.solutionSpaces.crypto.AddableBigInteger;
 
 /** A solver for P-DPOP with rerooting
  * @author Thomas Leaute
  * @param <V> type used for variable values
- * @param <U> type used for utility values
  */
-public class P3halves_DPOPsolver < V extends Addable<V>, U extends Addable<U> > extends P_DPOPsolver<V, U> {
+public class P3halves_DPOPsolver < V extends Addable<V> > extends P_DPOPsolver<V> {
 	
 	/** The module that gathers the solution */
-	private RerootRequester<V, U> solutionGatherer;
+	private RerootRequester<V, AddableBigInteger> solutionGatherer;
 
 	/** Default constructor */
 	@SuppressWarnings("unchecked")
 	public P3halves_DPOPsolver() {
-		super("/frodo2/algorithms/dpop/privacy/P1.5-DPOPagent.xml", (Class<V>) AddableInteger.class, (Class<U>) AddableInteger.class);
+		super("/frodo2/algorithms/dpop/privacy/P1.5-DPOPagent.xml", (Class<V>) AddableInteger.class);
 	}
 
 	/** Constructor 
@@ -59,58 +59,45 @@ public class P3halves_DPOPsolver < V extends Addable<V>, U extends Addable<U> > 
 	 */
 	@SuppressWarnings("unchecked")
 	public P3halves_DPOPsolver(boolean useTCP) {
-		super("/frodo2/algorithms/dpop/privacy/P1.5-DPOPagent.xml", (Class<V>) AddableInteger.class, (Class<U>) AddableInteger.class, useTCP);
+		super("/frodo2/algorithms/dpop/privacy/P1.5-DPOPagent.xml", (Class<V>) AddableInteger.class, useTCP);
 	}
 
 	/** Constructor 
 	 * @param domClass 		the class to use for variable values
-	 * @param utilClass 	the class to use for utilities
 	 */
-	public P3halves_DPOPsolver (Class<V> domClass, Class<U> utilClass) {
-		this (domClass, utilClass, false);
+	public P3halves_DPOPsolver (Class<V> domClass) {
+		this (domClass, false);
 	}
 	
 	/** Constructor 
 	 * @param domClass 		the class to use for variable values
-	 * @param utilClass 	the class to use for utilities
 	 * @param useTCP 		whether to use TCP pipes
 	 * @warning Using TCP pipes automatically disables simulated time. 
 	 */
-	public P3halves_DPOPsolver (Class<V> domClass, Class<U> utilClass, boolean useTCP) {
+	public P3halves_DPOPsolver (Class<V> domClass, boolean useTCP) {
 		super ("/frodo2/algorithms/dpop/privacy/P1.5-DPOPagent.xml", useTCP);
 		this.setDomClass(domClass);
-		this.setUtilClass(utilClass);
+		this.setUtilClass(AddableBigInteger.class);
 	}
 	
 	/** Constructor 
 	 * @param agentDesc 	description of the agent to be used
 	 * @param domClass 		the class to use for variable values
-	 * @param utilClass 	the class to use for utilities
 	 * @param useTCP 		whether to use TCP pipes
 	 * @warning Using TCP pipes automatically disables simulated time. 
 	 */
-	public P3halves_DPOPsolver (Document agentDesc, Class<V> domClass, Class<U> utilClass, boolean useTCP) {
+	public P3halves_DPOPsolver (Document agentDesc, Class<V> domClass, boolean useTCP) {
 		super (agentDesc, useTCP);
 		this.setDomClass(domClass);
-		this.setUtilClass(utilClass);
+		this.setUtilClass(AddableBigInteger.class);
 	}
 	
 	/** Constructor 
 	 * @param agentDesc 	description of the agent to be used
 	 * @param parserClass	the class used to parse problems	
 	 */
-	public P3halves_DPOPsolver(Document agentDesc, Class<? extends XCSPparser<V, U>> parserClass) {
+	public P3halves_DPOPsolver(Document agentDesc, Class<? extends XCSPparser<V, AddableBigInteger>> parserClass) {
 		super(agentDesc, parserClass);
-	}
-
-	/** Constructor 
-	 * @param agentDesc 	description of the agent to be used
-	 * @param parserClass	the class used to parse problems	
-	 * @param useTCP 		whether to use TCP pipes
-	 * @warning Using TCP pipes automatically disables simulated time. 
-	 */
-	public P3halves_DPOPsolver(Document agentDesc, Class<? extends XCSPparser<V, U>> parserClass, boolean useTCP) {
-		super(agentDesc, parserClass, useTCP);
 	}
 
 	/** Constructor 
@@ -148,21 +135,19 @@ public class P3halves_DPOPsolver < V extends Addable<V>, U extends Addable<U> > 
 	/** Constructor
 	 * @param agentDescFile description of the agent to be used
 	 * @param domClass 		the class to be used for variable values
-	 * @param utilClass 	the class to be used for utility values
 	 */
-	public P3halves_DPOPsolver(String agentDescFile, Class<V> domClass, Class<U> utilClass) {
-		super(agentDescFile, domClass, utilClass);
+	public P3halves_DPOPsolver(String agentDescFile, Class<V> domClass) {
+		super(agentDescFile, domClass);
 	}
 
 	/** Constructor
 	 * @param agentDescFile description of the agent to be used
 	 * @param domClass 		the class to be used for variable values
-	 * @param utilClass 	the class to be used for utility values
 	 * @param useTCP 		whether to use TCP pipes
 	 * @warning Using TCP pipes automatically disables simulated time. 
 	 */
-	public P3halves_DPOPsolver(String agentDescFile, Class<V> domClass, Class<U> utilClass, boolean useTCP) {
-		super(agentDescFile, domClass, utilClass, useTCP);
+	public P3halves_DPOPsolver(String agentDescFile, Class<V> domClass, boolean useTCP) {
+		super(agentDescFile, domClass, useTCP);
 	}
 
 	/** @see P_DPOPsolver#getSolGatherers() */
@@ -171,15 +156,15 @@ public class P3halves_DPOPsolver < V extends Addable<V>, U extends Addable<U> > 
 
 		ArrayList<StatsReporter> solGatherers = new ArrayList<StatsReporter> (3);
 		
-		utilModule = new UTILpropagation<V, U>(null, problem);
+		utilModule = new UTILpropagation<V, AddableBigInteger>(null, problem);
 		utilModule.setSilent(true);
 		solGatherers.add(utilModule);
 		
-		this.solutionGatherer = new RerootRequester<V, U> (null, problem);
+		this.solutionGatherer = new RerootRequester<V, AddableBigInteger> (null, problem);
 		solutionGatherer.setSilent(true);
 		solGatherers.add(solutionGatherer);
 		
-		dfsModule = new DFSgeneration<V, U> (null, problem);
+		dfsModule = new DFSgeneration<V, AddableBigInteger> (null, problem);
 		dfsModule.setSilent(true);
 		solGatherers.add(dfsModule);
 
@@ -188,9 +173,9 @@ public class P3halves_DPOPsolver < V extends Addable<V>, U extends Addable<U> > 
 
 	/** @see P_DPOPsolver#buildSolution() */
 	@Override
-	public Solution<V, U> buildSolution() {
+	public Solution<V, AddableBigInteger> buildSolution() {
 
-		U optUtil = this.solutionGatherer.getOptUtil();
+		AddableBigInteger optUtil = this.solutionGatherer.getOptUtil();
 		Map<String, V>  solution = solutionGatherer.getSolution();
 		int nbrMsgs = factory.getNbrMsgs();
 		TreeMap<String, Integer> msgNbrs = factory.getMsgNbrs();
@@ -204,7 +189,7 @@ public class P3halves_DPOPsolver < V extends Addable<V>, U extends Addable<U> > 
 		int nbrVariables = problem.getNbrVars();
 		long totalTime = factory.getTime();
 		
-		return new Solution<V, U> (nbrVariables, optUtil, super.problem.getUtility(solution).getUtility(0), solution, 
+		return new Solution<V, AddableBigInteger> (nbrVariables, optUtil, super.problem.getUtility(solution).getUtility(0), solution, 
 				nbrMsgs, msgNbrs, this.factory.getMsgNbrsSentPerAgent(), this.factory.getMsgNbrsReceivedPerAgent(), 
 				totalMsgSize, msgSizes, this.factory.getMsgSizesSentPerAgent(), this.factory.getMsgSizesReceivedPerAgent(), 
 				maxMsgSize, maxMsgSizes, ncccs, totalTime, null, maxMsgDim, numberOfCoordinationConstraints);
