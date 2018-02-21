@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2018  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -55,13 +55,16 @@ public class PaillierInteger implements Externalizable {
 	public void writeExternal(ObjectOutput out) throws IOException {
 		byte[] byteArray = this.value.toByteArray();
 		out.writeInt(byteArray.length);
-		out.write(byteArray);
+		for (int i = byteArray.length - 1; i >= 0; i--) 
+			out.writeByte(byteArray[i]);
 	}
 
 	/** @see java.io.Externalizable#readExternal(java.io.ObjectInput) */
 	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-		byte[] byteArray = new byte [in.readInt()];
-		in.read(byteArray);
+		int nbrBytes = in.readInt();
+		byte[] byteArray = new byte [nbrBytes];
+		for (int i = nbrBytes - 1; i >= 0; i--) 
+			byteArray[i] = in.readByte();
 		this.value = new BigInteger (byteArray);
 	}
 	

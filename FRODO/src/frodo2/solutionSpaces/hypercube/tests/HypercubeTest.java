@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2018  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -852,7 +852,7 @@ public class HypercubeTest extends TestCase {
 			if(inf != Infinity.NONE && Math.random() < prob) {
 				utility_values[j] = infeasibleUtil;
 			} else {
-				utility_values[j] = infeasibleUtil.fromString(Integer.toString((int) (20 * Math.random())));
+				utility_values[j] = infeasibleUtil.fromInt((int) (20 * Math.random()));
 			}
 		}
 		
@@ -937,7 +937,7 @@ public class HypercubeTest extends TestCase {
 			fail();
 		}
 		for(int j=0;j<number_of_utilities;j++){
-			utility_values[j] = utilInstance.fromString(Integer.toString( (int)(Math.random()*nb) ));
+			utility_values[j] = utilInstance.fromInt( (int)(Math.random()*nb) );
 		}
 		
 		

@@ -1,5 +1,5 @@
 <instance xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../../../../algorithms/XCSPschema.xsd">
-	<presentation name="sampleProblem" maxConstraintArity="2" maximize="false" format="XCSP 2.1_FRODO" />
+	<presentation name="coloring3" maxConstraintArity="2" maximize="false" format="XCSP 2.1_FRODO" />
 	<agents nbAgents="3">
 		<agent name="agentX" />
 		<agent name="agentY" />

@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2018  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -129,7 +129,11 @@ public class RerootRequester < V extends Addable<V>, U extends Addable<U> > impl
 	public RerootRequester (Element params, DCOPProblemInterface<V, U> problem) {
 		this.problem = problem;
 		this.nbrVars = problem.getNbrVars();
+		
+		// Initialize the solution, in case the problem is infeasible, and the algorithm will terminate without rerooting 
 		this.solution = new HashMap<String, V> ();
+		for (String var : this.problem.getVariables()) 
+			this.solution.put(var, this.problem.getDomain(var)[0]);
 	}
 	
 	/** Constructor
@@ -191,8 +195,7 @@ public class RerootRequester < V extends Addable<V>, U extends Addable<U> > impl
 		else if (msgType.equals(OPT_UTIL_MSG_TYPE)) { // in stats gatherer mode, the total optimal utility of one component of the constraint graph
 			
 			MessageWithPayload<U> msgCast = (MessageWithPayload<U>) msg;
-			// Going through a String to get the utility in case the agents have used a different class from the stats gatherer
-			U util = this.problem.getZeroUtility().fromString(msgCast.getPayload().toString());
+			U util = msgCast.getPayload();
 			
 			if (this.optUtil == null) 
 				this.optUtil = util;

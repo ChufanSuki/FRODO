@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2018  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -67,56 +67,109 @@ public class MaxSumTests< V extends Addable<V>, U extends Addable<U> > extends T
 		TestSuite suite = new TestSuite ("Tests for Max-Sum");
 		
 		TestSuite tmp = new TestSuite ("Pure acyclic maximization problems");
-		tmp.addTest(new RepeatedTest (new MaxSumTests<AddableInteger, AddableInteger> (true, AddableInteger.class, 0.0, false, true, true, 0.0), 1000));
+		tmp.addTest(new RepeatedTest (new MaxSumTests<AddableInteger, AddableInteger> (true, AddableInteger.class, 0.0, false, true, true, 0.0, false), 1000));
 		suite.addTest(tmp);
 		
 		tmp = new TestSuite ("Pure acyclic minimization problems");
-		tmp.addTest(new RepeatedTest (new MaxSumTests<AddableInteger, AddableInteger> (false, AddableInteger.class, 0.0, false, true, true, 0.0), 1000));
+		tmp.addTest(new RepeatedTest (new MaxSumTests<AddableInteger, AddableInteger> (false, AddableInteger.class, 0.0, false, true, true, 0.0, false), 1000));
 		suite.addTest(tmp);
 		
 		tmp = new TestSuite ("Pure acyclic minimization problems with zero initialization");
-		tmp.addTest(new RepeatedTest (new MaxSumTests<AddableInteger, AddableInteger> (false, AddableInteger.class, 0.0, false, true, false, 0.0), 1000));
+		tmp.addTest(new RepeatedTest (new MaxSumTests<AddableInteger, AddableInteger> (false, AddableInteger.class, 0.0, false, true, false, 0.0, false), 1000));
 		suite.addTest(tmp);
 		
 		tmp = new TestSuite ("Pure maximization problems");
-		tmp.addTest(new RepeatedTest (new MaxSumTests<AddableInteger, AddableInteger> (true, AddableInteger.class, 0.0, false, false, true, 0.0), 100));
+		tmp.addTest(new RepeatedTest (new MaxSumTests<AddableInteger, AddableInteger> (true, AddableInteger.class, 0.0, false, false, true, 0.0, false), 100));
 		suite.addTest(tmp);
 		
 		tmp = new TestSuite ("Pure minimization problems");
-		tmp.addTest(new RepeatedTest (new MaxSumTests<AddableInteger, AddableInteger> (false, AddableInteger.class, 0.0, false, false, true, 0.0), 100));
+		tmp.addTest(new RepeatedTest (new MaxSumTests<AddableInteger, AddableInteger> (false, AddableInteger.class, 0.0, false, false, true, 0.0, false), 100));
 		suite.addTest(tmp);
 		
 		tmp = new TestSuite ("Pure minimization problems with real-valued costs");
-		tmp.addTest(new RepeatedTest (new MaxSumTests<AddableInteger, AddableReal> (false, AddableReal.class, 0.0, false, false, true, 0.0), 100));
+		tmp.addTest(new RepeatedTest (new MaxSumTests<AddableInteger, AddableReal> (false, AddableReal.class, 0.0, false, false, true, 0.0, false), 100));
 		suite.addTest(tmp);
 		
 		tmp = new TestSuite ("Pure minimization problems with real-valued costs and perturbations");
-		tmp.addTest(new RepeatedTest (new MaxSumTests<AddableInteger, AddableReal> (false, AddableReal.class, 0.0, false, false, true, 0.01), 100));
+		tmp.addTest(new RepeatedTest (new MaxSumTests<AddableInteger, AddableReal> (false, AddableReal.class, 0.0, false, false, true, 0.01, false), 100));
 		suite.addTest(tmp);
 		
 		tmp = new TestSuite ("Pure minimization problems with real-valued costs and zero initialization");
-		tmp.addTest(new RepeatedTest (new MaxSumTests<AddableInteger, AddableReal> (false, AddableReal.class, 0.0, false, false, false, 0.0), 100));
+		tmp.addTest(new RepeatedTest (new MaxSumTests<AddableInteger, AddableReal> (false, AddableReal.class, 0.0, false, false, false, 0.0, false), 100));
 		suite.addTest(tmp);
 		
 		/// @bug Max-Sum may not terminate when using TCP pipes because there is not idleness detection
 //		tmp = new TestSuite ("Pure minimization problems with TCP pipes");
-//		tmp.addTest(new RepeatedTest (new MaxSumTests<AddableInteger, AddableInteger> (false, AddableInteger.class, 0.0, true, false, true, 0.0), 100));
+//		tmp.addTest(new RepeatedTest (new MaxSumTests<AddableInteger, AddableInteger> (false, AddableInteger.class, 0.0, true, false, true, 0.0, false), 100));
 //		suite.addTest(tmp);
 		
 		tmp = new TestSuite ("Maximization problems");
-		tmp.addTest(new RepeatedTest (new MaxSumTests<AddableInteger, AddableInteger> (true, AddableInteger.class, AllTests.DEFAULT_P2, false, false, true, 0.0), 100));
+		tmp.addTest(new RepeatedTest (new MaxSumTests<AddableInteger, AddableInteger> (true, AddableInteger.class, AllTests.DEFAULT_P2, false, false, true, 0.0, false), 100));
 		suite.addTest(tmp);
 		
 		tmp = new TestSuite ("Minimization problems");
-		tmp.addTest(new RepeatedTest (new MaxSumTests<AddableInteger, AddableInteger> (false, AddableInteger.class, AllTests.DEFAULT_P2, false, false, true, 0.0), 100));
+		tmp.addTest(new RepeatedTest (new MaxSumTests<AddableInteger, AddableInteger> (false, AddableInteger.class, AllTests.DEFAULT_P2, false, false, true, 0.0, false), 100));
 		suite.addTest(tmp);
 		
 		tmp = new TestSuite ("Minimization problems with real-valued costs");
-		tmp.addTest(new RepeatedTest (new MaxSumTests<AddableInteger, AddableReal> (false, AddableReal.class, AllTests.DEFAULT_P2, false, false, true, 0.0), 100));
+		tmp.addTest(new RepeatedTest (new MaxSumTests<AddableInteger, AddableReal> (false, AddableReal.class, AllTests.DEFAULT_P2, false, false, true, 0.0, false), 100));
 		suite.addTest(tmp);
 		
 		tmp = new TestSuite ("Minimization problems with real-valued costs and perturbations");
-		tmp.addTest(new RepeatedTest (new MaxSumTests<AddableInteger, AddableReal> (false, AddableReal.class, AllTests.DEFAULT_P2, false, false, true, 0.01), 100));
+		tmp.addTest(new RepeatedTest (new MaxSumTests<AddableInteger, AddableReal> (false, AddableReal.class, AllTests.DEFAULT_P2, false, false, true, 0.01, false), 100));
+		suite.addTest(tmp);
+		
+		tmp = new TestSuite ("Pure acyclic maximization problems with synchronous rounds");
+		tmp.addTest(new RepeatedTest (new MaxSumTests<AddableInteger, AddableInteger> (true, AddableInteger.class, 0.0, false, true, true, 0.0, true), 1000));
+		suite.addTest(tmp);
+		
+		tmp = new TestSuite ("Pure acyclic minimization problems with synchronous rounds");
+		tmp.addTest(new RepeatedTest (new MaxSumTests<AddableInteger, AddableInteger> (false, AddableInteger.class, 0.0, false, true, true, 0.0, true), 1000));
+		suite.addTest(tmp);
+		
+		tmp = new TestSuite ("Pure acyclic minimization problems with zero initialization with synchronous rounds");
+		tmp.addTest(new RepeatedTest (new MaxSumTests<AddableInteger, AddableInteger> (false, AddableInteger.class, 0.0, false, true, false, 0.0, true), 1000));
+		suite.addTest(tmp);
+		
+		tmp = new TestSuite ("Pure maximization problems with synchronous rounds");
+		tmp.addTest(new RepeatedTest (new MaxSumTests<AddableInteger, AddableInteger> (true, AddableInteger.class, 0.0, false, false, true, 0.0, true), 100));
+		suite.addTest(tmp);
+		
+		tmp = new TestSuite ("Pure minimization problems with synchronous rounds");
+		tmp.addTest(new RepeatedTest (new MaxSumTests<AddableInteger, AddableInteger> (false, AddableInteger.class, 0.0, false, false, true, 0.0, true), 100));
+		suite.addTest(tmp);
+		
+		tmp = new TestSuite ("Pure minimization problems with real-valued costs with synchronous rounds");
+		tmp.addTest(new RepeatedTest (new MaxSumTests<AddableInteger, AddableReal> (false, AddableReal.class, 0.0, false, false, true, 0.0, true), 100));
+		suite.addTest(tmp);
+		
+		tmp = new TestSuite ("Pure minimization problems with real-valued costs and perturbations with synchronous rounds");
+		tmp.addTest(new RepeatedTest (new MaxSumTests<AddableInteger, AddableReal> (false, AddableReal.class, 0.0, false, false, true, 0.01, true), 100));
+		suite.addTest(tmp);
+		
+		tmp = new TestSuite ("Pure minimization problems with real-valued costs and zero initialization with synchronous rounds");
+		tmp.addTest(new RepeatedTest (new MaxSumTests<AddableInteger, AddableReal> (false, AddableReal.class, 0.0, false, false, false, 0.0, true), 100));
+		suite.addTest(tmp);
+		
+		/// @bug Max-Sum may not terminate when using TCP pipes because there is not idleness detection
+//		tmp = new TestSuite ("Pure minimization problems with TCP pipes with synchronous rounds");
+//		tmp.addTest(new RepeatedTest (new MaxSumTests<AddableInteger, AddableInteger> (false, AddableInteger.class, 0.0, true, false, true, 0.0, true), 100));
+//		suite.addTest(tmp);
+		
+		tmp = new TestSuite ("Maximization problems with synchronous rounds");
+		tmp.addTest(new RepeatedTest (new MaxSumTests<AddableInteger, AddableInteger> (true, AddableInteger.class, AllTests.DEFAULT_P2, false, false, true, 0.0, true), 100));
+		suite.addTest(tmp);
+		
+		tmp = new TestSuite ("Minimization problems with synchronous rounds");
+		tmp.addTest(new RepeatedTest (new MaxSumTests<AddableInteger, AddableInteger> (false, AddableInteger.class, AllTests.DEFAULT_P2, false, false, true, 0.0, true), 100));
+		suite.addTest(tmp);
+		
+		tmp = new TestSuite ("Minimization problems with real-valued costs with synchronous rounds");
+		tmp.addTest(new RepeatedTest (new MaxSumTests<AddableInteger, AddableReal> (false, AddableReal.class, AllTests.DEFAULT_P2, false, false, true, 0.0, true), 100));
+		suite.addTest(tmp);
+		
+		tmp = new TestSuite ("Minimization problems with real-valued costs and perturbations with synchronous rounds");
+		tmp.addTest(new RepeatedTest (new MaxSumTests<AddableInteger, AddableReal> (false, AddableReal.class, AllTests.DEFAULT_P2, false, false, true, 0.01, true), 100));
 		suite.addTest(tmp);
 		
 		return suite;
@@ -143,6 +196,9 @@ public class MaxSumTests< V extends Addable<V>, U extends Addable<U> > extends T
 	/** The maximum amount of perturbation to add to each variable's unary constraint */
 	private final double maxPerturb;
 	
+	/** Whether to run in synchronous mode */
+	private final boolean synchronous;
+	
 	/** Constructor
 	 * @param maximize 		Whether to maximize utility or minimize cost
 	 * @param classOfU 		The class of U
@@ -151,8 +207,10 @@ public class MaxSumTests< V extends Addable<V>, U extends Addable<U> > extends T
 	 * @param acyclic 		Whether the graph should be acyclic
 	 * @param randomInit 	Whether to initialize the algorithm with random messages
 	 * @param perturb 		The maximum amount of perturbation to add to each variable's unary constraint
+	 * @param synchronous 	Whether to run in synchronous mode
 	 */
-	public MaxSumTests (boolean maximize, Class<U> classOfU, double p2, boolean useTCP, boolean acyclic, boolean randomInit, double perturb) {
+	public MaxSumTests (boolean maximize, Class<U> classOfU, double p2, boolean useTCP, boolean acyclic, boolean randomInit, double perturb, 
+			boolean synchronous) {
 		super ("test");
 		this.maximize = maximize;
 		this.classOfU = classOfU;
@@ -161,6 +219,7 @@ public class MaxSumTests< V extends Addable<V>, U extends Addable<U> > extends T
 		this.acyclic = acyclic;
 		this.randomInit = randomInit;
 		this.maxPerturb = perturb;
+		this.synchronous = synchronous;
 	}
 	
 	/** The test method 
@@ -183,8 +242,9 @@ public class MaxSumTests< V extends Addable<V>, U extends Addable<U> > extends T
 			
 			if (moduleClass.equals(MaxSum.class.getName())) {
 				if (acyclic) 
-					module.setAttribute("maxNbrIter", "50000");
+					module.setAttribute("maxNbrIter", "1000");
 				module.setAttribute("randomInit", Boolean.toString(this.randomInit));
+				module.setAttribute("synchronous", Boolean.toString(this.synchronous));
 				
 			} else if (moduleClass.equals(FactorGraphGen.class.getName())) {
 				module.setAttribute("maxPerturb", Double.toString(this.maxPerturb));
@@ -204,9 +264,12 @@ public class MaxSumTests< V extends Addable<V>, U extends Addable<U> > extends T
 		parser.setUtilClass(this.classOfU);
 		assertEquals (parser.getUtility(sol.getAssignments()).getUtility(0), sol.getUtility());
 		
-		// Skip the completeness test if the problem is not acyclic, or has more than one optimal solutions
-		if (this.acyclic && new SolutionCounter<AddableInteger, AddableInteger>().count(problem) <= 1) 
-			assertEquals(new DPOPsolver<AddableInteger, AddableInteger>().solve(problem).getUtility(), sol.getUtility());
+		// Only check completeness if the problem is acyclic and either infeasible, or it has a unique optimal solution
+		if (this.acyclic) {
+			AddableInteger optUtil = new DPOPsolver<AddableInteger, AddableInteger>().solve(problem).getUtility();
+			if (optUtil.abs().equals(optUtil.getPlusInfinity()) || new SolutionCounter<AddableInteger, AddableInteger>().count(problem) <= 1) 
+				assertEquals(optUtil, sol.getUtility());
+		}
 	}
 
 }

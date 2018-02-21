@@ -1,3 +1,24 @@
+CHANGES IN VERSION 2.16 SINCE VERSION 2.15.2
+
+Major changes: 
+	- P2-DPOP & MPC-DisWCSP4 now support maximization problems and problems with negative costs/utilities (request by Sankarshan Damle). 
+	- Max-Sum now supports synchronous, round-based execution (in addition to asynchronous execution). 
+	Preliminary experimental results show that the asynchronous version outperforms the synchronous version on all performance metrics. 
+	
+Minor changes: 
+	- Fixed a NumberFormatException in P-DPOP and P3/2-DPOP (reported by Sankarshan Damle), which now only support AddableBigInteger utilities. 
+	- The CATS parser now reports an error when more dummy goods are encountered than announced (issue reported by Sankarshan Damle). 
+	- The JaCoPxcspParser now truncates decimal values to integers instead of throwing a NumberFormatException (issue reported by Sankarshan Damle). 
+	- Fixed a bug in Max-Sum following which messages were skipped instead of delayed if received before the factor graph message. 
+	- Fixed a bug in the factor graph DOT representation: names of function nodes and variable nodes could clash. 
+	- Fixed serialization bugs in MPC-Dis[W]CSP4, which did not work with TCP pipes. 
+	- Fixed a bug following which P3/2-DPOP would not assign any value to any variable on infeasible problems. 
+	- Fixed a bug following which using AddableBigInteger for utilities/costs resulted in 
+	algorithms reporting very large instead of infinite utilities/costs on infeasible problems. 
+	- Added warnings about truncations when attempting to parse decimal values from XCSP into integers. 
+	- Added asserts to check for integer overflows in AddableInteger. 
+
+
 CHANGES IN VERSION 2.15.2 SINCE VERSION 2.15.1
 
 Major changes: 
@@ -605,7 +626,7 @@ Minor changes:
 	- Added a timeout to the simple mode. 
 	- Changes in the handling of NCCCs. NCCCs are currently only supported for O-DPOP and ADOPT. 
 	- Trashed DPOP's DomainSharing module. 
-	- Now provides an XML schema file for the XCSP format (ch/epfl/lia/frodo/algorithms/XCSPschema.xsd). 
+	- Now provides an XML schema file for the XCSP format (frodo2/algorithms/XCSPschema.xsd). 
 	- The simple mode now properly displays the number of messages and total information sent. 
 	- Changes in the required constructor signature for StatsReporters. 
 	- Removed busy waits in the unit tests. 

@@ -1,6 +1,6 @@
 <!-- 
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2018  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -64,7 +64,7 @@ How to contact the authors:
 	
 		<!-- Rescales the problem into the only form that AFB supports: a minimization problem with non-negative costs
 			- maximize [required]: whether the problem should be made a maximization problem
-			- shift [optional, default = 0]: how much should be added to each cost/utility to make them all of the desired sign
+			- shift [optional, default = 0]: how much should be added to each cost/utility in each constraint to make them all of the desired sign
 		 -->
 		<module className = "frodo2.algorithms.reformulation.ProblemRescaler" 
 				maximize = "false" 

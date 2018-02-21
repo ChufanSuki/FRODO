@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!-- 
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2018  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -407,6 +407,7 @@ where variable values and utility values can be integer numbers, infinity or -in
 		<xs:alternative test="@reference = 'global:diff2'" type="diff2Constraint" />
 		<xs:alternative test="@reference = 'global:cumulative'" type="cumulativeConstraint" />
 		<xs:alternative test="@reference = 'global:element'" type="elementConstraint" />
+		<xs:alternative test="@reference = 'global:elementFast'" type="elementFastConstraint" />
 		<xs:alternative type="nonGlobalConstraint" />
 	</xs:element>
 	
@@ -564,7 +565,7 @@ Example of one such a rectangle: [ {orig_x_1 orig_y_1} {size_x_1 size_y_1} ]
 		</xs:complexContent>
 	</xs:complexType>
 
-	<xs:complexType name="elementConstraint">
+	<xs:complexType name="elementConstraintNoReference">
 		<xs:complexContent>
 			<xs:extension base="constraint">
 				<xs:all>
@@ -584,7 +585,22 @@ Example of one such a rectangle: [ {orig_x_1 orig_y_1} {size_x_1 size_y_1} ]
 						</xs:simpleType>
 					</xs:element>
 				</xs:all>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+
+	<xs:complexType name="elementConstraint">
+		<xs:complexContent>
+			<xs:extension base="elementConstraintNoReference">
 				<xs:attribute name="reference" type="xs:string" fixed="global:element" use="required"/>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+
+	<xs:complexType name="elementFastConstraint">
+		<xs:complexContent>
+			<xs:extension base="elementConstraintNoReference">
+				<xs:attribute name="reference" type="xs:string" fixed="global:elementFast" use="required"/>
 			</xs:extension>
 		</xs:complexContent>
 	</xs:complexType>

@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2018  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -68,7 +68,7 @@ public class MPC_DisCSP4 < V extends Addable<V>, U extends Addable<U> > implemen
 	
 	/** The type of solution messages */
 	protected static final String SOLUTION_MSG_TYPE = "Solution";
-	
+
 	/** A message containing the optimal solution for a variable
 	 * @param <V> the type used for variable values
 	 */
@@ -325,9 +325,15 @@ public class MPC_DisCSP4 < V extends Addable<V>, U extends Addable<U> > implemen
 			String var = msgCast.getVar();
 			
 			if (var == null) { // infeasible
-				if (this.reportStats) 
-					System.out.println("Optimal total cost: infinity");
-				this.optCost = this.problem.getPlusInfUtility();
+				if (this.problem.maximize()) { // maximization problem
+					if (this.reportStats) 
+						System.out.println("Optimal total utility: -infinity");
+					this.optCost = this.problem.getMinInfUtility();
+				} else { // minimization problem
+					if (this.reportStats) 
+						System.out.println("Optimal total cost: infinity");
+					this.optCost = this.problem.getPlusInfUtility();
+				}
 				
 			} else { // feasible
 				V val = msgCast.getVal();
@@ -338,8 +344,12 @@ public class MPC_DisCSP4 < V extends Addable<V>, U extends Addable<U> > implemen
 				// If all optimal assignments have been received, compute the corresponding cost
 				if (this.solution.size() == this.problem.getNbrVars()) {
 					this.optCost = this.problem.getUtility(this.solution).getUtility(0);
-					if (this.reportStats) 
-						System.out.println("Optimal total cost: " + this.optCost);
+					if (this.reportStats) {
+						if (this.problem.maximize()) 
+							System.out.println("Optimal total utility: " + this.optCost);
+						else 
+							System.out.println("Optimal total cost: " + this.optCost);
+					}
 				}
 			}
 			

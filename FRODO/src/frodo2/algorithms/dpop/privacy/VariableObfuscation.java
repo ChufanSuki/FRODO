@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2018  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -345,7 +345,7 @@ public class VariableObfuscation < V extends Addable<V>, U extends Addable<U> > 
 				obfucatedVal = rand.nextInt();
 			} while (! tempVal.add(obfucatedVal)); // loop as long as adding obfuscatedVal to tempVal does not change tempVal
 			
-			values[i] = valInstance.fromString(Integer.toString(obfucatedVal));
+			values[i] = valInstance.fromInt(obfucatedVal);
 		}
 		return values;
 	}
@@ -687,9 +687,9 @@ public class VariableObfuscation < V extends Addable<V>, U extends Addable<U> > 
 			
 			// Replace large numbers by true infinities if necessary
 			if (this.problem.maximize()) {
-				if (util.compareTo(util.fromString(Integer.toString(Integer.MIN_VALUE))) <= 0) 
+				if (util.compareTo(util.fromInt(Integer.MIN_VALUE)) <= 0) 
 					msgCast.setPayload1(AddableBigInteger.MinInfinity.MIN_INF);
-			} else if (util.compareTo(util.fromString(Integer.toString(Integer.MAX_VALUE))) >= 0) 
+			} else if (util.compareTo(util.fromInt(Integer.MAX_VALUE)) >= 0) 
 				msgCast.setPayload1(AddableBigInteger.PlusInfinity.PLUS_INF);
 			
 			return Decision.DONTCARE;
@@ -749,9 +749,9 @@ public class VariableObfuscation < V extends Addable<V>, U extends Addable<U> > 
 				
 				// Fix the utility for infeasible problems
 				if (this.problem.maximize()) {
-					if (util.compareTo(util.fromString(Integer.toString(Integer.MIN_VALUE))) <= 0) 
+					if (util.compareTo(util.fromInt(Integer.MIN_VALUE)) <= 0) 
 						util = this.problem.getMinInfUtility();
-				} else if (util.compareTo(util.fromString(Integer.toString(Integer.MAX_VALUE))) >= 0) 
+				} else if (util.compareTo(util.fromInt(Integer.MAX_VALUE)) >= 0) 
 					util = this.problem.getPlusInfUtility();
 
 				if (this.problem.maximize()) 

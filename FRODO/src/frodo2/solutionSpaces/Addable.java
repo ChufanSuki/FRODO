@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2018  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -43,6 +43,12 @@ public interface Addable< T extends Addable<T> > extends Comparable<T>, AddableL
 	 * @return 		a new instance
 	 */
 	public T fromString (String str);
+	
+	/** Creates an instance from an int
+	 * @param nbr 	the int 
+	 * @return 		a new instance
+	 */
+	public T fromInt (int nbr);
 	
 	/** Adds an object to this object
 	 * @param o 	the object to be added

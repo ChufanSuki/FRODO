@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2018  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -24,12 +24,14 @@ package frodo2.algorithms.mpc_discsp;
 
 import java.math.BigInteger;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 
 import org.jdom2.Element;
 
 import frodo2.algorithms.AgentInterface;
+import frodo2.algorithms.StatsReporter;
 import frodo2.communication.Message;
 import frodo2.solutionSpaces.Addable;
 import frodo2.solutionSpaces.AddableInteger;
@@ -55,9 +57,11 @@ import frodo2.solutionSpaces.DCOPProblemInterface;
  * @param <U> the type used for utility values, in stats gatherer mode only (in normal mode, AddableInteger is used)
  * 
  * @todo Important performance improvement: before un-shuffling, check whether it is necessary by checking whether the S vector sums up to 1. 
- * @todo Add support for maximization problems and costs/utilities with unrestricted signs. 
  */
 public class MPC_DisWCSP4 < V extends Addable<V>, U extends Addable<U> > extends MPC_DisCSP4<V, U> {
+	
+	/** The type of the start message */
+	public static String START_MSG_TYPE = AgentInterface.START_AGENT;
 	
 	/** In private constraints, infinite costs are replaced with this value */
 	private final AddableInteger infiniteCost;
@@ -88,6 +92,18 @@ public class MPC_DisWCSP4 < V extends Addable<V>, U extends Addable<U> > extends
 		this.maxCost = 0;
 	}
 	
+	/** @see StatsReporter#getMsgTypes() */
+	@Override
+	public Collection<String> getMsgTypes() {
+		return Arrays.asList(
+				MPC_DisWCSP4.START_MSG_TYPE, 
+				SharesMsg.SHARES_MSG_TYPE, 
+				EncrSharesMsg.ENCR_SHARES_MSG_TYPE, 
+				OneShareMsg.ONE_SHARE_MSG, 
+				SolShareMsg.SOL_SHARE_MSG_TYPE
+				);
+	}
+
 	/** @see MPC_DisCSP4#notifyIn(Message) */
 	@Override
 	public void notifyIn(Message msg) {

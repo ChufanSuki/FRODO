@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2018  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -257,9 +257,9 @@ implements IncomingMsgPolicyInterface<String>, OutgoingMsgPolicyInterface<String
 			System.err.println("The class specified as the `cleartextClass' for the SecureRerooting module does not have an public empty constructor");
 			e.printStackTrace();
 		}
-		this.rootElement = instance.fromString("0");
-		this.notRootElement = instance.fromString("1");
-		this.fakeElement = instance.fromString("2");
+		this.rootElement = instance.fromInt(0);
+		this.notRootElement = instance.fromInt(1);
+		this.fakeElement = instance.fromInt(2);
 		
 		this.problem = problem;
 	}

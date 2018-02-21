@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2018  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -22,8 +22,8 @@ How to contact the authors:
 
 package frodo2.solutionSpaces.JaCoP;
 
-import java.util.IdentityHashMap;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.concurrent.locks.Condition;
 
 import org.jacop.core.IntVar;
@@ -91,7 +91,7 @@ public class IterSolutionListener extends SimpleSolutionListener<IntVar> {
 		
 		boolean returnCode = super.executeAfterSolution(search, select);
 		
-		IdentityHashMap<IntVar, Integer> position = select.getVariablesMapping();
+		Map<IntVar, Integer> position = select.getVariablesMapping();
 		IntVar[] vars = new IntVar[position.size()];
 		for (Iterator<IntVar> itr = position.keySet().iterator(); itr.hasNext();) {
 			IntVar current = itr.next();	

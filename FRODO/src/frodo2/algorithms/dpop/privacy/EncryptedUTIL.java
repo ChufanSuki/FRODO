@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2018  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -258,6 +258,9 @@ implements StatsReporter, OutgoingMsgPolicyInterface<String> {
 		 * @return return the encrypted value
 		 */
 		public E encrypt(U value){		
+			
+			assert value.intValue() >= 0 : "P2-DPOP currently only supports minimization problems with non-negative costs; found cost " + value;
+			
 			return cs.encrypt(value);
 		}
 		
@@ -319,10 +322,6 @@ implements StatsReporter, OutgoingMsgPolicyInterface<String> {
 
 		this.mergeBack = Boolean.parseBoolean(parameters.getAttributeValue("mergeBack"));
 		this.reportStats = Boolean.parseBoolean(parameters.getAttributeValue("reportStats"));
-
-		/// @todo Use the ProblemRescaler to support arbitrary problems. 
-		assert ! problem.maximize() : "P2-DPOP currently only supports minimization problems with non-negative costs";
-		
 	}
 	
 	/** The constructor called in "statistics gatherer" mode
@@ -345,7 +344,9 @@ implements StatsReporter, OutgoingMsgPolicyInterface<String> {
 	private void init(){
 		this.infos = new HashMap<String, VariableInfo> ();
 		this.codeNames = new HashSet<String> ();
-		
+
+		assert ! problem.maximize() : "P2-DPOP currently only supports minimization problems";
+				
 		this.start = true;
 	}
 
@@ -924,16 +925,16 @@ implements StatsReporter, OutgoingMsgPolicyInterface<String> {
 
 		V[] values = this.problem.getDomain(var).clone();
 		int size = values.length;
-		HashSet<String> tempVal = new HashSet<String>();
+		HashSet<Integer> tempVal = new HashSet<Integer>();
 		
 		for( int i =0; i<size;i++){
 			
-			String obfuscatedVal;
+			int obfuscatedVal;
 			do{
-				obfuscatedVal = Integer.toString(rand.nextInt());
+				obfuscatedVal = rand.nextInt();
 			} while (! tempVal.add(obfuscatedVal)); // loop as long as adding obfuscatedVal to tempVal does not change tempVal
 			
-			values[i] = values[i].fromString(obfuscatedVal);
+			values[i] = values[i].fromInt(obfuscatedVal);
 		}
 		return values;
 	}

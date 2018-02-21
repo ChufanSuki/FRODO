@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2018  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -79,6 +79,9 @@ public class MaxSum < V extends Addable<V>, U extends Addable<U> > implements St
 		/** The last marginal utility received from each function node */     
 		private HashMap< String, UtilitySolutionSpace<V, U> > lastMsgsIn = new HashMap< String, UtilitySolutionSpace<V, U> > ();
 		
+		/** Number of neighboring function nodes */
+		private final int nbrNeighbors;
+		
 		/** The remaining number of iterations for this node */
 		private int nbrIter;
 		
@@ -92,6 +95,7 @@ public class MaxSum < V extends Addable<V>, U extends Addable<U> > implements St
 		 */
 		private VarInfo (String varName, String agent, ArrayList< FunctionNode<V, U> > functions) {
 			super(varName, agent, problem.getDomain(varName));
+			this.nbrNeighbors = functions.size();
 
 			if (agent.equals(problem.getAgent())) { // I control this variable node
 				
@@ -103,8 +107,34 @@ public class MaxSum < V extends Addable<V>, U extends Addable<U> > implements St
 				// Initialize the last messages received from and sent to the neighboring function nodes
 				for (FunctionNode<V, U> funct : functions) {
 					this.addFunction(funct);
-					this.lastMsgsIn.put(funct.getName(), zeroSpace(this.varName, this.dom));
+					if (! synchronous) 
+						this.lastMsgsIn.put(funct.getName(), zeroSpace(this.varName, this.dom));
 				}
+			}
+		}
+		
+		/** Returns whether to respond to this message
+		 * @param senderVar 		the sender variable
+		 * @param marginalUtil 	the received message
+		 * @return whether to respond or not
+		 */
+		private boolean doIrespond (String senderVar, UtilitySolutionSpace<V, U> marginalUtil) {
+			
+			if (synchronous) { // only respond if I have received all messages for this round
+				
+				assert this.lastMsgsIn.get(senderVar) == null : "Received two messages from `" + senderVar + "' in a row";
+				this.lastMsgsIn.put(senderVar, marginalUtil);
+				
+				// Check if I have received all messages for this round
+				if (this.lastMsgsIn.size() == this.nbrNeighbors) 
+					if (--this.nbrIter > 0) 
+						return true;
+				
+				return false;
+				
+			} else { // asynchronous; only respond if the message from this sender has changed from the previous one received
+				return --this.nbrIter >= 0 
+						&& ! marginalUtil.equivalent(this.lastMsgsIn.put(senderVar, marginalUtil));
 			}
 		}
 	}
@@ -139,10 +169,10 @@ public class MaxSum < V extends Addable<V>, U extends Addable<U> > implements St
 		AddableDelayed<U> sum = this.zero.addDelayed();
 		Random rand = new Random ();
 		for (int i = 0; i < domSize; i++) 
-			sum.addDelayed(utils[i] = this.zero.fromString(Integer.toString(rand.nextInt(100))));
+			sum.addDelayed(utils[i] = this.zero.fromInt(rand.nextInt(100)));
 		
 		// Rescale the random utilities so that they sum up to 0
-		U scalar = sum.resolve().divide(this.zero.fromString(Integer.toString(domSize)));
+		U scalar = sum.resolve().divide(this.zero.fromInt(domSize));
 		for (int i = 0; i < domSize; i++) 
 			utils[i] = utils[i].subtract(scalar);
 
@@ -161,6 +191,9 @@ public class MaxSum < V extends Addable<V>, U extends Addable<U> > implements St
 		/** The last marginal utility received from each variable node */     
 		private HashMap< String, UtilitySolutionSpace<V, U> > lastMsgsIn = new HashMap< String, UtilitySolutionSpace<V, U> > ();
 		
+		/** Number of neighboring variable nodes */
+		private final int nbrNeighbors;
+		
 		/** The remaining number of iterations for this node */
 		private int nbrIter;
 		
@@ -174,9 +207,13 @@ public class MaxSum < V extends Addable<V>, U extends Addable<U> > implements St
 			
 			this.nbrIter = maxNbrIter;
 			
-			if (space != null) 
-				for (String var : space.getVariables()) 
-					this.addVariable(var, problem.getDomain(var));
+			if (space != null) {
+				this.nbrNeighbors = space.getNumberOfVariables();
+				if (! synchronous) 
+					for (String var : space.getVariables()) 
+						this.addVariable(var, problem.getDomain(var));
+			} else 
+				this.nbrNeighbors = 0;
 		}
 		
 		/** Adds a variable to this FunctionInfo
@@ -188,6 +225,35 @@ public class MaxSum < V extends Addable<V>, U extends Addable<U> > implements St
 			// Initialize the last messages received from and sent to this variable node
 			this.lastMsgsIn.put(varName, zeroSpace(varName, dom));
 		}
+		
+		/** Returns whether to respond to this message
+		 * @param senderVar 		the sender variable
+		 * @param marginalUtil 	the received message
+		 * @return whether to respond or not
+		 */
+		private boolean doIrespond (String senderVar, UtilitySolutionSpace<V, U> marginalUtil) {
+			
+			if (synchronous) { // only respond if I have received all messages for this round
+				
+				assert this.lastMsgsIn.get(senderVar) == null : "Received two messages from `" + senderVar + "' in a row";
+				this.lastMsgsIn.put(senderVar, marginalUtil);
+				
+				// Check if I have received all messages for this round
+				if (this.lastMsgsIn.size() == this.nbrNeighbors) 
+					if (--this.nbrIter > 0) 
+						return true;
+				
+				return false;
+				
+			} else { // asynchronous; only respond if the message from this sender has changed from the previous one received
+				
+				if ("start".equals(marginalUtil.getName())) // always respond to the start message
+					return true;
+				
+				this.nbrIter--;
+				return ! marginalUtil.equivalent(this.lastMsgsIn.put(senderVar, marginalUtil));
+			}
+		}
 	}
 	
 	/** For each constraint in the agent's subproblem, its FunctionInfo */
@@ -195,6 +261,9 @@ public class MaxSum < V extends Addable<V>, U extends Addable<U> > implements St
 
 	/** The algorithm will terminate when ALL function nodes have gone through that many iterations */
 	private final int maxNbrIter;
+
+	/** If true, then round-based execution; if false, then each function/variable node immediately responds to each message */
+	private final boolean synchronous;
 
 	/** This module's queue */
 	private Queue queue;
@@ -232,8 +301,8 @@ public class MaxSum < V extends Addable<V>, U extends Addable<U> > implements St
 	/** For each variable its assignment history */
 	private final HashMap< String, ArrayList< CurrentAssignment<V> > > assignmentHistoriesMap;
 	
-	/** For each recipient (variable or function), the last message received and waiting to be processed */
-	private HashMap<String, Message> pendingMsgs = new HashMap<String, Message> ();
+	/** Messages received and waiting to be processed */
+	private ArrayList<Message> pendingMsgs = new ArrayList<Message> ();
 
 	/** The name of this agent */
 	private String agentName;
@@ -252,6 +321,7 @@ public class MaxSum < V extends Addable<V>, U extends Addable<U> > implements St
 		this.convergence = Boolean.parseBoolean(parameters.getAttributeValue("convergence"));
 		this.assignmentHistoriesMap = (this.convergence ? new HashMap< String, ArrayList< CurrentAssignment<V> > >() : null);
 		this.reportStats = Boolean.parseBoolean(parameters.getAttributeValue("reportStats"));
+		this.synchronous = Boolean.parseBoolean(parameters.getAttributeValue("synchronous"));
 
 		String maxNbrIter = parameters.getAttributeValue("maxNbrIter");
 		if(maxNbrIter == null)
@@ -264,6 +334,8 @@ public class MaxSum < V extends Addable<V>, U extends Addable<U> > implements St
 			this.randomInit = Boolean.parseBoolean(randomInitStr);
 		else 
 			this.randomInit = true;
+
+		this.varInfos = new HashMap<String, VarInfo> ();
 	}
 
 	/** The constructor called in "statistics gatherer" mode
@@ -280,6 +352,7 @@ public class MaxSum < V extends Addable<V>, U extends Addable<U> > implements St
 		this.infeasibleUtil = (this.maximize ? problem.getMinInfUtility() : problem.getPlusInfUtility());
 		this.maxNbrIter = 0;
 		this.randomInit = false;
+		this.synchronous = false;
 		this.convergence = false;
 		this.assignmentHistoriesMap = new HashMap< String, ArrayList< CurrentAssignment<V> > > ();
 	}
@@ -324,7 +397,7 @@ public class MaxSum < V extends Addable<V>, U extends Addable<U> > implements St
 		}
 		
 		// Process pending messages
-		for (Message msg : this.pendingMsgs.values()) 
+		for (Message msg : this.pendingMsgs) 
 			this.notifyIn(msg);
 		this.pendingMsgs.clear();
 	}
@@ -403,7 +476,6 @@ public class MaxSum < V extends Addable<V>, U extends Addable<U> > implements St
 					(MessageWith2Payloads < HashMap< String, VariableNode<V, U> >, HashMap< String, FunctionNode<V, U> > >) msg;
 			
 			// Record the variable nodes
-			this.varInfos = new HashMap<String, VarInfo> ();
 			for (Map.Entry< String, VariableNode<V, U> > entry : msgCast.getPayload1().entrySet()) {
 				VariableNode<V, U> node = entry.getValue();
 				this.varInfos.put(entry.getKey(), new VarInfo (node.getVarName(), node.getAgent(), node.getFunctions()));
@@ -436,7 +508,7 @@ public class MaxSum < V extends Addable<V>, U extends Addable<U> > implements St
 			
 			// Postpone message if necessary
 			if (! this.started) {
-				this.pendingMsgs.put(var, msg);
+				this.pendingMsgs.add(msg);
 				return;
 			}
 			
@@ -444,12 +516,10 @@ public class MaxSum < V extends Addable<V>, U extends Addable<U> > implements St
 			assert varInfo.optVal != null : "Received a message for a variable node I do not control";
 			String functionNode = msgCast.getFunctionNode();
 			
-			// Ignore this message if the recipient variable node has already terminated
-			if (--varInfo.nbrIter < 0) 
-				return;
-			
-			// Only respond if this message has changed since the last message received from this function node 
-			if (! marginalUtil.equivalent(varInfo.lastMsgsIn.put(functionNode, marginalUtil))) {
+			// Check whether I should respond 
+			if (varInfo.doIrespond(functionNode, marginalUtil)) {
+				
+				assert varInfo.lastMsgsIn.size() == varInfo.nbrNeighbors : "Insufficient number of messages received";
 
 				// Compute the new optimal assignment to the destination variable, as the argmax of the join of the marginal utilities received from all function nodes
 				int newOptIndex = 0;
@@ -508,7 +578,7 @@ public class MaxSum < V extends Addable<V>, U extends Addable<U> > implements St
 					// Rescale the join such that its utilities sum up to zero (ignoring infeasible ones)
 					if (nbrNonINFutils > 0) {
 						U scalar = scalarDelayed.resolve();
-						scalar = scalar.divide(scalar.fromString(Integer.toString(nbrNonINFutils)));
+						scalar = scalar.divide(scalar.fromInt(nbrNonINFutils));
 						for (int i = 0; i < domSize; i++) 
 							marginalUtil.setUtility(i, marginalUtil.getUtility(i).subtract(scalar));
 					}
@@ -517,6 +587,9 @@ public class MaxSum < V extends Addable<V>, U extends Addable<U> > implements St
 					this.queue.sendMessage(function.getAgent(), new VariableMsg<V, U> (function.getName(), marginalUtil));
 				}
 
+				// In synchronous mode, clear all the last messages received once I have responded to them
+				if (this.synchronous) 
+					varInfo.lastMsgsIn.clear();
 			}
 			
 			// Report the final solution if we have reached the last iteration
@@ -539,7 +612,7 @@ public class MaxSum < V extends Addable<V>, U extends Addable<U> > implements St
 			
 			// Postpone message if necessary
 			if (! this.started) {
-				this.pendingMsgs.put(functionName, msg);
+				this.pendingMsgs.add(msg);
 				return;
 			}
 			
@@ -548,13 +621,11 @@ public class MaxSum < V extends Addable<V>, U extends Addable<U> > implements St
 			assert marginalUtil.getNumberOfVariables() == 1 : "Multi-variable marginal utility: " + marginalUtil;
 			String senderVar = marginalUtil.getVariable(0);
 			
-			if (! "start".equals(marginalUtil.getName())) { // not the foo message sent at startup
-				
-				// If this message hasn't changed since the last message received from this function node, don't react
-				functionInfo.nbrIter--;
-				if (marginalUtil.equivalent(functionInfo.lastMsgsIn.put(senderVar, marginalUtil))) 
-					return;
-			}
+			// Check whether I should respond
+			if (! functionInfo.doIrespond(senderVar, marginalUtil)) 
+				return;
+			
+			assert functionInfo.lastMsgsIn.size() == functionInfo.nbrNeighbors : "Insufficient number of messages received";
 			
 			// If I have exhausted all my iterations, only respond to variable nodes
 			ArrayList<String> destinations = new ArrayList<String> (functionInfo.lastMsgsIn.keySet());
@@ -594,6 +665,10 @@ public class MaxSum < V extends Addable<V>, U extends Addable<U> > implements St
 				// Send the message
 				this.queue.sendMessage(destAgent, new FunctionMsg<V, U> (functionInfo.getName(), marginalUtil));
 			}
+			
+			// In synchronous mode, clear all the last messages received once I have responded to them
+			if (this.synchronous) 
+				functionInfo.lastMsgsIn.clear();
 			
 		} else if (msgType.equals(AgentInterface.ALL_AGENTS_IDLE)) {
 			

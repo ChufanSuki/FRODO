@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2018  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -147,7 +147,7 @@ public class CompleteUTIL < Val extends Addable<Val>, U extends Addable<U> > ext
 		this.remainingVars = problem.getNbrVars();
 		this.problem = problem;
 		this.zero = problem.getZeroUtility();
-		this.one = this.zero.fromString("1");
+		this.one = this.zero.fromInt(1);
 		super.withAnonymVars = true;
 		relationships = new HashMap< String, DFSview<Val, U> > ();
 		this.nbrStatsMsgs = 2 * problem.getNbrVars(); // one DFS message and one RandVarsProjMsg message
@@ -169,7 +169,7 @@ public class CompleteUTIL < Val extends Addable<Val>, U extends Addable<U> > ext
 	public CompleteUTIL (DCOPProblemInterface<Val, U> problem, Element parameters) throws ClassNotFoundException {
 		super (problem, parameters);
 		this.zero = problem.getZeroUtility();
-		this.one = this.zero.fromString("1");
+		this.one = this.zero.fromInt(1);
 		super.withAnonymVars = true;
 		
 		// Parse the method to use, if it is specified

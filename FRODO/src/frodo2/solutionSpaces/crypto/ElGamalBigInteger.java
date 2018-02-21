@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2018  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -58,6 +58,7 @@ public class ElGamalBigInteger implements AddableLimited <AddableInteger, ElGama
 	public ElGamalBigInteger(final AddableInteger value, final int size){
 		
 		assert size > 0 : "Should not create ElGamalBigIntegers of size 0";
+		assert value.intValue() >= 0 : "Negative integers cannot be encrypted";
 		this.vector = new BigInteger [size][];
 		
 		// Each number is represented by a vector of pairs of BigIntegers: 3 is represented by [E(1), E(1), E(1), E(2), ...]

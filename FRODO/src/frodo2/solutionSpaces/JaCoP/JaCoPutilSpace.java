@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2018  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -883,6 +883,7 @@ public class JaCoPutilSpace < U extends Addable<U> > implements UtilitySolutionS
 			dom = this.allVars.get(var);
 			jacopDom = new IntervalDomain (dom.length);
 			for (AddableInteger val : dom){
+				assert val != null : "Domain for variable `" + var + "' contains null value: " + Arrays.toString(dom);
 				jacopDom.addDom(new IntervalDomain (val.intValue(), val.intValue()));
 			}
 			// Construct the JaCoP variable

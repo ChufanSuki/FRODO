@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2018  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -175,14 +175,26 @@ public class AddableBigInteger implements Addable<AddableBigInteger> {
 
 	/** @see Addable#fromString(java.lang.String) */
 	public AddableBigInteger fromString(String str) {
+		
+		if ("infinity".equals(str)) 
+			return PlusInfinity.PLUS_INF;
+		else if ("-infinity".equals(str)) 
+			return MinInfinity.MIN_INF;
+		
 		try {
 			return new AddableBigInteger(str);
 			
 		} catch (NumberFormatException e) { // does not look like a BigInteger
 			
 			// Try to parse it as a double, and truncate
+			System.err.println("WARNING! Attempting to parse `" + str + "' as a double and truncate it to an int");
 			return new AddableBigInteger (Integer.toString((int) Double.parseDouble(str)));
 		}
+	}
+	
+	/** @see Addable#fromInt(int) */
+	public AddableBigInteger fromInt (int nbr) {
+		return new AddableBigInteger (new BigInteger (String.format("%d", nbr)));
 	}
 
 	/** @see Addable#getMinInfinity() */

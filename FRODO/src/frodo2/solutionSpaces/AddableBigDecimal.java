@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2018  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -186,6 +186,11 @@ public class AddableBigDecimal implements Addable<AddableBigDecimal> {
 			return MinInfinity.MIN_INF;
 		} else 
 			return new AddableBigDecimal (Double.parseDouble(str));
+	}
+	
+	/** @see Addable#fromInt(int) */
+	public AddableBigDecimal fromInt (int nbr) {
+		return new AddableBigDecimal ((double) nbr);
 	}
 
 	/** @see Addable#getMinInfinity() */

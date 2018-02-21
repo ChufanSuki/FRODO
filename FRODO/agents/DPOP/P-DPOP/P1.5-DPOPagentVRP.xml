@@ -1,6 +1,6 @@
 <!-- 
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2017  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2018  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -34,7 +34,7 @@ How to contact the authors:
 	<!-- The XCSP parser that supports VRP constraints 
 		- displayGraph: if true, displays the constraint graph in DOT format (default = false)
 		- domClass: the class to be used for variable values (must be AddableInteger)
-		- utilClass: the class to be used for utility values (should be AddableReal or AddableBigDecimal)
+		- utilClass: the class to be used for utility values (must be AddableBigInteger)
 		- DOTrenderer: the class to be used to display the constraint graph. Supported values:
 			- empty string: displays the constraint graph in DOT format in the console; 
 			- frodo2.gui.DOTrenderer: renders the constraint graph in a new window. Assumes that Graphviz' "dot" command is on the shell path. 
@@ -43,7 +43,7 @@ How to contact the authors:
 	<parser parserClass = "frodo2.benchmarks.vehiclerouting.XCSPparserVRP" 
 			displayGraph = "true" 
 			domClass = "frodo2.solutionSpaces.AddableInteger" 
-			utilClass = "frodo2.solutionSpaces.AddableReal"
+			utilClass = "frodo2.solutionSpaces.crypto.AddableBigInteger"
 			DOTrenderer = ""
 			countNCCCs = "false" />
 
