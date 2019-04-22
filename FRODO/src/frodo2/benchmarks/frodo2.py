@@ -1,6 +1,6 @@
 """
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2018  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -41,7 +41,7 @@ output = ""
 outFile = None
 javaProcess = None
 
-print("""FRODO  Copyright (C) 2008-2018  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+print("""FRODO  Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 This program comes with ABSOLUTELY NO WARRANTY.
 This is free software, and you are welcome to redistribute it
 under certain conditions.\n""");
@@ -207,7 +207,10 @@ def runAtDepth (depth, indent, genParams):
             
             # Run the algorithm
             print(indent + time.strftime("%H:%M:%S", time.localtime()) + " Starting " + algo[0])
-            javaProcess = subprocess.Popen([java] + myJavaParams + [algo[1]] + algo[0:4] + [str(timeout), tmpFileName], preexec_fn = ignoreInterruption, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            if sys.platform.startswith('win'):
+                javaProcess = subprocess.Popen([java] + myJavaParams + [algo[1]] + algo[0:4] + [str(timeout), tmpFileName], creationflags = subprocess.CREATE_NEW_PROCESS_GROUP, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            else: 
+                javaProcess = subprocess.Popen([java] + myJavaParams + [algo[1]] + algo[0:4] + [str(timeout), tmpFileName], preexec_fn = ignoreInterruption, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             
             out, err = javaProcess.communicate()
             if err:
