@@ -1,3 +1,12 @@
+CHANGES IN VERSION 2.16.1 SINCE VERSION 2.16
+
+Major changes: none 
+	
+Minor changes: 
+	-  The experiment framework now also runs on Windows platforms 
+	(bug reported by Ruofei Bai: https://sourceforge.net/p/frodo2/discussion/1174600/thread/691cd49da1/?limit=25#f363)
+
+
 CHANGES IN VERSION 2.16 SINCE VERSION 2.15.2
 
 Major changes: 

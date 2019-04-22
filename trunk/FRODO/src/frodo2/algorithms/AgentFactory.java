@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2018  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -183,7 +183,7 @@ public class AgentFactory < V extends Addable<V> > implements IncomingMsgPolicyI
 	public static void main (String[] args) {
 
 		// The GNU GPL copyright notice
-		System.out.println("FRODO  Copyright (C) 2008-2018  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek");
+		System.out.println("FRODO  Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek");
 		System.out.println("This program comes with ABSOLUTELY NO WARRANTY.");
 		System.out.println("This is free software, and you are welcome to redistribute it");
 		System.out.println("under certain conditions. Use the option -license to display the license.\n");
