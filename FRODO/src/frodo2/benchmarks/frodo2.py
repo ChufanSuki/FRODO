@@ -28,6 +28,7 @@ import signal
 import sys
 import subprocess
 import math
+import glob
 
 # Global variables
 interrupted = False
@@ -278,6 +279,26 @@ def runAtDepth (depth, indent, genParams):
     
         print(indent + "Picking " + str(opt) + " from " + str(optList))
         runAtDepth(depth+1, indent+"\t", optBefore + [str(opt)] + optAfter)
+
+
+def runFromRepo (java_i, javaParams_i, repoPath, algos_i, timeout_i, output_i):
+    """Starts the experiment based on an input repository of problem instances
+    @param java_i             the command line to call Java
+    @param javaParams_i        the list of parameters to be passed to the JVM. Example: ["-Xmx2G", "-classpath", "my/path"]
+    @param repoPath         the path to a folder containing input problem files (without any trailing slash)
+    @param algos_i             the list of algorithms; each algorithm is [display name, solver class name, agent configuration file, javaParams] (with javaParams optional)
+    @param timeout_i         the timeout in seconds
+    @param output_i         the CSV file to which the statistics should be written
+    """
+    
+    # Read the list of input problem instance files from the repository folder
+    filenames = [ filename for filename in glob.glob(repoPath + "/*") ]
+    
+    # Set the name of the intermediate file that will be passed to the algorithms
+    probFile = ".fromRepo.xcsp"
+    algos = [ algo[0:3] + [probFile] + algo[4:4] for algo in algos_i ] # insert the probFile into the list of algos
+    
+    run(java_i, javaParams_i, "frodo2.benchmarks.FileCopier", [filenames, probFile], 1, algos, timeout_i, output_i)
 
 
 def run (java_i, javaParams_i, generator_i, genParams, nbrProblems, algos_i, timeout_i, output_i):
