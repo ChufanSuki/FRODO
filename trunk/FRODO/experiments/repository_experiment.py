@@ -67,11 +67,14 @@ algos = [
 		]
 timeout = 600 # in seconds
 
+# The number of times each algorithm should be run against each problem instance 
+nbrRuns = 1
+
 # The CSV file to which the statistics should be written
 output = "outputRepository.csv"
 
 # Run the experiment
-frodo2.runFromRepo(java, javaParams, repoPath, algos, timeout, output)
+frodo2.runFromRepo(java, javaParams, repoPath, nbrRuns, algos, timeout, output)
 
 # Tip: if some of the algorithms tend to time out most of the time on some problem files, 
 # you can run 2 experiments: one for all algorithms on the smaller problem sizes, 
