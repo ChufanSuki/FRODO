@@ -31,6 +31,7 @@ import junit.framework.TestCase;
 import junit.framework.TestSuite;
 import frodo2.communication.IncomingMsgPolicyInterface;
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 import frodo2.communication.MessageWrapper;
 import frodo2.communication.Queue;
 import frodo2.communication.mailer.CentralMailer;
@@ -40,14 +41,11 @@ import frodo2.communication.sharedMemory.QueueIOPipe;
  * @author Brammert Ottens, Thomas Leaute
  * 
  */
-public class testCentralMailer extends TestCase implements IncomingMsgPolicyInterface<String> {
+public class testCentralMailer extends TestCase implements IncomingMsgPolicyInterface<MessageType> {
 	
 	/** The type of a random message */
-	public static final String RANDOM_MSG_TYPE  = "Random message";
+	public static final MessageType RANDOM_MSG_TYPE  = MessageType.SYSTEM.newChild("testCentralMailer", "Random message");
 	
-	/** The type of a causal message */
-	public static final String CAUSAL_MSG_TYPE = " Causal message";
-
 	/** The last message received */
 	private MessageWrapper last;
 	
@@ -127,8 +125,8 @@ public class testCentralMailer extends TestCase implements IncomingMsgPolicyInte
 	/** 
 	 * @see frodo2.communication.IncomingMsgPolicyInterface#getMsgTypes()
 	 */
-	public Collection<String> getMsgTypes() {
-		ArrayList<String> msgTypes = new ArrayList<String>(1);
+	public Collection<MessageType> getMsgTypes() {
+		ArrayList<MessageType> msgTypes = new ArrayList<MessageType>(1);
 		msgTypes.add(RANDOM_MSG_TYPE);
 		return msgTypes;
 	}
@@ -138,7 +136,7 @@ public class testCentralMailer extends TestCase implements IncomingMsgPolicyInte
 	 */
 	public void notifyIn(Message msg) {
 		MessageWrapper msgWrap = queue.getCurrentMessageWrapper();
-		String type = msg.getType();
+		MessageType type = msg.getType();
 		
 		if(type.equals(RANDOM_MSG_TYPE)) {
 			

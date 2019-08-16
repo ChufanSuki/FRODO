@@ -26,6 +26,7 @@ import org.jdom2.Document;
 
 import frodo2.algorithms.SingleQueueAgent;
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 import frodo2.communication.MessageWithPayload;
 import frodo2.communication.mailer.CentralMailer;
 import frodo2.solutionSpaces.Addable;
@@ -43,10 +44,10 @@ import frodo2.solutionSpaces.ProblemInterface;
 public class TestAgent <V extends Addable<V>> extends SingleQueueAgent<V> {
 
 	/** A test message the agent send to a neighbour to test the connection*/
-	public static final String TEST_MESSAGE = "Can you hear me?";
+	public static final MessageType TEST_MESSAGE = MessageType.SYSTEM.newChild("TestAgent", "Can you hear me?");
 	
 	/** The response to TEST_MESSAGE*/
-	public static final String RESPONSE = "I received your message!";
+	public static final MessageType RESPONSE = MessageType.SYSTEM.newChild("TestAgent", "I received your message!");
 	
 	/** The number of neighbours that have responded */
 	private int neighboursResponded;

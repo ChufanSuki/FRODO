@@ -37,6 +37,7 @@ import frodo2.algorithms.AgentFactory;
 import frodo2.algorithms.Solution;
 import frodo2.algorithms.XCSPparser;
 import frodo2.algorithms.dpop.DPOPsolver;
+import frodo2.algorithms.dpop.UTILpropagation;
 import frodo2.algorithms.test.AllTests;
 import frodo2.solutionSpaces.Addable;
 import frodo2.solutionSpaces.AddableInteger;
@@ -234,7 +235,7 @@ public class TestSDPOP < V extends Addable<V>, U extends Addable<U> > extends Te
 		//make sure msgs are measured
 		this.SDPOPagent.getRootElement().setAttribute("measureMsgs","true");
 		Solution<V, U> SD1 = this.testGeneric(TEST_ADD_DISCONNECTED);
-		assertNull(SD1.getMsgNbrs().get("UTIL"));
+		assertNull(SD1.getMsgNbrs().get(UTILpropagation.UTIL_MSG_TYPE));
 	}
 	
 	/** adds a single variable to the root, only 1 util-msg should be sent */
@@ -270,7 +271,7 @@ public class TestSDPOP < V extends Addable<V>, U extends Addable<U> > extends Te
 		assertEquals(SD1.getUtility(), SD1.getReportedUtil());
 		
 		// Check that no UTIL message was sent, since the problem hasn't changed
-		assertNull(SD1.getMsgSizes().get("UTIL"));
+		assertNull(SD1.getMsgSizes().get(UTILpropagation.UTIL_MSG_TYPE));
 	}
 	
 	/**@return the test suite */

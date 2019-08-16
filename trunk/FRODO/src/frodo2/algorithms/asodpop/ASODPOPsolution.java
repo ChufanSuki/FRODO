@@ -30,6 +30,7 @@ import java.util.TreeMap;
 import frodo2.algorithms.ConvergenceInterface;
 import frodo2.algorithms.StatsReporterWithConvergence.CurrentAssignment;
 import frodo2.algorithms.odpop.ODPOPsolution;
+import frodo2.communication.MessageType;
 import frodo2.solutionSpaces.Addable;
 
 /** An optimal solution to the problem
@@ -71,8 +72,8 @@ public class ASODPOPsolution<V extends Addable<V>, U> extends ODPOPsolution <V, 
 	 * @param specUTILmsgs 					the total number of speculative UTIL messages that have been sent
 	 * @param totalUTILmsgs 				the total number of UTIL messages that have been sent
 	 */
-	public ASODPOPsolution (int nbrVariables, U reportedUtil, U trueUtil, Map<String, V> assignments, int nbrMsgs, TreeMap<String, Integer> msgNbrs, long totalMsgSize, TreeMap<String, Long> msgSizes, 
-			long maxMsgSize, TreeMap<String, Long> maxMsgSizes, long ncccCount, long timeNeeded, HashMap<String, Long> moduleEndTimes, int numberOfCoordinationConstraint, 
+	public ASODPOPsolution (int nbrVariables, U reportedUtil, U trueUtil, Map<String, V> assignments, int nbrMsgs, TreeMap<MessageType, Integer> msgNbrs, long totalMsgSize, TreeMap<MessageType, Long> msgSizes, 
+			long maxMsgSize, TreeMap<MessageType, Long> maxMsgSizes, long ncccCount, long timeNeeded, HashMap<String, Long> moduleEndTimes, int numberOfCoordinationConstraint, 
 			HashMap< String, ArrayList< CurrentAssignment<V> > > assignmentHistories, double averageTreeFillPercentage, int treeWidth, double dummyFillPercentage, double numberOfDummies,
 			int specUTILmsgs, int totalUTILmsgs) {
 		super(nbrVariables, reportedUtil, trueUtil, assignments, nbrMsgs, msgNbrs, totalMsgSize, msgSizes, maxMsgSize, maxMsgSizes, ncccCount, timeNeeded, moduleEndTimes, numberOfCoordinationConstraint, averageTreeFillPercentage);

@@ -34,13 +34,13 @@ import java.util.List;
 
 import org.jdom2.Element;
 
+import frodo2.algorithms.SolutionCollector;
 import frodo2.algorithms.dpop.UTILmsg;
 import frodo2.algorithms.dpop.UTILpropagation;
-import frodo2.algorithms.dpop.VALUEpropagation.AssignmentsMessage;
 import frodo2.algorithms.dpop.stochastic.SamplingPhase.RandVarsProjMsg;
-import frodo2.algorithms.dpop.VALUEpropagation;
 import frodo2.algorithms.varOrdering.dfs.DFSgeneration;
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 import frodo2.communication.Queue;
 import frodo2.solutionSpaces.Addable;
 import frodo2.solutionSpaces.BasicUtilitySolutionSpace;
@@ -62,7 +62,7 @@ public class ExpectedUTIL < Val extends Addable<Val>, U extends Addable<U> >
 extends UTILpropagation<Val, U> {
 	
 	/** The type of the messages containing information about the where random variables should be projected out */
-	public static String RAND_VARS_PROJ_MSG_TYPE = SamplingPhase.RAND_VARS_PROJ_MSG_TYPE;
+	public static MessageType RAND_VARS_PROJ_MSG_TYPE = SamplingPhase.RAND_VARS_PROJ_MSG_TYPE;
 	
 	/** For each variable, the random variables that should be projected out of its UTIL message */
 	protected HashMap< String, HashSet<String> > randVarsProj = new HashMap< String, HashSet<String> > ();
@@ -167,8 +167,8 @@ extends UTILpropagation<Val, U> {
 	
 	/** @see UTILpropagation#getMsgTypes() */
 	@Override 
-	public Collection<String> getMsgTypes () {
-		Collection<String> types = super.getMsgTypes();
+	public Collection<MessageType> getMsgTypes () {
+		Collection<MessageType> types = super.getMsgTypes();
 		types.add(RAND_VARS_PROJ_MSG_TYPE);
 		return types;
 	}
@@ -177,7 +177,7 @@ extends UTILpropagation<Val, U> {
 	@Override
 	public void getStatsFromQueue(Queue queue) {
 		super.getStatsFromQueue(queue);
-		queue.addIncomingMessagePolicy(VALUEpropagation.OUTPUT_MSG_TYPE, this);
+		queue.addIncomingMessagePolicy(SolutionCollector.ASSIGNMENTS_MSG_TYPE, this);
 	}
 
 	/** @return the worst-case utility */
@@ -200,7 +200,7 @@ extends UTILpropagation<Val, U> {
 	@Override 
 	public void notifyIn(Message msg) {
 		
-		String type = msg.getType();
+		MessageType type = msg.getType();
 		
 		if (type.equals(OPT_UTIL_MSG_TYPE)) { // we are in stats gatherer mode
 			
@@ -213,23 +213,20 @@ extends UTILpropagation<Val, U> {
 			return;
 		}
 		
-		if (type.equals(VALUEpropagation.OUTPUT_MSG_TYPE)) { // we are in stats gatherer mode
+		if (type.equals(SolutionCollector.ASSIGNMENTS_MSG_TYPE)) { // we are in stats gatherer mode
 			
-			AssignmentsMessage<Val> msgCast = (AssignmentsMessage<Val>) msg;
+			SolutionCollector.AssignmentsMessage<Val> msgCast = (SolutionCollector.AssignmentsMessage<Val>) msg;
 			String[] vars = msgCast.getVariables();
 			ArrayList<Val> vals = msgCast.getValues();
 			for (int i = 0; i < vars.length; i++) {
 				String var = vars[i];
 				Val val = vals.get(i);
-				if (val != null && solution.put(var, val) == null && this.reportStats) 
-					System.out.println("var `" + var + "' = " + val);
+				if (val != null) 
+					solution.put(var, val);
 			}
 			
 			// When we have received all messages, print out the corresponding utility. 
 			if (--this.remainingVars <= 0) {
-				
-				if (this.reportStats) 
-					System.out.println("Total reported " + (this.maximize ? "utility: " : "cost: ") + this.optUtil);
 				
 				this.expectedUtil = this.problem.getExpectedUtility(this.solution).getUtility(0);
 				if (this.reportStats) 

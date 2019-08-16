@@ -46,6 +46,7 @@ import frodo2.algorithms.varOrdering.dfs.VarNbrMsg;
 import frodo2.algorithms.varOrdering.dfs.DFSgenerationWithOrder.DFSorderOutputMessage;
 import frodo2.communication.IncomingMsgPolicyInterface;
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 import frodo2.communication.MessageWith2Payloads;
 import frodo2.communication.MessageWith3Payloads;
 import frodo2.communication.MessageWithPayload;
@@ -99,25 +100,25 @@ implements StatsReporter {
 	private boolean started = false;
 	
 	/** The type of the messages containing the CryptoScheme */
-	public static final String CRYPTO_SCHEME_TYPE = "CryptoScheme";
+	public static final MessageType CRYPTO_SCHEME_TYPE = new MessageType ("P3/2-DPOP", "CollaborativeDecryption", "CryptoScheme");
 	
 	/** The type of the messages corresponding to decryption requests */
-	public static final String REQUEST_TYPE = "DecryptionRequest";
+	public static final MessageType REQUEST_TYPE = new MessageType ("P3/2-DPOP", "CollaborativeDecryption", "DecryptionRequest");
 	
 	/** The type of the messages containing the outputs of decryptions */
-	public static final String OUTPUT_TYPE = "DecryptionOutput";
+	public static final MessageType OUTPUT_TYPE = new MessageType ("P3/2-DPOP", "CollaborativeDecryption", "DecryptionOutput");
 	
 	/** The type of the messages corresponding to vector decryption requests */
-	public static final String VECTOR_REQUEST_TYPE = "VectorDecryptionRequest";
+	public static final MessageType VECTOR_REQUEST_TYPE = new MessageType ("P3/2-DPOP", "CollaborativeDecryption", "VectorDecryptionRequest");
 	
 	/** The type of the messages containing the outputs of decryptions */
-	public static final String VECTOR_OUTPUT_TYPE = "VectorDecryptionOutput";
+	public static final MessageType VECTOR_OUTPUT_TYPE = new MessageType ("P3/2-DPOP", "CollaborativeDecryption", "VectorDecryptionOutput");
 	
 	/** The type of the message containing the decryption request stats */
-	public static final String STAT_REQUEST_TYPE = "StatRequest";
+	public static final MessageType STAT_REQUEST_TYPE = new MessageType ("P3/2-DPOP", "CollaborativeDecryption", "StatRequest");
 	
 	/** The type of the message used to exchange KeyPair */
-	public static final String KEY_SHARE_TYPE = "KeyShareType";
+	public static final MessageType KEY_SHARE_TYPE = new MessageType ("P3/2-DPOP", "CollaborativeDecryption", "KeyShareType");
 	
 	/** Convent class to store information about a variable */
 	private class VariableInfo {
@@ -360,8 +361,8 @@ implements StatsReporter {
 	}
 
 	/** @see IncomingMsgPolicyInterface#getMsgTypes() */
-	public Collection<String> getMsgTypes() {
-		ArrayList<String> types = new ArrayList<String> (7);
+	public Collection<MessageType> getMsgTypes() {
+		ArrayList<MessageType> types = new ArrayList<MessageType> (7);
 		types.add(AgentInterface.START_AGENT);
 		types.add(REQUEST_TYPE);
 		types.add(DFSgenerationWithOrder.OUTPUT_ORDER_TYPE);
@@ -376,7 +377,7 @@ implements StatsReporter {
 	@SuppressWarnings("unchecked")
 	public void notifyIn(Message msg) {
 
-		String msgType = msg.getType();
+		MessageType msgType = msg.getType();
 		
 		//STAT GATHERING MODE
 		if (msgType.equals(STAT_REQUEST_TYPE)){
@@ -425,7 +426,7 @@ implements StatsReporter {
 									   msgCast.getPayload2(), msgCast.initialMin2(),
 									   infos.get(myVar).newCodename()) ));
 			
-		} else if (msgType.equals(SecureCircularRouting.DELIVERY_MSG_TYPE)){
+		} else if (SecureCircularRouting.DELIVERY_MSG_TYPE.isParent(msgType)){
 			
 			DeliveryMsg<Message> msgCast = (DeliveryMsg<Message>) msg;
 			String receiver = msgCast.getDest();
@@ -604,7 +605,7 @@ implements StatsReporter {
 
 	/** @see frodo2.algorithms.StatsReporter#getStatsFromQueue(frodo2.communication.Queue) */
 	public void getStatsFromQueue(Queue queue) {		
-		ArrayList <String> msgTypes = new ArrayList <String> (1);
+		ArrayList <MessageType> msgTypes = new ArrayList <MessageType> (1);
 		msgTypes.add(STAT_REQUEST_TYPE);
 		queue.addIncomingMessagePolicy(msgTypes, this);
 	}

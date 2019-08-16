@@ -31,6 +31,7 @@ import org.jdom2.Element;
 import frodo2.algorithms.AbstractDCOPsolver;
 import frodo2.algorithms.AbstractSolver;
 import frodo2.algorithms.Solution;
+import frodo2.algorithms.SolutionCollector;
 import frodo2.algorithms.StatsReporter;
 import frodo2.algorithms.varOrdering.factorgraph.FactorGraphGen;
 import frodo2.gui.DOTrenderer;
@@ -43,8 +44,8 @@ import frodo2.solutionSpaces.Addable;
  */
 public class MaxSumSolver < V extends Addable<V>, U extends Addable<U> > extends AbstractDCOPsolver< V, U, Solution<V, U> > {
 	
-	/** The MaxSum module that collects statistics about the solution */
-	private MaxSum<V, U> module;
+	/** The SolutionCollector that collects statistics about the solution */
+	private SolutionCollector<V, U> solCollector;
 
 	/** Default constructor */
 	public MaxSumSolver() {
@@ -82,16 +83,16 @@ public class MaxSumSolver < V extends Addable<V>, U extends Addable<U> > extends
 		params.setAttribute("DOTrenderer", DOTrenderer.class.getName());
 		FactorGraphGen<V, U> gen = new FactorGraphGen<V, U> (params, super.problem);
 		
-		this.module = new MaxSum<V, U> (null, super.problem);
-		this.module.setSilent(true);
+		this.solCollector = new SolutionCollector<V, U> (null, super.problem);
+		this.solCollector.setSilent(true);
 		
-		return Arrays.asList(gen, this.module);
+		return Arrays.asList(gen, this.solCollector);
 	}
 
 	/** @see AbstractSolver#buildSolution() */
 	@Override
 	public Solution<V, U> buildSolution() {
-		return new Solution<V, U> (super.problem.getNbrVars(), null, this.module.getOptCost(), this.module.getOptAssignments(), 
+		return new Solution<V, U> (super.problem.getNbrVars(), null, this.solCollector.getUtility(), this.solCollector.getSolution(), 
 				super.factory.getNbrMsgs(), super.factory.getMsgNbrs(), this.factory.getMsgNbrsSentPerAgent(), this.factory.getMsgNbrsReceivedPerAgent(), 
 				super.factory.getTotalMsgSize(), super.factory.getMsgSizes(), this.factory.getMsgSizesSentPerAgent(), this.factory.getMsgSizesReceivedPerAgent(), 
 				super.factory.getOverallMaxMsgSize(), super.factory.getMaxMsgSizes(), super.factory.getNcccs(), super.factory.getTime(), null, 0);

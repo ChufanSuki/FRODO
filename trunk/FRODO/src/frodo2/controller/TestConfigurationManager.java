@@ -29,6 +29,7 @@ import frodo2.algorithms.AgentInterface;
 import frodo2.communication.AgentAddress;
 import frodo2.communication.IncomingMsgPolicyInterface;
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 import frodo2.communication.Queue;
 import frodo2.communication.QueueInputPipeInterface;
 import frodo2.controller.messages.MessageAgentReporting;
@@ -78,7 +79,7 @@ public class TestConfigurationManager extends TestCase {
 	 * @author brammertottens
 	 *
 	 */
-	private class SimpleDaemonListener implements IncomingMsgPolicyInterface <String> {
+	private class SimpleDaemonListener implements IncomingMsgPolicyInterface <MessageType> {
 		
 		/** the queue that handles the messages*/
 		private Queue queue;
@@ -87,7 +88,7 @@ public class TestConfigurationManager extends TestCase {
 		private int received = 0;
 		
 		/** The list of message types this listener wants to be notified of */
-		private ArrayList <String> msgTypes = new ArrayList <String> ();
+		private ArrayList <MessageType> msgTypes = new ArrayList <MessageType> ();
 
 		/**
 		 * A simple constructor
@@ -146,7 +147,7 @@ public class TestConfigurationManager extends TestCase {
 		 * 
 		 * @see frodo2.communication.IncomingMsgPolicyInterface#getMsgTypes()
 		 */
-		public Collection<String> getMsgTypes() {
+		public Collection<MessageType> getMsgTypes() {
 			return msgTypes;
 		}
 

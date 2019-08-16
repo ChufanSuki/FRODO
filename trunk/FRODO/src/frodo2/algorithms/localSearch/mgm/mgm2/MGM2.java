@@ -35,17 +35,17 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Map.Entry;
 
 import org.jdom2.Element;
 
 import frodo2.algorithms.AgentInterface;
+import frodo2.algorithms.SolutionCollector;
 import frodo2.algorithms.StatsReporterWithConvergence;
-import frodo2.algorithms.localSearch.mgm.AssignmentMessage;
 import frodo2.algorithms.localSearch.mgm.IMPROVE;
 import frodo2.algorithms.localSearch.mgm.MGM;
 import frodo2.algorithms.localSearch.mgm.OK;
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 import frodo2.communication.Queue;
 import frodo2.solutionSpaces.Addable;
 import frodo2.solutionSpaces.AddableConflicts;
@@ -63,31 +63,28 @@ import frodo2.solutionSpaces.UtilitySolutionSpace;
 public class MGM2 <V extends Addable<V>, U extends Addable<U>> implements StatsReporterWithConvergence<V> {
 
 	/** The type of the START message */
-	public static String START_MSG_TYPE = AgentInterface.START_AGENT;
+	public static MessageType START_MSG_TYPE = AgentInterface.START_AGENT;
 
 	/** The type of an OFFER message */
-	public static final String OFFER_MSG_TYPE = "offer";
+	public static final MessageType OFFER_MSG_TYPE = new MessageType ("MGM2", "offer");
 
 	/** The type of a ACCEPT message */
-	public static final String ACCEPT_MSG_TYPE = "accept";
+	public static final MessageType ACCEPT_MSG_TYPE = new MessageType ("MGM2", "accept");
 
 	/** The type of a REJECT message */
-	public static final String REJECT_MSG_TYPE = "reject";
+	public static final MessageType REJECT_MSG_TYPE = new MessageType ("MGM2", "reject");
 
 	/** Type used for the IMPROVE message */
-	public static final String IMPROVE_MSG_TYPE = "improve";
+	public static final MessageType IMPROVE_MSG_TYPE = MGM.IMPROVE_MSG_TYPE;
 
 	/** Type used for the GO message */
-	public static final String GO_MSG_TYPE = "go";
+	public static final MessageType GO_MSG_TYPE = new MessageType ("MGM2", "go");
 
 	/** Type used for the NO GO message */
-	public static final String NO_GO_MSG_TYPE = "nogo";
-
-	/** type used for output message */
-	public static final String OUTPUT_MSG_TYPE = "MGM output";
+	public static final MessageType NO_GO_MSG_TYPE = new MessageType ("MGM2", "nogo");
 
 	/** The type of the message containing the assignment history */
-	public static final String CONV_STATS_MSG_TYPE = "MGMConvStatsMsg";
+	public static final MessageType CONV_STATS_MSG_TYPE = new MessageType ("MGM2", "ConvStats");
 
 	/** The queue to which this listener is registered*/
 	protected Queue queue;
@@ -116,28 +113,16 @@ public class MGM2 <V extends Addable<V>, U extends Addable<U>> implements StatsR
 	/** The local problem definition */
 	private DCOPProblemInterface<V, U>  problem;
 
-	/** The number of variables owned by this agent */
-	private int numberOfVariables;
-
 	/** The number of variables that are finished */
 	private int variables_finished;
 
 	// stats reporter fields
-
-	/** Whether to report stats */
-	private boolean reportStats = true;
-
-	/** The global assignment */
-	private Map< String, V > assignment;
 
 	/** If \c true, the assignment history must be stored */
 	protected final boolean convergence;
 
 	/** For each variable its assignment history */
 	protected HashMap<String, ArrayList<CurrentAssignment<V>>> assignmentHistoriesMap;
-
-	/** The global utility of the final variable assignment */
-	private U finalUtility;
 
 	/** value between 0 and 1, used to determine whether a variable is offering or receiving */
 	private double q;
@@ -164,10 +149,7 @@ public class MGM2 <V extends Addable<V>, U extends Addable<U>> implements StatsR
 		this.problem = problem;
 		this.maximize = false;
 		this.convergence = true;
-		numberOfVariables = problem.getNbrVars();
 		assignmentHistoriesMap = new HashMap<String, ArrayList<CurrentAssignment<V>>>();
-		assignment = new HashMap<String, V>();
-		this.finalUtility = this.problem.getZeroUtility();
 	}
 
 	/**
@@ -181,7 +163,6 @@ public class MGM2 <V extends Addable<V>, U extends Addable<U>> implements StatsR
 		this.maximize = problem.maximize();
 
 		this.convergence = Boolean.parseBoolean(parameters.getAttributeValue("convergence"));
-		this.reportStats = Boolean.parseBoolean(parameters.getAttributeValue("reportStats"));
 
 		String q = parameters.getAttributeValue("q");
 		if(q != null)
@@ -199,14 +180,10 @@ public class MGM2 <V extends Addable<V>, U extends Addable<U>> implements StatsR
 	/** 
 	 * @see frodo2.algorithms.StatsReporter#getStatsFromQueue(frodo2.communication.Queue)
 	 */
-	public void getStatsFromQueue(Queue queue) {
-		queue.addIncomingMessagePolicy(OUTPUT_MSG_TYPE, this);
-	}
+	public void getStatsFromQueue(Queue queue) { }
 
 	/** @see StatsReporterWithConvergence#setSilent(boolean) */
-	public void setSilent(boolean silent) {
-		this.reportStats = ! silent;
-	}
+	public void setSilent(boolean silent) { }
 
 	/** 
 	 * @see frodo2.algorithms.StatsReporter#reset()
@@ -218,44 +195,9 @@ public class MGM2 <V extends Addable<V>, U extends Addable<U>> implements StatsR
 	 */
 	@SuppressWarnings("unchecked")
 	public void notifyIn(Message msg) {
-		String type = msg.getType();
+		MessageType type = msg.getType();
 
-		if(type.equals(OUTPUT_MSG_TYPE)) {
-			AssignmentMessage<V> msgCast = (AssignmentMessage<V>)msg;
-			String var = msgCast.getVariable();
-			V value = msgCast.getValue();
-			assignment.put(var, value);
-			if (this.reportStats) 
-				System.out.println("var `" + var + "' = " + value);
-
-			if(assignment.size() == numberOfVariables) {
-				List<? extends UtilitySolutionSpace<V,U>> spaces = problem.getSolutionSpaces();
-
-				String[] variables_names = new String[assignment.size()];
-				V[] variables_values = (V[])Array.newInstance(msgCast.getValue().getClass(), assignment.size());
-				int i = 0;
-				for(Entry<String, V> e : assignment.entrySet()) {
-					variables_names[i] = e.getKey();
-					variables_values[i++] = e.getValue();
-				}
-
-
-				for(UtilitySolutionSpace<V, U> space : spaces) {
-					finalUtility = finalUtility.add(space.getUtility(variables_names, variables_values));
-				}
-
-				if (this.reportStats) {
-					if (this.problem.maximize()) 
-						System.out.println("Total optimal utility: " + finalUtility);
-					else 
-						System.out.println("Total optimal cost: " + finalUtility);
-				}
-			}
-
-			return;
-		}
-
-		else if (type.equals(CONV_STATS_MSG_TYPE)) { // in stats gatherer mode, the message sent by a variable containing the assignment history
+		if (type.equals(CONV_STATS_MSG_TYPE)) { // in stats gatherer mode, the message sent by a variable containing the assignment history
 			StatsReporterWithConvergence.ConvStatMessage<V> msgCast = (StatsReporterWithConvergence.ConvStatMessage<V>)msg;
 			assignmentHistoriesMap.put(msgCast.getVar(), msgCast.getAssignmentHistory());
 
@@ -391,14 +333,13 @@ public class MGM2 <V extends Addable<V>, U extends Addable<U>> implements StatsR
 
 		else if (type.equals(AgentInterface.STOP_AGENT)) {
 			if(!terminated) {
-			for(VariableInfo<V,U> varInfo : infos.values()) {
-				varInfo.terminated = true;
-				if (this.reportStats) 
-					queue.sendMessage(AgentInterface.STATS_MONITOR, new AssignmentMessage<V>(varInfo.variableID, varInfo.currentValue));
-			}
+				for(VariableInfo<V,U> varInfo : infos.values()) {
+					varInfo.terminated = true;
+					queue.sendMessage(AgentInterface.STATS_MONITOR, new SolutionCollector.AssignmentMessage<V>(varInfo.variableID, varInfo.currentValue));
+				}
 
-			queue.sendMessageToSelf(new Message(AgentInterface.AGENT_FINISHED));
-		}
+				queue.sendMessageToSelf(new Message(AgentInterface.AGENT_FINISHED));
+			}
 		}
 
 	}
@@ -447,8 +388,7 @@ public class MGM2 <V extends Addable<V>, U extends Addable<U>> implements StatsR
 
 			if(varInfo.neighbors.length == 1) {
 				varInfo.terminated = true;
-				if (this.reportStats) 
-					queue.sendMessage(AgentInterface.STATS_MONITOR, new AssignmentMessage<V>(varInfo.variableID, varInfo.currentValue));
+				queue.sendMessage(AgentInterface.STATS_MONITOR, new SolutionCollector.AssignmentMessage<V>(varInfo.variableID, varInfo.currentValue));
 				if(convergence)
 					queue.sendMessage(AgentInterface.STATS_MONITOR, new StatsReporterWithConvergence.ConvStatMessage<V>(CONV_STATS_MSG_TYPE, variable, this.assignmentHistoriesMap.get(variable)));
 
@@ -470,8 +410,8 @@ public class MGM2 <V extends Addable<V>, U extends Addable<U>> implements StatsR
 	/** 
 	 * @see frodo2.communication.MessageListener#getMsgTypes()
 	 */
-	public Collection<String> getMsgTypes() {
-		ArrayList<String> msgTypes = new ArrayList<String>(3);
+	public Collection<MessageType> getMsgTypes() {
+		ArrayList<MessageType> msgTypes = new ArrayList<MessageType>(9);
 		msgTypes.add(START_MSG_TYPE);
 		msgTypes.add(IMPROVE_MSG_TYPE);
 		msgTypes.add(MGM.OK_MSG_TYPE);
@@ -495,16 +435,8 @@ public class MGM2 <V extends Addable<V>, U extends Addable<U>> implements StatsR
 	 * @see frodo2.algorithms.StatsReporterWithConvergence#getCurrentSolution()
 	 */
 	public Map<String, V> getCurrentSolution() {
-		return assignment;
-	}
-
-	/**
-	 * 
-	 * @author Brammert Ottens, 15 mrt. 2011
-	 * @return the utility of the final solution
-	 */
-	public U getFinalSolution() {
-		return this.finalUtility;
+		/// @todo Use a generic ConvergenceReporter
+		return null;
 	}
 
 	/**
@@ -746,8 +678,7 @@ public class MGM2 <V extends Addable<V>, U extends Addable<U>> implements StatsR
 			String variable = varInfo.variableID;
 			V finalValue = varInfo.currentValue;
 			varInfo.terminated = true;
-			if (this.reportStats) 
-				queue.sendMessage(AgentInterface.STATS_MONITOR, new AssignmentMessage<V>(variable, finalValue));
+			queue.sendMessage(AgentInterface.STATS_MONITOR, new SolutionCollector.AssignmentMessage<V>(variable, finalValue));
 			if(convergence) {
 				ArrayList<CurrentAssignment<V>> history = assignmentHistoriesMap.get(variable);
 				history.add(new CurrentAssignment<V>(queue.getCurrentTime(), varInfo.termination_counter, finalValue));

@@ -24,6 +24,7 @@ package frodo2.algorithms.dpop.stochastic;
 
 import java.util.HashSet;
 
+import frodo2.communication.MessageType;
 import frodo2.communication.MessageWith2Payloads;
 
 /** A message with flags, used both for phase 2 and as an output message of LowestCommonAncestors */
@@ -37,7 +38,7 @@ public class LCAmsg2 extends MessageWith2Payloads< String, HashSet<String> > {
 	 * @param node 		a corresponding node in the DFS
 	 * @param flags 	a set of flags
 	 */
-	public LCAmsg2 (String type, String node, HashSet<String> flags) {
+	public LCAmsg2 (MessageType type, String node, HashSet<String> flags) {
 		super (type, node, flags);
 	}
 	

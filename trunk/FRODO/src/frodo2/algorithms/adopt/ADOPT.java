@@ -40,12 +40,13 @@ import java.util.Map;
 import org.jdom2.Element;
 
 import frodo2.algorithms.AgentInterface;
+import frodo2.algorithms.SolutionCollector;
 import frodo2.algorithms.StatsReporter;
 import frodo2.algorithms.StatsReporterWithConvergence;
 import frodo2.algorithms.varOrdering.dfs.DFSgeneration;
 import frodo2.algorithms.varOrdering.dfs.DFSgeneration.DFSview;
 import frodo2.communication.Message;
-import frodo2.communication.MessageWith2Payloads;
+import frodo2.communication.MessageType;
 import frodo2.communication.Queue;
 import frodo2.solutionSpaces.Addable;
 import frodo2.solutionSpaces.AddableDelayed;
@@ -75,16 +76,10 @@ implements StatsReporterWithConvergence<Val> {
 	private Queue queue;
 
 	/** The type of the message telling the module to start */
-	public static String START_MSG_TYPE = AgentInterface.START_AGENT;
-
-	/**
-	 * The type of the output messages containing the optimal assignment to a
-	 * variable
-	 */
-	public static final String OUTPUT_MSG_TYPE = "OutputMessageADOPT";
+	public static MessageType START_MSG_TYPE = AgentInterface.START_AGENT;
 
 	/** The type of the message containing the assignment history */
-	public static final String CONV_STATS_MSG_TYPE = "ADOPTConvStatsMsg";
+	public static final MessageType CONV_STATS_MSG_TYPE = new MessageType ("ADOPT", "ConvStats");
 
 	/** Infinite utility */
 	private U infinity;
@@ -104,18 +99,9 @@ implements StatsReporterWithConvergence<Val> {
 	 */
 	private HashMap<String, Boolean> variableReady = new HashMap<String, Boolean>();
 
-	/** The global assignment */
-	private Map<String, Val> assignment;
-
-	/** The utility of the solution reported to the stats gatherer */
-	private U optTotalUtil;
-
 	/** Variable that counts the number of variables that have terminated */
 	private int variableReadyCounter = 0;
 
-	/** Whether to report stats */
-	private boolean reportStats = true;
-	
 	/** The agent's problem */
 	private DCOPProblemInterface<Val, U> problem;
 
@@ -128,18 +114,13 @@ implements StatsReporterWithConvergence<Val> {
 	/** For each variable its assignment history */
 	private HashMap<String, ArrayList<CurrentAssignment<Val>>> assignmentHistoriesMap;
 	
-	/** The time at which the ADOPT module is finished*/
-	private long finalTime = Long.MIN_VALUE;
-
 	/** Constructor for the stats gatherer mode
 	 * @param problem 		the overall problem
 	 * @param parameters 	the parameters of the module
 	 */
 	public ADOPT(Element parameters, DCOPProblemInterface<Val, U> problem) {
 		this.problem = problem;
-		assignment = new HashMap<String, Val>();
 		assignmentHistoriesMap = new HashMap<String, ArrayList<CurrentAssignment<Val>>>();
-		optTotalUtil = problem.getZeroUtility();
 		this.convergence = false;
 	}
 
@@ -162,7 +143,6 @@ implements StatsReporterWithConvergence<Val> {
 		setVersion(versionName);
 		
 		this.convergence = Boolean.parseBoolean(parameters.getAttributeValue("convergence"));
-		this.reportStats = Boolean.parseBoolean(parameters.getAttributeValue("reportStats"));
 	}
 
 	/**
@@ -227,38 +207,6 @@ implements StatsReporterWithConvergence<Val> {
 	}
 
 	/**
-	 * A message holding an assignment to a variable
-	 * 
-	 * @param <Val> type used for variable values
-	 */
-	public static class AssignmentMessage< Val extends Addable<Val> >
-			extends MessageWith2Payloads<String, Val> {
-
-		/** Empty constructor used for externalization */
-		public AssignmentMessage () { }
-
-		/**
-		 * Constructor
-		 * 
-		 * @param var the variable
-		 * @param val the value assigned to the variable \a var
-		 */
-		public AssignmentMessage(String var, Val val) {
-			super(OUTPUT_MSG_TYPE, var, val);
-		}
-
-		/** @return the variable */
-		public String getVariable() {
-			return this.getPayload1();
-		}
-
-		/** @return the value */
-		public Val getValue() {
-			return this.getPayload2();
-		}
-	}
-
-	/**
 	 * Helper function to set the heuristic used for preprocessing
 	 * 
 	 * @param versionName the name of the version class
@@ -283,9 +231,9 @@ implements StatsReporterWithConvergence<Val> {
 		this.adoptVersion = constructor.newInstance(args);
 	}
 
-	/** @see frodo2.communication.IncomingMsgPolicyInterface#getMsgTypes() */
-	public Collection<String> getMsgTypes() {
-		ArrayList<String> 	msgTypes = (ArrayList<String>) adoptVersion.getMsgTypes();
+	/** @see StatsReporterWithConvergence#getMsgTypes() */
+	public Collection<MessageType> getMsgTypes() {
+		ArrayList<MessageType> 	msgTypes = (ArrayList<MessageType>) adoptVersion.getMsgTypes();
 		msgTypes.add(DFSgeneration.OUTPUT_MSG_TYPE);
 		msgTypes.add(START_MSG_TYPE);
 		msgTypes.add(Preprocessing.HEURISTICS_MSG_TYPE);
@@ -296,37 +244,11 @@ implements StatsReporterWithConvergence<Val> {
 	/** @see StatsReporterWithConvergence#notifyIn(Message) */
 	@SuppressWarnings("unchecked")
 	public void notifyIn(Message msg) {
-		String type = msg.getType();
+		MessageType type = msg.getType();
 
 //		 System.out.println(msg);
 
-		if (type.equals(ADOPT.OUTPUT_MSG_TYPE)) { // in stats gatherer mode, the message containing information about an agent's assignments
-			ADOPT.AssignmentMessage<Val> msgCast = (ADOPT.AssignmentMessage<Val>) msg;
-			String variable = msgCast.getVariable();
-			Val value = msgCast.getValue();
-			assignment.put(variable, value);
-			
-			// If all solution message have been received, compute the total optimal cost
-			if (this.assignment.size() == this.problem.getVariables().size()) {
-				this.optTotalUtil = this.problem.getUtility(assignment).getUtility(0);
-			}
-			
-			if (this.reportStats) {
-				System.out.println("var `" + variable + "' = " + value);
-				
-				// If all solution message have been received, display the total optimal cost
-				if (this.assignment.size() == this.problem.getVariables().size()) 
-					System.out.println("Total " + (this.problem.maximize() ? "maximal utility: " : "minimal cost: ") + optTotalUtil);
-			}
-			
-			long time = queue.getCurrentMessageWrapper().getTime();
-			if(finalTime < time)
-				finalTime = time;
-
-			return;
-		}
-
-		else if (type.equals(ADOPT.CONV_STATS_MSG_TYPE)) { // in stats gatherer mode, the message sent by a variable containing the assignment history
+		if (type.equals(ADOPT.CONV_STATS_MSG_TYPE)) { // in stats gatherer mode, the message sent by a variable containing the assignment history
 			StatsReporterWithConvergence.ConvStatMessage<Val> msgCast = (StatsReporterWithConvergence.ConvStatMessage<Val>)msg;
 			assignmentHistoriesMap.put(msgCast.getVar(), msgCast.getAssignmentHistory());
 
@@ -414,10 +336,8 @@ implements StatsReporterWithConvergence<Val> {
 		if(convergence)
 			assignmentHistoriesMap.get(variable.variableID).add(new CurrentAssignment<Val>(queue.getCurrentTime(), variable.currentAssignment));
 		
-		if (this.reportStats) {
-			AssignmentMessage<Val> output = new AssignmentMessage<Val> (variable.variableID, variable.currentAssignment);
-			queue.sendMessage(AgentInterface.STATS_MONITOR, output);
-		}
+		SolutionCollector.AssignmentMessage<Val> output = new SolutionCollector.AssignmentMessage<Val> (variable.variableID, variable.currentAssignment);
+		queue.sendMessage(AgentInterface.STATS_MONITOR, output);
 		
 		if(convergence)
 			queue.sendMessage(AgentInterface.STATS_MONITOR, new StatsReporterWithConvergence.ConvStatMessage<Val>(ADOPT.CONV_STATS_MSG_TYPE, variable.variableID, assignmentHistoriesMap.get(variable.variableID)));
@@ -426,19 +346,18 @@ implements StatsReporterWithConvergence<Val> {
 			queue.sendMessageToSelf(new Message(AgentInterface.AGENT_FINISHED));
 	}
 
-	/** @see frodo2.communication.IncomingMsgPolicyInterface#setQueue(Queue) */
+	/** @see StatsReporterWithConvergence#setQueue(Queue) */
 	public void setQueue(Queue queue) {
 		this.queue = queue;
 	}
 
 	/** @see StatsReporter#getStatsFromQueue(Queue) */
 	public void getStatsFromQueue(Queue queue) {
-		queue.addIncomingMessagePolicy(OUTPUT_MSG_TYPE, this);
 		queue.addIncomingMessagePolicy(CONV_STATS_MSG_TYPE, this);
 	}
 
 	/**
-	 * @see frodo2.algorithms.StatsReporterWithConvergence#getAssignmentHistories()
+	 * @see StatsReporterWithConvergence#getAssignmentHistories()
 	 */
 	public HashMap<String, ArrayList<CurrentAssignment<Val>>> getAssignmentHistories() {
 		return assignmentHistoriesMap;
@@ -467,9 +386,8 @@ implements StatsReporterWithConvergence<Val> {
 	 * 
 	 * @param variable the name of the destination variable
 	 * @param msg the message
-	 * @param messageSize the size of the message (in bytes)
 	 */
-	public void sendMessageToVariable(String variable, Message msg, long messageSize) {
+	public void sendMessageToVariable(String variable, Message msg) {
 		queue.sendMessage(owners.get(variable), msg);
 	}
 
@@ -521,7 +439,7 @@ implements StatsReporterWithConvergence<Val> {
 		 * 
 		 * @return a list of message id's
 		 */
-		public Collection<String> getMsgTypes();
+		public Collection<MessageType> getMsgTypes();
 	}
 
 	/**
@@ -534,16 +452,16 @@ implements StatsReporterWithConvergence<Val> {
 			implements Version<Val, U> {
 
 		/** The message type for the value message */
-		public static final String VALUE_MSG_TYPE = "VALUE";
+		public static final MessageType VALUE_MSG_TYPE = new MessageType ("ADOPT", "VALUE");
 
 		/** The message type for the threshold message */
-		public static final String THRESHOLD_MSG_TYPE = "Threshold message";
+		public static final MessageType THRESHOLD_MSG_TYPE = new MessageType ("ADOPT", "Threshold");
 
 		/** The message type for the cost message */
-		public static final String COST_MSG_TYPE = "COST";
+		public static final MessageType COST_MSG_TYPE = new MessageType ("ADOPT", "COST");
 
 		/** The message type for the terminate message */
-		public static final String TERMINATE_MSG_TYPE = "TERMINATE";
+		public static final MessageType TERMINATE_MSG_TYPE = new MessageType ("ADOPT", "TERMINATE");
 
 		/** A link to the outer class */
 		private ADOPT<Val, U> adopt;
@@ -580,23 +498,21 @@ implements StatsReporterWithConvergence<Val> {
 				String lowerNeighbor = variable.lowerNeighbours[i];
 				if (i < variable.numberOfChildren) {
 					VALUEmsg<Val, U> msg = new VALUEmsg<Val, U>(variable.variableID, lowerNeighbor, variable.currentAssignment, thresholdDist[i]);
-					adopt.sendMessageToVariable(lowerNeighbor, msg, variable.variableID.length() + lowerNeighbor.length() + 8);
+					adopt.sendMessageToVariable(lowerNeighbor, msg);
 				} else {
 					VALUEmsg<Val, U> msg = new VALUEmsg<Val, U>(variable.variableID, lowerNeighbor, variable.currentAssignment, null);
-					adopt.sendMessageToVariable(lowerNeighbor, msg, variable.variableID.length() + lowerNeighbor.length() + 4);
+					adopt.sendMessageToVariable(lowerNeighbor, msg);
 				}
 			}
 
 			// This variable has already received VALUE messages from its
 			// neighbours, so it needs to answer them
 			if (variable.currentContext.size() > 0) {
-				long messageSize = variable.variableID.length() + variable.separator[0].length() + 8;
 
-				for (String var : variable.currentContext.keySet()) {
-					messageSize += var.length() + 4;
+				for (String var : variable.currentContext.keySet()) 
 					if (variable.neighbours.containsKey(var))
 						variable.full_info_counter++;
-				}
+				
 				if (variable.full_info_counter == variable.nbrOfSeparators) {
 					variable.full_info = true;
 				}
@@ -606,8 +522,7 @@ implements StatsReporterWithConvergence<Val> {
 						variable.variableID, variable.separator[0],
 						variable.currentContext, variable.LB, variable.UB);
 
-				adopt.sendMessageToVariable(variable.separator[0], msg,
-						messageSize);
+				adopt.sendMessageToVariable(variable.separator[0], msg);
 			}
 
 			if (!variable.isSingleton()) {
@@ -637,7 +552,7 @@ implements StatsReporterWithConvergence<Val> {
 
 			// recalculate the delta for this value
 			variable.setDelta();
-			maintainThresholdInvariant(variable);
+			maintainThresholdInvariant(variable); /// @bug This is not in Modi's pseudocode
 			backTrack(variable);
 			// adopt.log(variable, variable.toString());
 		}
@@ -886,23 +801,21 @@ implements StatsReporterWithConvergence<Val> {
 			if(valueChanged && adopt.convergence)
 				adopt.assignmentHistoriesMap.get(variable.variableID).add(new CurrentAssignment<Val> (adopt.queue.getCurrentTime(), variable.currentAssignment));
 
+			/// @bug In Modi's pseudocode, this is called only after sending VALUE messages
 			maintainAllocationInvariant(variable);
 			
 			U[] thresholdDist = variable.t[variable.valuePointer.get(variable.currentAssignment)];
 			for (int i = 0; i < variable.lowerNeighbours.length; i++) {
 				String lowerNeighbor = variable.lowerNeighbours[i];
 				VALUEmsg<Val, U> msg;
-				long messageSize = 0;
 				if (i < variable.numberOfChildren) {
 					if(LOG)
 						ADOPT.log(variable, "Sending VALUE message (" + variable.currentAssignment + ") to " + lowerNeighbor);
 					msg = new VALUEmsg<Val, U>(variable.variableID, lowerNeighbor, variable.currentAssignment, thresholdDist[i]);
-					messageSize = variable.variableID.length() + lowerNeighbor.length() + 8;
 				} else {
 					if(LOG)
 						ADOPT.log(variable, "Sending VALUE message (" + variable.currentAssignment + ") to " + lowerNeighbor);
 					msg = new VALUEmsg<Val, U>(variable.variableID, lowerNeighbor, variable.currentAssignment, null);
-					messageSize = variable.variableID.length() + lowerNeighbor.length() + 4;
 				}
 
 				// Only sent a newly created VALUE message if it is different
@@ -910,9 +823,9 @@ implements StatsReporterWithConvergence<Val> {
 				// sent the same object
 				Message lastValSent = variable.lastValueSent[i];
 				if (lastValSent != null && lastValSent.equals(msg)) {
-					adopt.sendMessageToVariable(lowerNeighbor, msg, messageSize);
+					adopt.sendMessageToVariable(lowerNeighbor, msg);
 				} else {
-					adopt.sendMessageToVariable(lowerNeighbor, msg, messageSize);
+					adopt.sendMessageToVariable(lowerNeighbor, msg);
 					variable.lastValueSent[i] = msg;
 				}
 				// adopt.log(variable, "Sending a VALUE message to variable " +
@@ -938,27 +851,15 @@ implements StatsReporterWithConvergence<Val> {
 						currentContextPlus.put(variable.variableID, variable.currentAssignment);
 
 						ENDmsg<Val> msg = new ENDmsg<Val>(variable.variableID, variable.lowerNeighbours[i], currentContextPlus);
-						long messageSize = variable.variableID.length();
-						for (String var : currentContextPlus.keySet()) {
-							messageSize += var.length() + 4;
-						}
-						adopt.sendMessageToVariable(variable.lowerNeighbours[i], msg, messageSize);
+						adopt.sendMessageToVariable(variable.lowerNeighbours[i], msg);
 						
 						if(LOG)
 							ADOPT.log(variable, "Sending TERMINATE message to " + variable.lowerNeighbours[i] + " : {" + msg.getContext() + "}");
 					}
 
-					// If the variable is root
-					if (this.adopt.reportStats) {
-						if (variable.separator[0] == null) {
-							AssignmentMessage<Val> output = new AssignmentMessage<Val> (variable.variableID, variable.currentAssignment);
-							adopt.queue.sendMessage(AgentInterface.STATS_MONITOR, output);
-						} else {
-							AssignmentMessage<Val> msg = new AssignmentMessage<Val>(variable.variableID, variable.currentAssignment);
-							adopt.queue.sendMessage(AgentInterface.STATS_MONITOR, msg);
-						}
-					}
-					
+					adopt.queue.sendMessage(AgentInterface.STATS_MONITOR, 
+							new SolutionCollector.AssignmentMessage<Val>(variable.variableID, variable.currentAssignment));
+
 					if(adopt.convergence)
 						adopt.queue.sendMessage(AgentInterface.STATS_MONITOR, new StatsReporterWithConvergence.ConvStatMessage<Val>(ADOPT.CONV_STATS_MSG_TYPE, variable.variableID, adopt.assignmentHistoriesMap.get(variable.variableID)));
 					adopt.variableReadyCounter++;
@@ -972,12 +873,8 @@ implements StatsReporterWithConvergence<Val> {
 				String parent = variable.separator[0];
 				if (parent != null) {
 					COSTmsg<Val, U> msg = new COSTmsg<Val, U>( variable.variableID, parent, variable.currentContext, variable.LB, variable.UB);
-					long messageSize = variable.variableID.length() + parent.length() + 8;
-					for (String var : variable.currentContext.keySet()) {
-						messageSize += var.length() + 4;
-					}
 
-					adopt.sendMessageToVariable(parent, msg, messageSize);
+					adopt.sendMessageToVariable(parent, msg);
 					// adopt.log(variable, "Sending a COST message to variable "
 					// + parent + " : {" + msg.getLB() + ", " + msg.getUB() +
 					// ", " + msg.getContext() + "}");
@@ -1035,7 +932,9 @@ implements StatsReporterWithConvergence<Val> {
 		/** @see ADOPT.Version#notify(Message) */
 		@SuppressWarnings("unchecked")
 		public void notify(Message msg) {
-			String type = msg.getType();
+			MessageType type = msg.getType();
+			
+			assert ! type.equals(AgentInterface.ALL_AGENTS_IDLE) : "ADOPT agents should never all become idle";
 
 			if (type.equals(COST_MSG_TYPE)) {
 				COSTmsg<Val, U> msgCast = (COSTmsg<Val, U>) msg;
@@ -1064,7 +963,7 @@ implements StatsReporterWithConvergence<Val> {
 					variable.lastMessageReceived = msg;
 					handleTERMINATEmessage(variable, msgCast);
 				} else {
-					adopt.queue.sendMessageToSelf(msgCast);
+					adopt.queue.sendMessageToSelf(msgCast); /// @todo Avoid this busy-wait to improve performance
 				}
 			}
 			if (type.equals(VALUE_MSG_TYPE)) {
@@ -1084,12 +983,13 @@ implements StatsReporterWithConvergence<Val> {
 		}
 
 		/** @see ADOPT.Version#getMsgTypes() */
-		public Collection<String> getMsgTypes() {
-			ArrayList<String> msgTypes = new ArrayList<String>();
+		public Collection<MessageType> getMsgTypes() {
+			ArrayList<MessageType> msgTypes = new ArrayList<MessageType>();
 			msgTypes.add(COST_MSG_TYPE);
 			msgTypes.add(TERMINATE_MSG_TYPE);
 			msgTypes.add(THRESHOLD_MSG_TYPE);
 			msgTypes.add(VALUE_MSG_TYPE);
+			msgTypes.add(AgentInterface.ALL_AGENTS_IDLE);
 			return msgTypes;
 		}
 
@@ -1775,22 +1675,7 @@ implements StatsReporterWithConvergence<Val> {
 	}
 
 	/** @see StatsReporter#setSilent(boolean) */
-	public void setSilent(boolean silent) {
-		this.reportStats = ! silent;
-	}
-
-	/** @return the optimal assignments to all variables */
-	public Map<String, Val> getOptAssignments() {
-		return this.assignment;
-	}
-
-	/**
-	 * @return the total optimal utility across all components of the constraint
-	 *         graph
-	 */
-	public U getTotalOptUtil() {
-		return this.optTotalUtil;
-	}
+	public void setSilent(boolean silent) {}
 
 	/**
 	 * @see StatsReporterWithConvergence#getCurrentSolution()
@@ -1801,14 +1686,4 @@ implements StatsReporterWithConvergence<Val> {
 		return null;
 	}
 	
-	/**
-	 * Returns the time at which this module has finished, 
-	 * determined by looking at the timestamp of the stat messages
-	 * 
-	 * @author Brammert Ottens, 22 feb 2010
-	 * @return the time at which this module has finished
-	 */
-	public long getFinalTime() {
-		return finalTime;
-	}
 }

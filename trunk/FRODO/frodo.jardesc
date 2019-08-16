@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <jardesc>
-    <jar path="FRODO_release/frodo2.jar"/>
+    <jar path="FRODO_release/frodo2.17.jar"/>
     <options buildIfNeeded="true" compress="false" descriptionLocation="/FRODO_release/frodo.jardesc" exportErrors="true" exportWarnings="true" includeDirectoryEntries="true" overwrite="false" saveDescription="true" storeRefactorings="false" useSourceFolders="false"/>
     <storedRefactorings deprecationInfo="true" structuralOnly="false"/>
     <selectedProjects/>
@@ -39,7 +39,7 @@
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.varOrdering.factorgraph"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.dpop.privacy"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.duct.termination"/>
-        <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.benchmarks"/>
+        <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.gui.jung"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.duct.samplingMethods"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.dpop.param"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.dpop.stochastic.robust"/>
@@ -56,6 +56,7 @@
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.dpop.count"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.odpop.goodsTree.InnerNodeTree"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.solutionSpaces.JaCoP.tests.Instances.Glb"/>
+        <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.benchmarks{FileCopier.java"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.solutionSpaces.hypercube"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.solutionSpaces.JaCoP.tests.Instances.Int"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.daemon"/>
@@ -78,6 +79,7 @@
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.benchmarks.party"/>
         <file path="/FRODO_release/src/frodo2/benchmarks/maxdiscsp/performance_regression_test.py"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.benchmarks.maxdiscsp{MaxDisCSPProblemGenerator.java"/>
+        <file path="/FRODO_release/src/frodo2/benchmarks/frodo2.py"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.asodpop.goodsTree.leafNodeTree"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.solutionSpaces.JaCoP.tests.Instances.Ext"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.communication.sharedMemory"/>

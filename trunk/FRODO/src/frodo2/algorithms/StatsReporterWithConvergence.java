@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
+import frodo2.communication.MessageType;
 import frodo2.communication.MessageWith2Payloads;
 import frodo2.solutionSpaces.Addable;
 
@@ -128,7 +129,7 @@ public interface StatsReporterWithConvergence < Val extends Addable<Val> >
 		 * @param variableID			The ID of the sending variable
 		 * @param assignmentHistory		The assignment history of the sending variable
 		 */
-		public ConvStatMessage(String type, String variableID, ArrayList<CurrentAssignment<Val>> assignmentHistory) {
+		public ConvStatMessage(MessageType type, String variableID, ArrayList<CurrentAssignment<Val>> assignmentHistory) {
 			super(type, variableID, assignmentHistory);
 		}
 		

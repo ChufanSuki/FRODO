@@ -25,6 +25,7 @@ package frodo2.algorithms;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.InvocationTargetException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -231,13 +232,9 @@ public class MASparser <V extends Addable<V>, U extends Addable<U>> implements M
 	/** @see frodo2.solutionSpaces.ProblemInterface#getZeroUtility() */
 	public U getZeroUtility () {
 		try {
-			return (U) utilClass.newInstance().getZero();
+			return (U) utilClass.getConstructor().newInstance().getZero();
 			
-		} catch (InstantiationException e) {
-			System.err.println("Failed calling the nullary constructor for the class " + utilClass.getName() + " used for utility values");
-			e.printStackTrace();
-			return null;
-		} catch (IllegalAccessException e) {
+		} catch (InvocationTargetException | NoSuchMethodException | InstantiationException | IllegalAccessException e) {
 			System.err.println("Failed calling the nullary constructor for the class " + utilClass.getName() + " used for utility values");
 			e.printStackTrace();
 			return null;
@@ -247,13 +244,9 @@ public class MASparser <V extends Addable<V>, U extends Addable<U>> implements M
 	/** @see frodo2.solutionSpaces.ProblemInterface#getPlusInfUtility() */
 	public U getPlusInfUtility () {
 		try {
-			return (U) utilClass.newInstance().getPlusInfinity();
+			return (U) utilClass.getConstructor().newInstance().getPlusInfinity();
 			
-		} catch (InstantiationException e) {
-			System.err.println("Failed calling the nullary constructor for the class " + utilClass.getName() + " used for utility values");
-			e.printStackTrace();
-			return null;
-		} catch (IllegalAccessException e) {
+		} catch (InvocationTargetException | NoSuchMethodException | InstantiationException | IllegalAccessException e) {
 			System.err.println("Failed calling the nullary constructor for the class " + utilClass.getName() + " used for utility values");
 			e.printStackTrace();
 			return null;
@@ -263,13 +256,9 @@ public class MASparser <V extends Addable<V>, U extends Addable<U>> implements M
 	/** @see frodo2.solutionSpaces.ProblemInterface#getMinInfUtility() */
 	public U getMinInfUtility () {
 		try {
-			return (U) utilClass.newInstance().getMinInfinity();
+			return (U) utilClass.getConstructor().newInstance().getMinInfinity();
 			
-		} catch (InstantiationException e) {
-			System.err.println("Failed calling the nullary constructor for the class " + utilClass.getName() + " used for utility values");
-			e.printStackTrace();
-			return null;
-		} catch (IllegalAccessException e) {
+		} catch (InvocationTargetException | NoSuchMethodException | InstantiationException | IllegalAccessException e) {
 			System.err.println("Failed calling the nullary constructor for the class " + utilClass.getName() + " used for utility values");
 			e.printStackTrace();
 			return null;
@@ -346,10 +335,8 @@ public class MASparser <V extends Addable<V>, U extends Addable<U>> implements M
 	/** @see MASProblemInterface#utilInstance() */
 	public U utilInstance() {
 		try {
-			return utilClass.newInstance();
-		} catch (InstantiationException e) {
-			e.printStackTrace();
-		} catch (IllegalAccessException e) {
+			return utilClass.getConstructor().newInstance();
+		} catch (InvocationTargetException | NoSuchMethodException | InstantiationException | IllegalAccessException e) {
 			e.printStackTrace();
 		}
 		

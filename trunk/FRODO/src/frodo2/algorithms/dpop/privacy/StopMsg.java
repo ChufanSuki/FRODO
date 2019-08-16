@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
+import frodo2.communication.MessageType;
 import frodo2.communication.MessageWithPayload;
 
 /** A message stating that the problem is infeasible
@@ -35,7 +36,7 @@ import frodo2.communication.MessageWithPayload;
 public class StopMsg extends MessageWithPayload<String> implements Externalizable {
 
 	/** The type of this message */
-	public static final String STOP_MSG_TYPE = "STOP";
+	public static final MessageType STOP_MSG_TYPE = new MessageType ("P3/2-DPOP", "RerootRequester", "STOP");
 	
 	/** Empty constructor used for externalization */
 	public StopMsg () {

@@ -27,6 +27,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
 
+import frodo2.communication.MessageType;
+
 /** An optimal solution to the problem
  * @param <V> type used for variable values
  * @param <U> type used for utility values
@@ -74,13 +76,13 @@ public class Solution<V, U> {
 	private int numberOfCoordinationConstraints;
 	
 	/** The total number of messages that has been sent per message type */
-	protected TreeMap<String, Integer> msgNbrs;
+	protected TreeMap<MessageType, Integer> msgNbrs;
 	
 	/** The total amount of information that has been sent per message type */
-	protected TreeMap<String, Long> msgSizes;
+	protected TreeMap<MessageType, Long> msgSizes;
 
 	/** For each message type, the size (in bytes) of the largest message of that type */
-	protected TreeMap<String, Long> maxMsgSizes;
+	protected TreeMap<MessageType, Long> maxMsgSizes;
 
 	/** The tree width of the tree on which the algorithm has run */
 	protected int treeWidth = -1;
@@ -165,9 +167,9 @@ public class Solution<V, U> {
 	 * @param moduleEndTimes 			each module's end time
 	 */
 	public Solution (U reportedUtil, U trueUtil, Map<String, V> assignments, 
-			int nbrMsgs, TreeMap<String, Integer> msgNbrs, TreeMap<Object, Integer> msgsNbrsSentPerAgent, TreeMap<Object, Integer> msgsNbrsReceivedPerAgent, 
-			long totalMsgSize, TreeMap<String, Long> msgSizes, TreeMap<Object, Long> msgSizesSentPerAgent, TreeMap<Object, Long> msgSizesReveivedPerAgent, 
-			long maxMsgSize, TreeMap<String, Long> maxMsgSizes, long ncccCount, long timeNeeded, HashMap<String, Long> moduleEndTimes) {
+			int nbrMsgs, TreeMap<MessageType, Integer> msgNbrs, TreeMap<Object, Integer> msgsNbrsSentPerAgent, TreeMap<Object, Integer> msgsNbrsReceivedPerAgent, 
+			long totalMsgSize, TreeMap<MessageType, Long> msgSizes, TreeMap<Object, Long> msgSizesSentPerAgent, TreeMap<Object, Long> msgSizesReveivedPerAgent, 
+			long maxMsgSize, TreeMap<MessageType, Long> maxMsgSizes, long ncccCount, long timeNeeded, HashMap<String, Long> moduleEndTimes) {
 		this(0, reportedUtil, trueUtil, assignments, nbrMsgs, msgNbrs, msgsNbrsSentPerAgent, msgsNbrsReceivedPerAgent, totalMsgSize, msgSizes, msgSizesSentPerAgent, msgSizesReveivedPerAgent, maxMsgSize, maxMsgSizes, ncccCount, timeNeeded, moduleEndTimes, 0);
 	}
 	
@@ -192,9 +194,9 @@ public class Solution<V, U> {
 	 * @param numberOfCoordinationConstraints 	the number of constraints that contain variables that are owned by different agents
 	 */
 	public Solution (int nbrVariables, U reportedUtil, U trueUtil, Map<String, V> assignments, 
-			int nbrMsgs, TreeMap<String, Integer> msgNbrs, TreeMap<Object, Integer> msgsNbrsSentPerAgent, TreeMap<Object, Integer> msgsNbrsReceivedPerAgent, 
-			long totalMsgSize, TreeMap<String, Long> msgSizes, TreeMap<Object, Long> msgSizesSentPerAgent, TreeMap<Object, Long> msgSizesReveivedPerAgent, 
-			long maxMsgSize, TreeMap<String, Long> maxMsgSizes, long ncccCount, long timeNeeded, HashMap<String, Long> moduleEndTimes, int numberOfCoordinationConstraints) {
+			int nbrMsgs, TreeMap<MessageType, Integer> msgNbrs, TreeMap<Object, Integer> msgsNbrsSentPerAgent, TreeMap<Object, Integer> msgsNbrsReceivedPerAgent, 
+			long totalMsgSize, TreeMap<MessageType, Long> msgSizes, TreeMap<Object, Long> msgSizesSentPerAgent, TreeMap<Object, Long> msgSizesReveivedPerAgent, 
+			long maxMsgSize, TreeMap<MessageType, Long> maxMsgSizes, long ncccCount, long timeNeeded, HashMap<String, Long> moduleEndTimes, int numberOfCoordinationConstraints) {
 		this(nbrVariables, reportedUtil, trueUtil, assignments, nbrMsgs, totalMsgSize, maxMsgSize, ncccCount, timeNeeded, moduleEndTimes, numberOfCoordinationConstraints);
 		this.msgNbrs = msgNbrs;
 		this.msgSizes = msgSizes;
@@ -223,12 +225,11 @@ public class Solution<V, U> {
 	 * @param numberOfCoordinationConstraints 	the number of constraints that contain variables that are owned by different agents
 	 */
 	public Solution (int nbrVariables, U reportedUtil, U trueUtil, Map<String, V> assignments, 
-			int nbrMsgs, TreeMap<String, Integer> msgNbrs, TreeMap<Object, Integer> msgsNbrsSentPerAgent, TreeMap<Object, Integer> msgsNbrsReceivedPerAgent, 
-			long totalMsgSize, TreeMap<String, Long> msgSizes, TreeMap<Object, Long> msgSizesSentPerAgent, TreeMap<Object, Long> msgSizesReveivedPerAgent, 
-			long maxMsgSize, TreeMap<String, Long> maxMsgSizes, long ncccCount, long timeNeeded, HashMap<String, Long> moduleEndTimes, int treeWidth, int numberOfCoordinationConstraints) {
+			int nbrMsgs, TreeMap<MessageType, Integer> msgNbrs, TreeMap<Object, Integer> msgsNbrsSentPerAgent, TreeMap<Object, Integer> msgsNbrsReceivedPerAgent, 
+			long totalMsgSize, TreeMap<MessageType, Long> msgSizes, TreeMap<Object, Long> msgSizesSentPerAgent, TreeMap<Object, Long> msgSizesReveivedPerAgent, 
+			long maxMsgSize, TreeMap<MessageType, Long> maxMsgSizes, long ncccCount, long timeNeeded, HashMap<String, Long> moduleEndTimes, int treeWidth, int numberOfCoordinationConstraints) {
 		this(nbrVariables, reportedUtil, trueUtil, assignments, nbrMsgs, msgNbrs, msgsNbrsSentPerAgent, msgsNbrsReceivedPerAgent, totalMsgSize, msgSizes, msgSizesSentPerAgent, msgSizesReveivedPerAgent, maxMsgSize, maxMsgSizes, ncccCount, timeNeeded, moduleEndTimes, numberOfCoordinationConstraints);
 		this.treeWidth = treeWidth;
-		assert reportedUtil != null;
 	}
 	
 	/** Constructor 
@@ -254,9 +255,9 @@ public class Solution<V, U> {
 	 * @param numberOfCoordinationConstraints 	the number of constraints that contain variables that are owned by different agents
 	 */
 	public Solution (int nbrVariables, U reportedUtil, U trueUtil, Map<String, V> assignments, 
-			int nbrMsgs, TreeMap<String, Integer> msgNbrs, TreeMap<Object, Integer> msgsNbrsSentPerAgent, TreeMap<Object, Integer> msgsNbrsReceivedPerAgent, 
-			long totalMsgSize, TreeMap<String, Long> msgSizes, TreeMap<Object, Long> msgSizesSentPerAgent, TreeMap<Object, Long> msgSizesReveivedPerAgent, 
-			long maxMsgSize, TreeMap<String, Long> maxMsgSizes, long ncccCount, long timeNeeded, long cumulativelTime, HashMap<String, Long> moduleEndTimes, int treeWidth, int numberOfCoordinationConstraints) {
+			int nbrMsgs, TreeMap<MessageType, Integer> msgNbrs, TreeMap<Object, Integer> msgsNbrsSentPerAgent, TreeMap<Object, Integer> msgsNbrsReceivedPerAgent, 
+			long totalMsgSize, TreeMap<MessageType, Long> msgSizes, TreeMap<Object, Long> msgSizesSentPerAgent, TreeMap<Object, Long> msgSizesReveivedPerAgent, 
+			long maxMsgSize, TreeMap<MessageType, Long> maxMsgSizes, long ncccCount, long timeNeeded, long cumulativelTime, HashMap<String, Long> moduleEndTimes, int treeWidth, int numberOfCoordinationConstraints) {
 		this(nbrVariables, reportedUtil, trueUtil, assignments, nbrMsgs, msgNbrs, msgsNbrsSentPerAgent, msgsNbrsReceivedPerAgent, totalMsgSize, msgSizes, msgSizesSentPerAgent, msgSizesReveivedPerAgent, maxMsgSize, maxMsgSizes, ncccCount, timeNeeded, moduleEndTimes, numberOfCoordinationConstraints);
 		this.treeWidth = treeWidth;
 		this.cumulativeTime = cumulativelTime;
@@ -355,12 +356,12 @@ public class Solution<V, U> {
 	 * @author Brammert Ottens, 24 aug 2009
 	 * @return the total number of messages per message type
 	 */
-	public TreeMap<String, Long> getMsgSizes() {
+	public TreeMap<MessageType, Long> getMsgSizes() {
 		return this.msgSizes;
 	}
 	
 	/** @return for each message type, the size (in bytes) of the largest message */
-	public TreeMap<String, Long> getMaxMsgSizes() {
+	public TreeMap<MessageType, Long> getMaxMsgSizes() {
 		return this.maxMsgSizes;
 	}
 	
@@ -368,7 +369,7 @@ public class Solution<V, U> {
 	 * @author Brammert Ottens, 24 aug 2009
 	 * @return the total amount of information per message type
 	 */
-	public TreeMap<String, Integer> getMsgNbrs() {
+	public TreeMap<MessageType, Integer> getMsgNbrs() {
 		return this.msgNbrs;
 	}
 	

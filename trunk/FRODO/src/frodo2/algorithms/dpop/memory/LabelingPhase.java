@@ -42,6 +42,7 @@ import frodo2.algorithms.varOrdering.dfs.DFSgeneration;
 import frodo2.algorithms.varOrdering.dfs.DFSgeneration.DFSview;
 import frodo2.algorithms.varOrdering.dfs.DFSgeneration.MessageDFSoutput;
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 import frodo2.communication.MessageWith2Payloads;
 import frodo2.communication.MessageWith3Payloads;
 import frodo2.communication.Queue;
@@ -98,7 +99,7 @@ public class LabelingPhase < V extends Addable<V> > implements StatsReporter {
 	}
 
 	/** The type of the stats messages */
-	private static final String STATS_MSG_TYPE = "ClusterStats";
+	private static final MessageType STATS_MSG_TYPE = new MessageType ("MB-DPOP", "LabelingPhase", "ClusterStats");
 	
 	/** A message containing stats about a variable 
 	 * @param <V> the type used for variable values
@@ -119,7 +120,7 @@ public class LabelingPhase < V extends Addable<V> > implements StatsReporter {
 	}
 	
 	/** The type of the output messages */
-	public static final String OUTPUT_MSG_TYPE = "LabelingPhaseOutput";
+	public static final MessageType OUTPUT_MSG_TYPE = new MessageType ("MB-DPOP", "LabelingPhase", "Output");
 	
 	/** The output message for a given variable 
 	 * @param <V> the type used for variable values
@@ -188,7 +189,7 @@ public class LabelingPhase < V extends Addable<V> > implements StatsReporter {
 	}
 
 	/** @see StatsReporter#getMsgTypes() */
-	public Collection<String> getMsgTypes() {
+	public Collection<MessageType> getMsgTypes() {
 		
 		return Arrays.asList(
 				AgentInterface.START_AGENT, 
@@ -209,7 +210,7 @@ public class LabelingPhase < V extends Addable<V> > implements StatsReporter {
 	/** @see StatsReporter#notifyIn(Message) */
 	public void notifyIn(Message msg) {
 		
-		String msgType = msg.getType();
+		MessageType msgType = msg.getType();
 				
 		if (msgType.equals(STATS_MSG_TYPE)) {
 			

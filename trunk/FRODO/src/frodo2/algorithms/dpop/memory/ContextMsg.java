@@ -28,6 +28,7 @@ import java.io.ObjectOutput;
 import java.lang.reflect.Array;
 import java.util.Arrays;
 
+import frodo2.communication.MessageType;
 import frodo2.communication.MessageWith3Payloads;
 import frodo2.solutionSpaces.Addable;
 
@@ -38,7 +39,7 @@ import frodo2.solutionSpaces.Addable;
 public class ContextMsg < V extends Addable<V> > extends MessageWith3Payloads<String, String[], V[]> {
 	
 	/** The type of this message */
-	public static final String CONTEXT_MSG_TYPE = "ContextMsg";
+	public static final MessageType CONTEXT_MSG_TYPE = new MessageType ("MB-DPOP", "Context");
 
 	/** Default constructor used for externalization */
 	public ContextMsg () {

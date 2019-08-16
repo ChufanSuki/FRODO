@@ -517,11 +517,8 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 				e.printStackTrace();
 			}
 			try {
-				this.valInstance = domClass.newInstance();
-			} catch (InstantiationException e) {
-				System.err.println("Failed calling the nullary constructor for the class " + domClass.getName() + " used for variable values");
-				e.printStackTrace();
-			} catch (IllegalAccessException e) {
+				this.valInstance = domClass.getConstructor().newInstance();
+			} catch (InvocationTargetException | NoSuchMethodException | InstantiationException | IllegalAccessException e) {
 				System.err.println("Failed calling the nullary constructor for the class " + domClass.getName() + " used for variable values");
 				e.printStackTrace();
 			}
@@ -562,11 +559,8 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 	public void setDomClass (Class<V> domClass) {
 		this.domClass = domClass;
 		try {
-			this.valInstance = domClass.newInstance();
-		} catch (InstantiationException e) {
-			System.err.println("Failed calling the nullary constructor for the class " + domClass.getName() + " used for variable values");
-			e.printStackTrace();
-		} catch (IllegalAccessException e) {
+			this.valInstance = domClass.getConstructor().newInstance();
+		} catch (InvocationTargetException | NoSuchMethodException | InstantiationException | IllegalAccessException e) {
 			System.err.println("Failed calling the nullary constructor for the class " + domClass.getName() + " used for variable values");
 			e.printStackTrace();
 		}
@@ -601,13 +595,9 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 	/** @see DCOPProblemInterface#getZeroUtility() */
 	public U getZeroUtility () {
 		try {
-			return (U) utilClass.newInstance().getZero();
+			return (U) utilClass.getConstructor().newInstance().getZero();
 
-		} catch (InstantiationException e) {
-			System.err.println("Failed calling the nullary constructor for the class " + utilClass.getName() + " used for utility values");
-			e.printStackTrace();
-			return null;
-		} catch (IllegalAccessException e) {
+		} catch (InvocationTargetException | NoSuchMethodException | InstantiationException | IllegalAccessException e) {
 			System.err.println("Failed calling the nullary constructor for the class " + utilClass.getName() + " used for utility values");
 			e.printStackTrace();
 			return null;
@@ -617,13 +607,9 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 	/** @see DCOPProblemInterface#getPlusInfUtility() */
 	public U getPlusInfUtility () {
 		try {
-			return (U) utilClass.newInstance().getPlusInfinity();
+			return (U) utilClass.getConstructor().newInstance().getPlusInfinity();
 
-		} catch (InstantiationException e) {
-			System.err.println("Failed calling the nullary constructor for the class " + utilClass.getName() + " used for utility values");
-			e.printStackTrace();
-			return null;
-		} catch (IllegalAccessException e) {
+		} catch (InvocationTargetException | NoSuchMethodException | InstantiationException | IllegalAccessException e) {
 			System.err.println("Failed calling the nullary constructor for the class " + utilClass.getName() + " used for utility values");
 			e.printStackTrace();
 			return null;
@@ -633,13 +619,9 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 	/** @see DCOPProblemInterface#getMinInfUtility() */
 	public U getMinInfUtility () {
 		try {
-			return (U) utilClass.newInstance().getMinInfinity();
+			return (U) utilClass.getConstructor().newInstance().getMinInfinity();
 
-		} catch (InstantiationException e) {
-			System.err.println("Failed calling the nullary constructor for the class " + utilClass.getName() + " used for utility values");
-			e.printStackTrace();
-			return null;
-		} catch (IllegalAccessException e) {
+		} catch (InvocationTargetException | NoSuchMethodException | InstantiationException | IllegalAccessException e) {
 			System.err.println("Failed calling the nullary constructor for the class " + utilClass.getName() + " used for utility values");
 			e.printStackTrace();
 			return null;
@@ -2133,7 +2115,7 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 		return "Problem for agent " + this.getAgent() + ":\n" + XCSPparser.toString(this.root);
 	}
 
-	/**@return a DOT-formatted reprensentation of the problem */
+	/**@return a DOT-formatted representation of the problem */
 	public String toDOT () {
 		return XCSPparser.toDOT(this.root);
 	}
@@ -2449,12 +2431,8 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 		}
 		U utilInstance;
 		try {
-			utilInstance = utilClass.newInstance();
-		} catch (InstantiationException e) {
-			System.err.println("Failed calling the nullary constructor for the class " + utilClass.getName() + " used for utility values");
-			e.printStackTrace();
-			return null;
-		} catch (IllegalAccessException e) {
+			utilInstance = utilClass.getConstructor().newInstance();
+		} catch (InvocationTargetException | NoSuchMethodException | InstantiationException | IllegalAccessException e) {
 			System.err.println("Failed calling the nullary constructor for the class " + utilClass.getName() + " used for utility values");
 			e.printStackTrace();
 			return null;

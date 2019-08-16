@@ -30,6 +30,7 @@ import org.jdom2.Element;
 import frodo2.algorithms.AgentInterface;
 import frodo2.communication.IncomingMsgPolicyInterface;
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 import frodo2.communication.Queue;
 import frodo2.solutionSpaces.Addable;
 import frodo2.solutionSpaces.DCOPProblemInterface;
@@ -38,10 +39,13 @@ import frodo2.solutionSpaces.DCOPProblemInterface;
  * @author Thomas Leaute
  * @param <U> the class used for utility values
  */
-public class ProblemRescaler< U extends Addable<U> > implements IncomingMsgPolicyInterface<String> {
+public class ProblemRescaler< U extends Addable<U> > implements IncomingMsgPolicyInterface<MessageType> {
 	
+	/** The type of the message telling the module to start */
+	public static MessageType START_MSG_TYPE = AgentInterface.START_AGENT;
+
 	/** The type of the message sent when this module is done rescaling the problem */
-	public static final String DONE = "ProblemRescalerDONE";
+	public static final MessageType DONE = new MessageType ("Reformulation", "ProblemRescaler", "DONE");
 	
 	/** The agent's queue */
 	private Queue queue;
@@ -78,8 +82,8 @@ public class ProblemRescaler< U extends Addable<U> > implements IncomingMsgPolic
 	}
 
 	/** @see IncomingMsgPolicyInterface#getMsgTypes() */
-	public Collection<String> getMsgTypes() {
-		return Arrays.asList(AgentInterface.START_AGENT);
+	public Collection<MessageType> getMsgTypes() {
+		return Arrays.asList(START_MSG_TYPE);
 	}
 
 	/** @see IncomingMsgPolicyInterface#notifyIn(Message) */

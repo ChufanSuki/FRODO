@@ -81,6 +81,20 @@ public class COSTmsg<Val extends Addable<Val>, U extends Addable<U>>
 		this.lb = lb;
 		this.ub = ub;
 	}
+	
+	/** @see Message#toString() */
+	@Override
+	public String toString () {
+		
+		StringBuilder builder = new StringBuilder (super.toString());
+		builder.append("\n\t sender = " + this.sender);
+		builder.append("\n\t receiver = " + this.receiver);
+		builder.append("\n\t context = " + this.context);
+		builder.append("\n\t lb = " + this.lb);
+		builder.append("\n\t ub = " + this.ub);
+		
+		return builder.toString();
+	}
 
 	/** @see java.io.Externalizable#writeExternal(java.io.ObjectOutput) */
 	public void writeExternal(ObjectOutput out) throws IOException {
@@ -164,6 +178,11 @@ public class COSTmsg<Val extends Addable<Val>, U extends Addable<U>>
 	public boolean equals(Object msg) {
 		if (msg == null)
 			return false;
+		
+		Message msgCast2 = (Message) msg;
+		if (! this.getType().equals(msgCast2.getType())) 
+			return false;
+		
 		COSTmsg<Val, U> msgCast = (COSTmsg<Val, U>) msg;
 		return sender.equals(msgCast.sender)
 				&& receiver.equals(msgCast.receiver)

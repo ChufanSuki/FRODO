@@ -29,6 +29,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 import frodo2.communication.Queue;
 import frodo2.communication.QueueTest.ConstantMsgPolicy;
 import frodo2.communication.QueueTest.QueueOutputPipeTrivial;
@@ -144,7 +145,7 @@ public class QueueInputPipeTCPTest extends TestCase {
 	public void testReceiveMultiple () {
 		
 		// Create messages and send them
-		String type = "testReceiveMultiple";
+		MessageType type = new MessageType ("testReceiveMultiple");
 		ArrayList<Message> messages1 = new ArrayList<Message> (3);
 		messages1.add(new Message (type));
 		messages1.add(new Message (type));

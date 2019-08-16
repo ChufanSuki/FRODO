@@ -23,6 +23,7 @@ How to contact the authors:
 package frodo2.algorithms.dpop.privacy;
 
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 import frodo2.communication.MessageWith3Payloads;
 
 /** A wrapper message around a payload message that must be routed through the DFS 
@@ -38,8 +39,8 @@ public class RoutingMsg <M extends Message> extends MessageWith3Payloads<String,
 	 * @param sender 	the sender variable
 	 * @param msg 		the payload message
 	 */
-	public RoutingMsg(String type, String sender, M msg) {
-		super(type, sender, msg, sender);
+	public RoutingMsg(MessageType type, String sender, M msg) {
+		this(type, sender, msg, sender);
 	}
 	
 	/** Protected constructor
@@ -48,8 +49,8 @@ public class RoutingMsg <M extends Message> extends MessageWith3Payloads<String,
 	 * @param msg 		the payload message
 	 * @param dest 		the destination variable
 	 */
-	protected RoutingMsg(String type, String sender, M msg, String dest) {
-		super(type, sender, msg, dest);
+	protected RoutingMsg(MessageType type, String sender, M msg, String dest) {
+		super(type.newChild(msg.getType()), sender, msg, dest);
 	}
 	
 	/** @return the sender variable */

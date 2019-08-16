@@ -29,6 +29,7 @@ import sys
 import subprocess
 import math
 import glob
+from shutil import copyfile
 
 # Global variables
 interrupted = False
@@ -183,7 +184,7 @@ def getLowMedHigh (data):
         return [ data[lowI-1][1], data[medI-1][1], data[highI-1][1] ]
 
 
-def runAtDepth (depth, indent, genParams):
+def runAtDepth (depth, indent, genParams, saveProblems):
     global interrupted, terminated, java, javaParams, generator, algos, timeout, output, outFile, javaProcess
     
     # Check if all options have been set 
@@ -237,6 +238,14 @@ def runAtDepth (depth, indent, genParams):
             outFile.write(line)
         line = tmpFile.readline()
         while line != "": 
+            thisSplit = line.split(';')
+                  
+            # Save the problem instance file if requested
+            if saveProblems: 
+                probName = thisSplit[2]
+                fileName = thisSplit[3]
+                copyfile(fileName, probName + "_" + fileName)
+            
             # Compare the algorithms and the problem instances on this line and the next; 
             # if they are the same, skip this line (it is the timeout line)
             nextLine = tmpFile.readline()
@@ -244,7 +253,6 @@ def runAtDepth (depth, indent, genParams):
                 outFile.write(line)
                 break
             
-            thisSplit = line.split(';')
             nextSplit = nextLine.split(';')
             if thisSplit[0] != nextSplit[0] or thisSplit[2] != nextSplit[2]: # the algorithms or problem instances differ
                 outFile.write(line)
@@ -265,7 +273,7 @@ def runAtDepth (depth, indent, genParams):
     optList = genParams[depth]
     if not isinstance(optList, list): 
         genParams[depth] = str(optList)
-        runAtDepth(depth+1, indent, genParams)
+        runAtDepth(depth+1, indent, genParams, saveProblems)
         return
 
     optBefore = genParams[0:depth]
@@ -278,7 +286,7 @@ def runAtDepth (depth, indent, genParams):
             return
     
         print(indent + "Picking " + str(opt) + " from " + str(optList))
-        runAtDepth(depth+1, indent+"\t", optBefore + [str(opt)] + optAfter)
+        runAtDepth(depth+1, indent+"\t", optBefore + [str(opt)] + optAfter, saveProblems)
 
 
 def runFromRepo (java_i, javaParams_i, repoPath, nbrRuns, algos_i, timeout_i, output_i):
@@ -302,7 +310,7 @@ def runFromRepo (java_i, javaParams_i, repoPath, nbrRuns, algos_i, timeout_i, ou
     run(java_i, javaParams_i, "frodo2.benchmarks.FileCopier", [filenames, probFile], nbrRuns, algos, timeout_i, output_i)
 
 
-def run (java_i, javaParams_i, generator_i, genParams, nbrProblems, algos_i, timeout_i, output_i):
+def run (java_i, javaParams_i, generator_i, genParams, nbrProblems, algos_i, timeout_i, output_i, saveProblems = False):
     """Starts the experiment
     @param java_i             the command line to call Java
     @param javaParams_i        the list of parameters to be passed to the JVM. Example: ["-Xmx2G", "-classpath", "my/path"]
@@ -312,13 +320,12 @@ def run (java_i, javaParams_i, generator_i, genParams, nbrProblems, algos_i, tim
     @param algos_i             the list of algorithms; each algorithm is [display name, solver class name, agent configuration file, problem file, javaParams] (with javaParams optional)
     @param timeout_i         the timeout in seconds
     @param output_i         the CSV file to which the statistics should be written
+    @param saveProblems     whether to save all problem instance files
     """
     
     # @todo Eventually remove the solver from the algorithm description (after standardizing the stats gatherer)
     
     # @todo How to show and update the graphs as the experiment is running?
-    
-    # @todo Introduce an option to keep all the XCSP files
     
     # @todo It should be possible to run some of the algorithms from a JAR, others from the src folder and plot pairwise difference to compare FRODO versions
     
@@ -342,7 +349,7 @@ def run (java_i, javaParams_i, generator_i, genParams, nbrProblems, algos_i, tim
             return;
 
         print("Run " + str(run) + "/" + str(nbrProblems))
-        runAtDepth(0, "\t", genParams)
+        runAtDepth(0, "\t", genParams, saveProblems)
         
 
 def plotScatter (resultsFile, xAlgo, yAlgo, metricsCol, timeouts = True, block = True, loglog = True):
@@ -393,7 +400,12 @@ def plotScatter (resultsFile, xAlgo, yAlgo, metricsCol, timeouts = True, block =
         
         # Parse the instance name and the metrics value
         instanceName = lineSplit[2]
-        metricsVal = float(lineSplit[metricsCol])
+        metricsStr = lineSplit[metricsCol]
+        try: 
+            metricsVal = float(metricsStr)
+        except: 
+            print("Invalid metrics value on column " + str(metricsCol) + " for algorithm '" + algoName + "' on instance '" + instanceName + "': " + metricsStr)
+            metricsVal = float("NaN")
         
         # Record the result
         if instanceName in results:

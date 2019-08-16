@@ -28,6 +28,7 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 
 /** Backtrack message in SynchBB */
 public class BTmsg extends Message implements Externalizable {
@@ -52,7 +53,7 @@ public class BTmsg extends Message implements Externalizable {
 	 * @param type 	The type of the message
 	 * @param dest 	the destination variable
 	 */
-	protected BTmsg (String type, String dest) {
+	protected BTmsg (MessageType type, String dest) {
 		super (type);
 		this.dest = dest;
 	}

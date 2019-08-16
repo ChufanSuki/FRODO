@@ -38,6 +38,7 @@ import org.jdom2.Element;
 import frodo2.algorithms.heuristics.ScorePair;
 import frodo2.algorithms.heuristics.ScoringHeuristic;
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 import frodo2.solutionSpaces.Addable;
 import frodo2.solutionSpaces.DCOPProblemInterface;
 
@@ -85,7 +86,7 @@ public class LocalRandVarsDFS < V extends Addable<V>, U extends Addable<U> > ext
 	}
 
 	/** The type of messages containing random variables */
-	public static final String RAND_VARS_MSG_TYPE = "RandVarsMessage";
+	public static final MessageType RAND_VARS_MSG_TYPE = new MessageType ("VarOrdering", "LocalRandVarsDFS", "RandVars");
 	
 	/** For each of this agent's variables, its set of neighbor random variables */
 	private Map< String, HashSet<String> > randNeighborhoods;
@@ -146,8 +147,8 @@ public class LocalRandVarsDFS < V extends Addable<V>, U extends Addable<U> > ext
 
 	/** @see DFSgeneration#getMsgTypes() */
 	@Override 
-	public Collection<String> getMsgTypes() {
-		Collection<String> types = super.getMsgTypes();
+	public Collection<MessageType> getMsgTypes() {
+		Collection<MessageType> types = super.getMsgTypes();
 		types.add(RAND_VARS_MSG_TYPE);
 		return types;
 	}
@@ -156,7 +157,7 @@ public class LocalRandVarsDFS < V extends Addable<V>, U extends Addable<U> > ext
 	@Override 
 	public void notifyIn(Message msg) {
 		
-		String msgType = msg.getType();
+		MessageType msgType = msg.getType();
 		
 		// Parse the problem if it has not been done yet
 		if (! this.started) 

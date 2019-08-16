@@ -91,10 +91,10 @@ public class DFSgenerationParallelTest extends DFSgenerationTest {
 	}	
 	
 	/** Not sending any LEoutput because they are computed by the module
-	 * @see DFSgenerationTest#sendLEoutputs(int, java.util.Map) 
+	 * @see DFSgenerationTest#sendLEoutputs(String, java.util.Map) 
 	 */
 	@Override
-	protected void sendLEoutputs(int i, Map<String, String> rootForVar) { }
+	protected void sendLEoutputs(String i, Map<String, String> rootForVar) { }
 	
 	/** @see DFSgenerationTest#createDFSparams(org.jdom2.Element) */
 	@Override

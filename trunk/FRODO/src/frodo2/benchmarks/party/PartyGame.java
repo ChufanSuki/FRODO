@@ -293,7 +293,7 @@ public class PartyGame {
 		for (String playerID : party.privateCosts.keySet()) {
 			Element player = new Element ("agent");
 			elmt.addContent(player);
-			player.setAttribute("name", "a" + playerID);
+			player.setAttribute("name", "a_" + playerID);
 		}
 		
 		// Create the "domains" element, representing the probability of attendance
@@ -425,7 +425,7 @@ public class PartyGame {
 				myVar += "s" + player;
 			elmt.setAttribute("name", myVar);
 			elmt.setAttribute("domain", (method == Method.Soni07 ? "p" + player + "dom" : "Strategies"));
-			elmt.setAttribute("agent", "a" + player);
+			elmt.setAttribute("agent", "a_" + player);
 			
 			if (method == Method.Soni07) {
 				HashMap<String, Double>[] domain1 = domains.get(player);
@@ -518,7 +518,7 @@ public class PartyGame {
 					vars.add(varName);
 					scope += varName + " ";
 					elmt.setAttribute("domain", "Strategies");
-					elmt.setAttribute("agent", "a" + player);
+					elmt.setAttribute("agent", "a_" + player);
 					
 					// Create the equality constraint with the neighbor's strategy variable
 					elmt = new Element ("constraint");
@@ -673,7 +673,7 @@ public class PartyGame {
 				conElement.addContent(elmt);
 				elmt.setAttribute("name", "p" + player + "_const");
 				if (method == Method.Vickrey02) 
-					elmt.setAttribute("agent", "a" + player);
+					elmt.setAttribute("agent", "a_" + player);
 				elmt.setAttribute("arity", Integer.toString((method == Method.Soni07 ? 1 : nbrNeighbors + 1)));
 				elmt.setAttribute("scope", scope);
 				elmt.setAttribute("reference", relName);

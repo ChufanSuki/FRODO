@@ -25,6 +25,7 @@ package frodo2.algorithms.dpop.privacy.test;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
@@ -53,6 +54,7 @@ import frodo2.algorithms.varOrdering.dfs.DFSgeneration.MessageDFSoutput;
 import frodo2.algorithms.varOrdering.election.VariableElection;
 import frodo2.communication.IncomingMsgPolicyInterface;
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 import frodo2.communication.MessageWith2Payloads;
 import frodo2.communication.Queue;
 import frodo2.communication.QueueOutputPipeInterface;
@@ -62,7 +64,7 @@ import frodo2.solutionSpaces.AddableInteger;
 /** Test case for the module SecureCircularRouting
  * @author Thomas Leaute
  */
-public class SecureCircularRoutingTest extends TestCase implements IncomingMsgPolicyInterface<String> {
+public class SecureCircularRoutingTest extends TestCase implements IncomingMsgPolicyInterface<MessageType> {
 	
 	/** The maximum number of variables in the random test problems */
 	private final static int maxNbrVars = 50;
@@ -90,10 +92,10 @@ public class SecureCircularRoutingTest extends TestCase implements IncomingMsgPo
 	}
 	
 	/** The type of the test forward message */
-	private static final String TEST_FWD_MSG_TYPE = "Test forward message";
+	private static final MessageType TEST_FWD_MSG_TYPE = new MessageType ("Test forward message");
 	
 	/** The type of the test backward message */
-	private static final String TEST_BACK_MSG_TYPE = "Test backward message";
+	private static final MessageType TEST_BACK_MSG_TYPE = new MessageType ("Test backward message");
 	
 	/** A message holding the sender variable and the number of variables visited so far
 	 * @author Thomas Leaute
@@ -108,7 +110,7 @@ public class SecureCircularRoutingTest extends TestCase implements IncomingMsgPo
 		 * @param sender 	the sender variable
 		 * @param count 	the number of variables visited so far
 		 */
-		public TestMessage(String type, String sender, Integer count) {
+		public TestMessage(MessageType type, String sender, Integer count) {
 			super(type, sender, count);
 		}
 		
@@ -127,7 +129,7 @@ public class SecureCircularRoutingTest extends TestCase implements IncomingMsgPo
 	 * to forward a message forward all the way until it comes back, and same backwards. 
 	 * @author Thomas Leaute
 	 */
-	private class Forwarder implements IncomingMsgPolicyInterface<String> {
+	private class Forwarder implements IncomingMsgPolicyInterface<MessageType> {
 		
 		/** The listener's queue */
 		private Queue queue;
@@ -143,8 +145,8 @@ public class SecureCircularRoutingTest extends TestCase implements IncomingMsgPo
 		}
 
 		/** @see IncomingMsgPolicyInterface#getMsgTypes() */
-		public Collection<String> getMsgTypes() {
-			ArrayList<String> types = new ArrayList<String> (2);
+		public Collection<MessageType> getMsgTypes() {
+			ArrayList<MessageType> types = new ArrayList<MessageType> (2);
 			types.add(AgentInterface.START_AGENT);
 			types.add(SecureCircularRouting.DELIVERY_MSG_TYPE);
 			return types;
@@ -154,7 +156,7 @@ public class SecureCircularRoutingTest extends TestCase implements IncomingMsgPo
 		@SuppressWarnings("unchecked")
 		public void notifyIn(Message msg) {
 			
-			String msgType = msg.getType();
+			MessageType msgType = msg.getType();
 			
 			if (msgType.equals(AgentInterface.START_AGENT)) {
 				
@@ -171,7 +173,7 @@ public class SecureCircularRoutingTest extends TestCase implements IncomingMsgPo
 				}
 			}
 			
-			else if (msgType.equals(SecureCircularRouting.DELIVERY_MSG_TYPE)) {
+			else if (SecureCircularRouting.DELIVERY_MSG_TYPE.isParent(msgType)) {
 				
 				DeliveryMsg<TestMessage> msgCast = (DeliveryMsg<TestMessage>) msg;
 				String dest = msgCast.getDest();
@@ -209,11 +211,11 @@ public class SecureCircularRoutingTest extends TestCase implements IncomingMsgPo
 	/** The parser for the whole problem */
 	private XCSPparser<AddableInteger, AddableInteger> parser;
 
-	/** The queue of each agent */
-	private Queue[] queues;
+	/** The queue of each agent, indexed by agent name */
+	private Map<String, Queue> queues;
 
-	/** The pipe to send message to each agent */
-	private QueueOutputPipeInterface[] pipes;
+	/** The pipe to send message to each agent, indexed by agent name */
+	private Map<String, QueueOutputPipeInterface> pipes;
 	
 	/** Countdown until the test terminates */
 	private int countdown;
@@ -243,8 +245,8 @@ public class SecureCircularRoutingTest extends TestCase implements IncomingMsgPo
 	}
 
 	/** @see IncomingMsgPolicyInterface#getMsgTypes() */
-	public Collection<String> getMsgTypes() {
-		ArrayList<String> types = new ArrayList<String> (2);
+	public Collection<MessageType> getMsgTypes() {
+		ArrayList<MessageType> types = new ArrayList<MessageType> (2);
 		types.add(DFSgeneration.STATS_MSG_TYPE);
 		types.add(SecureCircularRouting.STATS_MSG_TYPE);
 		return types;
@@ -286,15 +288,14 @@ public class SecureCircularRoutingTest extends TestCase implements IncomingMsgPo
 		this.parser = new XCSPparser<AddableInteger, AddableInteger> (AllTests.generateProblem(graph, true));
 		
 		// Instantiate and set up the queues
-		int nbrAgents = graph.clusters.size();
-		this.queues = new Queue [nbrAgents];
+		this.queues = new HashMap<String, Queue> ();
 		this.pipes = AllTests.createQueueNetwork(queues, graph, useTCP);
 		
 		// Listen to stats messages
 		this.myQueue = new Queue (false);
 		myQueue.addIncomingMessagePolicy(this);
 		QueueIOPipe myPipe = new QueueIOPipe (myQueue);
-		for (Queue queue : this.queues) 
+		for (Queue queue : this.queues.values()) 
 			queue.addOutputPipe(AgentInterface.STATS_MONITOR, myPipe);
 		DFSgeneration<AddableInteger, AddableInteger> statsGatherer = new DFSgeneration<AddableInteger, AddableInteger> (parser);
 		statsGatherer.setSilent(true);
@@ -308,7 +309,7 @@ public class SecureCircularRoutingTest extends TestCase implements IncomingMsgPo
 		
 		// Create the listeners
 		for (String agent : parser.getAgents()) {
-			Queue queue = queues[Integer.parseInt(agent)];
+			Queue queue = queues.get(agent);
 			
 			// Create the test listener
 			XCSPparser<AddableInteger, AddableInteger> subProb = parser.getSubProblem(agent);
@@ -333,10 +334,10 @@ public class SecureCircularRoutingTest extends TestCase implements IncomingMsgPo
 	@Override
 	protected void tearDown() {
 		this.parser = null;
-		for (QueueOutputPipeInterface pipe : this.pipes) 
+		for (QueueOutputPipeInterface pipe : this.pipes.values()) 
 			pipe.close();
 		this.pipes = null;
-		for (Queue queue : this.queues) 
+		for (Queue queue : this.queues.values()) 
 			queue.end();
 		this.queues = null;
 		this.myQueue.end();
@@ -351,8 +352,8 @@ public class SecureCircularRoutingTest extends TestCase implements IncomingMsgPo
 		this.countdown = 2 * graph.nodes.size();
 		
 		// Tell each agent to start
-		for (int i = 0; i < this.graph.clusters.size(); i++) 
-			this.queues[i].sendMessageToSelf(new Message (AgentInterface.START_AGENT));
+		for (Queue queue : queues.values()) 
+			queue.sendMessageToSelf(new Message (AgentInterface.START_AGENT));
 		
 		while (true) {
 			this.finished_lock.lock();

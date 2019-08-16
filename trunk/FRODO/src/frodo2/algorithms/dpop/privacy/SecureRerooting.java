@@ -22,6 +22,7 @@ How to contact the authors:
 
 package frodo2.algorithms.dpop.privacy;
 
+import java.lang.reflect.InvocationTargetException;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -39,6 +40,7 @@ import frodo2.algorithms.varOrdering.dfs.VarNbrMsg;
 import frodo2.algorithms.varOrdering.election.LeaderElectionMaxID;
 import frodo2.communication.IncomingMsgPolicyInterface;
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 import frodo2.communication.OutgoingMsgPolicyInterface;
 import frodo2.communication.Queue;
 import frodo2.solutionSpaces.Addable;
@@ -62,13 +64,13 @@ import frodo2.solutionSpaces.crypto.CryptoScheme;
  * @todo It is inefficient to use bit-array-based ElGamalBigIntegers, because we don't need (partial) additive homomorphism
  */
 public class SecureRerooting<C extends Addable<C>,E extends AddableLimited<C,E>> 
-implements IncomingMsgPolicyInterface<String>, OutgoingMsgPolicyInterface<String> {
+implements IncomingMsgPolicyInterface<MessageType>, OutgoingMsgPolicyInterface<MessageType> {
 	
 	/** Type of output of the secureRerooting module */
-	public static String OUTPUT = "NewRoot";
+	public static MessageType OUTPUT = new MessageType ("P3/2-DPOP", "SecureRerooting", "NewRoot");
 	
 	/** Token type telling the reroot of the dfs can be executed now */
-	public static final String DONE = "RerootingDone";
+	public static final MessageType DONE = new MessageType ("P3/2-DPOP", "SecureRerooting", "Done");
 	
 	/** Set to 0, to identify the root of the component in the vector */
 	private final C rootElement;
@@ -199,7 +201,7 @@ implements IncomingMsgPolicyInterface<String>, OutgoingMsgPolicyInterface<String
 	}	
 	
 	/** The type of the message containing an ordering vector */
-	public static final String VECTOR_TYPE = "RerootingVector";
+	public static final MessageType VECTOR_TYPE = new MessageType ("P3/2-DPOP", "SecureRerooting", "Vector");
 	
 	/** Message used to tell a variable that it is the new root of its component */
 	public static class SecureRootingMsg extends LeaderElectionMaxID.MessageLEoutput<String>{
@@ -225,7 +227,7 @@ implements IncomingMsgPolicyInterface<String>, OutgoingMsgPolicyInterface<String
 	private DCOPProblemInterface<?, C> problem;
 
 	/** The type of the messages sent to request a rerooting of the variable order */
-	public static final String REROOTING_REQUEST_TYPE = "RerootRequest";
+	public static final MessageType REROOTING_REQUEST_TYPE = new MessageType ("P3/2-DPOP", "SecureRerooting", "RerootRequest");
 	
 	/** Constructor
 	 * @param problem 	the agent's subproblem
@@ -246,14 +248,14 @@ implements IncomingMsgPolicyInterface<String>, OutgoingMsgPolicyInterface<String
 		C instance = (C) new AddableInteger ();
 		try {
 			Class<C> classOfC = (Class<C>) Class.forName(classOfCname);
-			instance = classOfC.newInstance();
+			instance = classOfC.getConstructor().newInstance();
 		} catch (ClassNotFoundException e) {
 			System.err.println("The class specified as the `cleartextClass' for the SecureRerooting module was not found");
 			e.printStackTrace();
-		} catch (InstantiationException e) {
+		} catch (InvocationTargetException | InstantiationException e) {
 			System.err.println("Failed to call the empty constructor for the class specified as the `cleartextClass' for the SecureRerooting module");
 			e.printStackTrace();
-		} catch (IllegalAccessException e) {
+		} catch (NoSuchMethodException | IllegalAccessException e) {
 			System.err.println("The class specified as the `cleartextClass' for the SecureRerooting module does not have an public empty constructor");
 			e.printStackTrace();
 		}
@@ -278,8 +280,8 @@ implements IncomingMsgPolicyInterface<String>, OutgoingMsgPolicyInterface<String
 	}
 
 	/** @see IncomingMsgPolicyInterface#getMsgTypes() */
-	public Collection<String> getMsgTypes() {
-		ArrayList<String> types = new ArrayList<String> (9);
+	public Collection<MessageType> getMsgTypes() {
+		ArrayList<MessageType> types = new ArrayList<MessageType> (9);
 		
 		// Incoming messages
 		types.add(DFSgenerationWithOrder.VARIABLE_COUNT_TYPE);
@@ -322,13 +324,13 @@ implements IncomingMsgPolicyInterface<String>, OutgoingMsgPolicyInterface<String
 				
 		if(!started) init();
 		
-		String msgType = msg.getType();
+		MessageType msgType = msg.getType();
 		
-		if(msgType.equals(SecureCircularRouting.DELIVERY_MSG_TYPE)){ 
+		if(SecureCircularRouting.DELIVERY_MSG_TYPE.isParent(msgType)){ 
 			
 			DeliveryMsg<?> msgCast = (DeliveryMsg<?>) msg;
 			String myVar = msgCast.getDest();
-			String innerMsgType = msgCast.getMessage().getType();
+			MessageType innerMsgType = msgCast.getMessage().getType();
 			
 			if (innerMsgType.equals(VECTOR_TYPE)){
 				
@@ -553,13 +555,13 @@ implements IncomingMsgPolicyInterface<String>, OutgoingMsgPolicyInterface<String
 	@SuppressWarnings("unchecked")
 	public Decision notifyOut(Message msg) {
 		
-		String msgType = msg.getType();
+		MessageType msgType = msg.getType();
 		
-		if (msgType.equals(SecureCircularRouting.PREVIOUS_MSG_TYPE) || msgType.equals(SecureCircularRouting.TO_LAST_LEAF_MSG_TYPE)) {
+		if (SecureCircularRouting.PREVIOUS_MSG_TYPE.isParent(msgType) || SecureCircularRouting.TO_LAST_LEAF_MSG_TYPE.isParent(msgType)) {
 			
 			// Ignore this message if it does not carry a vector message or if it is sent to a variable I own
 			VectorMsg<C, E> innerMsg = null;
-			if (msgType.equals(SecureCircularRouting.PREVIOUS_MSG_TYPE)) {
+			if (SecureCircularRouting.PREVIOUS_MSG_TYPE.isParent(msgType)) {
 				
 				RoutingMsg<Message> msgCast = (RoutingMsg<Message>) msg;
 				if (msgCast.getPayload().getType().equals(VECTOR_TYPE)) { // vector message
@@ -570,7 +572,7 @@ implements IncomingMsgPolicyInterface<String>, OutgoingMsgPolicyInterface<String
 				} else // not a vector message
 					return Decision.DONTCARE;
 				
-			} else if (msgType.equals(SecureCircularRouting.TO_LAST_LEAF_MSG_TYPE)) {
+			} else if (SecureCircularRouting.TO_LAST_LEAF_MSG_TYPE.isParent(msgType)) {
 				
 				ToLastLeafMsg msgCast = (ToLastLeafMsg) msg;
 				if (msgCast.getPayload().getType().equals(VECTOR_TYPE)) { // vector message

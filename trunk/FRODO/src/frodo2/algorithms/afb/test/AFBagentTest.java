@@ -35,6 +35,7 @@ import org.jdom2.Element;
 import frodo2.algorithms.Problem;
 import frodo2.algorithms.SingleQueueAgent;
 import frodo2.algorithms.Solution;
+import frodo2.algorithms.SolutionCollector;
 import frodo2.algorithms.XCSPparser;
 import frodo2.algorithms.StatsReporterWithConvergence.CurrentAssignment;
 import frodo2.algorithms.dpop.DPOPsolver;
@@ -44,6 +45,7 @@ import frodo2.algorithms.reformulation.ProblemRescaler;
 import frodo2.algorithms.test.AllTests;
 import frodo2.algorithms.varOrdering.election.VariableElection;
 import frodo2.algorithms.varOrdering.linear.LinearOrdering;
+import frodo2.communication.MessageType;
 import frodo2.solutionSpaces.Addable;
 import frodo2.solutionSpaces.AddableInteger;
 import frodo2.solutionSpaces.AddableReal;
@@ -118,6 +120,9 @@ public class AFBagentTest <V extends Addable<V>, U extends Addable<U> > extends 
 	/** The stats gatherer */
 	private AFB<V, U> AFBmodule;
 	
+	/** The solution collector */
+	private SolutionCollector<V, U> solCollector;
+		
 	/** The name of the agent configuration file */
 	private String agentFile;
 	
@@ -178,24 +183,25 @@ public class AFBagentTest <V extends Addable<V>, U extends Addable<U> > extends 
 				for (Element msgElmt : module.getChild("messages").getChildren()) {
 
 					// Look up the new value for the message type
-					String newType = msgElmt.getAttributeValue("value");
-					String ownerClassName = msgElmt.getAttributeValue("ownerClass");
-					if (ownerClassName != null) { // the attribute "value" actually refers to a field in a class
-						Class<?> ownerClass = Class.forName(ownerClassName);
+					MessageType newType = MessageType.fromXML(msgElmt.getChild("type"));
+					String targetClassName = msgElmt.getAttributeValue("targetClass");
+					if (targetClassName != null) { // look up the value of a field in a class
+						String targetFieldName = msgElmt.getAttributeValue("targetFieldName");
+						Class<?> targetClass = Class.forName(targetClassName);
 						try {
-							Field field = ownerClass.getDeclaredField(newType);
-							newType = (String) field.get(newType);
+							Field field = targetClass.getDeclaredField(targetFieldName);
+							newType = (MessageType) field.get(null);
 						} catch (NoSuchFieldException e) {
-							System.err.println("Unable to read the value of the field " + ownerClass.getName() + "." + newType);
+							System.err.println("Unable to read the value of the field " + targetClass.getName() + "." + targetFieldName);
 							e.printStackTrace();
 						}
 					}
 
 					// Set the message type to its new value
 					try {
-						SingleQueueAgent.setMsgType(AFB.class, msgElmt.getAttributeValue("name"), newType);
+						SingleQueueAgent.setMsgType(AFB.class, msgElmt.getAttributeValue("myFieldName"), newType);
 					} catch (NoSuchFieldException e) {
-						System.err.println("Unable to find the field " + AFB.class.getName() + "." + msgElmt.getAttributeValue("name"));
+						System.err.println("Unable to find the field " + AFB.class.getName() + "." + msgElmt.getAttributeValue("myFieldName"));
 						e.printStackTrace();
 					}
 				}
@@ -210,6 +216,10 @@ public class AFBagentTest <V extends Addable<V>, U extends Addable<U> > extends 
 		this.AFBmodule.setSilent(true);
 		this.AFBmodule.getStatsFromQueue(super.queue);
 		
+		this.solCollector = new SolutionCollector<V, U> (null, this.problem);
+		this.solCollector.setSilent(true);
+		this.solCollector.getStatsFromQueue(super.queue);
+		
 		// Listen for the linear order on variables
 		LinearOrdering<V, U> module = new LinearOrdering<V, U> (null, problem);
 		module.setSilent(true);
@@ -221,6 +231,7 @@ public class AFBagentTest <V extends Addable<V>, U extends Addable<U> > extends 
 	protected void tearDown () throws Exception {
 		super.tearDown();
 		this.AFBmodule = null;
+		this.solCollector = null;
 	}
 
 	/** @see DPOPagentTest#checkOutput() */
@@ -230,13 +241,13 @@ public class AFBagentTest <V extends Addable<V>, U extends Addable<U> > extends 
 		
 		// Check the utility
 		U utilDPOP = solDPOP.getUtility();
-		U utilAFB = this.AFBmodule.getOptCost();
+		U utilAFB = this.solCollector.getUtility();
 		assertEquals (utilDPOP, utilAFB);
 		
 		// If the problem is feasible, check the assignments
 		if (utilAFB != this.problem.getPlusInfUtility() && utilAFB != this.problem.getMinInfUtility()) 
 		{
-			assertEquals (utilAFB, this.problem.getUtility(this.AFBmodule.getOptAssignments()).getUtility(0));
+			assertEquals (utilAFB, this.problem.getUtility(this.solCollector.getSolution()).getUtility(0));
 
 			// Check that each variable has an assignment history
 			HashMap< String, ArrayList< CurrentAssignment<V> > > histories = this.AFBmodule.getAssignmentHistories();

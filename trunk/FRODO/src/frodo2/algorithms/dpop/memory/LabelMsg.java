@@ -32,6 +32,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
+import frodo2.communication.MessageType;
 import frodo2.communication.MessageWith4Payloads;
 import frodo2.solutionSpaces.Addable;
 
@@ -42,7 +43,7 @@ import frodo2.solutionSpaces.Addable;
 public class LabelMsg < V extends Addable<V> > extends MessageWith4Payloads< String, String, HashMap<String, V[]>, HashMap<String, V[]> > {
 	
 	/** The type of the message */
-	public static final String LABEL_MSG_TYPE = "LabelMsg";
+	public static final MessageType LABEL_MSG_TYPE = new MessageType ("MB-DPOP", "LabelingPhase", "Label");
 	
 	/** Default constructor used for externalization */
 	public LabelMsg () {

@@ -173,7 +173,7 @@ public class QueueTest extends TestCase {
 	 * @author Thomas Leaute 
 	 *
 	 */
-	public static class ConstantMsgPolicy implements IncomingMsgPolicyInterface <String>, OutgoingMsgPolicyInterface<String> {
+	public static class ConstantMsgPolicy implements IncomingMsgPolicyInterface <MessageType>, OutgoingMsgPolicyInterface<MessageType> {
 		
 		/** Where to forward messages; no forwarding if \c null */
 		private String forward;
@@ -194,7 +194,7 @@ public class QueueTest extends TestCase {
 		private Object queue_lock = new Object();
 		
 		/** The list of messages types this listener wants to be notified of */
-		private ArrayList <String> msgTypes = new ArrayList <String> ();
+		private ArrayList <MessageType> msgTypes = new ArrayList <MessageType> ();
 
 		/**
 		 * @see IncomingMsgPolicyInterface#notifyIn(Message)
@@ -218,14 +218,14 @@ public class QueueTest extends TestCase {
 		
 		/** Constructor
 		 * 
-		 * By default, it listens to messages of type Queue.ALLMESSAGES. 
+		 * By default, it listens to messages of type MessageType.ROOT_TYPE. 
 		 * @param forward 			Where to forward messages; no forwarding if \c null
 		 * @param forwardToSelf 	Whether the policy should forward messages to the queue itself
 		 */
 		public ConstantMsgPolicy(String forward, boolean forwardToSelf) {
 			this.forward = forward;
 			this.forwardToSelf = forwardToSelf;
-			msgTypes.add(Queue.ALLMESSAGES);
+			msgTypes.add(MessageType.ROOT);
 		}
 
 		/** Constructor
@@ -233,7 +233,7 @@ public class QueueTest extends TestCase {
 		 * @param forwardToSelf 	Whether the policy should forward messages to the queue itself
 		 * @param msgType 			the type of messages this listens to
 		 */
-		public ConstantMsgPolicy(String forward, boolean forwardToSelf, String msgType) {
+		public ConstantMsgPolicy(String forward, boolean forwardToSelf, MessageType msgType) {
 			this.forward = forward;
 			this.forwardToSelf = forwardToSelf;
 			msgTypes.add(msgType);
@@ -276,7 +276,7 @@ public class QueueTest extends TestCase {
 		}
 
 		/** @see frodo2.communication.IncomingMsgPolicyInterface#getMsgTypes() */
-		public Collection<String> getMsgTypes() {
+		public Collection<MessageType> getMsgTypes() {
 			return msgTypes;
 		}
 		
@@ -358,7 +358,7 @@ public class QueueTest extends TestCase {
 	/** Tests the forwarding of a message */
 	public void testForward() {
 		
-		Message msg = new Message("forward");
+		Message msg = new Message(new MessageType ("forward"));
 		input.addMessage(msg);
 		
 		// Test that it was forwarded
@@ -370,7 +370,7 @@ public class QueueTest extends TestCase {
 	 */
 	public void testDiscard() throws InterruptedException {
 		
-		Message msg = new Message("don't care");
+		Message msg = new Message(new MessageType ("don't care"));
 		this.decider.setForward(null);
 		input.addMessage(msg);
 		
@@ -384,7 +384,7 @@ public class QueueTest extends TestCase {
 	 */
 	public void testForwardByType() throws InterruptedException {
 		
-		Message msg = new Message("forward and store by type");
+		Message msg = new Message(new MessageType ("forward and store by type"));
 		this.decider.setForward(null);
 		ConstantMsgPolicy decider2 = new ConstantMsgPolicy("tester", false, msg.getType());
 		queue.addIncomingMessagePolicy(decider2);
@@ -394,7 +394,7 @@ public class QueueTest extends TestCase {
 		assertEquals(msg, output.getNextMsgTimed().getMessage());
 		
 		// Test that no other message type is forwarded or stored
-		msg = new Message ("other");
+		msg = new Message (new MessageType ("other"));
 		input.addMessage(msg);
 		
 		// Test that it was not forwarded
@@ -405,7 +405,7 @@ public class QueueTest extends TestCase {
 	/** Tests the forwarding of a serialized message */
 	public void testForwardSerialized() {
 		
-		MessageSerializedSimple <String> msg = new MessageSerializedSimple <String> ("forward serialized", "forward serialized");
+		MessageSerializedSimple <String> msg = new MessageSerializedSimple <String> (new MessageType ("forward serialized"), "forward serialized");
 		decider.setForward("tester");
 		input.addMessage(msg);
 		
@@ -416,11 +416,11 @@ public class QueueTest extends TestCase {
 	/** Tests the forwarding of multiple messages */
 	public void testMultipleForward() {
 		
-		Message msg1 = new Message(String.valueOf(Math.random()));
+		Message msg1 = new Message(new MessageType (String.valueOf(Math.random())));
 		input.addMessage(msg1);
-		Message msg2 = new Message(String.valueOf(Math.random()));
+		Message msg2 = new Message(new MessageType (String.valueOf(Math.random())));
 		input.addMessage(msg2);
-		Message msg3 = new Message(String.valueOf(Math.random()));
+		Message msg3 = new Message(new MessageType (String.valueOf(Math.random())));
 		input.addMessage(msg3);
 		
 		// Test that messages were forwarded, and in the proper order
@@ -444,7 +444,7 @@ public class QueueTest extends TestCase {
 		QueueInputPipeTrivial input2 = new QueueInputPipeTrivial (queue);
 		
 		// Create the messages
-		Message msg = new Message ("testMultipleInputPipes");
+		Message msg = new Message (new MessageType ("testMultipleInputPipes"));
 		input.addMessage(msg);
 		input.addMessage(msg);
 		input2.addMessage(msg);
@@ -457,7 +457,7 @@ public class QueueTest extends TestCase {
 	
 	/** Tests the sending of a message to itself. */
 	public void testSendToSelf () {
-		Message msg = new Message("forwardToSelf");
+		Message msg = new Message(new MessageType ("forwardToSelf"));
 		decider.setForwardToSelfFlag(true);
 		input.addMessage(msg);
 		
@@ -478,7 +478,7 @@ public class QueueTest extends TestCase {
 		recipients.add(recipient2);
 		
 		// Directly tell the queue to send the message
-		Message msg = new Message("sendToMultiple");
+		Message msg = new Message(new MessageType ("sendToMultiple"));
 		queue.sendMessageToMulti(recipients, msg);
 		
 		// Test that the message was received by all output pipes
@@ -489,8 +489,8 @@ public class QueueTest extends TestCase {
 	/** Tests that sequential calls to sendMessage() result in the message being sent in the correct order */
 	public void testSendMessageOrder () {
 		
-		Message msg1 = new Message (String.valueOf(Math.random()));
-		Message msg2 = new Message (String.valueOf(Math.random()));
+		Message msg1 = new Message (new MessageType (String.valueOf(Math.random())));
+		Message msg2 = new Message (new MessageType (String.valueOf(Math.random())));
 		
 		queue.sendMessageToSelf(msg1);
 		queue.sendMessageToSelf(msg2);
@@ -502,7 +502,7 @@ public class QueueTest extends TestCase {
 	/** Tests that sequential calls to sendMessage() on the same Message object actually send the message multiple times, not just once. */
 	public void testSendMessageMultiple () {
 		
-		Message msg = new Message ("testSendMessageOrder");
+		Message msg = new Message (new MessageType ("testSendMessageOrder"));
 		
 		queue.sendMessageToSelf(msg);
 		queue.sendMessageToSelf(msg);
@@ -516,7 +516,7 @@ public class QueueTest extends TestCase {
 	 */
 	public void testOutgoingListener() throws InterruptedException {
 		
-		Message msg = new Message("hello queue");
+		Message msg = new Message(new MessageType ("hello queue"));
 		decider.setForwardToSelfFlag(true);
 		decider.setOutDecision(Decision.DISCARD);
 		input.addMessage(msg);

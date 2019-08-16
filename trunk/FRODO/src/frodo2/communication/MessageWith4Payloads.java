@@ -80,7 +80,7 @@ public class MessageWith4Payloads < T1 extends Serializable, T2 extends Serializ
 	 * @param payload3 third payload
 	 * @param payload4 fourth payload
 	 */
-	public MessageWith4Payloads(String type, T1 payload1, T2 payload2, T3 payload3, T4 payload4) {
+	public MessageWith4Payloads(MessageType type, T1 payload1, T2 payload2, T3 payload3, T4 payload4) {
 		super(type);
 		this.payload1 = payload1;
 		this.payload2 = payload2;

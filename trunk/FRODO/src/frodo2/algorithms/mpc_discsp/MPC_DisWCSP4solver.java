@@ -33,7 +33,9 @@ import org.jdom2.Element;
 
 import frodo2.algorithms.AbstractDCOPsolver;
 import frodo2.algorithms.Solution;
+import frodo2.algorithms.SolutionCollector;
 import frodo2.algorithms.StatsReporter;
+import frodo2.communication.MessageType;
 import frodo2.solutionSpaces.Addable;
 
 /** A solver for MPC-Dis(W)CSP4 
@@ -58,7 +60,7 @@ import frodo2.solutionSpaces.Addable;
 public class MPC_DisWCSP4solver < V extends Addable<V>, U extends Addable<U> > extends AbstractDCOPsolver< V, U, Solution<V, U> > {
 	
 	/** The module that gathers solution statistics */
-	private MPC_DisCSP4<V, U> module;
+	private SolutionCollector<V, U> solCollector;
 	
 	/** Constructor for MPC-DisWCSP4 */
 	public MPC_DisWCSP4solver () {
@@ -92,29 +94,29 @@ public class MPC_DisWCSP4solver < V extends Addable<V>, U extends Addable<U> > e
 	@Override
 	public List<StatsReporter> getSolGatherers() {
 		
-		this.module = new MPC_DisCSP4<V, U> (null, super.problem);
-		this.module.setSilent(true);
+		this.solCollector = new SolutionCollector<V, U> (null, super.problem);
+		this.solCollector.setSilent(true);
 		
-		return Arrays.asList((StatsReporter) this.module);
+		return Arrays.asList((StatsReporter) this.solCollector);
 	}
 
 	/** @see AbstractDCOPsolver#buildSolution() */
 	@Override
 	public Solution<V, U> buildSolution() {
 
-		Map<String, V>  solution = this.module.getSolution();
+		Map<String, V>  solution = this.solCollector.getSolution();
 		int nbrMsgs = factory.getNbrMsgs();
-		TreeMap<String, Integer> msgNbrs = factory.getMsgNbrs();
+		TreeMap<MessageType, Integer> msgNbrs = factory.getMsgNbrs();
 		long totalMsgSize = factory.getTotalMsgSize();
-		TreeMap<String, Long> msgSizes = factory.getMsgSizes();
+		TreeMap<MessageType, Long> msgSizes = factory.getMsgSizes();
 		long maxMsgSize = factory.getOverallMaxMsgSize();
-		TreeMap<String, Long> maxMsgSizes = factory.getMaxMsgSizes();
+		TreeMap<MessageType, Long> maxMsgSizes = factory.getMaxMsgSizes();
 		long ncccs = factory.getNcccs();
 		int numberOfCoordinationConstraints = problem.getNumberOfCoordinationConstraints();
 		int nbrVariables = problem.getNbrVars();
 		long totalTime = factory.getTime();
 		
-		return new Solution<V, U> (nbrVariables, this.module.getOptCost(), this.module.getOptCost(), solution, 
+		return new Solution<V, U> (nbrVariables, null, this.solCollector.getUtility(), solution, 
 				nbrMsgs, msgNbrs, this.factory.getMsgNbrsSentPerAgent(), this.factory.getMsgNbrsReceivedPerAgent(), 
 				totalMsgSize, msgSizes, this.factory.getMsgSizesSentPerAgent(), this.factory.getMsgSizesReceivedPerAgent(), 
 				maxMsgSize, maxMsgSizes, ncccs, totalTime, null, numberOfCoordinationConstraints);

@@ -39,6 +39,7 @@ import frodo2.algorithms.varOrdering.election.LeaderElectionMaxID;
 import frodo2.algorithms.varOrdering.election.LeaderElectionMaxID.MessageLEoutput;
 import frodo2.communication.IncomingMsgPolicyInterface;
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 import frodo2.communication.Queue;
 import frodo2.communication.QueueOutputPipeInterface;
 import junit.extensions.RepeatedTest;
@@ -49,7 +50,7 @@ import junit.framework.TestSuite;
  * @author Thomas Leaute
  * @param <S> type used for scores
  */
-public class LeaderElectionMaxIDTest < S extends Comparable<S> > extends TestCase implements IncomingMsgPolicyInterface <String> {
+public class LeaderElectionMaxIDTest < S extends Comparable<S> > extends TestCase implements IncomingMsgPolicyInterface <MessageType> {
 	
 	/** Maximum number of agents in the random graph 
 	 * @note Must be at least 2. 
@@ -62,8 +63,8 @@ public class LeaderElectionMaxIDTest < S extends Comparable<S> > extends TestCas
 	/** Number of agents in the test */
 	protected int nbrAgents;
 
-	/** List of queues corresponding to the different agents */
-	protected Queue[] queues;
+	/** List of queues, indexed by agent name */
+	protected Map<String, Queue> queues;
 
 	/** For each agent, the output of LeaderElectionMaxID */
 	protected Map< String, MessageLEoutput<String> > outputs;
@@ -80,8 +81,8 @@ public class LeaderElectionMaxIDTest < S extends Comparable<S> > extends TestCas
 	/** Random graph used to generate a constraint graph */
 	protected RandGraphFactory.Graph graph;
 	
-	/** One output pipe used to send messages to each queue */
-	protected QueueOutputPipeInterface[] pipes;
+	/** One output pipe used to send messages to each queue, indexed by the queue's agent name */
+	protected Map<String, QueueOutputPipeInterface> pipes;
 	
 	/** Constructor that instantiates a test only for the input method
 	 * @param method test method
@@ -117,11 +118,11 @@ public class LeaderElectionMaxIDTest < S extends Comparable<S> > extends TestCas
 		super.tearDown();
 		graph = null;
 		outputs = null;
-		for (Queue queue : queues) {
+		for (Queue queue : queues.values()) {
 			queue.end();
 		}
 		queues = null;
-		for (QueueOutputPipeInterface pipe : pipes) {
+		for (QueueOutputPipeInterface pipe : pipes.values()) {
 			pipe.close();
 		}
 		pipes = null;
@@ -150,7 +151,7 @@ public class LeaderElectionMaxIDTest < S extends Comparable<S> > extends TestCas
 		
 		// Create the queue network
 		nbrAgents = graph.nodes.size();
-		queues = new Queue [nbrAgents];
+		queues = new HashMap<String, Queue> ();
 		pipes = AllTests.createQueueNetwork(queues, graph, useTCP);
 		
 		// Generate ID and the listeners
@@ -164,7 +165,7 @@ public class LeaderElectionMaxIDTest < S extends Comparable<S> > extends TestCas
 	
 		// Tell all listeners to start the protocol
 		Message startMsg = new Message (LeaderElectionMaxID.START_MSG_TYPE);
-		for (Queue queue : queues) {
+		for (Queue queue : queues.values()) {
 			queue.sendMessageToSelf(startMsg);
 		}	
 		
@@ -197,18 +198,19 @@ public class LeaderElectionMaxIDTest < S extends Comparable<S> > extends TestCas
 	@SuppressWarnings("unchecked")
 	protected Map<String, S> initiatingIDandListener(){
 		
-		Map<String, S> uniqueID = new HashMap<String, S> (queues.length);
+		Map<String, S> uniqueID = new HashMap<String, S> (queues.size());
 		
-		for (int i = 0; i < queues.length; i++) {
+		for (Map.Entry<String, Queue> entry : this.queues.entrySet()) {
 			// Var name
-			String iStr = graph.nodes.get(i);
+			String iStr = entry.getKey();
 			
 			//Link name to id
 			uniqueID.put(iStr, (S) iStr);
 			
 			// Generate the listeners
-			queues[i].addIncomingMessagePolicy(new LeaderElectionMaxID<String> (iStr, iStr, graph.neighborhoods.get(iStr), nbrAgents - 1));
-			queues[i].addIncomingMessagePolicy(this);
+			Queue queue = entry.getValue();
+			queue.addIncomingMessagePolicy(new LeaderElectionMaxID<String> (iStr, iStr, graph.neighborhoods.get(iStr), nbrAgents - 1));
+			queue.addIncomingMessagePolicy(this);
 		}
 		
 		return uniqueID;
@@ -251,8 +253,8 @@ public class LeaderElectionMaxIDTest < S extends Comparable<S> > extends TestCas
 	 * 
 	 * It listens to the output of the leader election protocol. 
 	 */
-	public Collection <String> getMsgTypes() {
-		ArrayList <String> types = new ArrayList <String> (2);
+	public Collection <MessageType> getMsgTypes() {
+		ArrayList <MessageType> types = new ArrayList <MessageType> (2);
 		types.add(LeaderElectionMaxID.OUTPUT_MSG_TYPE);
 		types.add(LeaderElectionMaxID.LE_MSG_TYPE);
 		return types;

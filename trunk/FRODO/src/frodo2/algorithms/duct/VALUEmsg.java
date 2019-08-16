@@ -28,6 +28,7 @@ import java.io.ObjectOutput;
 import java.lang.reflect.Array;
 
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 import frodo2.communication.MessageWith2Payloads;
 import frodo2.solutionSpaces.Addable;
 
@@ -60,7 +61,7 @@ public class VALUEmsg <V extends Addable<V>> extends MessageWith2Payloads<String
 	 * @param variables the names of the variables
 	 * @param values 	the reported values
 	 */
-	public VALUEmsg(String type, String sender, String receiver, String[] variables, V[] values) {
+	public VALUEmsg(MessageType type, String sender, String receiver, String[] variables, V[] values) {
 		super(type, sender, receiver);
 		this.variables = variables;
 		this.values = values;

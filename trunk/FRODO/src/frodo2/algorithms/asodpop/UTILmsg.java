@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
+import frodo2.communication.MessageType;
 import frodo2.solutionSpaces.Addable;
 
 /**
@@ -68,7 +69,7 @@ public class UTILmsg < Val extends Addable<Val>, U extends Addable<U> > extends 
 	 * @param receiver		The recipient of the message
 	 * @param good			The good to be send
 	 */
-	public UTILmsg(String type, String sender, String receiver, Good<Val, U> good) {
+	public UTILmsg(MessageType type, String sender, String receiver, Good<Val, U> good) {
 		super(type, sender, receiver, good);
 		confirmed = good.isConfirmed();
 	}

@@ -24,6 +24,7 @@ package frodo2.solutionSpaces.vehiclerouting.test;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
+import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 
 import org.jdom2.Document;
@@ -293,8 +294,11 @@ public class VRPtests extends TestCase {
 	 * @author Brammert Ottens, 29 apr 2010
 	 * @throws InstantiationException	error thrown when creating a new instance of an object fails
 	 * @throws IllegalAccessException	error thrown when creating a new instance of an object fails
+	 * @throws NoSuchMethodException error thrown when creating a new instance of an object fails
+	 * @throws InvocationTargetException error thrown when creating a new instance of an object fails
 	 */
-	public void testBestFirstiterator() throws InstantiationException, IllegalAccessException {
+	public void testBestFirstiterator() 
+			throws InstantiationException, IllegalAccessException, NoSuchMethodException, InvocationTargetException {
 		
 		XCSPparserVRP<AddableReal> parser = new XCSPparserVRP<AddableReal>(problem);
 		parser.setUtilClass(AddableReal.class);
@@ -306,7 +310,7 @@ public class VRPtests extends TestCase {
 		
 		Iterator<AddableInteger, AddableReal> it = spaces.get(i).iteratorBestFirst(false); 
 		
-		AddableReal lastUtil = AddableReal.class.newInstance().getMinInfinity();
+		AddableReal lastUtil = AddableReal.class.getConstructor().newInstance().getMinInfinity();
 		
 		while(it.hasNext()) {
 			AddableReal util = it.nextUtility();
@@ -322,9 +326,12 @@ public class VRPtests extends TestCase {
 	 * @author Brammert Ottens, 29 apr 2010
 	 * @throws InstantiationException	error thrown when creating a new instance of an object fails
 	 * @throws IllegalAccessException	error thrown when creating a new instance of an object fails
+	 * @throws NoSuchMethodException error thrown when creating a new instance of an object fails
+	 * @throws InvocationTargetException error thrown when creating a new instance of an object fails
 	 */
 	@SuppressWarnings("unchecked")
-	public void testCompoundBestFirstIterator() throws InstantiationException, IllegalAccessException {
+	public void testCompoundBestFirstIterator() 
+			throws InstantiationException, IllegalAccessException, NoSuchMethodException, InvocationTargetException {
 		XCSPparserVRPODPOP<AddableReal> parser = new XCSPparserVRPODPOP<AddableReal>(problem);
 		parser.setUtilClass(AddableReal.class);
 		
@@ -339,7 +346,7 @@ public class VRPtests extends TestCase {
 		
 		Iterator<AddableInteger, AddableReal> it = space.iteratorBestFirst(false); 
 		
-		AddableReal lastUtil = AddableReal.class.newInstance().getMinInfinity();
+		AddableReal lastUtil = AddableReal.class.getConstructor().newInstance().getMinInfinity();
 		
 		while(it.hasNext()) {
 			AddableReal util = it.nextUtility();

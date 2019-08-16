@@ -34,11 +34,13 @@ import java.util.Map;
 import org.jdom2.Element;
 
 import frodo2.algorithms.AgentInterface;
+import frodo2.algorithms.StatsReporter;
 import frodo2.algorithms.dpop.VALUEpropagation;
 import frodo2.algorithms.dpop.UTILpropagation.SolutionMessage;
 import frodo2.algorithms.varOrdering.dfs.DFSgeneration;
 import frodo2.algorithms.varOrdering.dfs.DFSgeneration.DFSview;
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 import frodo2.communication.MessageWith2Payloads;
 import frodo2.communication.Queue;
 import frodo2.solutionSpaces.Addable;
@@ -52,17 +54,20 @@ import frodo2.solutionSpaces.hypercube.Hypercube;
  * @todo Improve the implementation by reasoning on groups of variables to be projected together. 
  */
 public class ParamVALUE < Val extends Addable<Val> > 
-extends VALUEpropagation<Val> {
+extends VALUEpropagation<Val> implements StatsReporter {
 
 	/** The type of the VALUE messages */
-	public static final String PARAM_VALUE_MSG_TYPE = "ParamVALUEmessage";
+	public static final MessageType PARAM_VALUE_MSG_TYPE = new MessageType ("Param-DPOP", "VALUE", "VALUE");
 	
 	/** The type of the output messages containing the optimal assignment to a variable */
-	public static final String PARAM_OUTPUT_MSG_TYPE = "OutputMessageParamVALUE";
+	public static final MessageType PARAM_OUTPUT_MSG_TYPE = new MessageType ("Param-DPOP", "VALUE", "Output");
 	
 	/** For each variable, the VALUE message received containing its separator's optimal assignments */
 	private HashMap< String, VALUEmsg<Val> > valueMessages = new HashMap< String, VALUEmsg<Val> > ();
 	
+	/** Whether to report stats */
+	private boolean reportStats = true;
+
 	/** For an array of variables, their optimal values, conditioned on the values of the parameters (if any) 
 	 * @todo It might be more efficient to store a single BasicUtilitySolutionSpace holding the information about all variables. 
 	 */
@@ -125,9 +130,7 @@ extends VALUEpropagation<Val> {
 	 * @param problem 		the overall problem
 	 * @param parameters 	the description of what statistics should be reported (currently unused)
 	 */
-	public ParamVALUE (Element parameters, DCOPProblemInterface<Val, ?> problem) { 
-		super (parameters, problem);
-	}
+	public ParamVALUE (Element parameters, DCOPProblemInterface<Val, ?> problem) { }
 	
 	/** @see VALUEpropagation#reset() */
 	public void reset () {
@@ -139,8 +142,8 @@ extends VALUEpropagation<Val> {
 	
 	/** @see frodo2.algorithms.dpop.VALUEpropagation#getMsgTypes() */
 	@Override
-	public Collection <String> getMsgTypes() {
-		ArrayList<String> types = new ArrayList<String> (6);
+	public Collection <MessageType> getMsgTypes() {
+		ArrayList<MessageType> types = new ArrayList<MessageType> (6);
 		types.add(START_MSG_TYPE);
 		types.add(ParamUTIL.OUTPUT_MSG_TYPE);
 		types.add(ParamUTIL.SEPARATOR_MSG_TYPE);
@@ -150,12 +153,17 @@ extends VALUEpropagation<Val> {
 		return types;
 	}
 
+	/** @see StatsReporter#setSilent(boolean) */
+	public void setSilent(boolean silent) {
+		this.reportStats = ! silent;
+	}
+	
 	/** @see VALUEpropagation#notifyIn(Message) */
 	@Override
 	@SuppressWarnings("unchecked")
 	public void notifyIn(Message msg) {
 		
-		String type = msg.getType();
+		MessageType type = msg.getType();
 		
 		if (type.equals(PARAM_OUTPUT_MSG_TYPE)) { // we are in stats gatherer mode
 			
@@ -272,10 +280,10 @@ extends VALUEpropagation<Val> {
 		
 	}
 
-	/** @see frodo2.algorithms.dpop.VALUEpropagation#getStatsFromQueue(frodo2.communication.Queue) */
+	/** @see StatsReporter#getStatsFromQueue(Queue) */
 	@Override
 	public void getStatsFromQueue(Queue queue) {
-		ArrayList <String> msgTypes = new ArrayList <String> (1);
+		ArrayList <MessageType> msgTypes = new ArrayList <MessageType> (1);
 		msgTypes.add(PARAM_OUTPUT_MSG_TYPE);
 		queue.addIncomingMessagePolicy(msgTypes, this);
 	}

@@ -35,6 +35,7 @@ import org.jdom2.Element;
 
 import frodo2.algorithms.varOrdering.election.VariableElection;
 import frodo2.communication.MessageListener;
+import frodo2.communication.MessageType;
 import frodo2.solutionSpaces.Addable;
 import frodo2.solutionSpaces.DCOPProblemInterface;
 
@@ -57,7 +58,8 @@ public abstract class AbstractDCOPsolver < V extends Addable<V>, U extends Addab
 		String algoName = args[0];
 		String solverClassName = args[1];
 		Document agentConfig = XCSPparser.parse(args[2], false);
-		Document problemFile = XCSPparser.parse(args[3], false);
+		String probFilename = args[3];
+		Document problemFile = XCSPparser.parse(probFilename, false);
 		Long timeout = 1000 * Long.parseLong(args[4]); // *1000 to get it in ms
 		String outputFilePath = args[5];
 		
@@ -75,7 +77,7 @@ public abstract class AbstractDCOPsolver < V extends Addable<V>, U extends Addab
 		BufferedWriter writer = new BufferedWriter (new FileWriter (outputFile, true));
 		if (newFile) 
 			writer.append(solver.getFileHeader(problemFile)).append("\n");
-		writer.append(solver.getTimeoutLine(algoName, problemFile)).append("\n").flush();
+		writer.append(solver.getTimeoutLine(algoName, problemFile, probFilename)).append("\n").flush();
 		
 		// Solve and record the stats
 		Solution<?, ?> sol = solver.solve(problemFile, false, timeout);
@@ -85,7 +87,7 @@ public abstract class AbstractDCOPsolver < V extends Addable<V>, U extends Addab
 			writer.append(";0"); // 0 = no timeout; 1 = timeout
 
 			// First write statistics about the problem instance
-			writer.append(solver.getProbStats(problemFile));
+			writer.append(solver.getProbStats(problemFile, probFilename));
 			
 			// Write the statistics about the solution found
 			writer.append(sol.toLineString()).append("\n");
@@ -105,6 +107,8 @@ public abstract class AbstractDCOPsolver < V extends Addable<V>, U extends Addab
 		buf.append(";timed out"); // 0 if the algorithm terminated, 1 if it timed out
 
 		buf.append(";problem instance"); // the name of the problem instance, assumed unique
+		
+		buf.append(";filename"); // the filename of the problem instance
 
 		// Write statistics about the problem instance, added by the problem generator to the XCSP file
 		Element presElmt = problemFile.getRootElement().getChild("presentation");
@@ -134,15 +138,19 @@ public abstract class AbstractDCOPsolver < V extends Addable<V>, U extends Addab
 	
 	/** Parses the statistics about the problem instance
 	 * @param problemFile 	the problem instance
+	 * @param probFilename 	the filename of the problem instance
 	 * @return the statistics
 	 */
-	protected String getProbStats (Document problemFile) {
+	protected String getProbStats (Document problemFile, String probFilename) {
 		
 		StringBuffer buf = new StringBuffer ();
 		
 		// Write the name of this problem instance (assuming it is unique)
 		Element presElmt = problemFile.getRootElement().getChild("presentation");
 		buf.append(";").append(presElmt.getAttributeValue("name"));
+		
+		// Write the problem instance filename
+		buf.append(";").append(probFilename);
 		
 		// Write statistics about the problem instance
 		TreeMap<String, String> stats = new TreeMap<String, String> ();
@@ -157,15 +165,16 @@ public abstract class AbstractDCOPsolver < V extends Addable<V>, U extends Addab
 	/** Returns a timeout line for the output CSV file
 	 * @param algoName 		the name of the algorithm
 	 * @param problemFile 	the problem instance
+	 * @param probFilename 	the filename of the problem instance
 	 * @return a line in the output CSV file that corresponds to a timeout 
 	 */
-	protected String getTimeoutLine(String algoName, Document problemFile) {
+	protected String getTimeoutLine(String algoName, Document problemFile, String probFilename) {
 		
 		StringBuffer buf = new StringBuffer (algoName);
 		
 		buf.append(";1"); // 0 = no timeout; 1 = timeout
 		
-		buf.append(this.getProbStats(problemFile));
+		buf.append(this.getProbStats(problemFile, probFilename));
 		
 		// Continue with statistics about the solution
 		buf.append(";").append(Long.MAX_VALUE); // NCCCs
@@ -285,30 +294,31 @@ public abstract class AbstractDCOPsolver < V extends Addable<V>, U extends Addab
 				for (Element moduleElmt : (List<Element>) modsElmt.getChildren()) {
 
 					String className = moduleElmt.getAttributeValue("className");
-					Class< MessageListener<String> > moduleClass = (Class< MessageListener<String> >) Class.forName(className);
+					Class< MessageListener<MessageType> > moduleClass = (Class< MessageListener<MessageType> >) Class.forName(className);
 					Element allMsgsElmt = moduleElmt.getChild("messages");
 					if (allMsgsElmt != null) {
 						for (Element msgElmt : (List<Element>) allMsgsElmt.getChildren()) {
 
 							// Look up the new value for the message type
-							String newType = msgElmt.getAttributeValue("value");
-							String ownerClassName = msgElmt.getAttributeValue("ownerClass");
-							if (ownerClassName != null) { // the attribute "value" actually refers to a field in a class
-								Class<?> ownerClass = Class.forName(ownerClassName);
+							MessageType newType = MessageType.fromXML(msgElmt.getChild("type"));
+							String targetClassName = msgElmt.getAttributeValue("targetClass");
+							if (targetClassName != null) { // look up the value of a field in a class
+								String targetFieldName = msgElmt.getAttributeValue("targetFieldName");
+								Class<?> targetClass = Class.forName(targetClassName);
 								try {
-									Field field = ownerClass.getDeclaredField(newType);
-									newType = (String) field.get(newType);
+									Field field = targetClass.getDeclaredField(targetFieldName);
+									newType = (MessageType) field.get(null);
 								} catch (NoSuchFieldException e) {
-									System.err.println("Unable to read the value of the field " + ownerClass.getName() + "." + newType);
+									System.err.println("Unable to read the value of the field " + targetClass.getName() + "." + targetFieldName);
 									e.printStackTrace();
 								}
 							}
 
 							// Set the message type to its new value
 							try {
-								SingleQueueAgent.setMsgType(moduleClass, msgElmt.getAttributeValue("name"), newType);
+								SingleQueueAgent.setMsgType(moduleClass, msgElmt.getAttributeValue("myFieldName"), newType);
 							} catch (NoSuchFieldException e) {
-								System.err.println("Unable to find the field " + moduleClass.getName() + "." + msgElmt.getAttributeValue("name"));
+								System.err.println("Unable to find the field " + moduleClass.getName() + "." + msgElmt.getAttributeValue("myFieldName"));
 								e.printStackTrace();
 							}
 						}

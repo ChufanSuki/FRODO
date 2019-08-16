@@ -39,6 +39,7 @@ import org.jdom2.JDOMException;
 import frodo2.communication.IncomingMsgPolicyInterface;
 import frodo2.communication.Message;
 import frodo2.communication.MessageListener;
+import frodo2.communication.MessageType;
 import frodo2.communication.MessageWith2Payloads;
 import frodo2.communication.MessageWrapper;
 import frodo2.communication.OutgoingMsgPolicyInterface;
@@ -61,7 +62,7 @@ import frodo2.solutionSpaces.ProblemInterface;
  * @author Brammert Ottens
  * @param <Val> the type used for domain values
  */
-public class SingleQueueAgent < Val extends Addable<Val> > implements AgentInterface<Val>, IncomingMsgPolicyInterface<String> {
+public class SingleQueueAgent < Val extends Addable<Val> > implements AgentInterface<Val>, IncomingMsgPolicyInterface<MessageType> {
 	
 	/** The agent's ID */
 	protected String agentID;
@@ -73,7 +74,7 @@ public class SingleQueueAgent < Val extends Addable<Val> > implements AgentInter
 	protected Set<String> neighbours;
 
 	/** The message types this agent listens to */
-	private Collection<String> msgTypes = new ArrayList<String> ();
+	private Collection<MessageType> msgTypes = new ArrayList<MessageType> ();
 	
 	/** The number of neighbours connected to the agent */
 	private int neighboursConnected;
@@ -182,30 +183,31 @@ public class SingleQueueAgent < Val extends Addable<Val> > implements AgentInter
 
 				// Change the module's message types if required
 				String className = moduleElmt.getAttributeValue("className");
-				Class< MessageListener<String> > moduleClass = (Class< MessageListener<String> >) Class.forName(className);
+				Class< MessageListener<MessageType> > moduleClass = (Class< MessageListener<MessageType> >) Class.forName(className);
 				Element allMsgsElmt = moduleElmt.getChild("messages");
 				if (allMsgsElmt != null) {
 					for (Element msgElmt : (List<Element>) allMsgsElmt.getChildren()) {
 
 						// Look up the new value for the message type
-						String newType = msgElmt.getAttributeValue("value");
-						String ownerClassName = msgElmt.getAttributeValue("ownerClass");
-						if (ownerClassName != null) { // the attribute "value" actually refers to a field in a class
-							Class<?> ownerClass = Class.forName(ownerClassName);
+						MessageType newType = MessageType.fromXML(msgElmt.getChild("type"));
+						String targetClassName = msgElmt.getAttributeValue("targetClass");
+						if (targetClassName != null) { // look up the value of a field in a class
+							String targetFieldName = msgElmt.getAttributeValue("targetFieldName");
+							Class<?> targetClass = Class.forName(targetClassName);
 							try {
-								Field field = ownerClass.getDeclaredField(newType);
-								newType = (String) field.get(newType);
+								Field field = targetClass.getDeclaredField(targetFieldName);
+								newType = (MessageType) field.get(null);
 							} catch (NoSuchFieldException e) {
-								System.err.println("Unable to read the value of the field " + ownerClass.getName() + "." + newType);
+								System.err.println("Unable to read the value of the field " + targetClass.getName() + "." + targetFieldName);
 								e.printStackTrace();
 							}
 						}
 
 						// Set the message type to its new value
 						try {
-							setMsgType(moduleClass, msgElmt.getAttributeValue("name"), newType);
+							setMsgType(moduleClass, msgElmt.getAttributeValue("myFieldName"), newType);
 						} catch (NoSuchFieldException e) {
-							System.err.println("Unable to find the field " + moduleClass.getName() + "." + msgElmt.getAttributeValue("name"));
+							System.err.println("Unable to find the field " + moduleClass.getName() + "." + msgElmt.getAttributeValue("myFieldName"));
 							e.printStackTrace();
 						}
 					}
@@ -215,19 +217,19 @@ public class SingleQueueAgent < Val extends Addable<Val> > implements AgentInter
 				Class<?> parTypes[] = new Class[2];
 				parTypes[0] = probDescClass;
 				parTypes[1] = Element.class;
-				Constructor< MessageListener<String> > constructor = moduleClass.getConstructor(parTypes);
+				Constructor< MessageListener<MessageType> > constructor = moduleClass.getConstructor(parTypes);
 				Object[] args = new Object[2];
 				args[0] = probDesc;
 				args[1] = moduleElmt;
-				MessageListener<String> module = constructor.newInstance(args);
+				MessageListener<MessageType> module = constructor.newInstance(args);
 				if(className.equals(solutionMonitorName)) // every solutionMonitor must be of the type StatsReporterWithConvergence!
 					solutionMonitor = (StatsReporterWithConvergence<Val>)module;
 				
 				// Register the module with the queue
 				if (module instanceof IncomingMsgPolicyInterface) 
-					queue.addIncomingMessagePolicy((IncomingMsgPolicyInterface<String>) module);
+					queue.addIncomingMessagePolicy((IncomingMsgPolicyInterface<MessageType>) module);
 				if (module instanceof OutgoingMsgPolicyInterface) 
-					queue.addOutgoingMessagePolicy((OutgoingMsgPolicyInterface<String>) module);
+					queue.addOutgoingMessagePolicy((OutgoingMsgPolicyInterface<MessageType>) module);
 			}
 		}
 		
@@ -239,7 +241,7 @@ public class SingleQueueAgent < Val extends Addable<Val> > implements AgentInter
 	 * @param newType 						 new value for the message type
 	 * @throws NoSuchFieldException 		if \a msgType is not a field of \a module
 	 */
-	public static void setMsgType(Class< ? extends MessageListener<String> > moduleClass, String msgType, String newType) 
+	public static void setMsgType(Class< ? extends MessageListener<MessageType> > moduleClass, String msgType, MessageType newType) 
 	throws NoSuchFieldException {
 		
 		Field field = moduleClass.getField(msgType);
@@ -349,7 +351,7 @@ public class SingleQueueAgent < Val extends Addable<Val> > implements AgentInter
 	}
 
 	/** @see IncomingMsgPolicyInterface#getMsgTypes() */
-	public Collection<String> getMsgTypes() {
+	public Collection<MessageType> getMsgTypes() {
 		return msgTypes;
 	}
 

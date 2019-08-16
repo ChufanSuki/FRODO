@@ -133,49 +133,43 @@ public class AllTests {
 	 * 
 	 * If the graph actually has no clusters, then one queue is created for each node. 
 	 * 
-	 * @param queues array of queues that is going to be populated with new Queue instances
+	 * @param queues the to-be-populated list of queues, indexed by the names of the agents
 	 * @param graph the constraint graph
 	 * @param useTCP \c true if the queues should use TCP pipes to communicate with each other; \c false if they should use QueueIOPipes.
-	 * @return An array of output pipes; the calling object is responsible for calling close() on each pipe to dispose of it.
+	 * @return Output pipes, indexed by agent name; the calling object is responsible for calling close() on each pipe to dispose of it.
 	 * @throws IOException thrown when the method failed to create TCP pipes
 	 */
-	public static QueueOutputPipeInterface[] createQueueNetwork (Queue[] queues, RandGraphFactory.Graph graph, boolean useTCP) 
+	public static Map<String, QueueOutputPipeInterface> createQueueNetwork (Map<String, Queue> queues, RandGraphFactory.Graph graph, boolean useTCP) 
 	throws IOException {
 		
-		int nbrQueues;
-		if (graph.clusters != null) { // one queue per cluster 
-			nbrQueues = graph.clusters.size();
-		} else { // no clusters; one queue per node
-			nbrQueues = graph.nodes.size();
-		}
-
 		// Create the queues
-		for (int i = 0; i < nbrQueues; i++) {
-			Queue queue = new Queue (false);
-			queues[i] = queue;
-		}
-		
-		// Associate an index to each node in the graph
-		HashMap<String, Integer> nodeIndexes = new HashMap<String, Integer> (graph.nodes.size());
-		for (int i = 0; i < graph.nodes.size(); i++) 
-			nodeIndexes.put(graph.nodes.get(i), i);
+		if (graph.clusters != null)  // one queue per cluster 
+			for (String cluster : graph.clusters.keySet()) 
+				queues.put(cluster, new Queue (false));
+			
+		else // no clusters; one queue per node
+			for (String node : graph.nodes) 
+				queues.put(node, new Queue (false));
 
 		// Create the pipes to send messages to the queues
-		QueueOutputPipeInterface[] pipes = new QueueOutputPipeInterface[nbrQueues];
-		QueueIOPipe[] selfOutputs = new QueueIOPipe[nbrQueues];
+		HashMap<String, QueueOutputPipeInterface> pipes = new HashMap<String, QueueOutputPipeInterface> ();
+		HashMap<String, QueueIOPipe> selfOutputs = new HashMap<String, QueueIOPipe> ();
 		if (useTCP) {
-			for (int i = 0; i < queues.length; i++) {
-				int port = 5000 + i;
-				Queue queue_i = queues[i];
+			int i = -1;
+			for (Map.Entry<String, Queue> entry : queues.entrySet()) {
+				int port = 5000 + (++i);
+				Queue queue_i = entry.getValue();
+				String queueName = entry.getKey();
 				Controller.PipeFactoryInstance.inputPipe(queue_i, Controller.PipeFactoryInstance.getSelfAddress(port), 1);
-				pipes[i] = Controller.PipeFactoryInstance.outputPipe(Controller.PipeFactoryInstance.getSelfAddress(port));
-				selfOutputs[i] = new QueueIOPipe (queue_i);
+				pipes.put(queueName, Controller.PipeFactoryInstance.outputPipe(Controller.PipeFactoryInstance.getSelfAddress(port)));
+				selfOutputs.put(queueName, new QueueIOPipe (queue_i));
 			}
 		} else { // use QueueIOPipes
-			for (int i = 0; i < queues.length; i++) {
-				QueueIOPipe pipe = new QueueIOPipe (queues[i]);
-				pipes[i] = pipe;
-				selfOutputs[i] = pipe;
+			for (Map.Entry<String, Queue> entry : queues.entrySet()) {
+				QueueIOPipe pipe = new QueueIOPipe (entry.getValue());
+				String queueName = entry.getKey();
+				pipes.put(queueName, pipe);
+				selfOutputs.put(queueName, pipe);
 			}
 		}
 
@@ -183,29 +177,27 @@ public class AllTests {
 		if (graph.clusters != null) { // one queue per cluster 
 			for (RandGraphFactory.Edge edge : graph.edges) {
 				
-				int cluster1 = graph.clusterOf.get(edge.source);
-				int cluster2 = graph.clusterOf.get(edge.dest);
-				String cluster1Str = Integer.toString(cluster1);
+				String cluster1 = graph.clusterOf.get(edge.source);
+				String cluster2 = graph.clusterOf.get(edge.dest);
 				
-				if (cluster1 == cluster2) { // same agent; don't use the TCP pipe
-					Queue queue = queues[cluster1];
-					if (queue.getOutputPipe(cluster1Str) == null) // the queue doesn't have a self output yet
-						queue.addOutputPipe(cluster1Str, selfOutputs[cluster1]);
+				if (cluster1.equals(cluster2)) { // same agent; don't use the TCP pipe
+					Queue queue = queues.get(cluster1);
+					if (queue.getOutputPipe(cluster1) == null) // the queue doesn't have a self output yet
+						queue.addOutputPipe(cluster1, selfOutputs.get(cluster1));
 					
 				} else { // different agents 
-					Queue queue1 = queues[cluster1];
-					String cluster2Str = Integer.toString(cluster2);
+					Queue queue1 = queues.get(cluster1);
 					
-					if (queue1.getOutputPipe(cluster2Str) == null) { // no pipe between the two agents yet
-						queue1.addOutputPipe(cluster2Str, pipes[cluster2]);
-						queues[cluster2].addOutputPipe(cluster1Str, pipes[cluster1]);
+					if (queue1.getOutputPipe(cluster2) == null) { // no pipe between the two agents yet
+						queue1.addOutputPipe(cluster2, pipes.get(cluster2));
+						queues.get(cluster2).addOutputPipe(cluster1, pipes.get(cluster1));
 					}
 				}
 			}
 		} else { // no clusters; one queue per node
 			for (RandGraphFactory.Edge edge : graph.edges) {
-				queues[nodeIndexes.get(edge.source)].addOutputPipe(edge.dest, pipes[nodeIndexes.get(edge.dest)]);
-				queues[nodeIndexes.get(edge.dest)].addOutputPipe(edge.source, pipes[nodeIndexes.get(edge.source)]);
+				queues.get(edge.source).addOutputPipe(edge.dest, pipes.get(edge.dest));
+				queues.get(edge.dest).addOutputPipe(edge.source, pipes.get(edge.source));
 			}
 		}
 		
@@ -636,10 +628,10 @@ public class AllTests {
 		elmt = new Element ("agents");
 		probElement.addContent(elmt);
 		elmt.setAttribute("nbAgents", Integer.toString(graph.clusters.size()));
-		for (int agent = 0; agent < graph.clusters.size(); agent++) {
+		for (String agent : graph.clusters.keySet()) {
 			Element subElmt = new Element ("agent");
 			elmt.addContent(subElmt);
-			subElmt.setAttribute("name", Integer.toString(agent));
+			subElmt.setAttribute("name", agent);
 		}
 
 		// Create the "domains" element
@@ -670,7 +662,7 @@ public class AllTests {
 			varsElement.addContent(elmt);
 			elmt.setAttribute("name", varID);
 			elmt.setAttribute("domain", "D");
-			elmt.setAttribute("agent", Integer.toString(graph.clusterOf.get(varID)));
+			elmt.setAttribute("agent", graph.clusterOf.get(varID));
 		}
 
 		// Create the "relations" and "constraints" elements
@@ -914,8 +906,9 @@ public class AllTests {
 	 * @throws IOException 	if an error occurs when writing to the file
 	 */
 	public static void main (String[] args) throws IOException {
-		Document prob = AllTests.createRandProblem(50, 300, 5, true, 1);
+		Document prob = AllTests.createRandProblem(50, 300, 5, true, 0.2);
 		new XMLOutputter(Format.getPrettyFormat()).output(prob, new FileWriter ("randProb.xml"));
+		System.out.println("Wrote randProb.xml");
 	}
 
 }

@@ -34,6 +34,7 @@ import frodo2.algorithms.localSearch.dsa.DSA;
 import frodo2.algorithms.localSearch.dsa.VALUEmsg;
 import frodo2.algorithms.test.AllTests;
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 import frodo2.communication.Queue;
 import frodo2.communication.sharedMemory.QueueIOPipe;
 import frodo2.solutionSpaces.Addable;
@@ -250,7 +251,7 @@ public class TestDSA < U extends Addable<U> > extends TestCase {
 		
 		module.setQueue(q);
 		
-		module.notifyIn(new Message("Start"));
+		module.notifyIn(new Message(new MessageType ("Start")));
 
 		// obtain the initial assignment
 		initialValue = module.getCurrentValue(variable);

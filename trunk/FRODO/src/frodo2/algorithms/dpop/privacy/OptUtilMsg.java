@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
+import frodo2.communication.MessageType;
 import frodo2.communication.MessageWith2Payloads;
 import frodo2.solutionSpaces.Addable;
 
@@ -37,7 +38,7 @@ import frodo2.solutionSpaces.Addable;
 public class OptUtilMsg < U extends Addable<U> > extends MessageWith2Payloads<String, U> implements Externalizable {
 	
 	/** The type of this message */
-	public static final String COMP_OPT_UTIL_MSG_TYPE = "CompOptUtilMsg";
+	public static final MessageType COMP_OPT_UTIL_MSG_TYPE = new MessageType ("P2-DPOP", "EncryptedUTIL", "CompOptUtil");
 
 	/** Constructor
 	 * @param dest 		the destination variable

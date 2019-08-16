@@ -29,6 +29,7 @@ import java.io.ObjectOutput;
 import java.math.BigInteger;
 
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 
 /** In MPC-DisCSP4, a message containing a single share
  * @author Thomas Leaute
@@ -37,7 +38,7 @@ import frodo2.communication.Message;
 public class OneShareMsg extends Message implements Externalizable {
 	
 	/** The type of this message */
-	public final static String ONE_SHARE_MSG = "OneShareMsg";
+	public final static MessageType ONE_SHARE_MSG = new MessageType ("MPC", "OneShare");
 	
 	/** The sender agent */
 	private int agent;

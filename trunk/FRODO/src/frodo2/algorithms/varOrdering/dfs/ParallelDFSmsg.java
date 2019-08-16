@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.io.Serializable;
+import java.lang.reflect.InvocationTargetException;
 
 import frodo2.communication.Message;
 import frodo2.communication.MessageWith2Payloads;
@@ -46,7 +47,7 @@ public class ParallelDFSmsg < S extends Comparable <S> & Serializable > extends 
 	 * @param msg 			the message
 	 */
 	public ParallelDFSmsg (S rootScore, Message msg) {
-		super (DFSgenerationParallel.PARALLEL_DFS_MSG_TYPE, rootScore, msg);
+		super (DFSgenerationParallel.PARALLEL_DFS_MSG_TYPE.newChild(msg.getType()), rootScore, msg);
 	}
 
 	/** @see java.io.Externalizable#writeExternal(java.io.ObjectOutput) */
@@ -68,14 +69,13 @@ public class ParallelDFSmsg < S extends Comparable <S> & Serializable > extends 
 		Class<? extends Message> msgClass = (Class<? extends Message>) in.readObject();
 		Message msg = null;
 		try {
-			msg = msgClass.newInstance();
-		} catch (InstantiationException e) {
-			e.printStackTrace();
-		} catch (IllegalAccessException e) {
+			msg = msgClass.getConstructor().newInstance();
+		} catch (InvocationTargetException | NoSuchMethodException | IllegalAccessException | InstantiationException e) {
 			e.printStackTrace();
 		}
 		msg.readExternal(in);
 		super.setPayload2(msg);
+		super.type = super.type.newChild(msg.getType());
 	}
 	
 	/** @return the score of the candidate root */

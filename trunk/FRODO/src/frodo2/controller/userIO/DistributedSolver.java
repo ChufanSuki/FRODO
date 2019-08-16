@@ -52,7 +52,7 @@ import frodo2.solutionSpaces.DCOPProblemInterface;
 public class DistributedSolver < V extends Addable<V>, U extends Addable<U>, S extends Solution<V,U> > extends UserIO {
 	
 	/** A fake agent factory */
-	private class FakeFactory extends AgentFactory<V> { }
+	private class FakeFactory extends AgentFactory<V, U> { }
 
 	/** A lock used to block until the experiment finishes */
 	private final Object lock = new Object ();

@@ -26,6 +26,7 @@ import java.io.IOException;
 
 import frodo2.communication.Message;
 import frodo2.communication.MessageSerializedSimple;
+import frodo2.communication.MessageType;
 import frodo2.communication.MessageWrapper;
 import frodo2.communication.Queue;
 import frodo2.communication.QueueTest.ConstantMsgPolicy;
@@ -100,9 +101,9 @@ public class QueueOutputPipeTCPTest extends TestCase {
 	/** Pushes multiple non-serialized messages */
 	public void testNonSerialized () {
 		
-		Message msg1 = new Message ("testNonSerialized1");
-		Message msg2 = new Message ("testNonSerialized2");
-		Message msg3 = new Message ("testNonSerialized3");
+		Message msg1 = new Message (new MessageType ("testNonSerialized1"));
+		Message msg2 = new Message (new MessageType ("testNonSerialized2"));
+		Message msg3 = new Message (new MessageType ("testNonSerialized3"));
 		
 		out.pushMessage(new MessageWrapper(msg1));
 		out.pushMessage(new MessageWrapper(msg2));
@@ -121,9 +122,9 @@ public class QueueOutputPipeTCPTest extends TestCase {
 		
 		// Create the serialized data
 		String rawData1 = "rawData1";
-		MessageSerializedSimple <String> msg1 = new MessageSerializedSimple <String> ("testSerialized1", rawData1);
+		MessageSerializedSimple <String> msg1 = new MessageSerializedSimple <String> (new MessageType ("testSerialized1"), rawData1);
 		String rawData2 = "rawData2";		
-		MessageSerializedSimple <String> msg2 = new MessageSerializedSimple <String> ("testSerialized2", rawData2);
+		MessageSerializedSimple <String> msg2 = new MessageSerializedSimple <String> (new MessageType ("testSerialized2"), rawData2);
 
 		out.pushMessage(new MessageWrapper(msg1));
 		out.pushMessage(new MessageWrapper(msg2));

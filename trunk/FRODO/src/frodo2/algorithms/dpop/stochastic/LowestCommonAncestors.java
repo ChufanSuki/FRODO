@@ -35,6 +35,7 @@ import frodo2.algorithms.varOrdering.dfs.DFSgeneration.DFSview;
 import frodo2.algorithms.varOrdering.dfs.DFSgeneration.MessageDFSoutput;
 import frodo2.communication.IncomingMsgPolicyInterface;
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 import frodo2.communication.Queue;
 
 /** An algorithm to compute multiple Lowest Common Ancestors
@@ -43,19 +44,19 @@ import frodo2.communication.Queue;
  * 
  * @author Thomas Leaute
  */
-public class LowestCommonAncestors implements IncomingMsgPolicyInterface<String> {
+public class LowestCommonAncestors implements IncomingMsgPolicyInterface<MessageType> {
 	
 	/** The type of the message containing information about the DFS */
-	public static String DFS_MSG_TYPE = DFSgeneration.OUTPUT_MSG_TYPE;
+	public static MessageType DFS_MSG_TYPE = DFSgeneration.OUTPUT_MSG_TYPE;
 	
 	/** The type of a phase 1 message */
-	public static final String PHASE1_MSG_TYPE = "LCAmsg1";
+	public static final MessageType PHASE1_MSG_TYPE = new MessageType ("E[DPOP]", "LowestCommonAncestors", "LCAmsg1");
 	
 	/** The type of a phase 2 message */
-	public static final String PHASE2_MSG_TYPE = "LCAmsg2";
+	public static final MessageType PHASE2_MSG_TYPE = new MessageType ("E[DPOP]", "LowestCommonAncestors", "LCAmsg2");
 	
 	/** The type of the output messages */
-	public static final String OUTPUT_MSG_TYPE = "LCAoutputMsg";
+	public static final MessageType OUTPUT_MSG_TYPE = new MessageType ("E[DPOP]", "LowestCommonAncestors", "LCAoutput");
 	
 	/** The queue */
 	protected Queue queue;
@@ -132,8 +133,8 @@ public class LowestCommonAncestors implements IncomingMsgPolicyInterface<String>
 	}
 	
 	/** @see IncomingMsgPolicyInterface#getMsgTypes() */
-	public Collection<String> getMsgTypes() {
-		ArrayList<String> types = new ArrayList<String> (3);
+	public Collection<MessageType> getMsgTypes() {
+		ArrayList<MessageType> types = new ArrayList<MessageType> (3);
 		types.add(DFS_MSG_TYPE);
 		types.add(PHASE1_MSG_TYPE);
 		types.add(PHASE2_MSG_TYPE);
@@ -143,7 +144,7 @@ public class LowestCommonAncestors implements IncomingMsgPolicyInterface<String>
 	/** @see IncomingMsgPolicyInterface#notifyIn(Message) */
 	public void notifyIn(Message msg) {
 		
-		String type = msg.getType();
+		MessageType type = msg.getType();
 		
 		if (type.equals(DFS_MSG_TYPE)) { // DFS information
 			

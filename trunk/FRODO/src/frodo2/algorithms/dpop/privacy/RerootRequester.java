@@ -43,6 +43,7 @@ import frodo2.algorithms.varOrdering.dfs.VarNbrMsg;
 import frodo2.algorithms.varOrdering.dfs.DFSgeneration.DFSview;
 import frodo2.algorithms.varOrdering.dfs.DFSgeneration.MessageDFSoutput;
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 import frodo2.communication.MessageWith2Payloads;
 import frodo2.communication.MessageWithPayload;
 import frodo2.communication.Queue;
@@ -59,7 +60,7 @@ import frodo2.solutionSpaces.hypercube.Hypercube;
 public class RerootRequester < V extends Addable<V>, U extends Addable<U> > implements StatsReporter {
 	
 	/** The type of the statistics messages containing the optimal assignment to a variable */
-	private static final String OPT_ASSIGNMENT_MSG_TYPE = "OptAssignment";
+	private static final MessageType OPT_ASSIGNMENT_MSG_TYPE = new MessageType ("P3/2-DPOP", "RerootRequester", "OptAssignment");
 
 	/** The class of statistics messages containing the optimal assignment to a variable */
 	public class RootValueMsg extends MessageWith2Payloads<String, V> {
@@ -87,7 +88,7 @@ public class RerootRequester < V extends Addable<V>, U extends Addable<U> > impl
 	}
 
 	/** The type of the MessageWithPayload's containing the total optimal utility for one component of the constraint graph */
-	private static final String OPT_UTIL_MSG_TYPE = "TotalOptUtil";
+	private static final MessageType OPT_UTIL_MSG_TYPE = new MessageType ("P3/2-DPOP", "RerootRequester", "TotalOptUtil");
 	
 	/** This agent's queue */
 	private Queue queue;
@@ -166,7 +167,7 @@ public class RerootRequester < V extends Addable<V>, U extends Addable<U> > impl
 	@SuppressWarnings("unchecked")
 	public void notifyIn(Message msg) {
 		
-		String msgType = msg.getType();
+		MessageType msgType = msg.getType();
 		
 		if (msgType.equals(OPT_ASSIGNMENT_MSG_TYPE)) { // in stats gatherer mode, the optimal assignment to a root
 			
@@ -371,7 +372,7 @@ public class RerootRequester < V extends Addable<V>, U extends Addable<U> > impl
 	}
 
 	/** @see StatsReporter#getMsgTypes() */
-	public Collection<String> getMsgTypes() {
+	public Collection<MessageType> getMsgTypes() {
 		return Arrays.asList(
 				DFSgenerationWithOrder.VARIABLE_COUNT_TYPE, 
 				DFSgeneration.OUTPUT_MSG_TYPE, 

@@ -1,3 +1,26 @@
+CHANGES IN VERSION 2.17 SINCE VERSION 2.16.1
+
+Major changes: 
+	- First version of a new, dynamic GUI that allows users to graphically and step-wise visualize the messages exchanged between agents. 
+	- FRODO can now write the solution to an output file (old, outstanding request by Dimitrios Athanasiadis).
+	- The experiment framework now supports running experiments based on an input repository of problem instances 
+	(improvement request by Ruofei Bai: https://sourceforge.net/p/frodo2/discussion/1174600/thread/7b2079d191). 
+	- The experiment framework now supports saving all generated problem instances to files. 
+	- FRODO's JAR filename now includes the version number. 
+	- FRODO is now distributed with its 3rd-party JAR dependencies. 
+	- Message types are now hierarchical, grouped by algorithm modules. This has incurred a change of agent configuration formatting for overriding message types.
+	- Introduced a SolutionCollector to which all algorithms report their solutions found.  
+	
+Minor changes: 
+	- Fixed a NullPointerException in MPC-DisCSP4 on single-agent infeasible problem instances.
+	- Fixed bugs in the overriding of message types. 
+	- Fixed a bug in the MessageDebugger, which was displaying some system messages even when hideSystemMessages = true. 
+	- Fixed various bugs in the unit tests. 
+	- The random problem generators now produce agent and variable names starting with a letter to comply with the XCSP format. 
+	- Fixed typos in the user manual in the XCSP sample for the Cumulative global constraint 
+	(reported by Ruofei Bai https://sourceforge.net/p/frodo2/discussion/1174600/thread/7b2079d191/?limit=25#3b2c). 
+
+
 CHANGES IN VERSION 2.16.1 SINCE VERSION 2.16
 
 Major changes: none 

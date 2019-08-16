@@ -34,6 +34,7 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.io.Serializable;
 import java.lang.reflect.Array;
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -306,7 +307,12 @@ implements BasicUtilitySolutionSpace<V, U>, Externalizable {
 		this.infeasibleUtil = (U) in.readObject();
 		
 		// Read the utilities
-		this.readUtilities(in);
+		try {
+			this.readUtilities(in);
+		} catch (InvocationTargetException | NoSuchMethodException e) {
+			System.err.println("Failed to read the utilities");
+			e.printStackTrace();
+		}
 
 		// Now restore the transient fields
 		this.classOfV = (Class<V>) this.domains.getClass().getComponentType().getComponentType();
@@ -318,9 +324,12 @@ implements BasicUtilitySolutionSpace<V, U>, Externalizable {
 	 * @param in 						the input stream
 	 * @throws ClassNotFoundException 	should never happen
 	 * @throws IOException 				if an I/O error occurs
+	 * @throws InvocationTargetException when failing to instantiate instances of the utility class
+	 * @throws NoSuchMethodException when failing to instantiate instances of the utility class
 	 */
 	@SuppressWarnings("unchecked")
-	protected void readUtilities (ObjectInput in) throws ClassNotFoundException, IOException {
+	protected void readUtilities (ObjectInput in) 
+			throws ClassNotFoundException, IOException, InvocationTargetException, NoSuchMethodException {
 		
 		this.number_of_utility_values = in.readInt();
 		this.values = (U[]) Array.newInstance((Class<U>) in.readObject(), this.number_of_utility_values);
@@ -937,7 +946,7 @@ implements BasicUtilitySolutionSpace<V, U>, Externalizable {
 		
 		U utility, utility_tmp;
 		
-		for( Integer i = new Integer(0); i < number_of_utility_values; i++ ) {
+		for( Integer i = Integer.valueOf(0); i < number_of_utility_values; i++ ) {
 			
 			if ( !already_reordered[i] /*!already_reordered.remove(i)*/ ) {
 				fillVariablesValues(variables_values, i, steps);

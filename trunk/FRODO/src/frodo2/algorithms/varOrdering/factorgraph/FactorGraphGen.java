@@ -37,6 +37,7 @@ import org.jdom2.Element;
 import frodo2.algorithms.AgentInterface;
 import frodo2.algorithms.StatsReporter;
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 import frodo2.communication.MessageWith2Payloads;
 import frodo2.communication.Queue;
 import frodo2.solutionSpaces.Addable;
@@ -51,7 +52,7 @@ import frodo2.solutionSpaces.UtilitySolutionSpace;
 public class FactorGraphGen < V extends Addable<V>, U extends Addable<U> > implements StatsReporter {
 	
 	/** The type of the output message */
-	public static final String OUTPUT_MSG_TYPE = "FactorGraph";
+	public static final MessageType OUTPUT_MSG_TYPE = new MessageType ("VarOrdering", "FactorGraphGen", "FactorGraph");
 	
 	/** The problem */
 	private DCOPProblemInterface<V, U> problem;
@@ -309,7 +310,7 @@ public class FactorGraphGen < V extends Addable<V>, U extends Addable<U> > imple
 
 	/** @see StatsReporter#getMsgTypes() */
 	@Override
-	public Collection<String> getMsgTypes() {
+	public Collection<MessageType> getMsgTypes() {
 		return Arrays.asList(AgentInterface.START_AGENT);
 	}
 

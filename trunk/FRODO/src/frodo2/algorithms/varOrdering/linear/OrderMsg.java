@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 import frodo2.solutionSpaces.Addable;
 import frodo2.solutionSpaces.UtilitySolutionSpace;
 
@@ -39,10 +40,10 @@ import frodo2.solutionSpaces.UtilitySolutionSpace;
 public class OrderMsg < V extends Addable<V>, U extends Addable<U> > extends Message {
 	
 	/** The types of the messages containing the chosen linear order of variables */
-	public static final String ORDER_MSG_TYPE = "VarOrder";
+	public static final MessageType ORDER_MSG_TYPE = new MessageType ("VarOrdering", "OrderMsg", "VarOrder");
 	
 	/** The types of the messages containing the chosen linear order of variables sent to the stats gatherer */
-	public static final String STATS_MSG_TYPE = "VarOrderStats";
+	public static final MessageType STATS_MSG_TYPE = new MessageType ("VarOrdering", "OrderMsg", "VarOrderStats");
 	
 	/** The ID of the connected component in the constraint graph */
 	private Comparable<?> componentID;
@@ -71,7 +72,7 @@ public class OrderMsg < V extends Addable<V>, U extends Addable<U> > extends Mes
 	 * @param order 		The variable order
 	 * @param agents 		The agent corresponding to each variable in the order
 	 */
-	public OrderMsg (String type, Comparable<?> componentID, List<String> order, List<String> agents) {
+	public OrderMsg (MessageType type, Comparable<?> componentID, List<String> order, List<String> agents) {
 		super (type);
 		this.componentID = componentID;
 		this.order = new ArrayList<List<String>>();
@@ -91,7 +92,7 @@ public class OrderMsg < V extends Addable<V>, U extends Addable<U> > extends Mes
 	 * @param order 		The cluster order
 	 * @param agents 		The agent corresponding to each variable in the order
 	 */
-	public OrderMsg (String type, List<List<String>> order, List<String> agents, Comparable<?> componentID) {
+	public OrderMsg (MessageType type, List<List<String>> order, List<String> agents, Comparable<?> componentID) {
 		this(type, order, agents, componentID, null);
 	}
 
@@ -102,7 +103,7 @@ public class OrderMsg < V extends Addable<V>, U extends Addable<U> > extends Mes
 	 * @param agents 		The agent corresponding to each variable in the order
 	 * @param spaces 		The space each cluster is responsible for enforcing
 	 */
-	public OrderMsg (String type, List<List<String>> order, List<String> agents, Comparable<?> componentID, List< UtilitySolutionSpace<V, U> > spaces) {
+	public OrderMsg (MessageType type, List<List<String>> order, List<String> agents, Comparable<?> componentID, List< UtilitySolutionSpace<V, U> > spaces) {
 		this(type, order, agents, agents, componentID, spaces);
 	}
 
@@ -114,7 +115,7 @@ public class OrderMsg < V extends Addable<V>, U extends Addable<U> > extends Mes
 	 * @param agents 		The agent corresponding to each variable in the order
 	 * @param spaces 		The space each cluster is responsible for enforcing
 	 */
-	public OrderMsg (String type, List<List<String>> order, List<String> ids, List<String> agents, Comparable<?> componentID, List< UtilitySolutionSpace<V, U> > spaces) {
+	public OrderMsg (MessageType type, List<List<String>> order, List<String> ids, List<String> agents, Comparable<?> componentID, List< UtilitySolutionSpace<V, U> > spaces) {
 		super (type);
 		this.componentID = componentID;
 		this.order = new ArrayList<List<String>>();
@@ -161,7 +162,7 @@ public class OrderMsg < V extends Addable<V>, U extends Addable<U> > extends Mes
 	
 	/** @see java.io.Externalizable#readExternal(java.io.ObjectInput) */
 	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-		super.type = (String) in.readObject();
+		super.type = (MessageType) in.readObject();
 		this.componentID = (Comparable<?>) in.readObject();
 		
 		// Read the order

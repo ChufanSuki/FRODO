@@ -34,6 +34,7 @@ import java.util.Set;
 import org.jdom2.Element;
 
 import frodo2.algorithms.AgentInterface;
+import frodo2.algorithms.SolutionCollector;
 import frodo2.algorithms.StatsReporter;
 import frodo2.algorithms.duct.bound.Bound;
 import frodo2.algorithms.duct.bound.BoundLog;
@@ -50,7 +51,7 @@ import frodo2.algorithms.duct.VALUEmsg;
 import frodo2.algorithms.varOrdering.dfs.DFSgeneration;
 import frodo2.algorithms.varOrdering.dfs.DFSgeneration.DFSview;
 import frodo2.communication.Message;
-import frodo2.communication.MessageWith2Payloads;
+import frodo2.communication.MessageType;
 import frodo2.communication.Queue;
 import frodo2.solutionSpaces.Addable;
 import frodo2.solutionSpaces.AddableReal;
@@ -66,22 +67,19 @@ import frodo2.solutionSpaces.UtilitySolutionSpace.ProjOutput;
 public class Sampling <V extends Addable<V>> implements StatsReporter {
 	
 	/** The type of a VALUE message */
-	public final static String VALUE_MSG_TYPE = "value";
+	public final static MessageType VALUE_MSG_TYPE = new MessageType ("DUCT", "Sampling", "value");
 	
 	/** The type of a VALUE message */
-	public final static String VALUE_FIN_MSG_TYPE = "value_fin";
+	public final static MessageType VALUE_FIN_MSG_TYPE = new MessageType ("DUCT", "Sampling", "value_fin");
 	
 	/** The type of a COST message */
-	public final static String COST_MSG_TYPE = "cost";
+	public final static MessageType COST_MSG_TYPE = new MessageType ("DUCT", "Sampling", "cost");
 	
 	/** The type of the output message */
-	public final static String OUTPUT_MSG_TYPE = "OutputMessageSampling";
-	
-	/** The type of the assignment statistics message */
-	public final static String ASS_MSG_TYPE = "assignment";
+	public final static MessageType OUTPUT_MSG_TYPE = new MessageType ("DUCT", "Sampling", "Output");
 	
 	/** The type of the final bound statistics message */
-	public final static String BOUND_MSG_TYPE = "final_bound";
+	public final static MessageType BOUND_MSG_TYPE = new MessageType ("DUCT", "Sampling", "final_bound");
 	
 	/** When \c true, infeasible utilities should be ignored */
 	protected final boolean IGNORE_INF;
@@ -116,9 +114,6 @@ public class Sampling <V extends Addable<V>> implements StatsReporter {
 	/** The delta that is used to calculate the error bound*/
 	protected double delta;
 	
-	/** Assignments reported to statsreporter */
-	protected HashMap<String, V> assignment;
-	
 	/** Class of the sampling methods */
 	protected Class<SamplingProcedure<V>> samplingClass;
 	
@@ -149,7 +144,6 @@ public class Sampling <V extends Addable<V>> implements StatsReporter {
 	public Sampling(Element parameters, DCOPProblemInterface<V, AddableReal> problem) {
 		this.problem = problem;
 		this.maximize = problem.maximize();
-		assignment = new HashMap<String, V>();
 		this.IGNORE_INF = true;
 	}
 	
@@ -167,7 +161,7 @@ public class Sampling <V extends Addable<V>> implements StatsReporter {
 
 		if(VALUEmsg.DOMAIN_VALUE == null) {
 			try {
-				VALUEmsg.DOMAIN_VALUE = problem.getDomClass().newInstance().getZero();
+				VALUEmsg.DOMAIN_VALUE = problem.getDomClass().getConstructor().newInstance().getZero();
 			} catch (Exception e1) {
 				e1.printStackTrace();
 			}
@@ -223,23 +217,9 @@ public class Sampling <V extends Addable<V>> implements StatsReporter {
 	@SuppressWarnings("unchecked")
 	@Override
 	public void notifyIn(Message msg) {
-		String type = msg.getType();
+		MessageType type = msg.getType();
 		
-		if (type.equals(ASS_MSG_TYPE)) {
-			AssignmentMessage<V> msgCast = (AssignmentMessage<V>)msg;
-			assignment.put(msgCast.getSender(), msgCast.getValue());
-			if(this.reportStats) {
-				System.out.println("Variable " + msgCast.getSender() + " = " + msgCast.getValue());
-
-				// When we have received all messages, print out the corresponding utility. 
-				/// @author Thomas Leaute
-				if (this.assignment.keySet().containsAll(this.problem.getVariables())) 
-					System.out.println("Total "
-							+ (this.problem.maximize() ? "utility: " : "cost: ")
-							+ this.problem.getUtility(this.assignment, true).getUtility(0));
-			}
-			return;
-		} else if (type.equals(BOUND_MSG_TYPE)) {
+		if (type.equals(BOUND_MSG_TYPE)) {
 			BoundStatsMsg msgCast = (BoundStatsMsg)msg;
 			finalBound = finalBound == null ? msgCast.getFinalBound() : finalBound.add(msgCast.getFinalBound());
 			return;
@@ -285,12 +265,10 @@ public class Sampling <V extends Addable<V>> implements StatsReporter {
 			if(finished) {
 				if(varInfo.leaf) {
 					varInfo.solveLeaf();
-					if (this.reportStats) 
-						queue.sendMessage(AgentInterface.STATS_MONITOR, varInfo.getAssignmentMessage(varInfo.currentValue));
+					queue.sendMessage(AgentInterface.STATS_MONITOR, varInfo.getAssignmentMessage(varInfo.currentValue));
 				} else {
 					reportValue(varInfo, finished);
-					if (this.reportStats) 
-						queue.sendMessage(AgentInterface.STATS_MONITOR, varInfo.getAssignmentMessage(varInfo.currentValue));
+					queue.sendMessage(AgentInterface.STATS_MONITOR, varInfo.getAssignmentMessage(varInfo.currentValue));
 				}
 				if(--this.numberOfActiveVariables == 0)
 					queue.sendMessageToSelf(new Message(AgentInterface.AGENT_FINISHED));
@@ -314,11 +292,9 @@ public class Sampling <V extends Addable<V>> implements StatsReporter {
 					if(!finished) // if not converged, perform sampling
 						varInfo.sample();
 					else { // report optimal value to the stats reporter
-						if (this.reportStats) {
-							queue.sendMessage(AgentInterface.STATS_MONITOR, varInfo.getAssignmentMessage(varInfo.variableID, varInfo.currentValue));
-							if(varInfo.parent == null) // the root has finished
-								queue.sendMessage(AgentInterface.STATS_MONITOR, new BoundStatsMsg(varInfo.getFinalBound()));
-						}
+						queue.sendMessage(AgentInterface.STATS_MONITOR, varInfo.getAssignmentMessage(varInfo.variableID, varInfo.currentValue));
+						if(this.reportStats && varInfo.parent == null) // the root has finished
+							queue.sendMessage(AgentInterface.STATS_MONITOR, new BoundStatsMsg(varInfo.getFinalBound()));
 						if(--this.numberOfActiveVariables == 0)
 							queue.sendMessageToSelf(new Message(AgentInterface.AGENT_FINISHED));
 					}
@@ -347,8 +323,7 @@ public class Sampling <V extends Addable<V>> implements StatsReporter {
 					
 			if(varInfo.parent == null) {
 				if(varInfo.leaf) {
-					if (this.reportStats) 
-						queue.sendMessage(AgentInterface.STATS_MONITOR, varInfo.getAssignmentMessage(receiver, varInfo.solveSingleton(maximize)));
+					queue.sendMessage(AgentInterface.STATS_MONITOR, varInfo.getAssignmentMessage(receiver, varInfo.solveSingleton(maximize)));
 
 					if(--this.numberOfActiveVariables == 0) {
 						queue.sendMessageToSelf(new Message(AgentInterface.AGENT_FINISHED));
@@ -423,14 +398,6 @@ public class Sampling <V extends Addable<V>> implements StatsReporter {
 	}
 	
 	/**
-	 * @author Brammert Ottens, 29 aug. 2011
-	 * @return the assignments
-	 */
-	public HashMap<String, V> getOptAssignments() {
-		return this.assignment;
-	}
-	
-	/**
 	 * @author Brammert Ottens, Dec 29, 2011
 	 * @return the final bound on the solution quality
 	 */
@@ -450,8 +417,8 @@ public class Sampling <V extends Addable<V>> implements StatsReporter {
 	 * @see frodo2.communication.MessageListener#getMsgTypes()
 	 */
 	@Override
-	public Collection<String> getMsgTypes() {
-		ArrayList<String> msgTypes = new ArrayList<String>(7);
+	public Collection<MessageType> getMsgTypes() {
+		ArrayList<MessageType> msgTypes = new ArrayList<MessageType>(7);
 		msgTypes.add(AgentInterface.START_AGENT);
 		msgTypes.add(DFSgeneration.OUTPUT_MSG_TYPE);
 		msgTypes.add(Normalize.OUT_MSG_TYPE);
@@ -467,7 +434,6 @@ public class Sampling <V extends Addable<V>> implements StatsReporter {
 	 */
 	@Override
 	public void getStatsFromQueue(Queue queue) {
-		queue.addIncomingMessagePolicy(ASS_MSG_TYPE, this);
 		queue.addIncomingMessagePolicy(BOUND_MSG_TYPE, this);
 	}
 
@@ -884,8 +850,8 @@ public class Sampling <V extends Addable<V>> implements StatsReporter {
 		 * @param value the value of the assignment
 		 * @return an assignment message to report value \c value
 		 */
-		public AssignmentMessage<V> getAssignmentMessage(V value) {
-			return new AssignmentMessage<V>(variableID, value);
+		public SolutionCollector.AssignmentMessage<V> getAssignmentMessage(V value) {
+			return new SolutionCollector.AssignmentMessage<V>(variableID, value);
 		}
 		
 		/**
@@ -894,8 +860,8 @@ public class Sampling <V extends Addable<V>> implements StatsReporter {
 		 * @param value the value of the assignment
 		 * @return an assignment message to report value \c value
 		 */
-		public AssignmentMessage<V> getAssignmentMessage(String var, V value) {
-			return new AssignmentMessage<V>(var, value);
+		public SolutionCollector.AssignmentMessage<V> getAssignmentMessage(String var, V value) {
+			return new SolutionCollector.AssignmentMessage<V>(var, value);
 		}
 		
 		/** @return the final bound */
@@ -999,38 +965,4 @@ public class Sampling <V extends Addable<V>> implements StatsReporter {
 		}
 	}
 	
-	/**
-	 * Assignment message, used to report the chosen assignment upon termination
-	 * @author Brammert Ottens, 25 aug. 2011
-	 * 
-	 * @param <V>	type used for domain values
-	 */
-	public static class AssignmentMessage <V extends Addable<V>> extends MessageWith2Payloads<String, V> {
-		
-		/**
-		 * Constructor
-		 * 
-		 * @param sender	the sender of the message
-		 * @param value		the reported value
-		 */
-		public AssignmentMessage(String sender, V value) {
-			super(ASS_MSG_TYPE, sender, value);
-		}
-		
-		/**
-		 * @author Brammert Ottens, 25 aug. 2011
-		 * @return the sender of the message
-		 */
-		public String getSender() {
-			return this.getPayload1();
-		}
-		
-		/**
-		 * @author Brammert Ottens, 25 aug. 2011
-		 * @return the reported value
-		 */
-		public V getValue() {
-			return this.getPayload2();
-		}
-	}
 }

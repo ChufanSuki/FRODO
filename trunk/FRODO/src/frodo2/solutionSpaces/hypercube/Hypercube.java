@@ -258,7 +258,7 @@ extends HypercubeLimited<V, U, U> implements UtilitySolutionSpace<V, U> {
 	    	  c = Class.forName( variable_element.getAttributeValue( "type" ) );
 	    	  if (super.classOfV == null) 
 	    		  super.classOfV = (Class<V>) c;
-	    	  V valInstance = (V) c.newInstance();
+	    	  V valInstance = (V) c.getConstructor().newInstance();
 	    	  Method valFromString = c.getMethod("fromString", String.class);
 	    	  //Note: we assume that the class representing the type of the variable contains a constructor that 
 	    	  //takes a String object as a parameter
@@ -279,7 +279,7 @@ extends HypercubeLimited<V, U, U> implements UtilitySolutionSpace<V, U> {
 	      Element values_element = root.getChild( "utility_values" );
 	      //construct a Class object that will be used later to instantiate objects to fill the utility values array
 	      c = Class.forName(values_element.getAttributeValue( "type") );
-    	  U utilInstance = (U) c.newInstance();
+    	  U utilInstance = (U) c.getConstructor().newInstance();
     	  this.infeasibleUtil = utilInstance.getMinInfinity(); /// @todo Actually, the file doesn't say whether it should be -INF or +INF
     	  Method utilFromString = c.getMethod("fromString", String.class);
 	      values = (U[]) Array.newInstance(c, number_utility_values);

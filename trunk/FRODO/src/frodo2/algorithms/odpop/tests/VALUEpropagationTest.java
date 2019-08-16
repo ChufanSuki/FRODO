@@ -38,17 +38,18 @@ import frodo2.algorithms.AgentInterface;
 import frodo2.algorithms.Problem;
 import frodo2.algorithms.RandGraphFactory;
 import frodo2.algorithms.Solution;
+import frodo2.algorithms.SolutionCollector;
 import frodo2.algorithms.XCSPparser;
 import frodo2.algorithms.dpop.DPOPsolver;
 import frodo2.algorithms.odpop.UTILpropagation;
 import frodo2.algorithms.odpop.UTILpropagationFullDomain;
 import frodo2.algorithms.odpop.VALUEpropagation;
-import frodo2.algorithms.odpop.VALUEpropagation.AssignmentMessage;
 import frodo2.algorithms.test.AllTests;
 import frodo2.algorithms.varOrdering.dfs.DFSgeneration;
 import frodo2.algorithms.varOrdering.dfs.DFSgeneration.DFSview;
 import frodo2.communication.IncomingMsgPolicyInterface;
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 import frodo2.communication.Queue;
 import frodo2.communication.QueueOutputPipeInterface;
 import frodo2.communication.sharedMemory.QueueIOPipe;
@@ -69,7 +70,7 @@ import junit.framework.TestSuite;
  * @param <U> the type used for utility values
  *
  */
-public class VALUEpropagationTest < V extends Addable<V>, U extends Addable<U> > extends TestCase implements IncomingMsgPolicyInterface<String> {
+public class VALUEpropagationTest < V extends Addable<V>, U extends Addable<U> > extends TestCase implements IncomingMsgPolicyInterface<MessageType> {
 
 	/** Maximum number of variables in the random graph 
 	 * @note Must be at least 2. 
@@ -91,8 +92,8 @@ public class VALUEpropagationTest < V extends Addable<V>, U extends Addable<U> >
 	 */
 	private final Object nbrMsgsRemaining_lock = new Object ();
 	
-	/** List of queues corresponding to the different agents */
-	private Queue[] queues;
+	/** List of queues, indexed by agent name */
+	private Map<String, Queue> queues;
 	
 	/** The parameters for adopt*/
 	private Element parameters;
@@ -165,7 +166,7 @@ public class VALUEpropagationTest < V extends Addable<V>, U extends Addable<U> >
 		parameters = new Element ("module");
 		parameters.setAttribute("reportStats", "true");
 
-		optUtil = this.utilClass.newInstance().getZero();
+		optUtil = this.utilClass.getConstructor().newInstance().getZero();
 	}
 
 	/** 
@@ -175,7 +176,7 @@ public class VALUEpropagationTest < V extends Addable<V>, U extends Addable<U> >
 		super.tearDown();
 		graph = null;
 		dfs = null;
-		for (Queue queue : queues) {
+		for (Queue queue : queues.values()) {
 			queue.end();
 		}
 		queues = null;
@@ -227,19 +228,17 @@ public class VALUEpropagationTest < V extends Addable<V>, U extends Addable<U> >
 	public void test () 
 	throws IOException, NoSuchMethodException, IllegalArgumentException, InstantiationException, IllegalAccessException, ClassNotFoundException, InvocationTargetException {
 		
-		int nbrAgents = graph.clusters.size();
-		
 		nbrMsgsRemaining = graph.components.size() + graph.nodes.size(); // One OptUtilMessage per root + One Assignment message per variable
 		
 		// Create the queue network
-		queues = new Queue [nbrAgents];
-		QueueOutputPipeInterface[] pipes = AllTests.createQueueNetwork(queues, graph, useTCP);
+		queues = new HashMap<String, Queue> ();
+		Map<String, QueueOutputPipeInterface> pipes = AllTests.createQueueNetwork(queues, graph, useTCP);
 
 		// Listen for statistics messages
 		Queue myQueue = new Queue (false);
 		myQueue.addIncomingMessagePolicy(this);
 		QueueIOPipe myPipe = new QueueIOPipe (myQueue);
-		for (Queue queue : queues) 
+		for (Queue queue : queues.values()) 
 			queue.addOutputPipe(AgentInterface.STATS_MONITOR, myPipe);
 		
 		// Create the listeners
@@ -248,7 +247,7 @@ public class VALUEpropagationTest < V extends Addable<V>, U extends Addable<U> >
 		parser.setUtilClass(this.utilClass);
 		
 		for (String agent : parser.getAgents()) {
-			Queue queue = queues[Integer.parseInt(agent)];
+			Queue queue = queues.get(agent);
 
 			if (useXML) { // use the XML-based constructor
 				
@@ -318,7 +317,7 @@ public class VALUEpropagationTest < V extends Addable<V>, U extends Addable<U> >
 		assertEquals (optUtil, realUtil.getUtility(0));
 		
 		// Properly close the pipes
-		for (QueueOutputPipeInterface pipe : pipes) {
+		for (QueueOutputPipeInterface pipe : pipes.values()) {
 			pipe.close();
 		}
 		myQueue.end();
@@ -327,19 +326,19 @@ public class VALUEpropagationTest < V extends Addable<V>, U extends Addable<U> >
 	/** Sends messages to the queues to initiate ASODPOP
 	 * @param graph 		the constraint graph
 	 * @param dfs 			the corresponding DFS (for each node in the graph, the relationships of this node)
-	 * @param queues 		the array of queues, indexed by the clusters in the graph
+	 * @param queues 		the array of queues, indexed by the names of the clusters in the graph
 	 */
-	public static < V extends Addable<V>, U extends Addable<U> > void startUTILpropagation(RandGraphFactory.Graph graph, Map< String, DFSview<V, U> > dfs, Queue[] queues) {
+	public static < V extends Addable<V>, U extends Addable<U> > void startUTILpropagation(RandGraphFactory.Graph graph, 
+			Map< String, DFSview<V, U> > dfs, Map<String, Queue> queues) {
 		
 		// To every agent, send its part of the DFS and extract from the problem definition the constraint it is responsible for enforcing
-		int nbrAgents = graph.clusters.size();
-		for (int i = 0; i < nbrAgents; i++) {
-			Queue queue = queues[i];
+		for (Map.Entry<String, Queue> entry : queues.entrySet()) {
+			Queue queue = entry.getValue();
 			// Send the start message to this agent
 			queue.sendMessageToSelf(new Message (AgentInterface.START_AGENT));
 
 			// Extract the agent's part of the DFS and the constraint it is responsible for enforcing
-			List<String> variables = graph.clusters.get(i);
+			List<String> variables = graph.clusters.get(entry.getKey());
 			for (String var : variables) {
 				// Extract and send the relationships for this variable
 				queue.sendMessageToSelf(new DFSgeneration.MessageDFSoutput<V, U> (var, dfs.get(var)));
@@ -348,10 +347,10 @@ public class VALUEpropagationTest < V extends Addable<V>, U extends Addable<U> >
 	}
 	
 	/** @see IncomingMsgPolicyInterface#getMsgTypes() */
-	public Collection<String> getMsgTypes() {
-		ArrayList<String> types = new ArrayList<String> (1);
+	public Collection<MessageType> getMsgTypes() {
+		ArrayList<MessageType> types = new ArrayList<MessageType> (1);
 		types.add(UTILpropagationFullDomain.OPT_UTIL_MSG_TYPE);
-		types.add(VALUEpropagation.OUTPUT_MSG_TYPE);
+		types.add(SolutionCollector.ASSIGNMENT_MSG_TYPE);
 		return types;
 	}
 
@@ -367,8 +366,8 @@ public class VALUEpropagationTest < V extends Addable<V>, U extends Addable<U> >
 			}
 		} 
 		
-		else if (msg.getType().equals(VALUEpropagation.OUTPUT_MSG_TYPE)) {
-			AssignmentMessage<V, U> msgCast = (AssignmentMessage<V, U>)msg;
+		else if (msg.getType().equals(SolutionCollector.ASSIGNMENT_MSG_TYPE)) {
+			SolutionCollector.AssignmentMessage<V> msgCast = (SolutionCollector.AssignmentMessage<V>)msg;
 			assignments.put(msgCast.getVariable(), msgCast.getValue());
 			// Decrement the number of messages we are still waiting for
 			synchronized (nbrMsgsRemaining_lock) {

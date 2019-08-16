@@ -246,7 +246,7 @@ public class GraphColoring {
 			
 			Element subElmt = new Element ("agent");
 			elmt.addContent(subElmt);
-			subElmt.setAttribute("name", "a" + varID);
+			subElmt.setAttribute("name", "a_" + varID);
 		}
 
 		// Create the "domains" element
@@ -266,12 +266,12 @@ public class GraphColoring {
 		for (String varID : this.graph.nodes) {
 			subElmt = new Element ("variable");
 			elmt.addContent(subElmt);
-			subElmt.setAttribute("name", "n" + varID);
+			subElmt.setAttribute("name", varID);
 			subElmt.setAttribute("domain", "colors");
 			if (this.stochNodes.contains(varID)) 
 				subElmt.setAttribute("type", "random");
 			else 
-				subElmt.setAttribute("agent", "a" + varID);
+				subElmt.setAttribute("agent", "a_" + varID);
 		}
 		
 		// Create the "relations" element
@@ -330,7 +330,7 @@ public class GraphColoring {
 				
 				subElmt = new Element ("probability");
 				elmt.addContent(subElmt);
-				subElmt.setAttribute("name", "n" + varID + "proba");
+				subElmt.setAttribute("name", varID + "proba");
 				subElmt.setAttribute("semantics", "soft");
 				subElmt.setAttribute("arity", "1");
 				subElmt.setAttribute("nbTuples", Integer.toString(nbrColors));
@@ -382,10 +382,10 @@ public class GraphColoring {
 			elmt = new Element ("constraint");
 			conElmt.addContent(elmt);
 			elmt.setAttribute("name", "unaryCons_" + n);
-			elmt.setAttribute("scope", "n" + n);
+			elmt.setAttribute("scope", n);
 			elmt.setAttribute("arity", "1");
 			elmt.setAttribute("reference", "unaryRel_" + n);
-			elmt.setAttribute("agent", "a" + n);					
+			elmt.setAttribute("agent", "a_" + n);					
 		}
 		
 		// Go through all edges in the graph
@@ -398,8 +398,8 @@ public class GraphColoring {
 			elmt = new Element ("constraint");
 			conElmt.addContent(elmt);
 			
-			final String n1 = "n" + edge.source;
-			final String n2 = "n" + edge.dest;
+			final String n1 = edge.source;
+			final String n2 = edge.dest;
 			
 			elmt.setAttribute("name", n1 + "_neq_" + n2);
 			elmt.setAttribute("scope", n1 + " " + n2);
@@ -417,7 +417,7 @@ public class GraphColoring {
 		
 		// Add the probability distributions
 		for (String varID : this.stochNodes) {
-			final String varName = "n" + varID;
+			final String varName = varID;
 			
 			elmt = new Element ("constraint");
 			conElmt.addContent(elmt);

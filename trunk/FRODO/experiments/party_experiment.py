@@ -28,14 +28,14 @@ Journal of Artificial Intelligence Research (JAIR), 47:649-695, August 2013.
 
 # Add the FRODO benchmarks folder to the Python path and import the frodo2 module
 import sys
-sys.path.append("../frodo2.jar/frodo2/benchmarks")
+sys.path.append("../frodo2.17.jar/frodo2/benchmarks")
 import frodo2
 
 # The command to call java and the JVM parameters
 java = "java"
 javaParams = [
 			"-Xmx2G", # sets the Java heap space to 2 GB
-			"-classpath", "../frodo2.jar", # sets the Java classpath to include FRODO
+			"-classpath", "../frodo2.17.jar", # sets the Java classpath to include FRODO
 			]
 
 # Define the random problems to be generated
@@ -83,12 +83,12 @@ timeout = 600 # in seconds
 output = "outputParty.csv"
 
 # Run the experiment
-frodo2.run(java, javaParams, generator, genParams, nbrProblems, algos, timeout, output)
+frodo2.run(java, javaParams, generator, genParams, nbrProblems, algos, timeout, output, saveProblems = False)
 
 # Tip: if some of the algorithms tend to time out most of the time on some problem files, 
 # you can run 2 experiments: one for all algorithms on the smaller problem sizes, 
 # and one with only the faster algorithms on the larger problem sizes
 
 # Plot the graphs
-frodo2.plot(output, xCol = 6, yCol = 10, block = False) # yCol = 10 is the runtime (the first column has index 0)
-frodo2.plot(output, xCol = 6, yCol = 12, block = True) # yCol = 12 is the total message size (the first column has index 0)
+frodo2.plot(output, xCol = 7, yCol = 11, block = False) # yCol = 11 is the runtime (the first column has index 0)
+frodo2.plot(output, xCol = 7, yCol = 13, block = True) # yCol = 13 is the total message size (the first column has index 0)

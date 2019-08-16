@@ -26,6 +26,7 @@ import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.lang.reflect.InvocationTargetException;
 
 import frodo2.communication.Message;
 import frodo2.communication.MessageWith2Payloads;
@@ -45,7 +46,7 @@ public class DeliveryMsg <M extends Message> extends MessageWith2Payloads<String
 	 * @param payloadMsg 	payload message
 	 */
 	public DeliveryMsg(String dest, M payloadMsg) {
-		super(SecureCircularRouting.DELIVERY_MSG_TYPE, dest, payloadMsg);
+		super(SecureCircularRouting.DELIVERY_MSG_TYPE.newChild(payloadMsg.getType()), dest, payloadMsg);
 	}
 
 	/** @see java.io.Externalizable#writeExternal(java.io.ObjectOutput) */
@@ -67,14 +68,14 @@ public class DeliveryMsg <M extends Message> extends MessageWith2Payloads<String
 		Class<? extends M> msgClass = (Class<? extends M>) in.readObject();
 		M msg = null;
 		try {
-			msg = msgClass.newInstance();
-		} catch (InstantiationException e) {
-			e.printStackTrace();
-		} catch (IllegalAccessException e) {
+			msg = msgClass.getConstructor().newInstance();
+		} catch (InvocationTargetException | NoSuchMethodException | IllegalAccessException | InstantiationException e) {
 			e.printStackTrace();
 		}
 		msg.readExternal(in);
 		super.setPayload2(msg);
+		
+		super.type = super.type.newChild(msg.getType());
 	}
 
 	/** @return the destination variable */

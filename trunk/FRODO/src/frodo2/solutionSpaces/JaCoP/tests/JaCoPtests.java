@@ -25,6 +25,7 @@ package frodo2.solutionSpaces.JaCoP.tests;
 
 
 import java.io.File;
+import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -521,8 +522,11 @@ public class JaCoPtests < U extends Addable<U> > extends TestCase {
 	 * @return				the solution of the CSP
 	 * @throws IllegalAccessException thrown when failing to create a utility instance
 	 * @throws InstantiationException thrown when failing to create a utility instance
+	 * @throws NoSuchMethodException thrown when failing to create a utility instance
+	 * @throws InvocationTargetException thrown when failing to create a utility instance
 	 */
-	private U solveCentralizedProblem(Document problemDoc) throws InstantiationException, IllegalAccessException{
+	private U solveCentralizedProblem(Document problemDoc) 
+			throws InstantiationException, IllegalAccessException, NoSuchMethodException, InvocationTargetException {
 
 		Store store = new Store();
 
@@ -547,9 +551,9 @@ public class JaCoPtests < U extends Addable<U> > extends TestCase {
 
 		U infeasibleUtil;
 		if(maximize){
-			infeasibleUtil = this.classOfU.newInstance().getMinInfinity();
+			infeasibleUtil = this.classOfU.getConstructor().newInstance().getMinInfinity();
 		}else{
-			infeasibleUtil = this.classOfU.newInstance().getPlusInfinity();
+			infeasibleUtil = this.classOfU.getConstructor().newInstance().getPlusInfinity();
 		}
 
 
@@ -619,7 +623,7 @@ public class JaCoPtests < U extends Addable<U> > extends TestCase {
 				cost *= -1;
 			}
 
-			costValue = this.classOfU.newInstance().fromInt(cost);
+			costValue = this.classOfU.getConstructor().newInstance().fromInt(cost);
 		}
 		
 		return costValue;
@@ -633,8 +637,11 @@ public class JaCoPtests < U extends Addable<U> > extends TestCase {
 	 * @return				true if the assignment is a solution of the CSP
 	 * @throws IllegalAccessException thrown when failing to create a utility instance
 	 * @throws InstantiationException thrown when failing to create a utility instance
+	 * @throws NoSuchMethodException thrown when failing to create a utility instance
+	 * @throws InvocationTargetException thrown when failing to create a utility instance
 	 */
-	private boolean checkSolutionCentralizedProblem(Map<String, AddableInteger> assignment, Document problemDoc) throws InstantiationException, IllegalAccessException{
+	private boolean checkSolutionCentralizedProblem(Map<String, AddableInteger> assignment, Document problemDoc) 
+			throws InstantiationException, IllegalAccessException, NoSuchMethodException, InvocationTargetException {
 		Store store = new Store();
 
 		Element params = new Element("parser");
@@ -659,9 +666,9 @@ public class JaCoPtests < U extends Addable<U> > extends TestCase {
 
 		U infeasibleUtil;
 		if(maximize){
-			infeasibleUtil = this.classOfU.newInstance().getMinInfinity();
+			infeasibleUtil = this.classOfU.getConstructor().newInstance().getMinInfinity();
 		}else{
-			infeasibleUtil = this.classOfU.newInstance().getPlusInfinity();
+			infeasibleUtil = this.classOfU.getConstructor().newInstance().getPlusInfinity();
 		}
 
 

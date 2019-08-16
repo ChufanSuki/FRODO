@@ -25,6 +25,7 @@ package frodo2.communication;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -48,14 +49,6 @@ import frodo2.solutionSpaces.ProblemInterface;
 
 public class Queue implements Runnable {
 	
-	/** Message type that encapsulates all message types
-	 * 
-	 * Used when a listener wants to be informed about all messages, not just messages of a specific type. 
-	 * @todo Use something other than a String for message types? 
-	 * Or, use a concatenated String involving getClass().getName() so that it is unique?
-	 */
-	public static final String ALLMESSAGES = "ALL";
-	
 	/** The list of incoming messages waiting to be processed */
 	private BlockingQueue<MessageWrapper> inbox;
 	
@@ -73,14 +66,14 @@ public class Queue implements Runnable {
 	 * These listeners are called whenever there is a new incoming object, in order to decide what to do with it. 
 	 * There is a list of listeners for each message type. 
 	 */
-	protected HashMap<String, ArrayList< IncomingMsgPolicyInterface<String> > > inPolicies;
+	protected HashMap<MessageType, ArrayList< IncomingMsgPolicyInterface<MessageType> > > inPolicies;
 	
 	/** A list of listeners notified of outgoing messages 
 	 * 
 	 * These listeners are called whenever there is a new outgoing message, in order to decide what to do with it. 
 	 * There is a list of listeners for each message type. 
 	 */
-	protected HashMap<String, ArrayList< OutgoingMsgPolicyInterface<String> > > outPolicies;
+	protected HashMap<MessageType, ArrayList< OutgoingMsgPolicyInterface<MessageType> > > outPolicies;
 	
 	/** Lock for outPolicies field*/
 	private final ReentrantLock outPolicies_lock = new ReentrantLock();
@@ -98,19 +91,19 @@ public class Queue implements Runnable {
 	protected final boolean measureMsgs;
 	
 	/** For each message type, the number of messages sent of that type */
-	protected HashMap<String, Integer> msgNbrs;
+	protected HashMap<MessageType, Integer> msgNbrs;
 	
 	/** The number of messages sent to each other agent */
 	private HashMap<Object, Integer> msgNbrsSent;
 	
 	/** For each message type, the total amount of information sent in messages of that type, in bytes */
-	protected HashMap<String, Long> msgSizes;
+	protected HashMap<MessageType, Long> msgSizes;
 	
 	/** The amount of information sent to each other agent, in bytes */
 	private HashMap<Object, Long> msgSizesSent;
 	
 	/** For each message type, the size (in bytes) of the largest message of that type */
-	protected HashMap<String, Long> maxMsgSizes;
+	protected HashMap<MessageType, Long> maxMsgSizes;
 	
 	/** lock for input field */
 	private final ReentrantLock input_lock = new ReentrantLock();
@@ -147,11 +140,11 @@ public class Queue implements Runnable {
 		
 		this.measureMsgs = measureMsgs;
 		if (this.measureMsgs) {
-			this.msgNbrs = new HashMap<String, Integer> ();
+			this.msgNbrs = new HashMap<MessageType, Integer> ();
 			this.msgNbrsSent = new HashMap<Object, Integer> ();
-			this.msgSizes = new HashMap<String, Long> ();
+			this.msgSizes = new HashMap<MessageType, Long> ();
 			this.msgSizesSent = new HashMap<Object, Long> ();
-			this.maxMsgSizes = new HashMap<String, Long> ();
+			this.maxMsgSizes = new HashMap<MessageType, Long> ();
 			try {
 				this.monitor = new MsgSizeMonitor ();
 			} catch (IOException e) {
@@ -166,13 +159,13 @@ public class Queue implements Runnable {
 		inputs = new HashSet <QueueInputPipeInterface> ();
 		outputs = new HashMap <Object, QueueOutputPipeInterface> ();
 		
-		inPolicies = new HashMap <String, ArrayList< IncomingMsgPolicyInterface<String> > > ();
-		ArrayList< IncomingMsgPolicyInterface<String> > policies = new ArrayList< IncomingMsgPolicyInterface<String> >();
-		inPolicies.put(ALLMESSAGES, policies);
+		inPolicies = new HashMap <MessageType, ArrayList< IncomingMsgPolicyInterface<MessageType> > > ();
+		ArrayList< IncomingMsgPolicyInterface<MessageType> > policies = new ArrayList< IncomingMsgPolicyInterface<MessageType> >();
+		inPolicies.put(MessageType.ROOT, policies);
 		
-		outPolicies = new HashMap <String, ArrayList< OutgoingMsgPolicyInterface<String> > > ();
-		ArrayList< OutgoingMsgPolicyInterface<String> > policiesOut = new ArrayList< OutgoingMsgPolicyInterface<String> >();
-		outPolicies.put(ALLMESSAGES, policiesOut);
+		outPolicies = new HashMap <MessageType, ArrayList< OutgoingMsgPolicyInterface<MessageType> > > ();
+		ArrayList< OutgoingMsgPolicyInterface<MessageType> > policiesOut = new ArrayList< OutgoingMsgPolicyInterface<MessageType> >();
+		outPolicies.put(MessageType.ROOT, policiesOut);
 		
 		myThread = new Thread (this, "Queue");
 		myThread.setDaemon(true);
@@ -263,7 +256,7 @@ public class Queue implements Runnable {
 	 * It prompts the listener for the types of messages it wants to listen to. 
 	 * @param policy Incoming object policy to be added
 	 */
-	public void addIncomingMessagePolicy (IncomingMsgPolicyInterface <String> policy) {
+	public void addIncomingMessagePolicy (IncomingMsgPolicyInterface <MessageType> policy) {
 		this.addIncomingMessagePolicy(policy.getMsgTypes(), policy);
 	}
 	
@@ -271,8 +264,8 @@ public class Queue implements Runnable {
 	 * @param msgTypes 		the message types the policy should be registered for
 	 * @param policy 		Incoming object policy to be added
 	 */
-	public void addIncomingMessagePolicy (Collection<String> msgTypes, IncomingMsgPolicyInterface <String> policy) {
-		for (String type : msgTypes) {
+	public void addIncomingMessagePolicy (Collection<MessageType> msgTypes, IncomingMsgPolicyInterface <MessageType> policy) {
+		for (MessageType type : msgTypes) {
 			addIncomingMessagePolicy (type, policy);
 		}
 	}
@@ -281,13 +274,13 @@ public class Queue implements Runnable {
 	 * @param type the type of messages
 	 * @param policy incoming object policy to be used
 	 */
-	public void addIncomingMessagePolicy (String type, IncomingMsgPolicyInterface <String> policy) {
+	public void addIncomingMessagePolicy (MessageType type, IncomingMsgPolicyInterface <MessageType> policy) {
 		try {
 			inPolicies_lock.lock();
-			ArrayList< IncomingMsgPolicyInterface<String> > policies = inPolicies.get(type);
+			ArrayList< IncomingMsgPolicyInterface<MessageType> > policies = inPolicies.get(type);
 			
 			if (policies == null) { // We don't know this message type yet
-				policies = new ArrayList< IncomingMsgPolicyInterface<String> >();
+				policies = new ArrayList< IncomingMsgPolicyInterface<MessageType> >();
 				inPolicies.put(type, policies);
 				policies.add(policy);
 				
@@ -304,7 +297,7 @@ public class Queue implements Runnable {
 	 * It prompts the listener for the types of messages it wants to listen to. 
 	 * @param policy 	outgoing message policy to be added
 	 */
-	public void addOutgoingMessagePolicy (OutgoingMsgPolicyInterface <String> policy) {
+	public void addOutgoingMessagePolicy (OutgoingMsgPolicyInterface <MessageType> policy) {
 		this.addOutgoingMessagePolicy(policy.getMsgTypes(), policy);
 	}
 	
@@ -312,8 +305,8 @@ public class Queue implements Runnable {
 	 * @param msgTypes 		the message types the policy should be registered for
 	 * @param policy 		outgoing message policy to be added
 	 */
-	public void addOutgoingMessagePolicy (Collection<String> msgTypes, OutgoingMsgPolicyInterface <String> policy) {
-		for (String type : msgTypes) {
+	public void addOutgoingMessagePolicy (Collection<MessageType> msgTypes, OutgoingMsgPolicyInterface <MessageType> policy) {
+		for (MessageType type : msgTypes) {
 			addOutgoingMessagePolicy (type, policy);
 		}
 	}
@@ -322,13 +315,13 @@ public class Queue implements Runnable {
 	 * @param type 		the type of messages
 	 * @param policy 	outgoing object policy to be used
 	 */
-	public void addOutgoingMessagePolicy (String type, OutgoingMsgPolicyInterface <String> policy) {
+	public void addOutgoingMessagePolicy (MessageType type, OutgoingMsgPolicyInterface <MessageType> policy) {
 		try {
 			outPolicies_lock.lock();
-			ArrayList< OutgoingMsgPolicyInterface<String> > policies = outPolicies.get(type);
+			ArrayList< OutgoingMsgPolicyInterface<MessageType> > policies = outPolicies.get(type);
 			
 			if (policies == null) { // We don't know this message type yet
-				policies = new ArrayList< OutgoingMsgPolicyInterface<String> >();
+				policies = new ArrayList< OutgoingMsgPolicyInterface<MessageType> >();
 				outPolicies.put(type, policies);
 				policies.add(policy);
 				
@@ -356,7 +349,7 @@ public class Queue implements Runnable {
 	public void sendMessage(Object to, Message msg) {
 
 		// Discard the message if one of the outgoing listeners requires it
-		if (this.notifyOutListeners(msg)) 
+		if (this.notifyOutListeners(this.problem != null ? this.problem.getAgent() : null, msg, Arrays.asList(to))) 
 			return;
 		
 		MessageWrapper msgWrap = new MessageWrapper(msg);
@@ -369,24 +362,22 @@ public class Queue implements Runnable {
 	}
 	
 	/** Notifies the incoming message listeners of a message
-	 * @param msg 	the message
+	 * @param msg 		the message
+	 * @param toAgent 	ID of the destination agent
 	 */
-	protected void notifyInListeners (Message msg) {
+	protected void notifyInListeners (Message msg, Object toAgent) {
 		
 		try {
 			inPolicies_lock.lock();
 			
-			// First notify the policies listening for ALL messages
-			ArrayList< IncomingMsgPolicyInterface<String> > policies = new ArrayList< IncomingMsgPolicyInterface<String> > (inPolicies.get(ALLMESSAGES));
-			for (IncomingMsgPolicyInterface<String> module : policies) // iterate over a copy in case a listener wants to add more listeners
-				module.notifyIn(msg);
-
-			// Notify the listeners for this message type, if any
-			ArrayList< IncomingMsgPolicyInterface<String> > modules = inPolicies.get(msg.getType());
-			if (modules != null) {
-				policies = new ArrayList< IncomingMsgPolicyInterface<String> > (modules);
-				for (IncomingMsgPolicyInterface<String> module : policies) // iterate over a copy in case a listener wants to add more listeners
-					module.notifyIn(msg);
+			// Notify the listeners for this message type and its ancestors
+			for (MessageType type = msg.getType(); type != null; type = type.getParent()) {
+				ArrayList< IncomingMsgPolicyInterface<MessageType> > modules = inPolicies.get(type);
+				if (modules != null) {
+					ArrayList< IncomingMsgPolicyInterface<MessageType> > policies = new ArrayList< IncomingMsgPolicyInterface<MessageType> > (modules);
+					for (IncomingMsgPolicyInterface<MessageType> module : policies) // iterate over a copy in case a listener wants to add more listeners
+						module.notifyIn(msg, toAgent);
+				}
 			}
 			
 		} finally {
@@ -395,30 +386,28 @@ public class Queue implements Runnable {
 	}
 	
 	/** Notifies the outgoing message listeners of a message
-	 * @param msg 	the message
+	 * @param fromAgent 	the sender agent
+	 * @param msg 			the message
+	 * @param toAgents 		the destination agents
 	 * @return \c true if the message should be discarded
 	 */
-	protected boolean notifyOutListeners (Message msg) {
+	protected boolean notifyOutListeners (Object fromAgent, Message msg, Collection<? extends Object> toAgents) {
 		
 		boolean discard = false;
 		try {
 			this.outPolicies_lock.lock();
 			
-			// Notify the listeners registered for this message's type
+			// Notify the listeners registered for this message's type and its ancestors
 			assert msg != null;
 			assert this.outPolicies != null;
-			ArrayList< OutgoingMsgPolicyInterface<String> > modules = this.outPolicies.get(msg.getType()); /// @bug very rarely throws a NullPointerException
-			if (modules != null) 
-				for (java.util.Iterator< OutgoingMsgPolicyInterface<String> > iter = modules.iterator(); !discard && iter.hasNext(); )
-					if (iter.next().notifyOut(msg) == OutgoingMsgPolicyInterface.Decision.DISCARD) 
-						discard = true;
+			for (MessageType type = msg.getType(); type != null; type = type.getParent()) {
+				ArrayList< OutgoingMsgPolicyInterface<MessageType> > modules = this.outPolicies.get(type); /// @bug very rarely throws a NullPointerException
+				if (modules != null) 
+					for (java.util.Iterator< OutgoingMsgPolicyInterface<MessageType> > iter = modules.iterator(); !discard && iter.hasNext(); )
+						if (iter.next().notifyOut(fromAgent, msg, toAgents) == OutgoingMsgPolicyInterface.Decision.DISCARD) 
+							discard = true;
+			}
 
-			// Notify the outgoing message listeners registered for all messages
-			if (!discard) 
-				for (java.util.Iterator< OutgoingMsgPolicyInterface<String> > iter = this.outPolicies.get(ALLMESSAGES).iterator(); 
-						!discard && iter.hasNext(); ) 
-					if (iter.next().notifyOut(msg) == OutgoingMsgPolicyInterface.Decision.DISCARD) 
-						discard = true;
 			
 		} finally {
 			this.outPolicies_lock.unlock();
@@ -465,7 +454,7 @@ public class Queue implements Runnable {
 			return;
 		
 		// Increment nbrMsgs
-		String type = msg.getType();
+		MessageType type = msg.getType();
 		Integer nbr = this.msgNbrs.get(type);
 		if (nbr == null) 
 			this.msgNbrs.put(type, 1);
@@ -510,7 +499,8 @@ public class Queue implements Runnable {
 	public void sendMessageToSelf(Message msg) {
 		
 		// Discard the message if one of the outgoing listeners requires it
-		if (this.notifyOutListeners(msg)) 
+		String agentName = this.problem != null ? this.problem.getAgent() : null;
+		if (this.notifyOutListeners(agentName, msg, Arrays.asList(agentName))) 
 			return;
 		
 		MessageWrapper msgWrap = new MessageWrapper(msg);
@@ -528,7 +518,7 @@ public class Queue implements Runnable {
 	public <T extends Object> void sendMessageToMulti (Collection <T> recipients, Message msg) {
 
 		// Discard the message if one of the outgoing listeners requires it
-		if (this.notifyOutListeners(msg)) 
+		if (this.notifyOutListeners(this.problem != null ? this.problem.getAgent() : null, msg, recipients)) 
 			return;
 
 		MessageWrapper msgWrap = new MessageWrapper(msg);
@@ -578,19 +568,19 @@ public class Queue implements Runnable {
 			this.updateNCCCs(msgWrap.getNCCCs());
 			
 			// Notify the incoming object policies of the message
-			this.notifyInListeners(msg);
+			this.notifyInListeners(msg, this.problem != null ? this.problem.getAgent() : null);
 		}
 	}
 
 	/** Completely removes the input policy from all lists of listeners
 	 * @param policy the policy to be removed
 	 */
-	public void deleteIncomingMessagePolicy (IncomingMsgPolicyInterface <String> policy) {
+	public void deleteIncomingMessagePolicy (IncomingMsgPolicyInterface <MessageType> policy) {
 		try {
 			inPolicies_lock.lock();
 			
 			// Go through the list of policies, regardless of the message type
-			for (ArrayList< IncomingMsgPolicyInterface<String> > policies : inPolicies.values()) 
+			for (ArrayList< IncomingMsgPolicyInterface<MessageType> > policies : inPolicies.values()) 
 				policies.remove(policy);
 
 		} finally {
@@ -604,8 +594,8 @@ public class Queue implements Runnable {
 			this.inPolicies_lock.lock();
 			
 			// Go through the list of policies, regardless of the message type
-			for (ArrayList< IncomingMsgPolicyInterface<String> > policies : inPolicies.values()) 
-				for (Iterator< IncomingMsgPolicyInterface<String> > iter = policies.iterator(); iter.hasNext(); ) 
+			for (ArrayList< IncomingMsgPolicyInterface<MessageType> > policies : inPolicies.values()) 
+				for (Iterator< IncomingMsgPolicyInterface<MessageType> > iter = policies.iterator(); iter.hasNext(); ) 
 					if (iter.next() instanceof StatsReporter) 
 						iter.remove();
 			
@@ -617,12 +607,12 @@ public class Queue implements Runnable {
 	/** Completely removes the outgoing message policy from all lists of listeners
 	 * @param policy 	the policy to be removed
 	 */
-	public void deleteOutgoingMessagePolicy (OutgoingMsgPolicyInterface <String> policy) {
+	public void deleteOutgoingMessagePolicy (OutgoingMsgPolicyInterface <MessageType> policy) {
 		try {
 			outPolicies_lock.lock();
 			
 			// Go through the list of policies, regardless of the message type
-			for (ArrayList< OutgoingMsgPolicyInterface<String> > policies : outPolicies.values()) 
+			for (ArrayList< OutgoingMsgPolicyInterface<MessageType> > policies : outPolicies.values()) 
 				policies.remove(policy);
 
 		} finally {
@@ -711,7 +701,7 @@ public class Queue implements Runnable {
 	}
 	
 	/** @return for each message type, the number of messages sent of that type */
-	public HashMap<String, Integer> getMsgNbrs() {
+	public HashMap<MessageType, Integer> getMsgNbrs() {
 		return msgNbrs;
 	}
 
@@ -721,7 +711,7 @@ public class Queue implements Runnable {
 	}
 
 	/** @return for each message type, the total amount of information sent in messages of that type, in bytes */
-	public HashMap<String, Long> getMsgSizes() {
+	public HashMap<MessageType, Long> getMsgSizes() {
 		return msgSizes;
 	}
 	
@@ -731,7 +721,7 @@ public class Queue implements Runnable {
 	}
 
 	/** @return for each message type, the size (in bytes) of the largest message of that type */
-	public HashMap<String, Long> getMaxMsgSizes() {
+	public HashMap<MessageType, Long> getMaxMsgSizes() {
 		return maxMsgSizes;
 	}
 	
@@ -739,11 +729,11 @@ public class Queue implements Runnable {
 	public void resetStats () {
 		
 		if (this.measureMsgs) {
-			this.msgNbrs = new HashMap<String, Integer> ();
+			this.msgNbrs = new HashMap<MessageType, Integer> ();
 			this.msgNbrsSent = new HashMap<Object, Integer> ();
-			this.msgSizes = new HashMap<String, Long> ();
+			this.msgSizes = new HashMap<MessageType, Long> ();
 			this.msgSizesSent = new HashMap<Object, Long> ();			
-			this.maxMsgSizes = new HashMap<String, Long> ();
+			this.maxMsgSizes = new HashMap<MessageType, Long> ();
 		}
 		if(this.problem != null) 
 			msgWrap.setNCCCs(-1);

@@ -58,6 +58,7 @@ import frodo2.algorithms.varOrdering.dfs.DFSgeneration.DFSview;
 import frodo2.algorithms.varOrdering.dfs.tests.DFSgenerationTest;
 import frodo2.communication.IncomingMsgPolicyInterface;
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 import frodo2.communication.Queue;
 import frodo2.communication.QueueOutputPipeInterface;
 import frodo2.communication.sharedMemory.QueueIOPipe;
@@ -86,8 +87,8 @@ public class UTILpropagationTest < U extends Addable<U> > extends TestCase {
 	/** Maximum number of agents */
 	protected final int maxNbrAgents = 10;
 
-	/** List of queues corresponding to the different agents */
-	private Queue[] queues;
+	/** List of queues, indexed by agent name */
+	private Map<String, Queue> queues;
 	
 	/** Random graph used to generate a constraint graph */
 	protected RandGraphFactory.Graph graph;
@@ -211,7 +212,7 @@ public class UTILpropagationTest < U extends Addable<U> > extends TestCase {
 		dfs = null;
 		separators = null;
 		if (queues != null) 
-			for (Queue queue : queues) 
+			for (Queue queue : queues.values()) 
 				queue.end();
 		queues = null;
 		parameters = null;
@@ -339,28 +340,27 @@ public class UTILpropagationTest < U extends Addable<U> > extends TestCase {
 	 * @param <U> 			the type used for utility values
 	 * @param graph 		the constraint graph
 	 * @param dfs 			the corresponding DFS (for each node in the graph, the relationships of this node)
-	 * @param queues 		the array of queues, indexed by the clusters in the graph
+	 * @param queues 		the array of queues, indexed by the names of the clusters in the graph
 	 * @param constraints 	the hypercubes in the problem definition
 	 * @return for each variable, the constraint it is responsible for enforcing
 	 */
 	public static < U extends Addable<U> > Map < String, UtilitySolutionSpace<AddableInteger, U> > startUTIL (RandGraphFactory.Graph graph, 
-			Map< String, DFSview<AddableInteger, U> > dfs, Queue[] queues, 
+			Map< String, DFSview<AddableInteger, U> > dfs, Map<String, Queue> queues, 
 			List< ? extends UtilitySolutionSpace<AddableInteger, U> > constraints) {
 		
 		Map< String, UtilitySolutionSpace<AddableInteger, U> > hypercubes = 
 			new HashMap< String, UtilitySolutionSpace<AddableInteger, U> > (graph.nodes.size());
 		
 		// To every agent, send its part of the DFS and extract from the problem definition the constraint it is responsible for enforcing
-		int nbrAgents = graph.clusters.size();
-		for (int i = 0; i < nbrAgents; i++) {
-			Queue queue = queues[i];
+		for (Map.Entry<String, Queue> entry : queues.entrySet()) {
+			Queue queue = entry.getValue();
 			
 			// Tell the DomainsSharing to start 
 			Message msg = new Message (AgentInterface.START_AGENT);
 			queue.sendMessageToSelf(msg);
 			
 			// Extract the agent's part of the DFS and the constraints it is responsible for enforcing
-			List<String> variables = graph.clusters.get(i);
+			List<String> variables = graph.clusters.get(entry.getKey());
 			for (String var : variables) {
 				
 				// Extract and send the relationships for this variable
@@ -418,7 +418,7 @@ public class UTILpropagationTest < U extends Addable<U> > extends TestCase {
 	}
 
 	/** The listener that checks the messages sent by the UTILpropagation listeners */
-	protected class Listener implements IncomingMsgPolicyInterface<String> {
+	protected class Listener implements IncomingMsgPolicyInterface<MessageType> {
 		
 		/** The number of output messages remaining to be received from the UTIL propagation protocol */
 		protected Integer nbrMsgsRemaining;
@@ -438,8 +438,8 @@ public class UTILpropagationTest < U extends Addable<U> > extends TestCase {
 		/** For each variable, the constraint it is responsible for enforcing */
 		protected Map< String, UtilitySolutionSpace<AddableInteger, U> > hypercubes;
 		
-		/** The pipes of the queue network */
-		private QueueOutputPipeInterface[] pipes; 
+		/** The pipes of the queue network, indexed by agent name */
+		private Map<String, QueueOutputPipeInterface> pipes; 
 		
 		/** The Listener's own queue */
 		private Queue myQueue;
@@ -471,7 +471,6 @@ public class UTILpropagationTest < U extends Addable<U> > extends TestCase {
 		throws IOException, NoSuchMethodException, IllegalArgumentException, 
 		InstantiationException, IllegalAccessException, InvocationTargetException, ClassNotFoundException {
 			
-			int nbrAgents = graph.clusters.size();
 			int nbrVars = graph.nodes.size();
 			
 			// Compute the number of messages to expect: 
@@ -482,7 +481,7 @@ public class UTILpropagationTest < U extends Addable<U> > extends TestCase {
 			separators = new HashMap< String, String[] > (nbrVars);
 			
 			// Create the queue network
-			queues = new Queue [nbrAgents];
+			queues = new HashMap<String, Queue> ();
 			pipes = AllTests.createQueueNetwork(queues, graph, useTCP);
 			
 			// Create the parser
@@ -494,7 +493,7 @@ public class UTILpropagationTest < U extends Addable<U> > extends TestCase {
 			myQueue = new Queue (false);
 			myQueue.addIncomingMessagePolicy(UTILpropagation.OPT_UTIL_MSG_TYPE, this);
 			QueueIOPipe myPipe = new QueueIOPipe (myQueue);
-			for (Queue queue : queues) 
+			for (Queue queue : queues.values()) 
 				queue.addOutputPipe(AgentInterface.STATS_MONITOR, myPipe);
 			statsGatherer = new UTILpropagation<AddableInteger, U> (null, parser);
 			statsGatherer.setSilent(true);
@@ -504,7 +503,7 @@ public class UTILpropagationTest < U extends Addable<U> > extends TestCase {
 			spaces = parser.getSolutionSpaces(withAnonymVars);
 			if (useXML) {
 				for (String agent : parser.getAgents()) {
-					Queue queue = queues[Integer.parseInt(agent)];
+					Queue queue = queues.get(agent);
 					
 					XCSPparser<AddableInteger, U> subProblem = parser.getSubProblem(agent);
 					queue.setProblem(subProblem);
@@ -529,7 +528,7 @@ public class UTILpropagationTest < U extends Addable<U> > extends TestCase {
 			else { // use the manual constructor that does not take in XML elements
 				
 				for (String agent : parser.getAgents()) {
-					Queue queue = queues[Integer.parseInt(agent)];
+					Queue queue = queues.get(agent);
 					
 					// Generate the information about the subproblem
 					DCOPProblemInterface<AddableInteger, U> subproblem = parser.getSubProblem(agent);
@@ -580,7 +579,7 @@ public class UTILpropagationTest < U extends Addable<U> > extends TestCase {
 			this.checkOutput();
 
 			// Properly close the pipes
-			for (QueueOutputPipeInterface pipe : pipes) {
+			for (QueueOutputPipeInterface pipe : pipes.values()) {
 				pipe.close();
 			}
 			myQueue.end();
@@ -612,8 +611,8 @@ public class UTILpropagationTest < U extends Addable<U> > extends TestCase {
 		/** Listens to the outputs of the UTIL propagation protocol 
 		 * @see frodo2.communication.IncomingMsgPolicyInterface#getMsgTypes()
 		 */
-		public Collection<String> getMsgTypes() {
-			ArrayList<String> types = new ArrayList<String> (2);
+		public Collection<MessageType> getMsgTypes() {
+			ArrayList<MessageType> types = new ArrayList<MessageType> (1);
 			types.add(UTILpropagation.SEPARATOR_MSG_TYPE);
 //			types.add(UTILpropagation.OPT_UTIL_MSG_TYPE);
 			return types;
@@ -623,7 +622,7 @@ public class UTILpropagationTest < U extends Addable<U> > extends TestCase {
 		@SuppressWarnings("unchecked")
 		public void notifyIn(Message msg) {
 			
-			String type = msg.getType();
+			MessageType type = msg.getType();
 			
 			if (type.equals(UTILpropagation.SEPARATOR_MSG_TYPE)) { // the message contains information about a variable's separator
 				UTILpropagation.SeparatorMessage msgCast = (UTILpropagation.SeparatorMessage) msg;

@@ -43,6 +43,7 @@ import org.jdom2.Element;
 import frodo2.algorithms.AgentInterface;
 import frodo2.algorithms.Problem;
 import frodo2.algorithms.RandGraphFactory;
+import frodo2.algorithms.SolutionCollector;
 import frodo2.algorithms.XCSPparser;
 import frodo2.algorithms.adopt.ADOPT;
 import frodo2.algorithms.adopt.Preprocessing;
@@ -52,6 +53,7 @@ import frodo2.algorithms.varOrdering.dfs.DFSgeneration;
 import frodo2.algorithms.varOrdering.dfs.DFSgeneration.DFSview;
 import frodo2.communication.IncomingMsgPolicyInterface;
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 import frodo2.communication.Queue;
 import frodo2.communication.QueueOutputPipeInterface;
 import frodo2.communication.sharedMemory.QueueIOPipe;
@@ -66,7 +68,7 @@ import frodo2.solutionSpaces.hypercube.ScalarHypercube;
  * This class is used to test the workings of the ADOPT listener
  * @author Brammert Ottens, Thomas Leaute
  */
-public class testADOPT extends TestCase implements IncomingMsgPolicyInterface<String> {
+public class testADOPT extends TestCase implements IncomingMsgPolicyInterface<MessageType> {
 	
 	/** Maximum number of variables in the random graph 
 	 * @note Must be at least 2. 
@@ -88,8 +90,8 @@ public class testADOPT extends TestCase implements IncomingMsgPolicyInterface<St
 	/** Used to wake up the test thread when all agents have finished */
 	private final Condition finished = finished_lock.newCondition();
 
-	/** List of queues corresponding to the different agents */
-	private Queue[] queues;
+	/** List of queues, indexed by agent name */
+	private Map<String, Queue> queues;
 	
 	/** The parameters for adopt*/
 	private Element parameters;
@@ -164,7 +166,7 @@ public class testADOPT extends TestCase implements IncomingMsgPolicyInterface<St
 		graph = null;
 		dfs = null;
 		this.parser = null;
-		for (Queue queue : queues) {
+		for (Queue queue : queues.values()) {
 			queue.end();
 		}
 		queues = null;
@@ -197,27 +199,26 @@ public class testADOPT extends TestCase implements IncomingMsgPolicyInterface<St
 	@SuppressWarnings("unchecked")
 	public void test () throws Exception {
 		
-		int nbrAgents = graph.clusters.size();
 		int nbrVars = graph.nodes.size();
 		nbrMsgsRemaining = nbrVars; // one AssignmentsMessage per var
 		
 		// Create the queue network
-		queues = new Queue [nbrAgents];
-		QueueOutputPipeInterface[] pipes = AllTests.createQueueNetwork(queues, graph, useTCP);
+		queues = new HashMap<String, Queue> ();
+		Map<String, QueueOutputPipeInterface> pipes = AllTests.createQueueNetwork(queues, graph, useTCP);
 
 		// Listen for statistics messages
 		myQueue = new Queue (false);
 		QueueIOPipe myPipe = new QueueIOPipe (myQueue);
-		for (Queue queue : queues) 
+		for (Queue queue : queues.values()) 
 			queue.addOutputPipe(AgentInterface.STATS_MONITOR, myPipe);
-		ADOPT<AddableInteger, AddableInteger> statsGatherer = new ADOPT<AddableInteger, AddableInteger> (null, parser);
-		statsGatherer.setSilent(true);
-		statsGatherer.getStatsFromQueue(myQueue);
+		SolutionCollector<AddableInteger, AddableInteger> solCollector = new SolutionCollector<AddableInteger, AddableInteger> (null, parser);
+		solCollector.setSilent(true);
+		solCollector.getStatsFromQueue(myQueue);
 		myQueue.addIncomingMessagePolicy(this);
 		
 		// Create the listeners
 		for (String agent : parser.getAgents()) {
-			Queue queue = queues[Integer.parseInt(agent)];
+			Queue queue = queues.get(agent);
 
 			if (useXML) { // use the XML-based constructor
 				
@@ -293,6 +294,7 @@ public class testADOPT extends TestCase implements IncomingMsgPolicyInterface<St
 		}
 		
 		// Check that the assignments found by the protocol are indeed optimal
+		assertFalse(solCollector.getSolution().isEmpty());
 		
 		// Compute optimal utility value of each connected component while checking separators
 		AddableInteger optUtil = new AddableInteger (0);
@@ -306,17 +308,17 @@ public class testADOPT extends TestCase implements IncomingMsgPolicyInterface<St
 				optUtil = optUtil.add(hypercube.getUtility(0));
 			}
 		}
-		UtilitySolutionSpace<AddableInteger, AddableInteger> sum = parser.getUtility(statsGatherer.getOptAssignments());
+		UtilitySolutionSpace<AddableInteger, AddableInteger> sum = parser.getUtility(solCollector.getSolution());
 //		System.out.println("real opt util = " + optUtil + " and ADOPT found " + optTotalUtil);
 //		System.out.println("Number of messages sent = " + messageCounter);
 //		if(!optUtil.equals(sum.getUtility(0)) || !optUtil.equals(optTotalUtil)) {
 //			System.out.println("CHECK : " + sum.getUtility(0));
 //		}
 		assertEquals(optUtil, sum.getUtility(0));
-		assertEquals(optUtil, statsGatherer.getTotalOptUtil());
+		assertEquals(optUtil, solCollector.getUtility());
 		
 		// Properly close the pipes
-		for (QueueOutputPipeInterface pipe : pipes) {
+		for (QueueOutputPipeInterface pipe : pipes.values()) {
 			pipe.close();
 		}
 		myQueue.end();
@@ -327,29 +329,28 @@ public class testADOPT extends TestCase implements IncomingMsgPolicyInterface<St
 	 * @param <U> 			the type used for utility values
 	 * @param graph 		the constraint graph
 	 * @param dfs 			the corresponding DFS (for each node in the graph, the relationships of this node)
-	 * @param queues 		the array of queues, indexed by the clusters in the graph
+	 * @param queues 		the array of queues, indexed by the names of the clusters in the graph
 	 * @param constraints 	the hypercubes in the problem definition
 	 * @param parser 		the parser for the random problem
 	 * @return for each variable, the constraint it is responsible for enforcing
 	 */
 	public static <U extends Addable<U> > Map < String, UtilitySolutionSpace<AddableInteger, U> > startADOPT (RandGraphFactory.Graph graph, 
-			Map< String, DFSview<AddableInteger, U> > dfs, Queue[] queues, 
+			Map< String, DFSview<AddableInteger, U> > dfs, Map<String, Queue> queues, 
 			List< ? extends UtilitySolutionSpace<AddableInteger, U> > constraints, XCSPparser<AddableInteger, U> parser) {
 		
 		Map< String, UtilitySolutionSpace<AddableInteger, U> > hypercubes = 
 			new HashMap< String, UtilitySolutionSpace<AddableInteger, U> > (graph.nodes.size());
 		
 		// To every agent, send its part of the DFS and extract from the problem definition the constraint it is responsible for enforcing
-		int nbrAgents = graph.clusters.size();
-		for (int i = 0; i < nbrAgents; i++) {
-			Queue queue = queues[i];
+		for (Map.Entry<String, Queue> entry : queues.entrySet()) {
+			Queue queue = entry.getValue();
 			
 			// Send the start message to this agent
 			Message msg = new Message (AgentInterface.START_AGENT);
 			queue.sendMessageToSelf(msg);
 			
 			// Extract the agent's part of the DFS and the constraint it is responsible for enforcing
-			List<String> variables = graph.clusters.get(i);
+			List<String> variables = graph.clusters.get(entry.getKey());
 			for (String var : variables) {
 				
 				DFSview<AddableInteger, U> relationships = dfs.get(var);
@@ -441,8 +442,8 @@ public class testADOPT extends TestCase implements IncomingMsgPolicyInterface<St
 	}
 
 	/** @see IncomingMsgPolicyInterface#getMsgTypes() */
-	public Collection<String> getMsgTypes() {
-		return Arrays.asList(ADOPT.OUTPUT_MSG_TYPE);
+	public Collection<MessageType> getMsgTypes() {
+		return Arrays.asList(SolutionCollector.ASSIGNMENT_MSG_TYPE);
 	}
 
 	/** @see IncomingMsgPolicyInterface#notifyIn(Message) */

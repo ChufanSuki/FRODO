@@ -45,6 +45,7 @@ import frodo2.algorithms.varOrdering.dfs.DFSgeneration;
 import frodo2.algorithms.varOrdering.dfs.DFSgenerationWithOrder;
 import frodo2.algorithms.varOrdering.dfs.DFSgeneration.DFSview;
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 import frodo2.communication.OutgoingMsgPolicyInterface;
 import frodo2.communication.Queue;
 import frodo2.solutionSpaces.Addable;
@@ -74,16 +75,16 @@ import frodo2.solutionSpaces.hypercube.ScalarBasicHypercube;
  * @param <E> the type used for encrypted utility values
  */
 public class EncryptedUTIL < V extends Addable<V>, U extends Addable<U>, E extends AddableLimited<U, E> > 
-implements StatsReporter, OutgoingMsgPolicyInterface<String> {
+implements StatsReporter, OutgoingMsgPolicyInterface<MessageType> {
 	
 	/** The type of the token sent by the root to the last variable in the linear ordering to tell it to start UTIL propagation */
-	static final String LEAF_MSG_TYPE = "StartUTIL";
+	static final MessageType LEAF_MSG_TYPE = new MessageType ("P2-DPOP", "EncryptedUTIL", "Start");
 	
 	/** The type of the encrypted UTIL messages */
-	static final String ENCRYPTED_UTIL_TYPE = "EncryptedUTIL";
+	static final MessageType ENCRYPTED_UTIL_TYPE = new MessageType ("P2-DPOP", "EncryptedUTIL", "UTIL");
 	
 	/** The type of the message used to share codeName with children */
-	public static final String CODENAME_TYPE = VariableObfuscation.CODE_NAME_TYPE;
+	public static final MessageType CODENAME_TYPE = VariableObfuscation.CODE_NAME_TYPE;
 	
 	/** A source of randomness */
 	private SecureRandom rand = new SecureRandom();
@@ -362,7 +363,7 @@ implements StatsReporter, OutgoingMsgPolicyInterface<String> {
 
 	/** @see StatsReporter#getStatsFromQueue(Queue) */
 	public void getStatsFromQueue(Queue queue) {
-		ArrayList <String> msgTypes = new ArrayList <String> (1);
+		ArrayList <MessageType> msgTypes = new ArrayList <MessageType> (1);
 		msgTypes.add(UTILpropagation.UTIL_STATS_MSG_TYPE);
 		queue.addIncomingMessagePolicy(msgTypes, this);
 	}
@@ -373,8 +374,8 @@ implements StatsReporter, OutgoingMsgPolicyInterface<String> {
 	}
 	
 	/** @see StatsReporter#getMsgTypes() */
-	public Collection<String> getMsgTypes() {
-		ArrayList<String> types = new ArrayList<String> (11);
+	public Collection<MessageType> getMsgTypes() {
+		ArrayList<MessageType> types = new ArrayList<MessageType> (11);
 		
 		// Incoming messages
 		types.add(AgentInterface.START_AGENT);
@@ -398,7 +399,7 @@ implements StatsReporter, OutgoingMsgPolicyInterface<String> {
 	@SuppressWarnings("unchecked")
 	public void notifyIn(Message msg) {
 
-		String msgType = msg.getType();
+		MessageType msgType = msg.getType();
 
 		if (msgType.equals(AgentInterface.AGENT_FINISHED)) {
 			
@@ -544,13 +545,13 @@ implements StatsReporter, OutgoingMsgPolicyInterface<String> {
 					this.queue.sendMessageToSelf(new RoutingMsg<LeafMsg> (SecureCircularRouting.PREVIOUS_MSG_TYPE, info.self, new LeafMsg ()));
 			}
 			
-		} else if (msgType.equals(SecureCircularRouting.DELIVERY_MSG_TYPE)){
+		} else if (SecureCircularRouting.DELIVERY_MSG_TYPE.isParent(msgType)){
 			
 			DeliveryMsg<Message> msgCast = (DeliveryMsg<Message>) msg;
 						
 			//Received msgPaylod
 			Message inner = msgCast.getMessage();
-			String innerType = inner.getType();
+			MessageType innerType = inner.getType();
 			if (innerType.equals(LEAF_MSG_TYPE)) { // a message telling the recipient variable that it is the last variable in the linear ordering
 				
 				// Start UTIL propagation
@@ -971,13 +972,13 @@ implements StatsReporter, OutgoingMsgPolicyInterface<String> {
 	@SuppressWarnings("unchecked")
 	public Decision notifyOut(Message msg) {
 		
-		String msgType = msg.getType();
+		MessageType msgType = msg.getType();
 		
-		if (msgType.equals(SecureCircularRouting.PREVIOUS_MSG_TYPE) || msgType.equals(SecureCircularRouting.TO_LAST_LEAF_MSG_TYPE)) {
+		if (SecureCircularRouting.PREVIOUS_MSG_TYPE.isParent(msgType) || SecureCircularRouting.TO_LAST_LEAF_MSG_TYPE.isParent(msgType)) {
 			
 			// Ignore this message if it does not carry a UTIL message or if it is sent to a variable I own
 			EncrUTIL<V, U, E> innerMsg = null;
-			if (msgType.equals(SecureCircularRouting.PREVIOUS_MSG_TYPE)) {
+			if (SecureCircularRouting.PREVIOUS_MSG_TYPE.isParent(msgType)) {
 				
 				RoutingMsg<Message> msgCast = (RoutingMsg<Message>) msg;
 				if (msgCast.getPayload().getType().equals(ENCRYPTED_UTIL_TYPE)) { // UTIL message
@@ -988,7 +989,7 @@ implements StatsReporter, OutgoingMsgPolicyInterface<String> {
 				} else // not a UTIL message
 					return Decision.DONTCARE;
 				
-			} else if (msgType.equals(SecureCircularRouting.TO_LAST_LEAF_MSG_TYPE)) {
+			} else if (SecureCircularRouting.TO_LAST_LEAF_MSG_TYPE.isParent(msgType)) {
 				
 				ToLastLeafMsg msgCast = (ToLastLeafMsg) msg;
 				if (msgCast.getPayload().getType().equals(ENCRYPTED_UTIL_TYPE)) { // UTIL message

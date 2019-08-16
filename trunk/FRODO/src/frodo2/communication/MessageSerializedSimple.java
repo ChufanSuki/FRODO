@@ -53,7 +53,7 @@ public class MessageSerializedSimple <T extends Serializable> extends MessageWit
 	 * @param type type of this message
 	 * @param data the raw data
 	 */
-	public MessageSerializedSimple (String type, T data) {
+	public MessageSerializedSimple (MessageType type, T data) {
 		super(type);
 		this.data = data;
 	}

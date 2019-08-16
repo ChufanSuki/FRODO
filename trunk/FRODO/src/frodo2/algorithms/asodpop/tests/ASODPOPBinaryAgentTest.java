@@ -43,13 +43,14 @@ import org.jdom2.JDOMException;
 import frodo2.algorithms.AgentFactory;
 import frodo2.algorithms.AgentInterface;
 import frodo2.algorithms.Problem;
+import frodo2.algorithms.SolutionCollector;
 import frodo2.algorithms.XCSPparser;
 import frodo2.algorithms.dpop.DPOPsolver;
 import frodo2.algorithms.reformulation.ProblemRescaler;
 import frodo2.algorithms.test.AllTests;
-import frodo2.algorithms.asodpop.ASODPOPBinaryDomains;
 import frodo2.communication.IncomingMsgPolicyInterface;
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 import frodo2.communication.MessageWith2Payloads;
 import frodo2.communication.MessageWrapper;
 import frodo2.communication.Queue;
@@ -74,7 +75,7 @@ import junit.framework.TestSuite;
  * @param <U> the type used for utility values
  *
  */
-public class ASODPOPBinaryAgentTest < V extends Addable<V>, U extends Addable<U> > extends TestCase implements IncomingMsgPolicyInterface<String> {
+public class ASODPOPBinaryAgentTest < V extends Addable<V>, U extends Addable<U> > extends TestCase implements IncomingMsgPolicyInterface<MessageType> {
 
 
 	/** Maximum number of variables in the problem 
@@ -115,8 +116,8 @@ public class ASODPOPBinaryAgentTest < V extends Addable<V>, U extends Addable<U>
 	/** Used to wake up the test thread when all agents have finished */
 	private final Condition finished = finished_lock.newCondition();
 
-	/** The ADOPT stats gatherer listening for the solution */
-	private ASODPOPBinaryDomains<V, U> statsGatherer;
+	/** The solution collector */
+	private SolutionCollector<V, U> solCollector;
 	
 	/** The description of the agent */
 	private Document agentDesc;
@@ -265,7 +266,7 @@ public class ASODPOPBinaryAgentTest < V extends Addable<V>, U extends Addable<U>
 		queue = null;
 		pipes = null;
 		agents = null;
-		statsGatherer = null;
+		solCollector = null;
 		this.agentDesc = null;
 		this.pipe = null;
 	}
@@ -322,9 +323,9 @@ public class ASODPOPBinaryAgentTest < V extends Addable<V>, U extends Addable<U>
 			problem = prob;
 		}
 		
-		statsGatherer = new ASODPOPBinaryDomains<V, U> (null, problem);
-		statsGatherer.setSilent(true);
-		statsGatherer.getStatsFromQueue(queue);
+		solCollector = new SolutionCollector<V, U> (null, problem);
+		solCollector.setSilent(true);
+		solCollector.getStatsFromQueue(queue);
 
 		String useCentralMailerString = Boolean.toString(useCentralMailer);
 		agentDesc.getRootElement().setAttribute("measureTime", useCentralMailerString);
@@ -378,20 +379,20 @@ public class ASODPOPBinaryAgentTest < V extends Addable<V>, U extends Addable<U>
 		}
 		
 		// Check that ASODPOP and DPOP agree on the total optimal utility
-		U totalOptUtil = statsGatherer.getTotalOptUtil();
+		U totalOptUtil = solCollector.getUtility();
 		Document dpopAgent = XCSPparser.parse(AgentFactory.class.getResourceAsStream("/frodo2/algorithms/dpop/DPOPagent.xml"), false);
 		dpopAgent.getRootElement().getChild("parser").setAttribute("utilClass", this.utilClass.getName());
 		U dpopOptUtil = (new DPOPsolver<V, U> (dpopAgent, this.domClass, this.utilClass)).solve(problemDoc).getUtility();
 		assertEquals (dpopOptUtil, totalOptUtil);
 		
 		// Check that the optimal assignments have indeed the reported utility
-		Map<String, V> optAssignments = statsGatherer.getOptAssignments();
+		Map<String, V> optAssignments = solCollector.getSolution();
 		assertEquals (totalOptUtil, problem.getUtility(optAssignments).getUtility(0));
 	}
 
 	/** @see frodo2.communication.IncomingMsgPolicyInterface#getMsgTypes() */
-	public Collection<String> getMsgTypes() {
-		ArrayList<String> types = new ArrayList<String> (4);
+	public Collection<MessageType> getMsgTypes() {
+		ArrayList<MessageType> types = new ArrayList<MessageType> (4);
 		types.add(AgentInterface.LOCAL_AGENT_REPORTING);
 		types.add(AgentInterface.LOCAL_AGENT_ADDRESS_REQUEST);
 		types.add(AgentInterface.AGENT_CONNECTED);

@@ -48,6 +48,7 @@ import frodo2.algorithms.AgentFactory;
 import frodo2.algorithms.AgentInterface;
 import frodo2.algorithms.Problem;
 import frodo2.algorithms.RandGraphFactory;
+import frodo2.algorithms.SolutionCollector;
 import frodo2.algorithms.XCSPparser;
 import frodo2.algorithms.AgentInterface.ComStatsMessage;
 import frodo2.algorithms.dpop.DPOPsolver;
@@ -58,6 +59,7 @@ import frodo2.algorithms.varOrdering.dfs.DFSgeneration;
 import frodo2.algorithms.varOrdering.dfs.DFSgenerationParallel;
 import frodo2.communication.IncomingMsgPolicyInterface;
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 import frodo2.communication.MessageWith2Payloads;
 import frodo2.communication.MessageWrapper;
 import frodo2.communication.Queue;
@@ -79,7 +81,7 @@ import frodo2.solutionSpaces.UtilitySolutionSpace;
  * @param <U> the type used for utility values
  * @todo Many tests should inherit this class to favor code reuse. 
  */
-public class DPOPagentTest< V extends Addable<V>, U extends Addable<U> > extends TestCase implements IncomingMsgPolicyInterface<String> {
+public class DPOPagentTest< V extends Addable<V>, U extends Addable<U> > extends TestCase implements IncomingMsgPolicyInterface<MessageType> {
 
 	/** Maximum number of variables in the problem 
 	 * @note Must be at least 2. 
@@ -156,7 +158,7 @@ public class DPOPagentTest< V extends Addable<V>, U extends Addable<U> > extends
 	protected UTILpropagation<V, U> utilModule;
 	
 	/** The module listening for the optimal assignment to the problem */
-	protected VALUEpropagation<V> valueModule;
+	protected SolutionCollector<V, U> solCollector;
 
 	/** Whether to use XCSP */
 	protected boolean useXCSP;
@@ -165,7 +167,7 @@ public class DPOPagentTest< V extends Addable<V>, U extends Addable<U> > extends
 	private boolean useTCP;
 
 	/** The type of the start message */
-	protected String startMsgType;
+	protected MessageType startMsgType;
 
 	/** Whether to count NCCCs */
 	protected boolean countNCCCs;
@@ -244,7 +246,7 @@ public class DPOPagentTest< V extends Addable<V>, U extends Addable<U> > extends
 	 * @param startMsgType 		the type of the start message
 	 */
 	@SuppressWarnings("unchecked")
-	public DPOPagentTest(boolean useXCSP, boolean useTCP, boolean useCentralMailer, boolean useDelay, Class<V> domClass, Class<U> utilClass, String startMsgType) {
+	public DPOPagentTest(boolean useXCSP, boolean useTCP, boolean useCentralMailer, boolean useDelay, Class<V> domClass, Class<U> utilClass, MessageType startMsgType) {
 		this(useXCSP, useTCP, useCentralMailer, useDelay, domClass, utilClass, startMsgType, (Class<? extends XCSPparser<V, U>>) XCSPparser.class, false, false, false, false, false);
 	}
 	
@@ -263,7 +265,7 @@ public class DPOPagentTest< V extends Addable<V>, U extends Addable<U> > extends
 	 * @param measureMsgs 			whether to measure message numbers and sizes
 	 * @param ignoreHypercubeNCCCs 	Whether to ignore Hypercube NCCCs or not
 	 */
-	public DPOPagentTest(boolean useXCSP, boolean useTCP, boolean useCentralMailer, boolean useDelay, Class<V> domClass, Class<U> utilClass, String startMsgType, Class< ? extends XCSPparser<V, U> > parserClass, 
+	public DPOPagentTest(boolean useXCSP, boolean useTCP, boolean useCentralMailer, boolean useDelay, Class<V> domClass, Class<U> utilClass, MessageType startMsgType, Class< ? extends XCSPparser<V, U> > parserClass, 
 			boolean swap, boolean minNCCCs, boolean countNCCCs, boolean measureMsgs, boolean ignoreHypercubeNCCCs) {
 		super ("testRandom");
 		this.useXCSP = useXCSP;
@@ -277,6 +279,7 @@ public class DPOPagentTest< V extends Addable<V>, U extends Addable<U> > extends
 		this.measureMsgs = measureMsgs;
 		this.minNCCCs = minNCCCs;
 		this.ignoreHypercubeNCCCs = ignoreHypercubeNCCCs;
+		this.startMsgType = startMsgType;
 		this.swap = swap;
 	}
 	
@@ -284,20 +287,36 @@ public class DPOPagentTest< V extends Addable<V>, U extends Addable<U> > extends
 	 * @param startMsgType 		the new type for the start message
 	 * @throws JDOMException 	if parsing the agent configuration file failed
 	 */
-	protected void setStartMsgType (String startMsgType) throws JDOMException {
-		this.startMsgType = AgentInterface.START_AGENT;
+	protected void setStartMsgType (MessageType startMsgType) throws JDOMException {
 		if (startMsgType != null) {
 			this.startMsgType = startMsgType;
-			for (Element module2 : (List<Element>) agentConfig.getRootElement().getChild("modules").getChildren()) {
-				for (Element message : (List<Element>) module2.getChild("messages").getChildren()) {
-					if (message.getAttributeValue("name").equals("START_MSG_TYPE")) {
-						message.setAttribute("value", startMsgType);
-						message.removeAttribute("ownerClass");
-					}
-				}
+			for (Element module2 : agentConfig.getRootElement().getChild("modules").getChildren()) {
+				this.setStartMsgType(module2.getChild("messages"), startMsgType);
+				
+				// Also set the start message type for sub-modules (example: DFSgenerationParallel)
+				for (Element submod : module2.getChildren()) 
+					this.setStartMsgType(submod.getChild("messages"), startMsgType);
 			}
 		} else 
 			this.startMsgType = AgentInterface.START_AGENT;
+	}
+
+	/** Overwrites the type of the start messages
+	 * @param messages 		messages element
+	 * @param startMsgType 	the new type of the start messages
+	 */
+	private void setStartMsgType (Element messages, MessageType startMsgType) {
+		if (messages != null) {
+			for (Element message : (List<Element>) messages.getChildren()) {
+				if (message.getAttributeValue("myFieldName").equals("START_MSG_TYPE") 
+						&& message.getAttributeValue("targetFieldName").equals("START_AGENT")
+						&& message.getAttributeValue("targetClass").equals(AgentInterface.class.getName())) {
+					message.removeAttribute("targetFieldName");
+					message.removeAttribute("targetClass");
+					message.addContent(startMsgType.toXML());
+				}
+			}
+		}
 	}
 
 	/** @return the test suite */
@@ -351,7 +370,7 @@ public class DPOPagentTest< V extends Addable<V>, U extends Addable<U> > extends
 		suite.addTest(tmp);
 		
 		tmp = new TestSuite ("Tests using QueueIOPipes with integer-valued utilities and a different type for the start message");
-		tmp.addTest(new RepeatedTest (new DPOPagentTest<AddableInteger, AddableInteger> (true, false, false, false, AddableInteger.class, AddableInteger.class, "START NOW!"), 25));
+		tmp.addTest(new RepeatedTest (new DPOPagentTest<AddableInteger, AddableInteger> (true, false, false, false, AddableInteger.class, AddableInteger.class, new MessageType ("START NOW!")), 25));
 		suite.addTest(tmp);
 		
 		tmp = new TestSuite ("Tests using QueueIOPipes using swapping");
@@ -445,9 +464,10 @@ public class DPOPagentTest< V extends Addable<V>, U extends Addable<U> > extends
 		utilModule = new UTILpropagation<V, U> (null, parser);
 		utilModule.setSilent(true);
 		utilModule.getStatsFromQueue(queue);
-		valueModule = new VALUEpropagation<V> (null, parser);
-		valueModule.setSilent(true);
-		valueModule.getStatsFromQueue(queue);
+
+		solCollector = new SolutionCollector<V, U> (null, parser);
+		solCollector.setSilent(true);
+		solCollector.getStatsFromQueue(queue);
 		
 		DFSgeneration<V, U> module = new DFSgeneration<V, U> (null, parser);
 		module.setSilent(true);
@@ -475,7 +495,7 @@ public class DPOPagentTest< V extends Addable<V>, U extends Addable<U> > extends
 		problemDoc = null;
 		problem = null;
 		utilModule = null;
-		valueModule = null;
+		solCollector = null;
 		this.startMsgType = null;
 	}
 	
@@ -492,10 +512,8 @@ public class DPOPagentTest< V extends Addable<V>, U extends Addable<U> > extends
 		agentConfig.getRootElement().setAttribute("measureTime", useCentralMailerString);
 		agentConfig.getRootElement().setAttribute("measureMsgs", Boolean.toString(this.measureMsgs));
 		
-		// Create the set of agents, including potentially empty agents
-		Set<String> agentsSet  = new HashSet<String> ();
-		for (int i = graph.clusters.size() - 1; i >= 0; i--) 
-			agentsSet.add(Integer.toString(i));
+		// Create the set of agents
+		Set<String> agentsSet = new HashSet<String> (graph.clusters.keySet());
 		nbrAgents = agentsSet.size();
 		
 		// Go through the list of agents and instantiate them
@@ -549,7 +567,7 @@ public class DPOPagentTest< V extends Addable<V>, U extends Addable<U> > extends
 	protected void checkOutput() throws Exception {
 		
 		U optUtil = this.utilModule.getOptUtil();
-		Map<String, V> solution = this.valueModule.getSolution();
+		Map<String, V> solution = this.solCollector.getSolution();
 		
 		// First check that the output assignments and the output utility are consistent
 		problem.setDomClass(domClass);
@@ -581,8 +599,8 @@ public class DPOPagentTest< V extends Addable<V>, U extends Addable<U> > extends
 	}
 
 	/** @see frodo2.communication.IncomingMsgPolicyInterface#getMsgTypes() */
-	public Collection<String> getMsgTypes() {
-		ArrayList<String> types = new ArrayList<String> (4);
+	public Collection<MessageType> getMsgTypes() {
+		ArrayList<MessageType> types = new ArrayList<MessageType> (4);
 		types.add(AgentInterface.LOCAL_AGENT_REPORTING);
 		types.add(AgentInterface.LOCAL_AGENT_ADDRESS_REQUEST);
 		types.add(AgentInterface.AGENT_CONNECTED);

@@ -53,6 +53,7 @@ import frodo2.algorithms.varOrdering.election.LeaderElectionMaxID;
 import frodo2.algorithms.varOrdering.election.tests.LeaderElectionMaxIDTest;
 import frodo2.communication.IncomingMsgPolicyInterface;
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 import frodo2.communication.Queue;
 import frodo2.communication.QueueOutputPipeInterface;
 import frodo2.communication.sharedMemory.QueueIOPipe;
@@ -64,7 +65,7 @@ import junit.framework.TestSuite;
 /** JUnit test for the SecureRerooting module
  * @author Eric Zbinden, Thomas Leaute
  */
-public class SecureRerootingTest extends TestCase implements IncomingMsgPolicyInterface<String>{
+public class SecureRerootingTest extends TestCase implements IncomingMsgPolicyInterface<MessageType>{
 	
 	/** The maximum number of variables in this problem */
 	private int maxVar = 9;
@@ -84,11 +85,11 @@ public class SecureRerootingTest extends TestCase implements IncomingMsgPolicyIn
 	/** The components of the graph still to test */
 	private List<List<String>> components;
 	
-	/** List of queues corresponding to the different agents */
-	private Queue[] queues;
+	/** List of queues, indexed by agent name */
+	private Map<String, Queue> queues;
 
-	/** One output pipe used to send messages to each queue */
-	private QueueOutputPipeInterface[] pipes;
+	/** One output pipe used to send messages to each queue, indexed by agent name */
+	private Map<String, QueueOutputPipeInterface> pipes;
 
 	/** Whether to use TCP or SharedMemory pipes */
 	private boolean useTCP;
@@ -171,14 +172,14 @@ public class SecureRerootingTest extends TestCase implements IncomingMsgPolicyIn
 		// Create the queue network
 		this.nbrAgents = graph.clusters.size();
 		
-		queues = new Queue [nbrAgents];
+		queues = new HashMap<String, Queue> (nbrAgents);
 		pipes = AllTests.createQueueNetwork(queues, graph, this.useTCP);
 		
 		// Listener 
 		myQueue = new Queue (false);
 		myQueue.addIncomingMessagePolicy(this);
 		QueueIOPipe myPipe = new QueueIOPipe (myQueue);
-		for (Queue queue : this.queues) {
+		for (Queue queue : this.queues.values()) {
 			queue.addOutputPipe(AgentInterface.STATS_MONITOR, myPipe);
 		}
 		DFSgeneration.ROOT_VAR_MSG_TYPE = SecureRerooting.OUTPUT;
@@ -193,10 +194,10 @@ public class SecureRerootingTest extends TestCase implements IncomingMsgPolicyIn
 		Map<String, String> leaders = LeaderElectionMaxIDTest.computeLeaders (graph.nodes, graph.components);
 		components = new ArrayList< List<String> > (graph.components);
 		
-		for (int i = 0; i < graph.clusters.size(); i++) {
+		for (Map.Entry<String, Queue> entry : queues.entrySet()) {
 			
-			Queue queue = queues[i];
-			String agent = Integer.toString(i);
+			Queue queue = entry.getValue();
+			String agent = entry.getKey();
 	
 			// Extract the subproblem for that agent
 			XCSPparser<AddableInteger, AddableInteger> subProb = this.parser.getSubProblem(agent);
@@ -226,13 +227,13 @@ public class SecureRerootingTest extends TestCase implements IncomingMsgPolicyIn
 			queue.sendMessageToSelf(new Message (AgentInterface.START_AGENT));
 		}
 		
-		for (int i = 0; i < nbrAgents; i++) { // for each agent
+		for (Map.Entry<String, Queue> entry : queues.entrySet()) { // for each agent
 			
-			for (String var : graph.clusters.get(i)) { // for each variable owned by the agent
+			for (String var : graph.clusters.get(entry.getKey())) { // for each variable owned by the agent
 
 				// Create and send the message saying that variable i is a root (or not)
 				String leader = leaders.get(var);
-				queues[i].sendMessageToSelf(new LeaderElectionMaxID.MessageLEoutput<String> (var, leader.equals(var), leader));
+				entry.getValue().sendMessageToSelf(new LeaderElectionMaxID.MessageLEoutput<String> (var, leader.equals(var), leader));
 			}
 		}
 		
@@ -290,13 +291,13 @@ public class SecureRerootingTest extends TestCase implements IncomingMsgPolicyIn
 	 * @param dest the destination of the reroot request message
 	 */
 	private void sendReroot(String dest){
-		this.queues[graph.clusterOf.get(dest)].sendMessageToSelf(new RerootingMsg(dest));
+		this.queues.get(graph.clusterOf.get(dest)).sendMessageToSelf(new RerootingMsg(dest));
 	}
 
 	/** @see IncomingMsgPolicyInterface#notifyIn(Message) */
 	public synchronized void notifyIn(Message msg) {
 		
-		String msgType = msg.getType();
+		MessageType msgType = msg.getType();
 		
 		if (msgType.equals(CollaborativeDecryption.CRYPTO_SCHEME_TYPE)) { // the crypto scheme for a given variable
 
@@ -368,7 +369,7 @@ public class SecureRerootingTest extends TestCase implements IncomingMsgPolicyIn
 	/** Send to all agent an AgentFinish message */
 	private void end(){
 		
-		for (Queue queue : queues){
+		for (Queue queue : queues.values()){
 			queue.sendMessageToSelf(new Message(AgentInterface.AGENT_FINISHED));
 		}
 	}
@@ -387,8 +388,8 @@ public class SecureRerootingTest extends TestCase implements IncomingMsgPolicyIn
 	}
 
 	/** @see IncomingMsgPolicyInterface#getMsgTypes() */
-	public Collection<String> getMsgTypes() {
-		ArrayList<String> types = new ArrayList<String> (4);
+	public Collection<MessageType> getMsgTypes() {
+		ArrayList<MessageType> types = new ArrayList<MessageType> (4);
 		types.add(CollaborativeDecryption.CRYPTO_SCHEME_TYPE);
 		types.add(DFSgenerationWithOrder.OUTPUT_MSG_TYPE);
 		types.add(DFSgeneration.OUTPUT_MSG_TYPE);
@@ -416,11 +417,11 @@ public class SecureRerootingTest extends TestCase implements IncomingMsgPolicyIn
 		graph = null;
 		this.parser = null;
 		if (this.queues != null) 
-			for (Queue queue : queues) 
+			for (Queue queue : queues.values()) 
 				queue.end();
 		queues = null;
 		if (this.pipes != null) 
-			for (QueueOutputPipeInterface pipe : pipes) 
+			for (QueueOutputPipeInterface pipe : pipes.values()) 
 				pipe.close();
 		pipes = null;		
 		roots = null;

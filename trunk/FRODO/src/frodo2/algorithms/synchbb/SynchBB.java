@@ -42,9 +42,11 @@ import java.util.TreeMap;
 import org.jdom2.Element;
 
 import frodo2.algorithms.AgentInterface;
+import frodo2.algorithms.SolutionCollector;
 import frodo2.algorithms.StatsReporterWithConvergence;
 import frodo2.algorithms.varOrdering.linear.OrderMsg;
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 import frodo2.communication.Queue;
 import frodo2.solutionSpaces.Addable;
 import frodo2.solutionSpaces.DCOPProblemInterface;
@@ -66,31 +68,28 @@ import frodo2.solutionSpaces.hypercube.ScalarHypercube;
 public class SynchBB < V extends Addable<V>, U extends Addable<U> > implements StatsReporterWithConvergence<V> {
 	
 	/** The type of the message telling the module to start */
-	public static String START_MSG_TYPE = AgentInterface.START_AGENT;
+	public static MessageType START_MSG_TYPE = AgentInterface.START_AGENT;
 
 	/** The types of the messages containing the chosen linear order of (clusters of) variables */
-	public static String ORDER_MSG_TYPE = OrderMsg.ORDER_MSG_TYPE;
+	public static MessageType ORDER_MSG_TYPE = OrderMsg.ORDER_MSG_TYPE;
 
 	/** The types of the messages containing the chosen linear order of (clusters of) variables sent to the stats gatherer */
-	public static String ORDER_STATS_MSG_TYPE = OrderMsg.STATS_MSG_TYPE;
+	public static MessageType ORDER_STATS_MSG_TYPE = OrderMsg.STATS_MSG_TYPE;
 
 	/** The type of the backtrack messages */
-	public static final String BACKTRACK_MSG_TYPE = "Backtrack";
+	public static final MessageType BACKTRACK_MSG_TYPE = new MessageType ("SynchBB", "Backtrack");
 	
 	/** The type of the messages containing the current partial assignment */
-	public static final String PATH_MSG_TYPE = "Path";
+	public static final MessageType PATH_MSG_TYPE = new MessageType ("SynchBB", "Path");
 	
 	/** The type of the message containing the optimal solution found */
-	public static final String OUTPUT_MSG_TYPE = "Solution";
-	
-	/** The type of the message containing the optimal solution found sent to the stats gatherer */
-	public static final String STATS_MSG_TYPE = "SolutionStats";
+	public static final MessageType OUTPUT_MSG_TYPE = new MessageType ("SynchBB", "Solution");
 	
 	/** The type of the messages broadcast by the last variable containing the current upper bound */
-	public static final String UB_MSG_TYPE = "UB"; /// @todo Do not include the solution?
+	public static final MessageType UB_MSG_TYPE = new MessageType ("SynchBB", "UB"); /// @todo Do not include the solution?
 	
 	/** The type of the message reporting the convergence for a given component */
-	private static final String CONV_STATS_MSG_TYPE = "Convergence";
+	private static final MessageType CONV_STATS_MSG_TYPE = new MessageType ("SynchBB", "Convergence");
 
 	/** Whether the algorithm should print out debugging information */
 	private static final boolean DEBUG = false;
@@ -274,9 +273,6 @@ public class SynchBB < V extends Addable<V>, U extends Addable<U> > implements S
 	/** The problem */
 	private DCOPProblemInterface<V, U> problem;
 	
-	/** Whether to report stats */
-	private boolean reportStats = true;
-	
 	/** Whether the module has already started the algorithm */
 	private boolean started = false;
 
@@ -285,9 +281,6 @@ public class SynchBB < V extends Addable<V>, U extends Addable<U> > implements S
 
 	/** The solution */
 	private HashMap<String, V> solution;
-	
-	/** The optimal cost */
-	private U optCost;
 	
 	/** The class of V */
 	private Class<V> valClass;
@@ -314,7 +307,6 @@ public class SynchBB < V extends Addable<V>, U extends Addable<U> > implements S
 		this.convergence = false;
 		this.assignmentHistoriesMap = new HashMap< String, ArrayList< CurrentAssignment<V> > > ();
 		this.solution = new HashMap<String, V> ();
-		this.optCost = problem.getZeroUtility();
 		this.pendingSolMsgs = new LinkedList< SolutionMsg<V, U> > ();
 		this.pendingConvMsgs = new LinkedList< ConvergenceMessage<V> > ();
 	}
@@ -327,7 +319,6 @@ public class SynchBB < V extends Addable<V>, U extends Addable<U> > implements S
 		this.problem = problem;
 		
 		this.convergence = Boolean.parseBoolean(parameters.getAttributeValue("convergence"));
-		this.reportStats = Boolean.parseBoolean(parameters.getAttributeValue("reportStats"));
 		
 		this.pendingSolMsgs = new LinkedList< SolutionMsg<V, U> > ();
 		this.pendingPathMsgs = new HashMap< String, PathMsg<V, U> > ();
@@ -337,7 +328,6 @@ public class SynchBB < V extends Addable<V>, U extends Addable<U> > implements S
 	private void start () {
 		this.compInfos = new HashMap<Comparable<?>, ComponentInfo> ();
 		this.compOfCluster = new HashMap< String, Comparable<?> > ();
-		this.optCost = this.problem.getZeroUtility();
 		this.solution = new HashMap<String, V> ();
 		this.zero = this.problem.getZeroUtility();
 		assert ! this.problem.maximize() : "SynchBB only supports minimization problems with non-negative costs";
@@ -367,14 +357,13 @@ public class SynchBB < V extends Addable<V>, U extends Addable<U> > implements S
 		
 		this.compInfos = new HashMap<Comparable<?>, ComponentInfo> ();
 		this.solution = new HashMap<String, V> ();
-		this.optCost = this.problem.getZeroUtility();
 
 		this.started = false;
 	}
 
 	/** @see StatsReporterWithConvergence#getMsgTypes() */
-	public Collection<String> getMsgTypes() {
-		ArrayList<String> types = new ArrayList<String> (7);
+	public Collection<MessageType> getMsgTypes() {
+		ArrayList<MessageType> types = new ArrayList<MessageType> (7);
 		types.add(START_MSG_TYPE);
 		types.add(AgentInterface.AGENT_FINISHED);
 		types.add(ORDER_MSG_TYPE);
@@ -388,14 +377,11 @@ public class SynchBB < V extends Addable<V>, U extends Addable<U> > implements S
 	/** @see StatsReporterWithConvergence#getStatsFromQueue(Queue) */
 	public void getStatsFromQueue(Queue queue) {
 		queue.addIncomingMessagePolicy(ORDER_STATS_MSG_TYPE, this);
-		queue.addIncomingMessagePolicy(STATS_MSG_TYPE, this);
 		queue.addIncomingMessagePolicy(CONV_STATS_MSG_TYPE, this);
 	}
 
 	/** @see StatsReporterWithConvergence#setSilent(boolean) */
-	public void setSilent(boolean silent) {
-		this.reportStats = ! silent;
-	}
+	public void setSilent(boolean silent) { }
 
 	/** @see StatsReporterWithConvergence#setQueue(Queue) */
 	public void setQueue(Queue queue) {
@@ -406,61 +392,14 @@ public class SynchBB < V extends Addable<V>, U extends Addable<U> > implements S
 	@SuppressWarnings("unchecked")
 	public void notifyIn(Message msg) {
 		
-		String msgType = msg.getType();
+		MessageType msgType = msg.getType();
 		
-		if (msgType.equals(STATS_MSG_TYPE)) { // the message containing the solution
-			
-			SolutionMsg<V, U> msgCast = (SolutionMsg<V, U>) msg;
-			
-			// Record the solution
-			this.optCost = this.optCost.add(msgCast.cost);
-			ComponentInfo compInfo = this.compInfos.get(msgCast.componentID);
-			
-			// Defer the message if we have not received the linear order for this component yet
-			if (compInfo == null) {
-				this.pendingSolMsgs.add(msgCast);
-				return;
-			}
-			
-			final int nbrClusters = compInfo.order.length;
-			for (int i = 0; i < nbrClusters; i++) {
-				String[] cluster = compInfo.order[i];
-				for(int j = 0; j < cluster.length; j++){
-					String var = cluster[j];
-					V val = this.problem.getDomain(var)[0];
-					if (msgCast.solution != null && msgCast.solution[i][j] != null) 
-						val = msgCast.solution[i][j];
-					this.solution.put(var, val);
-					if (this.reportStats) 
-						System.out.println("var `" + var + "' = " + val);
-				}
-			}
-			
-			if (this.solution.size() == this.problem.getVariables().size()) {
-				
-				this.optCost = this.problem.getUtility(solution, true).getUtility(0);
-				
-				if (this.reportStats) 
-					System.out.println("Total optimal " + (this.problem.maximize() ? "utility: " : "cost: ") + this.optCost);
-			}
-			
-			return;
-		}
-
 		if (msgType.equals(ORDER_STATS_MSG_TYPE)) { // a stats message containing the linear order on clusters
 			OrderMsg<V, U> msgCast = (OrderMsg<V, U>) msg;
 			Comparable<?> compID = msgCast.getComponentID();
 			this.compInfos.put(compID, new ComponentInfo (msgCast.getOrder()));
 			
 			// Process the potentially pending messages for this component
-			for (Iterator< SolutionMsg<V, U> > iter = this.pendingSolMsgs.iterator(); iter.hasNext(); ) {
-				SolutionMsg<V, U> solMsg = iter.next();
-				if (solMsg.componentID.equals(compID)) {
-					iter.remove();
-					this.notifyIn(solMsg);
-					break;
-				}
-			}
 			for (Iterator< ConvergenceMessage<V> > iter = this.pendingConvMsgs.iterator(); iter.hasNext(); ) {
 				ConvergenceMessage<V> convMsg = iter.next();
 				if (convMsg.compID.equals(compID)) {
@@ -648,9 +587,7 @@ public class SynchBB < V extends Addable<V>, U extends Addable<U> > implements S
 
 		else if (msgType.equals(OUTPUT_MSG_TYPE)) { // the solution for a particular component of the constraint graph
 			
-			// Record the solution
 			SolutionMsg<V, U> msgCast = (SolutionMsg<V, U>) msg;
-			this.optCost = this.optCost.add(msgCast.cost);
 			ComponentInfo compInfo = this.compInfos.get(msgCast.componentID);
 
 			// Defer the message if we have not received the linear order for this component yet
@@ -659,20 +596,34 @@ public class SynchBB < V extends Addable<V>, U extends Addable<U> > implements S
 				return;
 			}
 
+			// Record the solution
 			for (int i = compInfo.order.length - 1; i >= 0; i--){
 				ClusterInfo cluster = compInfo.clusterInfos.get(i);
 				if (cluster != null) { // internal cluster
 					String[] vars = compInfo.order[i];
 					if (msgCast.solution == null) // no solution found
 						for(int j = vars.length - 1; j >= 0; j--)
-							this.solution.put(vars[j], null);
+							this.solution.put(vars[j], cluster.domain[j][0]); // arbitrarily choose the first value in the domain
 					else {
 						V[] assignment = msgCast.solution[i];
 						for(int j = vars.length - 1; j >= 0; j--)
-							this.solution.put(vars[j], assignment[j]);
+							this.solution.put(vars[j], assignment[j] != null ? assignment[j] 
+																			: cluster.domain[j][0]);  // no solution found 
 					}
 				}
 			}
+
+			// Send the solution to the solution collector
+			String[] vars = new String [this.solution.size()];
+			ArrayList<V> vals = new ArrayList<V> ();
+			int i = 0;
+			for (Map.Entry<String, V> entry : this.solution.entrySet()) {
+				vars[i++] = entry.getKey();
+				assert entry.getValue() != null : "null-assigned variables in the solution: " + this.solution;
+				vals.add(entry.getValue());
+			}
+			this.queue.sendMessage(AgentInterface.STATS_MONITOR, 
+					new SolutionCollector.AssignmentsMessage<V>(vars, vals));
 
 			if (this.solution.size() >= this.problem.getNbrIntVars())
 				this.queue.sendMessageToSelf(new Message (AgentInterface.AGENT_FINISHED));
@@ -740,8 +691,6 @@ public class SynchBB < V extends Addable<V>, U extends Addable<U> > implements S
 	private void terminate (Comparable<?> compID, ComponentInfo compInfo) {
 		
 		this.queue.sendMessageToMulti(compInfo.agents, new SolutionMsg<V, U> (OUTPUT_MSG_TYPE, compID, compInfo.bestSol, compInfo.ub));
-		if (this.reportStats) 
-			this.queue.sendMessage(AgentInterface.STATS_MONITOR, new SolutionMsg<V, U> (STATS_MSG_TYPE, compID, compInfo.bestSol, compInfo.ub));
 		
 		if (this.convergence) 
 			this.queue.sendMessage(AgentInterface.STATS_MONITOR, new ConvergenceMessage<V> (compID, compInfo.history));
@@ -953,16 +902,6 @@ public class SynchBB < V extends Addable<V>, U extends Addable<U> > implements S
 		return compInfo.assignments[clusterIndex];
 	}
 	
-	/** @return for each variable in the problem, its chosen value */
-	public HashMap<String, V> getOptAssignments () {
-		return this.solution;
-	}
-	
-	/** @return the cost of the optimal solution found */
-	public U getOptCost () {
-		return this.optCost;
-	}
-
 	/** @see StatsReporterWithConvergence#getAssignmentHistories() */
 	public HashMap< String, ArrayList< CurrentAssignment<V> > > getAssignmentHistories() {
 		return this.assignmentHistoriesMap;

@@ -28,6 +28,7 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 import frodo2.solutionSpaces.Addable;
 
 /** All AFB messages containing a CPA subclass this class 
@@ -58,7 +59,7 @@ public abstract class AFBBaseMsg < V extends Addable<V>, U extends Addable<U> > 
 		 * @param pa		 	The current PA
 		 * @param timestamp 	Timestamp for this PA
 		 */
-		protected AFBBaseMsg (String type, String dest, PA<V, U> pa, Timestamp timestamp) {
+		protected AFBBaseMsg (MessageType type, String dest, PA<V, U> pa, Timestamp timestamp) {
 			super (type);
 			this.dest = dest;
 			this.pa=pa;

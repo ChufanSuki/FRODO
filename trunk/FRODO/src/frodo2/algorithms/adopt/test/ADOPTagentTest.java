@@ -41,14 +41,15 @@ import org.jdom2.JDOMException;
 import frodo2.algorithms.AgentFactory;
 import frodo2.algorithms.AgentInterface;
 import frodo2.algorithms.Problem;
+import frodo2.algorithms.SolutionCollector;
 import frodo2.algorithms.XCSPparser;
-import frodo2.algorithms.adopt.ADOPT;
 import frodo2.algorithms.adopt.Preprocessing;
 import frodo2.algorithms.dpop.DPOPsolver;
 import frodo2.algorithms.reformulation.ProblemRescaler;
 import frodo2.algorithms.test.AllTests;
 import frodo2.communication.IncomingMsgPolicyInterface;
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 import frodo2.communication.MessageWith2Payloads;
 import frodo2.communication.MessageWrapper;
 import frodo2.communication.Queue;
@@ -75,7 +76,7 @@ import junit.framework.TestSuite;
  * @param <V> the type used for variable values
  * @param <U> the type used for utility values
  */
-public class ADOPTagentTest < V extends Addable<V>, U extends Addable<U> > extends TestCase implements IncomingMsgPolicyInterface<String> {
+public class ADOPTagentTest < V extends Addable<V>, U extends Addable<U> > extends TestCase implements IncomingMsgPolicyInterface<MessageType> {
 
 	/** Maximum number of variables in the problem 
 	 * @note Must be at least 2. 
@@ -118,14 +119,14 @@ public class ADOPTagentTest < V extends Addable<V>, U extends Addable<U> > exten
 	/** Whether we should count Non-Concurrent Constraint Checks */
 	private boolean countNCCCs = false;
 
-	/** The ADOPT stats gatherer listening for the solution */
-	private ADOPT<V, U> statsGatherer;
+	/** The solution collector listening for the solution */
+	private SolutionCollector<V, U> solCollector;
 	
 	/** Used to check the output of the preprocessing listener*/
 	private Preprocessing<V, U> preProcessingTester;
 	
 	/** The type of the start message */
-	private String startMsgType;
+	private MessageType startMsgType;
 
 	/** The description of the agent */
 	private Document agentDesc;
@@ -172,7 +173,7 @@ public class ADOPTagentTest < V extends Addable<V>, U extends Addable<U> > exten
 	 * @param maximize 			Whether to test on maximization problem
 	 * @param sign 				The required sign for the costs/utilities
 	 */
-	public ADOPTagentTest(boolean useCentralMailer, boolean useDelay, String startMsgType, Class<V> domClass, Class<U> utilClass, boolean useXCSP, boolean useTCP, boolean countNCCCs, boolean maximize, int sign) {
+	public ADOPTagentTest(boolean useCentralMailer, boolean useDelay, MessageType startMsgType, Class<V> domClass, Class<U> utilClass, boolean useXCSP, boolean useTCP, boolean countNCCCs, boolean maximize, int sign) {
 		super ("testRandom");
 		this.useCentralMailer = useCentralMailer;
 		this.useDelay = useDelay;
@@ -190,22 +191,36 @@ public class ADOPTagentTest < V extends Addable<V>, U extends Addable<U> > exten
 	 * @param startMsgType 		the new type for the start message
 	 * @throws JDOMException 	if parsing the agent configuration file failed
 	 */
-	private void setStartMsgType (String startMsgType) throws JDOMException {
+	private void setStartMsgType (MessageType startMsgType) throws JDOMException {
 		if (startMsgType != null) {
 			this.startMsgType = startMsgType;
-			for (Element module2 : (List<Element>) agentDesc.getRootElement().getChild("modules").getChildren()) {
-				Element messages = module2.getChild("messages");
-				if (messages != null) {
-					for (Element message : (List<Element>) messages.getChildren()) {
-						if (message.getAttributeValue("name").equals("START_MSG_TYPE")) {
-							message.setAttribute("value", startMsgType);
-							message.removeAttribute("ownerClass");
-						}
-					}
-				}
+			for (Element module2 : agentDesc.getRootElement().getChild("modules").getChildren()) {
+				this.setStartMsgType(module2.getChild("messages"), startMsgType);
+				
+				// Also set the start message type for sub-modules (example: DFSgenerationParallel)
+				for (Element submod : module2.getChildren()) 
+					this.setStartMsgType(submod.getChild("messages"), startMsgType);
 			}
 		} else 
 			this.startMsgType = AgentInterface.START_AGENT;
+	}
+	
+	/** Overwrites the type of the start messages
+	 * @param messages 		messages element
+	 * @param startMsgType 	the new type of the start messages
+	 */
+	private void setStartMsgType (Element messages, MessageType startMsgType) {
+		if (messages != null) {
+			for (Element message : (List<Element>) messages.getChildren()) {
+				if (message.getAttributeValue("myFieldName").equals("START_MSG_TYPE") 
+						&& message.getAttributeValue("targetFieldName").equals("START_AGENT")
+						&& message.getAttributeValue("targetClass").equals(AgentInterface.class.getName())) {
+					message.removeAttribute("targetFieldName");
+					message.removeAttribute("targetClass");
+					message.addContent(startMsgType.toXML());
+				}
+			}
+		}
 	}
 
 	/** @return the test suite */
@@ -273,8 +288,9 @@ public class ADOPTagentTest < V extends Addable<V>, U extends Addable<U> > exten
 		tmp.addTest(new RepeatedTest (new ADOPTagentTest<AddableInteger, AddableInteger> (false, false, null, AddableInteger.class, AddableInteger.class, true, true, false, false, +1), 50));
 		suite.addTest(tmp);
 		
+		/// @bug The first test fails
 		tmp = new TestSuite ("Tests using QueueIOPipes and a different type of start message");
-		tmp.addTest(new RepeatedTest (new ADOPTagentTest<AddableInteger, AddableInteger> (false, false, "START NOW!", AddableInteger.class, AddableInteger.class, true, false, false, false, +1), 50));
+		tmp.addTest(new RepeatedTest (new ADOPTagentTest<AddableInteger, AddableInteger> (false, false, new MessageType ("START NOW!"), AddableInteger.class, AddableInteger.class, true, false, false, false, +1), 50));
 		suite.addTest(tmp);
 		
 		return suite;
@@ -308,9 +324,9 @@ public class ADOPTagentTest < V extends Addable<V>, U extends Addable<U> > exten
 		
 		queue.addIncomingMessagePolicy(this);
 		pipes = new HashMap<Object, QueueOutputPipeInterface> ();
-		statsGatherer = new ADOPT<V, U> (null, (DCOPProblemInterface<V, U>) problem);
-		statsGatherer.setSilent(true);
-		statsGatherer.getStatsFromQueue(queue);
+		solCollector = new SolutionCollector<V, U> (null, (DCOPProblemInterface<V, U>) problem);
+		solCollector.setSilent(true);
+		solCollector.getStatsFromQueue(queue);
 		
 		preProcessingTester = new Preprocessing<V, U>(null, (DCOPProblemInterface<V, U>) null);
 		preProcessingTester.setSilent(true);
@@ -345,7 +361,7 @@ public class ADOPTagentTest < V extends Addable<V>, U extends Addable<U> > exten
 		agents.clear();
 		queue = null;
 		pipes = null;
-		statsGatherer = null;
+		solCollector = null;
 		preProcessingTester = null;
 		this.agentDesc = null;
 		this.pipe = null;
@@ -404,7 +420,7 @@ public class ADOPTagentTest < V extends Addable<V>, U extends Addable<U> > exten
 			}
 		}
 		
-		U totalOptUtil = statsGatherer.getTotalOptUtil();
+		U totalOptUtil = solCollector.getUtility();
 		U dpopOptUtil = new DPOPsolver<V, U> (this.domClass, this.utilClass).solve(problem).getUtility();
 		
 		if (!this.maximize && this.sign > 0) {
@@ -421,13 +437,13 @@ public class ADOPTagentTest < V extends Addable<V>, U extends Addable<U> > exten
 		assertEquals (dpopOptUtil, totalOptUtil);
 		
 		// Check that the optimal assignments have indeed the reported utility
-		Map<String, V> optAssignments = statsGatherer.getOptAssignments();
+		Map<String, V> optAssignments = solCollector.getSolution();
 		assertEquals (problem.getUtility(optAssignments).getUtility(0), totalOptUtil);
 	}
 
-	/** @see frodo2.communication.IncomingMsgPolicyInterface#getMsgTypes() */
-	public Collection<String> getMsgTypes() {
-		ArrayList<String> types = new ArrayList<String> (4);
+	/** @see IncomingMsgPolicyInterface#getMsgTypes() */
+	public Collection<MessageType> getMsgTypes() {
+		ArrayList<MessageType> types = new ArrayList<MessageType> (4);
 		types.add(AgentInterface.LOCAL_AGENT_REPORTING);
 		types.add(AgentInterface.LOCAL_AGENT_ADDRESS_REQUEST);
 		types.add(AgentInterface.AGENT_CONNECTED);
@@ -509,7 +525,7 @@ public class ADOPTagentTest < V extends Addable<V>, U extends Addable<U> > exten
 	}
 
 	/** Does nothing
-	 * @see frodo2.communication.IncomingMsgPolicyInterface#setQueue(frodo2.communication.Queue)
+	 * @see IncomingMsgPolicyInterface#setQueue(Queue)
 	 */
 	public void setQueue(Queue queue) { }
 	

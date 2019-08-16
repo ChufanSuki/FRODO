@@ -34,12 +34,12 @@ import java.io.ObjectOutput;
 public class Message implements Externalizable {
 	
 	/** The type of this message */
-	protected String type;
+	protected MessageType type;
 	
 	/** Constructor 
 	 * @param type type of this message
 	 */
-	public Message(String type) {
+	public Message(MessageType type) {
 		this.type = type;
 	}
 	
@@ -47,7 +47,7 @@ public class Message implements Externalizable {
 	public Message () { }
 	
 	/** @return the type of this message */
-	public String getType() {
+	public MessageType getType() {
 		return type;
 	}
 	
@@ -69,7 +69,7 @@ public class Message implements Externalizable {
 
 	/** @see java.io.Externalizable#readExternal(java.io.ObjectInput) */
 	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-		this.type = (String) in.readObject();
+		this.type = (MessageType) in.readObject();
 	}
 	
 }

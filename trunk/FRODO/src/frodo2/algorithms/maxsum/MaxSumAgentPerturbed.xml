@@ -63,6 +63,10 @@ How to contact the authors:
 	 -->
 	<modules>
 	
+		<!-- Collects and reports the solution found -->
+		<module className = "frodo2.algorithms.SolutionCollector" 
+				reportStats = "true" />
+		
 		<!-- Factor graph generator
 			- DOTrenderer: the class to be used to display the factor graph. Supported values:
 				- empty string: displays the factor graph in DOT format in the console; 
@@ -85,19 +89,23 @@ How to contact the authors:
 				or waits until it has received a message from each neighbor to respond (synchronous = true, i.e. round-based). 
 		 -->
 		<module className = "frodo2.algorithms.maxsum.MaxSum" 
-				reportStats = "true" 
 				maxNbrIter = "200" 
 				randomInit = "true" 
 				synchronous = "false" />
 		
-		<!-- Prints out all messages received and sent by the agent
-			WARNING! This can significantly affect runtime performance. Only use this module for debugging purposes. 
-				- hideSystemMessages: whether to display system messages (default: true)
+		<!-- Displays the messages exchanged
+			- perAgent: if true, each agent reports itself the messages it exchanges 
+				WARNING! This can significantly affect runtime performance. Only use this setting for debugging purposes. 
+			- hideSystemMessages: whether to display system messages (default: true)
+		 	- visualizer: the class of the Visualizer to be used; supported values: 
+		 		- [empty string]: no visualizer; messages are not displayed
+		 		- frodo2.gui.ConsoleVisualizer: messages are printed out in the console
+		 		- frodo2.gui.jung.JungVisualizer: a visualizer based on JUNG2
 		 -->
-		<!--
 		<module className = "frodo2.algorithms.test.MessageDebugger" 
-		 		hideSystemMessages = "true" />
-		 -->
+				perAgent = "false" 
+		 		hideSystemMessages = "true" 
+		 		visualizer = "" />
 		 
 	</modules>
 </agentDescription>

@@ -300,7 +300,7 @@ public class Predicate extends DecomposedConstraint{
 							variableMaping);
 
 					if (o1 instanceof Integer) 
-						return new Integer (Math.abs((Integer) o1));
+						return Integer.valueOf(Math.abs((Integer) o1));
 
 					else if (o1 instanceof IntVar) {
 						IntVar v1 = (IntVar) o1;
@@ -327,7 +327,7 @@ public class Predicate extends DecomposedConstraint{
 						variableMaping);
 
 				if (o1 instanceof Integer) 
-					return new Integer (- (Integer) o1);
+					return Integer.valueOf(- (Integer) o1);
 
 				else if (o1 instanceof IntVar) {
 					IntVar v1 = (IntVar) o1;
@@ -372,7 +372,7 @@ public class Predicate extends DecomposedConstraint{
 					decompositionConstraints.add(new XplusYeqC(v2, auxilary, c1));
 					return auxilary;
 				} else if (o1 instanceof Integer && o2 instanceof Integer) 
-					return new Integer ((Integer)o1 - (Integer)o2);
+					return Integer.valueOf((Integer)o1 - (Integer)o2);
 
 				System.err.println("Failed to parse sub(" + o1 + ", " + o2 + ")");
 				return null;
@@ -411,7 +411,7 @@ public class Predicate extends DecomposedConstraint{
 					decompositionConstraints.add(new XplusCeqZ(v2, c1, auxilary));
 					return auxilary;
 				} else if (o1 instanceof Integer && o2 instanceof Integer) 
-					return new Integer ((Integer)o1 + (Integer)o2);
+					return Integer.valueOf((Integer)o1 + (Integer)o2);
 
 				System.err.println("Failed to parse add(" + o1 + ", " + o2 + ")");
 				return null;
@@ -477,7 +477,7 @@ public class Predicate extends DecomposedConstraint{
 					decompositionConstraints.add(new XmulCeqZ(v2, c1, auxilary));
 					return auxilary;
 				} else if (o1 instanceof Integer && o2 instanceof Integer) 
-					return new Integer ((Integer)o1 * (Integer)o2);
+					return Integer.valueOf((Integer)o1 * (Integer)o2);
 
 				System.err.println("Failed to parse mul(" + o1 + ", " + o2 + ")");
 				return null;
@@ -549,7 +549,7 @@ public class Predicate extends DecomposedConstraint{
 					
 					return aux;
 				} else if (o1 instanceof Integer && o2 instanceof Integer) 
-					return new Integer ((Integer)o1 / (Integer)o2);
+					return Integer.valueOf((Integer)o1 / (Integer)o2);
 
 				System.err.println("Failed to parse div(" + o1 + ", " + o2 + ")");
 				return null;
@@ -681,7 +681,7 @@ public class Predicate extends DecomposedConstraint{
 
 					return auxilary;
 				} else if (o1 instanceof Integer && o2 instanceof Integer) 
-					return new Integer ((Integer)o1 % (Integer)o2);
+					return Integer.valueOf((Integer)o1 % (Integer)o2);
 
 				System.err.println("Failed to parse mod(" + o1 + ", " + o2 + ")");
 				return null;
@@ -880,7 +880,7 @@ public class Predicate extends DecomposedConstraint{
 					
 					return auxilary;
 				} else if (o1 instanceof Integer && o2 instanceof Integer) 
-					return new Integer (Math.min((Integer)o1, (Integer)o2));
+					return Integer.valueOf(Math.min((Integer)o1, (Integer)o2));
 
 				System.err.println("Failed to parse min(" + o1 + ", " + o2 + ")");
 				return null;
@@ -939,7 +939,7 @@ public class Predicate extends DecomposedConstraint{
 					
 					return auxilary;
 				} else if (o1 instanceof Integer && o2 instanceof Integer) 
-					return new Integer (Math.max((Integer)o1, (Integer)o2));
+					return Integer.valueOf(Math.max((Integer)o1, (Integer)o2));
 
 				System.err.println("Failed to parse max(" + o1 + ", " + o2 + ")");
 				return null;
@@ -1139,17 +1139,17 @@ public class Predicate extends DecomposedConstraint{
 
 					if (o1 instanceof IntVar && o2 instanceof Integer
 							&& o3 instanceof Integer) { // X + C = C
-						return (new XeqC((IntVar) o1, new Integer ((Integer) o3 - (Integer) o2)));
+						return (new XeqC((IntVar) o1, Integer.valueOf((Integer) o3 - (Integer) o2)));
 					}
 
 					if (o1 instanceof Integer && o2 instanceof IntVar
 							&& o3 instanceof Integer) { // C + X = C
-						return (new XeqC((IntVar) o2, new Integer ((Integer) o3 - (Integer) o1)));
+						return (new XeqC((IntVar) o2, Integer.valueOf((Integer) o3 - (Integer) o1)));
 					}
 
 					if (o1 instanceof Integer && o2 instanceof Integer
 							&& o3 instanceof IntVar) { // C + C = X
-						return (new XeqC((IntVar) o3, new Integer ((Integer) o1 + (Integer) o2)));
+						return (new XeqC((IntVar) o3, Integer.valueOf((Integer) o1 + (Integer) o2)));
 					}
 
 					System.err.println("Failed to parse eq(add(" + o1 + ", " + o2 + "), " + o3 + ")");
@@ -1191,7 +1191,7 @@ public class Predicate extends DecomposedConstraint{
 
 					if (o1 instanceof Integer && o2 instanceof Integer
 							&& o3 instanceof IntVar) { // C * C = X
-						return (new XeqC((IntVar) o3, new Integer ((Integer) o1 * (Integer) o2)));
+						return (new XeqC((IntVar) o3, Integer.valueOf((Integer) o1 * (Integer) o2)));
 					}
 
 					System.err.println("Failed to parse eq(mul(" + o1 + ", " + o2 + "), " + o3 + ")");

@@ -43,6 +43,7 @@ import java.util.Map.Entry;
 import org.jdom2.Element;
 
 import frodo2.algorithms.AgentInterface;
+import frodo2.algorithms.SolutionCollector;
 import frodo2.algorithms.StatsReporterWithConvergence;
 import frodo2.algorithms.asodpop.goodsTree.innerNodeTree.InnerNodeTree;
 import frodo2.algorithms.asodpop.goodsTree.innerNodeTree.LeafNode;
@@ -56,6 +57,7 @@ import frodo2.algorithms.odpop.goodsTree.GoodsTree;
 import frodo2.algorithms.varOrdering.dfs.DFSgeneration;
 import frodo2.algorithms.varOrdering.dfs.DFSgeneration.DFSview;
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 import frodo2.communication.Queue;
 import frodo2.solutionSpaces.Addable;
 import frodo2.solutionSpaces.DCOPProblemInterface;
@@ -78,43 +80,43 @@ implements StatsReporterWithConvergence<Val> {
 	// The message types
 
 	/** The type of the message telling the module to start */
-	public static String START_MSG_TYPE = AgentInterface.START_AGENT;
+	public static MessageType START_MSG_TYPE = AgentInterface.START_AGENT;
 	
 	/** The type of the UTIL message*/
-	public static final String UTIL_MSG = UTILpropagationFullDomain.UTIL_MSG;
+	public static final MessageType UTIL_MSG = UTILpropagationFullDomain.UTIL_MSG;
 	
 	/** The type of the UTIL message with domain information */
-	public static final String UTIL_MSG_DOM = UTILpropagationFullDomain.UTIL_MSG_DOM;
+	public static final MessageType UTIL_MSG_DOM = UTILpropagationFullDomain.UTIL_MSG_DOM;
 	
 	/** The type of the UTIL message with variable IDs*/
-	public static final String UTIL_MSG_VARS = UTILpropagationFullDomain.UTIL_MSG_VARS;
+	public static final MessageType UTIL_MSG_VARS = UTILpropagationFullDomain.UTIL_MSG_VARS;
 	
 	/** The type of the UTIL message with variable IDs and domain information */
-	public static final String UTIL_MSG_DOM_VARS = UTILpropagationFullDomain.UTIL_MSG_DOM_VARS;
+	public static final MessageType UTIL_MSG_DOM_VARS = UTILpropagationFullDomain.UTIL_MSG_DOM_VARS;
 
 	/** The type of the ASK message*/
-	public static final String ASK_MSG = UTILpropagationFullDomain.ASK_MSG;
+	public static final MessageType ASK_MSG = UTILpropagationFullDomain.ASK_MSG;
 
 	/** The type of the DONE message*/
-	public static final String DONE_MSG	= UTILpropagationFullDomain.DONE_MSG;
+	public static final MessageType DONE_MSG	= UTILpropagationFullDomain.DONE_MSG;
 
 	/** The type of messages sent to the statistics monitor */
-	public static final String UTIL_STATS_MSG_TYPE = "UTILstatsMessage";
+	public static final MessageType UTIL_STATS_MSG_TYPE = new MessageType ("ASO-DPOP", "UTILstatsMessage");
 
 	/** The type of the message containing the assignment history */
-	public static final String CONV_STATS_MSG_TYPE = "ASODPOPConvStatsMsg";
+	public static final MessageType CONV_STATS_MSG_TYPE = new MessageType ("ASO-DPOP", "ConvStatsMsg");
 
 	/** The type of a value message to a child */
-	public static final String VALUE_MSG_TYPE_CHILD = "VALUEtoChild";
+	public static final MessageType VALUE_MSG_TYPE_CHILD = new MessageType ("ASO-DPOP", "VALUEtoChild");
 	
 	/** The type of a value message to a pseudo child*/
-	public static final String VALUE_MSG_TYPE_PSEUDO = "VALUEtoPseudo";
+	public static final MessageType VALUE_MSG_TYPE_PSEUDO = new MessageType ("ASO-DPOP", "VALUEtoPseudo");
 	
 	/** The type of the output messages containing the optimal assignment to a variable */
-	public static final String OUTPUT_MSG_TYPE = VALUEpropagation.OUTPUT_MSG_TYPE;
+	public static final MessageType OUTPUT_MSG_TYPE = VALUEpropagation.OUTPUT_MSG_TYPE;
 	
 	/** The type of an acknowledge message*/
-	public static final String ACK_MSG_TYPE = "Ack";
+	public static final MessageType ACK_MSG_TYPE = new MessageType ("ASO-DPOP", "Ack");
 	
 	// Variables used collect statistics
 
@@ -124,12 +126,6 @@ implements StatsReporterWithConvergence<Val> {
 	/** Whether the listener should record the assignment history or not */
 	protected final boolean convergence;
 
-	/** The global assignment */
-	protected Map< String, Val > assignment;
-
-	/** The optimal, total utility reported to the stats gatherer */
-	protected U optTotalUtil;
-	
 	/** For each variable the assignment history */
 	protected ArrayList<CurrentAssignment<Val>>[] assignmentHistory;
 
@@ -235,7 +231,6 @@ implements StatsReporterWithConvergence<Val> {
 	 * @param problem 		the overall problem
 	 */
 	public ASODPOP (Element parameters, DCOPProblemInterface<Val, U> problem) {
-		assignment = new HashMap< String, Val> ();
 		assignmentHistoriesMap = new HashMap<String, ArrayList<CurrentAssignment<Val>>>();
 		this.convergence = false;
 		this.problem = problem;
@@ -349,9 +344,7 @@ implements StatsReporterWithConvergence<Val> {
 		this.started = false;
 		
 		// Only useful in stats gatherer mode
-		assignment = new HashMap< String, Val> ();
 		assignmentHistoriesMap = new HashMap<String, ArrayList<CurrentAssignment<Val>>>();
-		this.optTotalUtil = null;
 	}
 
 	/**
@@ -396,16 +389,6 @@ implements StatsReporterWithConvergence<Val> {
 		return 0;
 	}
 
-	/** @return the optimal assignments to all variables */
-	public Map<String, Val> getOptAssignments () {
-		return this.assignment;
-	}
-
-	/** @return the total optimal utility across all components of the constraint graph */
-	public U getTotalOptUtil () {
-		return this.optTotalUtil;
-	}
-	
 	/**
 	 * Returns the time at which this module has finished, 
 	 * determined by looking at the timestamp of the stat messages
@@ -455,8 +438,8 @@ implements StatsReporterWithConvergence<Val> {
 	/** 
 	 * @see frodo2.communication.IncomingMsgPolicyInterface#getMsgTypes()
 	 */
-	public Collection<String> getMsgTypes() {
-		ArrayList <String> msgTypes = new ArrayList<String>(12);
+	public Collection<MessageType> getMsgTypes() {
+		ArrayList <MessageType> msgTypes = new ArrayList<MessageType>(12);
 		msgTypes.add(START_MSG_TYPE);
 		msgTypes.add(ASK_MSG);
 		msgTypes.add(UTIL_MSG);
@@ -481,13 +464,10 @@ implements StatsReporterWithConvergence<Val> {
 		if(this.agentFinished)
 			return;
 
-		String type = msg.getType();
+		MessageType type = msg.getType();
 		
 		if (type.equals(ASODPOP.OUTPUT_MSG_TYPE)) { // in stats gatherer mode, the message containing information about an agent's assignments
 			AssignmentMessage<Val, U> msgCast = (AssignmentMessage<Val, U>) msg;
-			String variable = msgCast.getVariable();
-			Val value = msgCast.getValue();
-			assignment.put(variable, value);
 			
 			this.cumulativeFillPercentage += msgCast.getTreeFillPercentage();
 			this.cumulativeDummyFillPercentage += msgCast.getDummyFillPercentage();
@@ -495,16 +475,6 @@ implements StatsReporterWithConvergence<Val> {
 			this.cumulativeNumberOfSpeculativeUTILmessages += msgCast.getNumberOfSpeculativeUTIlmessages();
 			cumulativeNumberOfUTILMessages += msgCast.getNumberOfUTILmessages();
 			this.fillPercentageCounter++;
-
-			if (this.reportStats) 
-				System.out.println("var `" + variable + "' = " + value);
-			
-			if (this.assignment.size() == this.problem.getNbrVars()) {
-				this.optTotalUtil = this.problem.getUtility(assignment).getUtility(0);
-				
-				if (this.reportStats) 
-					System.out.println("Total optimal " + (this.maximize ? "utility: " : "cost: ") + this.optTotalUtil);
-			}
 
 			long time = queue.getCurrentMessageWrapper().getTime();
 			if(finalTime < time)
@@ -734,8 +704,9 @@ implements StatsReporterWithConvergence<Val> {
 				if(LOG)
 					log(var, "Variable without constraints ... we are stopping");
 				
+				this.queue.sendMessage(AgentInterface.STATS_MONITOR, new SolutionCollector.AssignmentMessage<Val>(var, domains[varIndex][(int)(Math.random()*domains[varIndex].length)]));
 				if (this.reportStats) 
-					queue.sendMessage(AgentInterface.STATS_MONITOR, new AssignmentMessage<Val, U> (var, domains[varIndex][(int)(Math.random()*domains[varIndex].length)], variable.tree.getTreeFillPercentage(), variable.tree.getDummiesFillPercentage(), variable.tree.getNumberOfDummies(), 0, 0));
+					queue.sendMessage(AgentInterface.STATS_MONITOR, new AssignmentMessage<Val, U> (variable.tree.getTreeFillPercentage(), variable.tree.getDummiesFillPercentage(), variable.tree.getNumberOfDummies(), 0, 0));
 				
 				variablesReadyCounter += 1;
 				if(variablesReadyCounter == infos.length) {
@@ -779,11 +750,12 @@ implements StatsReporterWithConvergence<Val> {
 			else 
 				assignment = aMax.getValues()[0];
 			
+			this.queue.sendMessage(AgentInterface.STATS_MONITOR, new SolutionCollector.AssignmentMessage<Val>(varID, assignment));
 			if (this.reportStats) {
 				if(var.tree instanceof InnerNodeTree)
-					queue.sendMessage(AgentInterface.STATS_MONITOR, new AssignmentMessage<Val, U> (varID, assignment, var.tree.getTreeFillPercentage(), var.tree.getDummiesFillPercentage(), var.tree.getNumberOfDummies(), ((InnerNodeTree<Val, U>)var.tree).getSpeculativeUTILcounter(), ((InnerNodeTree<Val, U>)var.tree).getUTILcounter()));
+					queue.sendMessage(AgentInterface.STATS_MONITOR, new AssignmentMessage<Val, U> (var.tree.getTreeFillPercentage(), var.tree.getDummiesFillPercentage(), var.tree.getNumberOfDummies(), ((InnerNodeTree<Val, U>)var.tree).getSpeculativeUTILcounter(), ((InnerNodeTree<Val, U>)var.tree).getUTILcounter()));
 				else
-					queue.sendMessage(AgentInterface.STATS_MONITOR, new AssignmentMessage<Val, U> (varID, assignment, var.tree.getTreeFillPercentage(), var.tree.getDummiesFillPercentage(), var.tree.getNumberOfDummies(), 0, 0));
+					queue.sendMessage(AgentInterface.STATS_MONITOR, new AssignmentMessage<Val, U> (var.tree.getTreeFillPercentage(), var.tree.getDummiesFillPercentage(), var.tree.getNumberOfDummies(), 0, 0));
 			}
 			
 			if(convergence) {
@@ -812,7 +784,7 @@ implements StatsReporterWithConvergence<Val> {
 			
 			while(goodsReceived.size() > 0) {
 				Message msg = goodsReceived.poll();
-				String type = msg.getType();
+				MessageType type = msg.getType();
 				int senderIndex = 0;
 				Good<Val, U> good = null;
 				if(type.equals(UTIL_MSG) || type.equals(UTIL_MSG_DOM)) {
@@ -933,8 +905,9 @@ implements StatsReporterWithConvergence<Val> {
 						queue.sendMessage(AgentInterface.STATS_MONITOR, new StatsReporterWithConvergence.ConvStatMessage<Val>(ASODPOP.CONV_STATS_MSG_TYPE, variable.variableID, assignmentHistory[variablePointer.get(variable.variableID)]));
 					}
 					
+					this.queue.sendMessage(AgentInterface.STATS_MONITOR, new SolutionCollector.AssignmentMessage<Val>(variable.variableID, currentValue));
 					if (this.reportStats) // report the optimal assignment to the stats monitor
-						queue.sendMessage(AgentInterface.STATS_MONITOR, new AssignmentMessage<Val, U> (variable.variableID, currentValue, variable.tree.getTreeFillPercentage(), variable.tree.getDummiesFillPercentage(), variable.tree.getNumberOfDummies(), ((InnerNodeTree<Val, U>)variable.tree).getSpeculativeUTILcounter(), ((InnerNodeTree<Val, U>)variable.tree).getUTILcounter()));
+						queue.sendMessage(AgentInterface.STATS_MONITOR, new AssignmentMessage<Val, U> (variable.tree.getTreeFillPercentage(), variable.tree.getDummiesFillPercentage(), variable.tree.getNumberOfDummies(), ((InnerNodeTree<Val, U>)variable.tree).getSpeculativeUTILcounter(), ((InnerNodeTree<Val, U>)variable.tree).getUTILcounter()));
 					
 					// determine whether we want to quit this agent
 					variablesReadyCounter += 1;
@@ -1042,11 +1015,12 @@ implements StatsReporterWithConvergence<Val> {
 				sendVALUEPseudo(variableID, currentValue, variable.pseudo_children[j]);
 			}			
 
+			this.queue.sendMessage(AgentInterface.STATS_MONITOR, new SolutionCollector.AssignmentMessage<Val>(variable.variableID, currentValues[varIndex]));
 			if (this.reportStats) {
 				if(variable.tree instanceof InnerNodeTree)
-					queue.sendMessage(AgentInterface.STATS_MONITOR, new AssignmentMessage<Val, U> (variable.variableID, currentValues[varIndex], variable.tree.getTreeFillPercentage(), variable.tree.getDummiesFillPercentage(), variable.tree.getNumberOfDummies(), ((InnerNodeTree<Val, U>)variable.tree).getSpeculativeUTILcounter(), ((InnerNodeTree<Val, U>)variable.tree).getUTILcounter()));
+					queue.sendMessage(AgentInterface.STATS_MONITOR, new AssignmentMessage<Val, U> (variable.tree.getTreeFillPercentage(), variable.tree.getDummiesFillPercentage(), variable.tree.getNumberOfDummies(), ((InnerNodeTree<Val, U>)variable.tree).getSpeculativeUTILcounter(), ((InnerNodeTree<Val, U>)variable.tree).getUTILcounter()));
 				else
-					queue.sendMessage(AgentInterface.STATS_MONITOR, new AssignmentMessage<Val, U> (variable.variableID, currentValues[varIndex], variable.tree.getTreeFillPercentage(), variable.tree.getDummiesFillPercentage(), variable.tree.getNumberOfDummies(), 0, 0));
+					queue.sendMessage(AgentInterface.STATS_MONITOR, new AssignmentMessage<Val, U> (variable.tree.getTreeFillPercentage(), variable.tree.getDummiesFillPercentage(), variable.tree.getNumberOfDummies(), 0, 0));
 			}
 			
 			if(convergence)
@@ -1187,8 +1161,9 @@ implements StatsReporterWithConvergence<Val> {
 						sendVALUEPseudo(variableID, currentValue, variable.pseudo_children[j]);
 					}
 
+					this.queue.sendMessage(AgentInterface.STATS_MONITOR, new SolutionCollector.AssignmentMessage<Val>(variableID, currentValue));
 					if (this.reportStats) // report the optimal assignment to the stats monitor
-						queue.sendMessage(AgentInterface.STATS_MONITOR, new AssignmentMessage<Val, U> (variableID, currentValue, variable.tree.getTreeFillPercentage(), variable.tree.getDummiesFillPercentage(), variable.tree.getNumberOfDummies(), ((InnerNodeTree<Val, U>)variable.tree).getSpeculativeUTILcounter(), ((InnerNodeTree<Val, U>)variable.tree).getUTILcounter()));
+						queue.sendMessage(AgentInterface.STATS_MONITOR, new AssignmentMessage<Val, U> (variable.tree.getTreeFillPercentage(), variable.tree.getDummiesFillPercentage(), variable.tree.getNumberOfDummies(), ((InnerNodeTree<Val, U>)variable.tree).getSpeculativeUTILcounter(), ((InnerNodeTree<Val, U>)variable.tree).getUTILcounter()));
 
 					// determine whether we want to quit this agent
 					variablesReadyCounter += 1;
@@ -1680,16 +1655,14 @@ implements StatsReporterWithConvergence<Val> {
 		}
 
 		/** Constructor 
-		 * @param var 		the variable
-		 * @param val 		the value assigned to the variable \a var
 		 * @param treeFillPercentage the percentage of nodes in the tree
 		 * @param dummyFillPercentage the percentage of dummy nodes in the tree
 		 * @param numberOfDummies the absolute number of dummy nodes in the tree
 		 * @param numberOfSpeculativeUTIlmessages number of speculative UTIl messagegs received
 		 * @param numberOfUTILmessages total number of UTIL messages
 		 */
-		public AssignmentMessage (String var, Val val, double treeFillPercentage, double dummyFillPercentage, long numberOfDummies, int numberOfSpeculativeUTIlmessages, int numberOfUTILmessages) {
-			super(var, val, treeFillPercentage, dummyFillPercentage, numberOfDummies);
+		public AssignmentMessage (double treeFillPercentage, double dummyFillPercentage, long numberOfDummies, int numberOfSpeculativeUTIlmessages, int numberOfUTILmessages) {
+			super(treeFillPercentage, dummyFillPercentage, numberOfDummies);
 			this.numberOfSpeculativeUTIlmessages = numberOfSpeculativeUTIlmessages;
 			this.numberOfUTILmessages = numberOfUTILmessages;
 		}

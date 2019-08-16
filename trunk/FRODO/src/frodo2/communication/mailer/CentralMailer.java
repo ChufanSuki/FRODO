@@ -24,6 +24,7 @@ How to contact the authors:
 package frodo2.communication.mailer;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -38,8 +39,11 @@ import org.jdom2.Element;
 
 import frodo2.algorithms.AgentFactory;
 import frodo2.algorithms.AgentInterface;
+import frodo2.algorithms.Eavesdroppable;
 import frodo2.communication.IncomingMsgPolicyInterface;
 import frodo2.communication.Message;
+import frodo2.communication.MessageListener;
+import frodo2.communication.MessageType;
 import frodo2.communication.MessageWrapper;
 import frodo2.communication.OutgoingMsgPolicyInterface;
 import frodo2.communication.Queue;
@@ -47,6 +51,8 @@ import frodo2.communication.QueueInputPipeInterface;
 import frodo2.communication.QueueOutputPipeInterface;
 import frodo2.controller.Controller;
 import frodo2.daemon.Daemon;
+import frodo2.solutionSpaces.DCOPProblemInterface;
+import frodo2.solutionSpaces.ProblemInterface;
 
 /** Centralized mail man that enforces that only one agent is awake at a time, which is useful to measure distributed runtime. 
  * @author Thomas Leaute
@@ -88,28 +94,28 @@ public class CentralMailer extends Thread {
 
 			this.agent = agent;
 
-			inPolicies = new HashMap <String, ArrayList< IncomingMsgPolicyInterface<String> > > ();
-			ArrayList< IncomingMsgPolicyInterface<String> > policies = new ArrayList< IncomingMsgPolicyInterface<String> >();
-			inPolicies.put(ALLMESSAGES, policies);
+			inPolicies = new HashMap <MessageType, ArrayList< IncomingMsgPolicyInterface<MessageType> > > ();
+			ArrayList< IncomingMsgPolicyInterface<MessageType> > policies = new ArrayList< IncomingMsgPolicyInterface<MessageType> >();
+			inPolicies.put(MessageType.ROOT, policies);
 
-			outPolicies = new HashMap <String, ArrayList< OutgoingMsgPolicyInterface<String> > > ();
-			ArrayList< OutgoingMsgPolicyInterface<String> > policiesOut = new ArrayList< OutgoingMsgPolicyInterface<String> >();
-			outPolicies.put(ALLMESSAGES, policiesOut);
+			outPolicies = new HashMap <MessageType, ArrayList< OutgoingMsgPolicyInterface<MessageType> > > ();
+			ArrayList< OutgoingMsgPolicyInterface<MessageType> > policiesOut = new ArrayList< OutgoingMsgPolicyInterface<MessageType> >();
+			outPolicies.put(MessageType.ROOT, policiesOut);
 
 			inputs = new HashSet <QueueInputPipeInterface> ();
 			outputs = new HashMap <Object, QueueOutputPipeInterface> ();
 		}
 
 		/** Does exactly the same as the superclass, except that synchronizing over a lock is not necessary
-		 * @see Queue#addIncomingMessagePolicy(String, IncomingMsgPolicyInterface) 
+		 * @see Queue#addIncomingMessagePolicy(MessageType, IncomingMsgPolicyInterface) 
 		 */
 		@Override
-		public void addIncomingMessagePolicy (String type, IncomingMsgPolicyInterface <String> policy) {
+		public void addIncomingMessagePolicy (MessageType type, IncomingMsgPolicyInterface <MessageType> policy) {
 
-			ArrayList< IncomingMsgPolicyInterface<String> > policies = inPolicies.get(type);
+			ArrayList< IncomingMsgPolicyInterface<MessageType> > policies = inPolicies.get(type);
 
 			if (policies == null) { // We don't know this message type yet
-				policies = new ArrayList< IncomingMsgPolicyInterface<String> >();
+				policies = new ArrayList< IncomingMsgPolicyInterface<MessageType> >();
 				inPolicies.put(type, policies);
 				policies.add(policy);
 
@@ -120,15 +126,15 @@ public class CentralMailer extends Thread {
 		}
 
 		/** Does exactly the same as the superclass, except that synchronizing over a lock is not necessary
-		 * @see Queue#addOutgoingMessagePolicy(String, OutgoingMsgPolicyInterface) 
+		 * @see Queue#addOutgoingMessagePolicy(MessageType, OutgoingMsgPolicyInterface) 
 		 */
 		@Override
-		public void addOutgoingMessagePolicy (String type, OutgoingMsgPolicyInterface <String> policy) {
+		public void addOutgoingMessagePolicy (MessageType type, OutgoingMsgPolicyInterface <MessageType> policy) {
 
-			ArrayList< OutgoingMsgPolicyInterface<String> > policies = outPolicies.get(type);
+			ArrayList< OutgoingMsgPolicyInterface<MessageType> > policies = outPolicies.get(type);
 
 			if (policies == null) { // We don't know this message type yet
-				policies = new ArrayList< OutgoingMsgPolicyInterface<String> >();
+				policies = new ArrayList< OutgoingMsgPolicyInterface<MessageType> >();
 				outPolicies.put(type, policies);
 				policies.add(policy);
 
@@ -204,42 +210,36 @@ public class CentralMailer extends Thread {
 		}
 
 		/** Does the same as the superclass, but without the need to synchronize on a lock
-		 * @see Queue#notifyInListeners(Message) 
+		 * @see Queue#notifyInListeners(Message, Object) 
 		 */
 		@Override
-		protected void notifyInListeners (Message msg) {
+		protected void notifyInListeners (Message msg, Object toAgent) {
 
-			// First notify the policies listening for ALL messages
-			ArrayList< IncomingMsgPolicyInterface<String> > policies = new ArrayList< IncomingMsgPolicyInterface<String> > (inPolicies.get(ALLMESSAGES));
-			for (IncomingMsgPolicyInterface<String> module : policies) // iterate over a copy in case a listener wants to add more listeners
-				module.notifyIn(msg);
-
-			// Notify the listeners for this message type, if any
-			ArrayList< IncomingMsgPolicyInterface<String> > modules = inPolicies.get(msg.getType());
-			if (modules != null) {
-				policies = new ArrayList< IncomingMsgPolicyInterface<String> > (modules);
-				for (IncomingMsgPolicyInterface<String> module : policies) // iterate over a copy in case a listener wants to add more listeners
-					module.notifyIn(msg);
+			// Notify the listeners for this message type and its ancestors
+			for (MessageType type = msg.getType(); type != null; type = type.getParent()) {
+				ArrayList< IncomingMsgPolicyInterface<MessageType> > modules = inPolicies.get(type);
+				if (modules != null) {
+					ArrayList< IncomingMsgPolicyInterface<MessageType> > policies = new ArrayList< IncomingMsgPolicyInterface<MessageType> > (modules);
+					for (IncomingMsgPolicyInterface<MessageType> module : policies) // iterate over a copy in case a listener wants to add more listeners
+						module.notifyIn(msg, toAgent);
+				}
 			}
 		}
 
 		/** Does the same as the superclass, but without the need to synchronize on a lock
-		 * @see Queue#notifyOutListeners(Message) 
+		 * @see Queue#notifyOutListeners(Object, Message, Collection) 
 		 */
 		@Override
-		protected boolean notifyOutListeners (Message msg) {
+		protected boolean notifyOutListeners (Object fromAgent, Message msg, Collection<? extends Object> toAgents) {
 
-			// Notify the listeners registered for this message's type
-			ArrayList< OutgoingMsgPolicyInterface<String> > modules = this.outPolicies.get(msg.getType());
-			if (modules != null) 
-				for (OutgoingMsgPolicyInterface<String> module : modules) 
-					if (module.notifyOut(msg) == OutgoingMsgPolicyInterface.Decision.DISCARD) 
-						return true;
-
-			// Notify the outgoing message listeners registered for all messages
-			for (OutgoingMsgPolicyInterface<String> module : this.outPolicies.get(ALLMESSAGES)) 
-				if (module.notifyOut(msg) == OutgoingMsgPolicyInterface.Decision.DISCARD) 
-					return true;
+			// Notify the listeners registered for this message's type and its ancestors
+			for (MessageType type = msg.getType(); type != null; type = type.getParent()) {
+				ArrayList< OutgoingMsgPolicyInterface<MessageType> > modules = this.outPolicies.get(type);
+				if (modules != null) 
+					for (OutgoingMsgPolicyInterface<MessageType> module : modules) 
+						if (module.notifyOut(fromAgent, msg, toAgents) == OutgoingMsgPolicyInterface.Decision.DISCARD) 
+							return true;
+			}
 
 			return false;
 		}
@@ -267,7 +267,7 @@ public class CentralMailer extends Thread {
 		public void sendMessage(Object to, Message msg) {
 
 			// Discard the message if one of the outgoing listeners requires it
-			if (this.notifyOutListeners(msg)) 
+			if (this.notifyOutListeners(this.agent, msg, Arrays.asList(to))) 
 				return;
 
 			MessageWrapper msgWrap = new MessageWrapper(msg);
@@ -298,7 +298,7 @@ public class CentralMailer extends Thread {
 		public <T extends Object> void sendMessageToMulti (Collection <T> recipients, Message msg) {
 
 			// Discard the message if its list of recipients is empty, or if one of the outgoing listeners requires it
-			if (recipients.isEmpty() || this.notifyOutListeners(msg)) 
+			if (recipients.isEmpty() || this.notifyOutListeners(this.agent, msg, recipients)) 
 				return;
 
 			MessageWrapper msgWrap = new MessageWrapper(msg);
@@ -376,10 +376,10 @@ public class CentralMailer extends Thread {
 	}
 
 	/** Type of messages sent when an exception occurs */
-	public static final String ERROR_MSG = "CentralMailerErrorMsg";
+	public static final MessageType ERROR_MSG = MessageType.SYSTEM.newChild("CentralMailer", "CentralMailerError");
 
 	/** Type of out of memory message */
-	public static final String OutOfMemMsg = "OutOfMem";
+	public static final MessageType OutOfMemMsg = MessageType.SYSTEM.newChild("CentralMailer", "OutOfMem");
 
 	/** The ordered repository of messages */
 	protected PriorityQueue<MessageWrapper> orderedQueue;
@@ -418,6 +418,14 @@ public class CentralMailer extends Thread {
 
 	/** Whether the agents have already been notified that they are all idle */
 	protected boolean idleMsgsSent = false;
+	
+	/** The eavesdroppers for incoming messages, per message type */
+	private HashMap< MessageType, Collection< IncomingMsgPolicyInterface<MessageType> > > eavesdroppersIn = 
+			new HashMap< MessageType, Collection< IncomingMsgPolicyInterface<MessageType> > > ();
+	
+	/** The eavesdroppers for outgoing messages */
+	private HashMap< MessageType, Collection< OutgoingMsgPolicyInterface<MessageType> > > eavesdroppersOut = 
+			new HashMap< MessageType, Collection< OutgoingMsgPolicyInterface<MessageType> > > ();
 
 	/**
 	 * Constructor
@@ -437,6 +445,66 @@ public class CentralMailer extends Thread {
 			delayGenerator = new NegativeExponentialDistribution(0.5);
 		else this.delayGenerator = null;
 
+		this.eavesdroppersIn.put(MessageType.ROOT, new ArrayList< IncomingMsgPolicyInterface<MessageType> > ());
+		this.eavesdroppersOut.put(MessageType.ROOT, new ArrayList< OutgoingMsgPolicyInterface<MessageType> > ());
+		
+	}
+	
+	/** Constructor
+	 * @param problem 		the problem instance
+	 * @param agentConfig 	the agent configuration 
+	 */
+	public CentralMailer (ProblemInterface<?, ?> problem, Element agentConfig) {
+		this (agentConfig == null ? false : Boolean.parseBoolean(agentConfig.getAttributeValue("measureMsgs")), 
+				agentConfig == null ? false : Boolean.parseBoolean(agentConfig.getAttributeValue("useDelay")),
+				agentConfig == null ? null : agentConfig.getChild("mailman"));
+		
+		// Stop here if the input problem is not a DCOP
+		if (! (problem instanceof DCOPProblemInterface)) 
+			return;
+		DCOPProblemInterface<?, ?> dcop = (DCOPProblemInterface<?, ?>) problem;
+		
+		// Parse the modules and store their eavesdroppers
+		Element modules = (agentConfig == null ? null : agentConfig.getChild("modules"));
+		if (modules == null) return;
+		
+		this.eavesdroppersIn.put(MessageType.ROOT, new ArrayList< IncomingMsgPolicyInterface<MessageType> > ());
+		this.eavesdroppersOut.put(MessageType.ROOT, new ArrayList< OutgoingMsgPolicyInterface<MessageType> > ());
+		
+		for (Element modElmt : modules.getChildren()) {
+			
+			// Check whether the module is eavesdroppable 
+			String className = modElmt.getAttributeValue("className");
+			try {
+				Class<?> modClass = Class.forName(className);
+				if (Eavesdroppable.class.isAssignableFrom(modClass)) {
+					@SuppressWarnings("unchecked")
+					Class< Eavesdroppable<MessageType> > eaveClass = (Class<Eavesdroppable<MessageType>>) modClass;
+					
+					// Instantiate the module, then get its eavesdropper
+					Eavesdroppable<MessageType> module = eaveClass.getConstructor(DCOPProblemInterface.class, Element.class)
+							.newInstance(dcop, modElmt);
+					MessageListener<MessageType> eavesdropper = module.getEavesdropper();
+					
+					// Record the eavesdropper's message type interests
+					for (MessageType msgType : eavesdropper.getMsgTypes()) {
+						
+						Collection< IncomingMsgPolicyInterface<MessageType> > ins = this.eavesdroppersIn.get(msgType);
+						if (ins == null) 
+							this.eavesdroppersIn.put(msgType, ins = new ArrayList< IncomingMsgPolicyInterface<MessageType> > ());
+						ins.add((IncomingMsgPolicyInterface<MessageType>) eavesdropper);
+						
+						Collection< OutgoingMsgPolicyInterface<MessageType> > outs = this.eavesdroppersOut.get(msgType);
+						if (outs == null) 
+							this.eavesdroppersOut.put(msgType, outs = new ArrayList< OutgoingMsgPolicyInterface<MessageType> > ());
+						outs.add((OutgoingMsgPolicyInterface<MessageType>) eavesdropper);
+					}
+				}
+			} catch (Exception e) {
+				System.err.println("Failed to instantiate the eavesdropper for " + className);
+				e.printStackTrace(System.err);
+			}
+		}
 	}
 
 	/** @see java.lang.Thread#start() */
@@ -497,6 +565,14 @@ public class CentralMailer extends Thread {
 							if (! dest.equals(agent)) // skip virtual messages
 								queue.recordStats(dest, outMsg);
 
+					// Notify the eavesdroppers of the outgoing message(s)
+					for (MessageType type = outMsg.getType(); type != null; type = type.getParent()) {
+						Collection< OutgoingMsgPolicyInterface<MessageType> > outs = this.eavesdroppersOut.get(type);
+						if (outs != null) 
+							for (OutgoingMsgPolicyInterface<MessageType> eave : outs) 
+								eave.notifyOut(agent, outMsg, outWrap.getDestinations());
+					}
+					
 					// Add delays if required
 					if (this.delayGenerator != null) {
 
@@ -598,7 +674,7 @@ public class CentralMailer extends Thread {
 				}
 				
 				if (!agent.equals(Controller.CONTROLLER) && !agent.equals(AgentInterface.STATS_MONITOR) 
-						&& wrap.getMessage().getType().equals(AgentInterface.AGENT_FINISHED)) 
+						&& wrap.getMessage().getType().equals(AgentInterface.AGENT_FINISHED)) /// @bug NullPointerExceptions in JaCoPtests
 					nbrAgentsLeft--;
 			}
 			
@@ -607,7 +683,7 @@ public class CentralMailer extends Thread {
 			FakeQueue queue = this.queues.get(Daemon.DAEMON);
 			stop = true;
 			// Notify the recipient's modules
-			queue.notifyInListeners(wrap.getMessage());
+			queue.notifyInListeners(wrap.getMessage(), queue.agent);
 			this.lock.unlock();
 			return false;
 			
@@ -617,7 +693,7 @@ public class CentralMailer extends Thread {
 			MessageWrapper wrap = new MessageWrapper(new Message(ERROR_MSG));
 			FakeQueue queue = this.queues.get(Daemon.DAEMON);
 			stop = true;
-			queue.notifyInListeners(wrap.getMessage());
+			queue.notifyInListeners(wrap.getMessage(), queue.agent);
 			this.lock.unlock();
 			return false;
 		}
@@ -649,8 +725,17 @@ public class CentralMailer extends Thread {
 				
 				this.lock.unlock();
 				
-				// Update the recipient's NCCC counter if necessary
 				assert this.currentMsg != null;
+
+				// Notify the eavesdroppers of the incoming message
+				for (MessageType type = this.currentMsg.getMessage().getType(); type != null; type = type.getParent()) {
+					Collection< IncomingMsgPolicyInterface<MessageType> > ins = this.eavesdroppersIn.get(type);
+					if (ins != null) 
+						for (IncomingMsgPolicyInterface<MessageType> eave : ins) 
+							eave.notifyIn(this.currentMsg.getMessage(), this.currentQueue.agent);
+				}
+				
+				// Update the recipient's NCCC counter if necessary
 				this.currentQueue.updateNCCCs(this.currentMsg.getNCCCs());
 
 				// Update the recipient's timestamp and start time if necessary
@@ -660,7 +745,7 @@ public class CentralMailer extends Thread {
 				this.currentQueue.updateTime(this.currentMsg.getTime());
 
 				// Notify the recipient's modules
-				this.currentQueue.notifyInListeners(this.currentMsg.getMessage()); /// @bug Store the message if required
+				this.currentQueue.notifyInListeners(this.currentMsg.getMessage(), this.currentQueue.agent); /// @bug Store the message if required
 
 				// Stop measuring time
 				this.currentQueue.freezeTime();
@@ -678,13 +763,13 @@ public class CentralMailer extends Thread {
 			MessageWrapper wrap = new MessageWrapper(new Message(OutOfMemMsg));
 			FakeQueue queue = this.queues.get(Daemon.DAEMON);
 			// Notify the recipient's modules
-			queue.notifyInListeners(wrap.getMessage());
+			queue.notifyInListeners(wrap.getMessage(), queue.agent);
 		} catch (Throwable e) {
 			System.err.println("The CentralMailer was interrupted due to the following exception:");
 			e.printStackTrace();
 			MessageWrapper wrap = new MessageWrapper(new Message(ERROR_MSG));
 			FakeQueue queue = this.queues.get(Daemon.DAEMON);
-			queue.notifyInListeners(wrap.getMessage());
+			queue.notifyInListeners(wrap.getMessage(), queue.agent);
 		} finally {
 			lock.lock();
 			this.stop = true;

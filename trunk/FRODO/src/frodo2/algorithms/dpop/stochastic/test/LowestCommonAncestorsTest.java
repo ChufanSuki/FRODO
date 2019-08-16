@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -46,6 +47,7 @@ import frodo2.algorithms.varOrdering.dfs.DFSgeneration;
 import frodo2.algorithms.varOrdering.dfs.DFSgeneration.DFSview;
 import frodo2.communication.IncomingMsgPolicyInterface;
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 import frodo2.communication.Queue;
 import frodo2.communication.QueueOutputPipeInterface;
 import frodo2.communication.sharedMemory.QueueIOPipe;
@@ -54,7 +56,7 @@ import frodo2.solutionSpaces.AddableInteger;
 /** A JUnit test case for LowestCommonAncestors
  * @author Thomas Leaute
  */
-public class LowestCommonAncestorsTest extends TestCase implements IncomingMsgPolicyInterface<String> {
+public class LowestCommonAncestorsTest extends TestCase implements IncomingMsgPolicyInterface<MessageType> {
 
 	/** Maximum number of variables in the random graph 
 	 * @note Must be at least 2. 
@@ -82,11 +84,11 @@ public class LowestCommonAncestorsTest extends TestCase implements IncomingMsgPo
 	/** For each node, the set of flags it is the lca of */
 	protected HashMap< String, HashSet<String> > lcas = new HashMap< String, HashSet<String> > ();
 	
-	/** List of queues corresponding to the different agents */
-	protected Queue[] queues;
+	/** List of queues, indexed by agent name */
+	protected Map<String, Queue> queues;
 	
-	/** One output pipe used to send messages to each queue */
-	protected QueueOutputPipeInterface[] pipes;
+	/** One output pipe used to send messages to each queue, indexed by the queue's agent name */
+	protected Map<String, QueueOutputPipeInterface> pipes;
 	
 	/** Current number of outputs yet to be received from the LowestCommonAncestors module */
 	protected int remainingOutputs;
@@ -139,11 +141,11 @@ public class LowestCommonAncestorsTest extends TestCase implements IncomingMsgPo
 		super.tearDown();
 		graph = null;
 		allFlags = null;
-		for (Queue queue : queues) {
+		for (Queue queue : queues.values()) {
 			queue.end();
 		}
 		queues = null;
-		for (QueueOutputPipeInterface pipe : pipes) {
+		for (QueueOutputPipeInterface pipe : pipes.values()) {
 			pipe.close();
 		}
 		pipes = null;
@@ -158,24 +160,23 @@ public class LowestCommonAncestorsTest extends TestCase implements IncomingMsgPo
 	public void test () throws Exception {
 		
 		this.remainingOutputs = graph.nodes.size();
-		int nbrAgents = graph.clusters.size();
 
 		// Create the queue network
-		queues = new Queue [nbrAgents];
+		queues = new HashMap<String, Queue> ();
 		pipes = AllTests.createQueueNetwork(queues, graph, false);
 		
 		// Set the output pipe for the DFSgeneration module's statistics
 		Queue myQueue = new Queue (false);
 		QueueIOPipe myPipe = new QueueIOPipe (myQueue);
-		for (Queue queue : this.queues) 
+		for (Queue queue : this.queues.values()) 
 			queue.addOutputPipe(AgentInterface.STATS_MONITOR, myPipe);
 		
 		this.setModules();
 		
 		// Tell all listeners to start the protocol
-		for (int i = 0; i < nbrAgents; i++) { // for each agent
-			for (String var : graph.clusters.get(i)) { // for each variable owned by the agent
-				Queue queue = queues[i];
+		for (Map.Entry<String, List<String>> entry : graph.clusters.entrySet()) { // for each agent
+			for (String var : entry.getValue()) { // for each variable owned by the agent
+				Queue queue = queues.get(entry.getKey());
 				
 				queue.sendMessageToSelf(new Message (AgentInterface.START_AGENT));
 
@@ -255,25 +256,24 @@ public class LowestCommonAncestorsTest extends TestCase implements IncomingMsgPo
 	protected void setModules() throws Exception {
 
 		int nbrNodes = graph.nodes.size();
-		int nbrAgents = graph.clusters.size();
 
 		// Create the map associating to each node the ID of its owner agent
 		HashMap<String, String> owners = new HashMap<String, String> (graph.nodes.size());
-		for (Map.Entry<String, Integer> entry : graph.clusterOf.entrySet()) 
-			owners.put(entry.getKey(), entry.getValue().toString());
+		for (Map.Entry<String, String> entry : graph.clusterOf.entrySet()) 
+			owners.put(entry.getKey(), entry.getValue());
 		
-		for (int i = 0; i < nbrAgents; i++) {
-			Queue queue = queues[i];
+		for (Map.Entry<String, List<String>> entry : graph.clusters.entrySet()) {
+			Queue queue = queues.get(entry.getKey());
 			queue.addIncomingMessagePolicy(this);
 
 			// Create the list of neighborhoods for this agent
 			Map < String, Collection <String> > neighborhoods = new HashMap < String, Collection <String> > (nbrNodes);
-			for (String node : graph.clusters.get(i)) 
+			for (String node : entry.getValue()) 
 				neighborhoods.put(node, graph.neighborhoods.get(node));
 			
 			// Create the LowestCommonAncestors module
 			HashMap< String, Set<String> > flags = new HashMap< String, Set<String> > ();
-			for (String node : graph.clusters.get(i)) 
+			for (String node : entry.getValue()) 
 				flags.put(node, allFlags.get(node));
 			queue.addIncomingMessagePolicy(new LowestCommonAncestors (flags, owners));
 		}
@@ -299,8 +299,8 @@ public class LowestCommonAncestorsTest extends TestCase implements IncomingMsgPo
 	}
 
 	/** @see IncomingMsgPolicyInterface#getMsgTypes() */
-	public Collection<String> getMsgTypes() {
-		ArrayList <String> types = new ArrayList <String> (1);
+	public Collection<MessageType> getMsgTypes() {
+		ArrayList <MessageType> types = new ArrayList <MessageType> (1);
 		types.add(LowestCommonAncestors.OUTPUT_MSG_TYPE);
 		return types;
 	}

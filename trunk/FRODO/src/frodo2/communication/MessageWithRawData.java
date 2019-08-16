@@ -75,7 +75,7 @@ public abstract class MessageWithRawData extends Message {
 	/** Constructor
 	 * @param type the type of the message
 	 */
-	public MessageWithRawData(String type) {
+	public MessageWithRawData(MessageType type) {
 		super(type);
 	}
 

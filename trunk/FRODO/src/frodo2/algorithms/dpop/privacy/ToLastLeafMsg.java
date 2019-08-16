@@ -26,6 +26,7 @@ import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.lang.reflect.InvocationTargetException;
 
 import frodo2.communication.Message;
 import frodo2.communication.MessageWith2Payloads;
@@ -45,7 +46,7 @@ public class ToLastLeafMsg extends MessageWith2Payloads<String, Message> impleme
 	 * @param payloadMsg 	the payload message to be forwarded to the last leaf in the sub-tree rooted at \a dest
 	 */
 	public ToLastLeafMsg(String dest, Message payloadMsg) {
-		super(SecureCircularRouting.TO_LAST_LEAF_MSG_TYPE, dest, payloadMsg);
+		super(SecureCircularRouting.TO_LAST_LEAF_MSG_TYPE.newChild(payloadMsg.getType()), dest, payloadMsg);
 	}
 	
 	/** @return the destination variable */
@@ -77,14 +78,13 @@ public class ToLastLeafMsg extends MessageWith2Payloads<String, Message> impleme
 		Class<? extends Message> msgClass = (Class<? extends Message>) in.readObject();
 		Message msg = null;
 		try {
-			msg = msgClass.newInstance();
-		} catch (InstantiationException e) {
-			e.printStackTrace();
-		} catch (IllegalAccessException e) {
+			msg = msgClass.getConstructor().newInstance();
+		} catch (InvocationTargetException | NoSuchMethodException | IllegalAccessException | InstantiationException e) {
 			e.printStackTrace();
 		}
 		msg.readExternal(in);
 		super.setPayload2(msg);
+		super.type = super.type.newChild(msg.getType());
 	}
 
 }

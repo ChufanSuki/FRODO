@@ -218,7 +218,7 @@ public class ParamDPOPsolver< V extends Addable<V>, U extends Addable<U> > exten
 		
 		// Solve the problem
 		this.agentDesc.getRootElement().getChild("parser").setAttribute("displayGraph", "false");
-		AgentFactory<V> factory = new AgentFactory<V> (problem, agentDesc, solGatherers, null);
+		AgentFactory<V, U> factory = new AgentFactory<V, U> (problem, agentDesc, solGatherers, null);
 		factory.end();
 		
 		return new ParamSolution<V, U> (utilModule.getOptParamUtil(), valueModule.getParamSolution(), factory.getNcccs(), factory.getTime(), utilModule.getMaxMsgDim());

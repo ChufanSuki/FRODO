@@ -43,6 +43,7 @@ import frodo2.algorithms.dpop.stochastic.ExpectedUTIL.Method;
 import frodo2.algorithms.dpop.stochastic.SamplingPhase.RandVarsProjMsg;
 import frodo2.algorithms.dpop.test.UTILpropagationTest;
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 import frodo2.communication.Queue;
 import frodo2.solutionSpaces.AddableInteger;
 import frodo2.solutionSpaces.AddableReal;
@@ -401,8 +402,8 @@ public class ExpectedUTILtest extends UTILpropagationTest<AddableReal> {
 		
 		/** @see frodo2.algorithms.dpop.test.UTILpropagationTest.Listener#getMsgTypes() */
 		@Override
-		public Collection<String> getMsgTypes() {
-			Collection<String> types = super.getMsgTypes();
+		public Collection<MessageType> getMsgTypes() {
+			Collection<MessageType> types = super.getMsgTypes();
 			types.add(UTILpropagation.UTIL_MSG_TYPE);
 			types.add(UTILpropagation.OUTPUT_MSG_TYPE);
 			types.add(SamplingPhase.RAND_VARS_PROJ_MSG_TYPE);
@@ -414,7 +415,7 @@ public class ExpectedUTILtest extends UTILpropagationTest<AddableReal> {
 		@Override
 		public void notifyIn(Message msg) {
 			
-			String msgType = msg.getType();
+			MessageType msgType = msg.getType();
 			
 			if (msgType.equals(UTILpropagation.UTIL_MSG_TYPE)) {
 				

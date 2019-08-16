@@ -26,6 +26,7 @@ import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.TreeMap;
 import java.util.Map.Entry;
 
@@ -33,10 +34,12 @@ import org.jdom2.Document;
 
 import frodo2.algorithms.AbstractDCOPsolver;
 import frodo2.algorithms.Solution;
+import frodo2.algorithms.SolutionCollector;
 import frodo2.algorithms.StatsReporter;
 import frodo2.algorithms.duct.Sampling;
 import frodo2.algorithms.duct.DUCTSolution;
 import frodo2.algorithms.varOrdering.dfs.DFSgeneration;
+import frodo2.communication.MessageType;
 import frodo2.solutionSpaces.Addable;
 import frodo2.solutionSpaces.AddableReal;
 import frodo2.solutionSpaces.UtilitySolutionSpace;
@@ -53,6 +56,9 @@ extends AbstractDCOPsolver< V, AddableReal, Solution<V, AddableReal> > {
 	
 	/** The DFSgeneration module */
 	protected DFSgeneration<V, AddableReal> dfsModule;
+	
+	/** The solution collector */
+	private SolutionCollector<V, AddableReal> solCollector;
 
 	/** Default constructor */
 	public DUCTsolver () {
@@ -162,6 +168,10 @@ extends AbstractDCOPsolver< V, AddableReal, Solution<V, AddableReal> > {
 		samplingModule.setSilent(true);
 		solGatherers.add(samplingModule);
 		
+		this.solCollector = new SolutionCollector<V, AddableReal> (null, problem);
+		this.solCollector.setSilent(true);
+		solGatherers.add(this.solCollector);
+		
 		return solGatherers;
 	}
 	
@@ -170,7 +180,7 @@ extends AbstractDCOPsolver< V, AddableReal, Solution<V, AddableReal> > {
 	@Override
 	public Solution<V, AddableReal> buildSolution() throws OutOfMemoryError {
 		
-		HashMap<String, V> assignment = samplingModule.getOptAssignments();
+		Map<String, V> assignment = this.solCollector.getSolution();
 		AddableReal utility = null;
 		List<? extends UtilitySolutionSpace<V,AddableReal>> spaces = problem.getSolutionSpaces();
 
@@ -192,11 +202,11 @@ extends AbstractDCOPsolver< V, AddableReal, Solution<V, AddableReal> > {
 			utility = utility == null ? space.getUtility(variables_names, variables_values) : utility.add(space.getUtility(variables_names, variables_values));
 		
 		int nbrMsgs = factory.getNbrMsgs();
-		TreeMap<String, Integer> msgNbrs = factory.getMsgNbrs();
+		TreeMap<MessageType, Integer> msgNbrs = factory.getMsgNbrs();
 		long msgSize = factory.getTotalMsgSize();
-		TreeMap<String, Long> msgSizes = factory.getMsgSizes();
+		TreeMap<MessageType, Long> msgSizes = factory.getMsgSizes();
 		long maxMsgSize = factory.getOverallMaxMsgSize();
-		TreeMap<String, Long> maxMsgSizes = factory.getMaxMsgSizes();
+		TreeMap<MessageType, Long> maxMsgSizes = factory.getMaxMsgSizes();
 		int numberOfCoordinationConstraint = problem.getNumberOfCoordinationConstraints();
 		int nbrVariables = problem.getNbrVars();
 		long runningTime = factory.getTime();
@@ -235,6 +245,7 @@ extends AbstractDCOPsolver< V, AddableReal, Solution<V, AddableReal> > {
 	public void clear () {
 		super.clear();
 		this.samplingModule = null;
+		this.solCollector = null;
 	}
 
 }

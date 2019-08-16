@@ -76,7 +76,7 @@ public class SecureVarElectionTest extends VariableElectionTest<Integer> {
 		parameters.setAttribute("minNbrLies", Integer.toString(diameter - 1));
 
 		for (String agent : parser.getAgents()) {
-			Queue queue = queues[Integer.parseInt(agent)];
+			Queue queue = queues.get(agent);
 			
 			XCSPparser<AddableInteger, AddableInteger> subProb = parser.getSubProblem(agent);
 			queue.setProblem(subProb);

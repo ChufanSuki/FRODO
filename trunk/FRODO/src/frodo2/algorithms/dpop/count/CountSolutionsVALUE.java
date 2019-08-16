@@ -37,6 +37,7 @@ import frodo2.algorithms.StatsReporter;
 import frodo2.algorithms.varOrdering.dfs.DFSgeneration;
 import frodo2.algorithms.varOrdering.dfs.DFSgeneration.DFSview;
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 import frodo2.communication.MessageWith3Payloads;
 import frodo2.communication.Queue;
 import frodo2.solutionSpaces.Addable;
@@ -54,25 +55,25 @@ public class CountSolutionsVALUE < Val extends Addable<Val>, U extends Addable<U
 implements StatsReporter {
 
 	/** The type of the message telling the module to start */
-	public static String START_MSG_TYPE = AgentInterface.START_AGENT;
+	public static MessageType START_MSG_TYPE = AgentInterface.START_AGENT;
 
 	/** The type of the messages containing information about the DFS */
-	public static String DFS_MSG_TYPE = DFSgeneration.OUTPUT_MSG_TYPE;
+	public static MessageType DFS_MSG_TYPE = DFSgeneration.OUTPUT_MSG_TYPE;
 	
 	/** The type of the messages containing optimal conditional assignments */
-	public static String UTIL_MSG_TYPE = CountSolutionsUTIL.OUTPUT_MSG_TYPE;
+	public static MessageType UTIL_MSG_TYPE = CountSolutionsUTIL.OUTPUT_MSG_TYPE;
 	
 	/** The type of the messages containing information about separators */
-	public static String SEPARATOR_MSG_TYPE = CountSolutionsUTIL.SEPARATOR_MSG_TYPE;
+	public static MessageType SEPARATOR_MSG_TYPE = CountSolutionsUTIL.SEPARATOR_MSG_TYPE;
 
 	/** The type of the VALUE messages */
-	public static final String VALUE_MSG_TYPE = "VALUEmsg";
+	public static final MessageType VALUE_MSG_TYPE = new MessageType ("Count-DPOP", "VALUE", "VALUE");
 	
 	/** The type of the output messages containing the optimal assignment to a variable */
-	public static final String OUTPUT_MSG_TYPE = "OutputMessageVALUEpropagation";
+	public static final MessageType OUTPUT_MSG_TYPE = new MessageType ("Count-DPOP", "VALUE", "Output");
 
 	/** The type of the message containing the number of possible solutions seen from a leaf's perspective*/
-	public static final String SOL_SIZE_MSG_TYPE = "Solution size";
+	public static final MessageType SOL_SIZE_MSG_TYPE = new MessageType ("Count-DPOP", "VALUE", "Solution size");
 	
 	
 	/** The queue on which it should call sendMessage() */
@@ -203,8 +204,8 @@ implements StatsReporter {
 	public CountSolutionsVALUE (Element parameters, DCOPProblemInterface<Val, U> problem) { }
 	
 	/** @see frodo2.communication.IncomingMsgPolicyInterface#getMsgTypes() */
-	public Collection <String> getMsgTypes() {
-		ArrayList<String> types = new ArrayList<String> (6);
+	public Collection <MessageType> getMsgTypes() {
+		ArrayList<MessageType> types = new ArrayList<MessageType> (6);
 		types.add(START_MSG_TYPE);
 		types.add(UTIL_MSG_TYPE);
 		types.add(SEPARATOR_MSG_TYPE);
@@ -220,7 +221,7 @@ implements StatsReporter {
 	@SuppressWarnings("unchecked")
 	public void notifyIn(Message msg) {
 		
-		String type = msg.getType();
+		MessageType type = msg.getType();
 		
 		if(type.equals(SOL_SIZE_MSG_TYPE)) { // in stats gatherer mode
 			SolutionSizeMessage<Val> msgCast = (SolutionSizeMessage<Val>)msg;
@@ -341,7 +342,7 @@ implements StatsReporter {
 
 	/** @see StatsReporter#getStatsFromQueue(Queue) */
 	public void getStatsFromQueue(Queue queue) {
-		ArrayList <String> msgTypes = new ArrayList <String> (2);
+		ArrayList <MessageType> msgTypes = new ArrayList <MessageType> (2);
 		msgTypes.add(OUTPUT_MSG_TYPE);
 		msgTypes.add(SOL_SIZE_MSG_TYPE);
 		queue.addIncomingMessagePolicy(msgTypes, this);

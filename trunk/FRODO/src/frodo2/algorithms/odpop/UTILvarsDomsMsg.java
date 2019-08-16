@@ -27,6 +27,7 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.lang.reflect.Array;
 
+import frodo2.communication.MessageType;
 import frodo2.solutionSpaces.Addable;
 
 /**
@@ -73,7 +74,7 @@ extends UTILvarsMsg<Val, U> {
 	 * @param good			The good to be send
 	 * @param domains		Variable domains
 	 */
-	public UTILvarsDomsMsg(String type, String sender, String receiver, Good<Val, U> good, Val[][] domains) {
+	public UTILvarsDomsMsg(MessageType type, String sender, String receiver, Good<Val, U> good, Val[][] domains) {
 		super(type, sender, receiver, good);
 		this.domains = domains;
 	}

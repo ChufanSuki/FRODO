@@ -35,6 +35,7 @@ import frodo2.algorithms.dpop.UTILmsg;
 import frodo2.algorithms.dpop.UTILpropagation;
 import frodo2.communication.IncomingMsgPolicyInterface;
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 import frodo2.communication.OutgoingMsgPolicyInterface;
 import frodo2.communication.Queue;
 import frodo2.solutionSpaces.DCOPProblemInterface;
@@ -42,7 +43,7 @@ import frodo2.solutionSpaces.DCOPProblemInterface;
 /** UTIL message storage for warm restarts of S-DPOP
  * @author Jonas Helfer, Thomas Leaute
  */
-public class UTILreuse implements IncomingMsgPolicyInterface<String>, OutgoingMsgPolicyInterface<String> {
+public class UTILreuse implements IncomingMsgPolicyInterface<MessageType>, OutgoingMsgPolicyInterface<MessageType> {
 	
 	/** The queue on which it should call sendMessage() */
 	private Queue queue;
@@ -72,7 +73,7 @@ public class UTILreuse implements IncomingMsgPolicyInterface<String>, OutgoingMs
 	/**
 	 * Type used for empty util reuse messages
 	 */
-	public static String REUSE_MSG_TYPE = "UTILreuse";
+	public static MessageType REUSE_MSG_TYPE = new MessageType ("S-DPOP", "UTILreuse");
 
 	/** Constructor from XML descriptions
 	 * @param problem 					description of the problem
@@ -135,8 +136,8 @@ public class UTILreuse implements IncomingMsgPolicyInterface<String>, OutgoingMs
 	/**
 	 * @see IncomingMsgPolicyInterface#getMsgTypes()
 	 */
-	public Collection <String> getMsgTypes() {
-		ArrayList<String> types = new ArrayList<String> (4);
+	public Collection <MessageType> getMsgTypes() {
+		ArrayList<MessageType> types = new ArrayList<MessageType> (4);
 		types.add(AgentInterface.START_AGENT);
 		types.add(UTILpropagation.UTIL_MSG_TYPE);
 		types.add(REUSE_MSG_TYPE);
@@ -159,7 +160,7 @@ public class UTILreuse implements IncomingMsgPolicyInterface<String>, OutgoingMs
 		if (! this.started) 
 			this.init();
 		
-		String msgType = msg.getType();
+		MessageType msgType = msg.getType();
 		
 		if (msgType.equals(AgentInterface.AGENT_FINISHED)) {
 			this.reset();
@@ -190,7 +191,7 @@ public class UTILreuse implements IncomingMsgPolicyInterface<String>, OutgoingMs
 		}
 		
 		//restart the util phase by sending messages to all parents:
-		else if(msgType.equals("RESTART_UTIL")){
+		else if(msgType.equals(new MessageType ("S-DPOP", "RESTART_UTIL"))){
 			///@todo: implement the restart util message!
 		}
 	}

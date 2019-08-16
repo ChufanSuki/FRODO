@@ -29,6 +29,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 import frodo2.communication.MessageWith5Payloads;
 import frodo2.solutionSpaces.AddableReal;
 
@@ -58,7 +59,7 @@ public class BOUNDmsg extends MessageWith5Payloads<String, AddableReal, AddableR
 	 * @param size			Size of the domain
 	 * @param separator		the separator of the sending variable 
 	 */
-	public BOUNDmsg(String type, String receiver, AddableReal lowerBound, AddableReal upperBound, int counter, long size, Set<String> separator) {
+	public BOUNDmsg(MessageType type, String receiver, AddableReal lowerBound, AddableReal upperBound, int counter, long size, Set<String> separator) {
 		super(type, receiver, lowerBound, upperBound, counter, size);
 		this.separator = separator;
 	}
@@ -80,7 +81,7 @@ public class BOUNDmsg extends MessageWith5Payloads<String, AddableReal, AddableR
 	/** @see Message#readExternal(java.io.ObjectInput) */
 	@Override
 	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-		type = (String) in.readObject();
+		type = (MessageType) in.readObject();
 		super.setPayload1((String) in.readObject());
 		AddableReal lb = new AddableReal(0);
 		lb.readExternal(in);

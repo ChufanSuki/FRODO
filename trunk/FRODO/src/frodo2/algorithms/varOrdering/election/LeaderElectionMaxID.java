@@ -30,6 +30,7 @@ import java.util.HashSet;
 
 import frodo2.communication.IncomingMsgPolicyInterface;
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 import frodo2.communication.MessageWith3Payloads;
 import frodo2.communication.Queue;
 
@@ -40,7 +41,7 @@ import frodo2.communication.Queue;
  * subproblems, otherwise we take the risk of having a component of the global constraint graph without a leader... 
  */
 public class LeaderElectionMaxID < T extends Comparable <T> & Serializable > 
-implements IncomingMsgPolicyInterface <String> {
+implements IncomingMsgPolicyInterface <MessageType> {
 	
 	/** This agent's ID */
 	protected T myID;
@@ -52,7 +53,7 @@ implements IncomingMsgPolicyInterface <String> {
 	private MaxIDmsg<T> lastSentMsg;
 	
 	/** The number of neighbors of the agent */
-	private int nbrNeighbors;
+	private final int nbrNeighbors;
 	
 	/** IDs of the agents from which we have received messages since the beginning of the current step */
 	private HashSet<String> thisStepSenders;
@@ -73,7 +74,7 @@ implements IncomingMsgPolicyInterface <String> {
 	 * 
 	 * This is used to identify the agent as the sender of messages. It can be different from \a myID. 
 	 */
-	private String comID;
+	private final String comID;
 
 	/** The neighbors of this agent */
 	private Collection<String> neighbors;
@@ -82,13 +83,13 @@ implements IncomingMsgPolicyInterface <String> {
 	private boolean started = false;
 	
 	/** The type of the message used to tell the protocol to start */
-	public static final String START_MSG_TYPE = "LEstart";
+	public static MessageType START_MSG_TYPE = new MessageType ("VarOrdering", "LeaderElectionMaxID", "Start");
 
 	/** The type of the messages used to carry agent IDs */
-	public static final String LE_MSG_TYPE = "ELECT";
+	public static final MessageType LE_MSG_TYPE = new MessageType ("VarOrdering", "LeaderElectionMaxID", "ELECT");
 
 	/** The type of the output message */
-	public static final String OUTPUT_MSG_TYPE = "LEoutput";
+	public static final MessageType OUTPUT_MSG_TYPE = new MessageType ("VarOrdering", "LeaderElectionMaxID", "Output");
 	
 	/** Message class used for the output of the protocol 
 	 * @param <T> the type used to identify the leader
@@ -114,7 +115,7 @@ implements IncomingMsgPolicyInterface <String> {
 		 * @param isLeader 	whether the agent is the leader
 		 * @param leader 	the leader
 		 */
-		protected MessageLEoutput (String type, String sender, boolean isLeader, T leader) {
+		protected MessageLEoutput (MessageType type, String sender, boolean isLeader, T leader) {
 			super (type, sender, isLeader, leader);
 		}
 		
@@ -140,8 +141,8 @@ implements IncomingMsgPolicyInterface <String> {
 	}
 
 	/** @see frodo2.communication.IncomingMsgPolicyInterface#getMsgTypes() */
-	public Collection <String> getMsgTypes() {
-		ArrayList <String> msgTypes = new ArrayList <String> (2);
+	public Collection <MessageType> getMsgTypes() {
+		ArrayList <MessageType> msgTypes = new ArrayList <MessageType> (2);
 		msgTypes.add(START_MSG_TYPE);
 		msgTypes.add(LE_MSG_TYPE);
 		return msgTypes;
@@ -181,7 +182,7 @@ implements IncomingMsgPolicyInterface <String> {
 	@SuppressWarnings("unchecked")
 	public void notifyIn(Message msg) {
 		
-		String msgType = msg.getType();
+		MessageType msgType = msg.getType();
 //		System.out.println("" + comID + " got " + msg);
 		
 		if (msgType.equals(START_MSG_TYPE)) { // This is the message that initiates the protocol

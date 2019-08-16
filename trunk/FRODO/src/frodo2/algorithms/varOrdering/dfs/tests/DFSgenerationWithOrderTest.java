@@ -47,6 +47,7 @@ import frodo2.algorithms.varOrdering.dfs.DFSgenerationWithOrder.DFSorderOutputMe
 import frodo2.algorithms.varOrdering.election.LeaderElectionMaxID;
 import frodo2.communication.IncomingMsgPolicyInterface;
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 
 
 /**
@@ -158,8 +159,8 @@ public class DFSgenerationWithOrderTest extends DFSgenerationTest {
 	 * @see IncomingMsgPolicyInterface#getMsgTypes()
 	 */
 	@Override
-	public Collection<String> getMsgTypes() {
-		Collection<String> types = super.getMsgTypes();
+	public Collection<MessageType> getMsgTypes() {
+		Collection<MessageType> types = super.getMsgTypes();
 		types.add(DFSgenerationWithOrder.CHILD_ORDER_MSG_TYPE);
 		types.add(DFSgenerationWithOrder.OUTPUT_ORDER_TYPE);
 		types.add(DFSgenerationWithOrder.VARIABLE_COUNT_TYPE);
@@ -169,7 +170,7 @@ public class DFSgenerationWithOrderTest extends DFSgenerationTest {
 	
 	/** @see DFSgenerationTest#getOutputMsgType() */
 	@Override
-	protected String getOutputMsgType () {
+	protected MessageType getOutputMsgType () {
 		return DFSgenerationWithOrder.OUTPUT_MSG_TYPE;
 	}
 	
@@ -177,7 +178,7 @@ public class DFSgenerationWithOrderTest extends DFSgenerationTest {
 	@Override
 	public synchronized void notifyIn(Message msg) {
 		
-		String msgType = msg.getType();
+		MessageType msgType = msg.getType();
 		
 		if(msgType.equals(DFSgeneration.ROOT_VAR_MSG_TYPE)){
 			

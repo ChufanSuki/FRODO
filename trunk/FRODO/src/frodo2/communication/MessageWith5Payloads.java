@@ -87,7 +87,7 @@ public class MessageWith5Payloads < T1 extends Serializable, T2 extends Serializ
 	 * @param payload4 fourth payload
 	 * @param payload5 fifth payload
 	 */
-	public MessageWith5Payloads(String type, T1 payload1, T2 payload2, T3 payload3, T4 payload4, T5 payload5) {
+	public MessageWith5Payloads(MessageType type, T1 payload1, T2 payload2, T3 payload3, T4 payload4, T5 payload5) {
 		super(type);
 		this.payload1 = payload1;
 		this.payload2 = payload2;

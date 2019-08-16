@@ -29,6 +29,7 @@ import org.jdom2.Element;
 import frodo2.algorithms.AgentInterface;
 import frodo2.communication.IncomingMsgPolicyInterface;
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 import frodo2.communication.Queue;
 import frodo2.solutionSpaces.AddableInteger;
 import frodo2.solutionSpaces.MASProblemInterface;
@@ -36,7 +37,7 @@ import frodo2.solutionSpaces.MASProblemInterface;
 /** A sample MAS agent that just prints its problem
  * @author Thomas Leaute
  */
-public class SampleMASagent implements IncomingMsgPolicyInterface<String> {
+public class SampleMASagent implements IncomingMsgPolicyInterface<MessageType> {
 	
 	/** The agent's subproblem */
 	private MASProblemInterface<AddableInteger, AddableInteger> problem;
@@ -55,9 +56,9 @@ public class SampleMASagent implements IncomingMsgPolicyInterface<String> {
 
 	/** @see frodo2.communication.MessageListener#getMsgTypes() */
 	@Override
-	public ArrayList<String> getMsgTypes() {
+	public ArrayList<MessageType> getMsgTypes() {
 		
-		ArrayList<String> out = new ArrayList<String> ();
+		ArrayList<MessageType> out = new ArrayList<MessageType> ();
 		out.add(AgentInterface.START_AGENT);
 		return out;
 	}

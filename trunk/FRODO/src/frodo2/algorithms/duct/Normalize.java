@@ -40,6 +40,7 @@ import frodo2.algorithms.duct.OUTmsg;
 import frodo2.algorithms.varOrdering.dfs.DFSgeneration;
 import frodo2.algorithms.varOrdering.dfs.DFSgeneration.DFSview;
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 import frodo2.communication.Queue;
 import frodo2.solutionSpaces.Addable;
 import frodo2.solutionSpaces.AddableReal;
@@ -61,16 +62,16 @@ import frodo2.solutionSpaces.hypercube.Hypercube;
 public class Normalize <V extends Addable<V>> implements StatsReporter {
 
 	/** Type of the message used for bound detection */
-	public static final String BOUND_MSG_TYPE = "bounding";
+	public static final MessageType BOUND_MSG_TYPE = new MessageType ("DUCT", "Normalize", "bounding");
 	
 	/** Type of the message used for normalization */
-	public static final String NORM_MSG_TYPE = "normalizing";
+	public static final MessageType NORM_MSG_TYPE = new MessageType ("DUCT", "Normalize", "normalizing");
 	
 	/** Type of the output message of this module */
-	public static final String OUT_MSG_TYPE = "normalize output";
+	public static final MessageType OUT_MSG_TYPE = new MessageType ("DUCT", "Normalize", "output");
 	
 	/** Type of the statistics message */
-	public static final String STATS_MSG_TYPE = "stat output";
+	public static final MessageType STATS_MSG_TYPE = new MessageType ("DUCT", "Normalize", "stats");
 	
 	/** The local problem */
 	protected DCOPProblemInterface<V, AddableReal> problem;
@@ -177,7 +178,7 @@ public class Normalize <V extends Addable<V>> implements StatsReporter {
 	@Override
 	public void notifyIn(Message msg) {
 		
-		String type = msg.getType();
+		MessageType type = msg.getType();
 		
 		if(!started)
 			init();
@@ -406,8 +407,8 @@ public class Normalize <V extends Addable<V>> implements StatsReporter {
 	 * @see frodo2.communication.MessageListener#getMsgTypes()
 	 */
 	@Override
-	public Collection<String> getMsgTypes() {
-		ArrayList<String> msgTypes = new ArrayList<String>();
+	public Collection<MessageType> getMsgTypes() {
+		ArrayList<MessageType> msgTypes = new ArrayList<MessageType>();
 		msgTypes.add(AgentInterface.START_AGENT);
 		msgTypes.add(BOUND_MSG_TYPE);
 		msgTypes.add(NORM_MSG_TYPE);
@@ -421,7 +422,7 @@ public class Normalize <V extends Addable<V>> implements StatsReporter {
 	 */
 	@Override
 	public void getStatsFromQueue(Queue queue) {
-		// @todo Auto-generated method stub
+		/// @todo Listen for and report on stats messages of type Normalize.STATS_MSG_TYPE
 
 	}
 

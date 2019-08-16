@@ -35,6 +35,7 @@ import frodo2.algorithms.AgentInterface;
 import frodo2.communication.AgentAddress;
 import frodo2.communication.IncomingMsgPolicyInterface;
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 import frodo2.communication.MessageWith2Payloads;
 import frodo2.communication.MessageWith3Payloads;
 import frodo2.communication.Queue;
@@ -66,13 +67,13 @@ public class TestLocalWhitePages extends TestCase {
 	QueueIOPipe queueInputPipe;
 	
 	/** A simple agent for testing purposes */
-	private class SimpleAgent implements IncomingMsgPolicyInterface<String>, AgentInterface<AddableInteger> {
+	private static class SimpleAgent implements IncomingMsgPolicyInterface<MessageType>, AgentInterface<AddableInteger> {
 		
 		/** A message used to test the Pipes*/
-		public static final String TEST = "test";
+		public static final MessageType TEST = new MessageType ("test");
 
 		/** The list of messages types this listener wants to be notified of */
-		private ArrayList <String> msgTypes = new ArrayList <String> ();
+		private ArrayList <MessageType> msgTypes = new ArrayList <MessageType> ();
 		
 		/** The queue */
 		private Queue queue;
@@ -126,7 +127,7 @@ public class TestLocalWhitePages extends TestCase {
 		 * 
 		 * @see frodo2.communication.IncomingMsgPolicyInterface#getMsgTypes()
 		 */
-		public Collection<String> getMsgTypes() {
+		public Collection<MessageType> getMsgTypes() {
 			return msgTypes;
 		}
 
@@ -136,7 +137,7 @@ public class TestLocalWhitePages extends TestCase {
 		 */
 		public void notifyIn(Message msg) {
 			
-			String type = msg.getType();
+			MessageType type = msg.getType();
 			
 			if(type.equals(TEST)) {
 				received++;
