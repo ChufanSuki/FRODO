@@ -36,6 +36,7 @@ import frodo2.algorithms.Solution;
 import frodo2.algorithms.StatsReporter;
 import frodo2.algorithms.dpop.UTILpropagation;
 import frodo2.algorithms.dpop.stochastic.robust.WorstCaseUTIL;
+import frodo2.communication.MessageType;
 import frodo2.solutionSpaces.Addable;
 import frodo2.solutionSpaces.UtilitySolutionSpace;
 
@@ -90,9 +91,9 @@ public class E_DPOPsolver < V extends Addable<V>, U extends Addable<U> > extends
 		 * @param treeWidth 				the width of the tree on which the algorithm has run
 		 */
 		public StochSolution (int nbrVariables, U trueUtil, U reportedUtil, U expectedUtil, U worstUtil, U probOfOptimality, double centralization, Map<String, V> assignments, 
-				int nbrMsgs, TreeMap<String, Integer> msgNbrs, TreeMap<Object, Integer> msgsNbrsSentPerAgent, TreeMap<Object, Integer> msgsNbrsReceivedPerAgent, 
-				long totalMsgSize, TreeMap<String, Long> msgSizes, TreeMap<Object, Long> msgSizesSentPerAgent, TreeMap<Object, Long> msgSizesReveivedPerAgent, 
-				long maxMsgSize, TreeMap<String, Long> maxMsgSizes, 
+				int nbrMsgs, TreeMap<MessageType, Integer> msgNbrs, TreeMap<Object, Integer> msgsNbrsSentPerAgent, TreeMap<Object, Integer> msgsNbrsReceivedPerAgent, 
+				long totalMsgSize, TreeMap<MessageType, Long> msgSizes, TreeMap<Object, Long> msgSizesSentPerAgent, TreeMap<Object, Long> msgSizesReveivedPerAgent, 
+				long maxMsgSize, TreeMap<MessageType, Long> maxMsgSizes, 
 				long ncccCount, long timeNeeded, HashMap<String, Long> moduleEndTimes, int treeWidth) {
 			super(nbrVariables, reportedUtil, trueUtil, assignments, nbrMsgs, msgNbrs, msgsNbrsSentPerAgent, msgsNbrsReceivedPerAgent, totalMsgSize, msgSizes, msgSizesSentPerAgent, msgSizesReveivedPerAgent, maxMsgSize, maxMsgSizes, ncccCount, timeNeeded, moduleEndTimes, treeWidth, 0);
 			this.worstUtil = worstUtil;

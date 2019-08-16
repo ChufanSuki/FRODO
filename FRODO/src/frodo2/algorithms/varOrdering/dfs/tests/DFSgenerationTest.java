@@ -61,6 +61,7 @@ import frodo2.algorithms.varOrdering.election.LeaderElectionMaxID;
 import frodo2.algorithms.varOrdering.election.tests.LeaderElectionMaxIDTest;
 import frodo2.communication.IncomingMsgPolicyInterface;
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 import frodo2.communication.Queue;
 import frodo2.communication.QueueOutputPipeInterface;
 import frodo2.communication.sharedMemory.QueueIOPipe;
@@ -71,7 +72,7 @@ import frodo2.solutionSpaces.UtilitySolutionSpace;
 /** JUnit test for the class DFSgeneration
  * @author Thomas Leaute
  */
-public class DFSgenerationTest extends TestCase implements IncomingMsgPolicyInterface<String> {
+public class DFSgenerationTest extends TestCase implements IncomingMsgPolicyInterface<MessageType> {
 
 	/** Maximum number of variables in the random graph 
 	 * @note Must be at least 2. 
@@ -96,8 +97,8 @@ public class DFSgenerationTest extends TestCase implements IncomingMsgPolicyInte
 	/** Used to wake up the test thread when all agents have finished */
 	private final Condition finished = finished_lock.newCondition();
 
-	/** List of queues corresponding to the different agents */
-	private Queue[] queues;
+	/** List of queues, indexed by agent name */
+	private Map<String, Queue> queues;
 	
 	/** Output of the DFS generation protocol
 	 * 
@@ -111,8 +112,8 @@ public class DFSgenerationTest extends TestCase implements IncomingMsgPolicyInte
 	/** Parser for the random XCSP problem */
 	private XCSPparser<AddableInteger, AddableInteger> parser;
 
-	/** One output pipe used to send messages to each queue */
-	private QueueOutputPipeInterface[] pipes;
+	/** One output pipe used to send messages to each queue, indexed by the queue's agent name */
+	private Map<String, QueueOutputPipeInterface> pipes;
 
 	/** Whether to use TCP or SharedMemory pipes */
 	private boolean useTCP;
@@ -183,11 +184,11 @@ public class DFSgenerationTest extends TestCase implements IncomingMsgPolicyInte
 		super.tearDown();
 		graph = null;
 		dfs.clear();
-		for (Queue queue : queues) {
+		for (Queue queue : queues.values()) {
 			queue.end();
 		}
 		queues = null;
-		for (QueueOutputPipeInterface pipe : pipes) {
+		for (QueueOutputPipeInterface pipe : pipes.values()) {
 			pipe.close();
 		}
 		pipes = null;
@@ -214,17 +215,16 @@ public class DFSgenerationTest extends TestCase implements IncomingMsgPolicyInte
 	throws IOException, NoSuchMethodException, IllegalArgumentException, InstantiationException, IllegalAccessException, InvocationTargetException {
 
 		int nbrVars = graph.nodes.size();
-		int nbrAgents = graph.clusters.size();
 
 		// Create the queue network
-		queues = new Queue [nbrAgents];
+		queues = new HashMap<String, Queue> ();
 		pipes = AllTests.createQueueNetwork(queues, graph, useTCP);
 		
 		// Listen for statistics messages
 		Queue myQueue = new Queue (false);
 		myQueue.addIncomingMessagePolicy(DFSgeneration.STATS_MSG_TYPE, this);
 		QueueIOPipe myPipe = new QueueIOPipe (myQueue);
-		for (Queue queue : this.queues) 
+		for (Queue queue : this.queues.values()) 
 			queue.addOutputPipe(AgentInterface.STATS_MONITOR, myPipe);
 		DFSgeneration<AddableInteger, AddableInteger> statsGatherer = new DFSgeneration<AddableInteger, AddableInteger> (parser);
 		statsGatherer.setSilent(true);
@@ -248,7 +248,7 @@ public class DFSgenerationTest extends TestCase implements IncomingMsgPolicyInte
 			
 			// Go through the list of agents
 			for (String agent : parser.getAgents()) {
-				Queue queue = queues[Integer.parseInt(agent)];
+				Queue queue = queues.get(agent);
 				
 				XCSPparser<AddableInteger, AddableInteger> subProb = parser.getSubProblem(agent);
 				queue.setProblem(subProb);
@@ -261,7 +261,7 @@ public class DFSgenerationTest extends TestCase implements IncomingMsgPolicyInte
 		        Object[] args = new Object[2];
 		        args[0] = subProb;
 		        args[1] = parameters;
-				queue.addIncomingMessagePolicy((IncomingMsgPolicyInterface<String>) constructor.newInstance(args));
+				queue.addIncomingMessagePolicy((IncomingMsgPolicyInterface<MessageType>) constructor.newInstance(args));
 				queue.addIncomingMessagePolicy(this);
 			}
 			
@@ -269,8 +269,8 @@ public class DFSgenerationTest extends TestCase implements IncomingMsgPolicyInte
 			
 			// Create the map associating to each variable the ID of its owner agent
 			HashMap<String, String> owners = new HashMap<String, String> (graph.nodes.size());
-			for (Map.Entry<String, Integer> entry : graph.clusterOf.entrySet()) 
-				owners.put(entry.getKey(), entry.getValue().toString());
+			for (Map.Entry<String, String> entry : graph.clusterOf.entrySet()) 
+				owners.put(entry.getKey(), entry.getValue());
 			
 			// Create the map containing the domains
 			HashMap<String, AddableInteger[]> domains = new HashMap<String, AddableInteger[]> ();
@@ -278,7 +278,7 @@ public class DFSgenerationTest extends TestCase implements IncomingMsgPolicyInte
 				domains.put(var, parser.getDomain(var));
 			
 			for (String agent : parser.getAgents()) {
-				Queue queue = queues[Integer.parseInt(agent)];
+				Queue queue = queues.get(agent);
 				
 				// Extract the subproblem
 				DCOPProblemInterface<AddableInteger, AddableInteger> subproblem = parser.getSubProblem(agent);
@@ -299,14 +299,14 @@ public class DFSgenerationTest extends TestCase implements IncomingMsgPolicyInte
 
 		// Tell all listeners to start the protocol
 		this.remainingOutputs = this.nbrOutputMessagesPerVar * nbrVars; // 1 output message and 1 stats message per var
-		for (int i = 0; i < nbrAgents; i++) { // for each agent
+		for (Map.Entry<String, Queue> entry : queues.entrySet()) { // for each agent
 			
 			// Send the START_AGENT message needed by the Most Connected heuristicClass
 			Message msg = new Message (AgentInterface.START_AGENT);
-			queues[i].sendMessageToSelf(msg);
+			entry.getValue().sendMessageToSelf(msg);
 			
 			// Send the LEoutput message
-			this.sendLEoutputs(i, rootForVar);
+			this.sendLEoutputs(entry.getKey(), rootForVar);
 		}
 		
 		// Wait until all agents have sent their outputs
@@ -337,17 +337,17 @@ public class DFSgenerationTest extends TestCase implements IncomingMsgPolicyInte
 	}
 
 	/** Sends the LEoutput messages
-	 * @param i 			the index of the current agent
+	 * @param agent 		the name of the current agent
 	 * @param rootForVar 	for each variable, its root
 	 */
-	protected void sendLEoutputs(int i, Map<String, String> rootForVar) {
+	protected void sendLEoutputs(String agent, Map<String, String> rootForVar) {
 		
-		for (String var : graph.clusters.get(i)) { // for each variable owned by the agent
+		for (String var : graph.clusters.get(agent)) { // for each variable owned by the agent
 
 			// Create and send the message saying that variable i is a root (or not)
 			String root = rootForVar.get(var);
 			LeaderElectionMaxID.MessageLEoutput<String> startMsg = new LeaderElectionMaxID.MessageLEoutput<String> (var, root.equals(var), root);
-			queues[i].sendMessageToSelf(startMsg);
+			queues.get(agent).sendMessageToSelf(startMsg);
 		}
 	}
 
@@ -367,14 +367,14 @@ public class DFSgenerationTest extends TestCase implements IncomingMsgPolicyInte
 	 * 
 	 * It listens to the output of the DFS generation protocol. 
 	 */
-	public Collection<String> getMsgTypes() {
-		ArrayList <String> types = new ArrayList <String> ();
+	public Collection<MessageType> getMsgTypes() {
+		ArrayList <MessageType> types = new ArrayList <MessageType> ();
 		types.add(this.getOutputMsgType());
 		return types;
 	}
 	
 	/** @return the type of the output messages */
-	protected String getOutputMsgType () {
+	protected MessageType getOutputMsgType () {
 		return DFSgeneration.OUTPUT_MSG_TYPE;
 	}
 
@@ -383,7 +383,7 @@ public class DFSgenerationTest extends TestCase implements IncomingMsgPolicyInte
 	 */
 	public void notifyIn(Message msg) {
 		
-		String msgType = msg.getType();
+		MessageType msgType = msg.getType();
 		
 		if (msgType.equals(this.getOutputMsgType()) || msgType.equals(DFSgeneration.STATS_MSG_TYPE)) {
 

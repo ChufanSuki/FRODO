@@ -29,6 +29,7 @@ import java.io.ObjectOutput;
 import java.util.HashMap;
 import java.util.Map;
 
+import frodo2.communication.MessageType;
 import frodo2.communication.MessageWith3Payloads;
 import frodo2.communication.QueueOutputPipeInterface;
 import frodo2.solutionSpaces.Addable;
@@ -49,21 +50,21 @@ public interface AgentInterface < V extends Addable<V> > {
 	public static final String STATS_MONITOR = "Statistics Monitor";
 	
 	/** Message to be sent if an agent has a connection with all its neighbours */
-	public static final String AGENT_CONNECTED = "Agent-Connected";
+	public static final MessageType AGENT_CONNECTED = MessageType.SYSTEM.newChild("AgentInterface", "Agent-Connected");
 	
 	/** The message sent when an agent has terminated */
-	public static final String AGENT_FINISHED = "Agent-Ready";
+	public static final MessageType AGENT_FINISHED = MessageType.SYSTEM.newChild("AgentInterface", "Agent-Ready");
 	
 	/** The message sent when it has been detected that all agents are waiting for messages, but there are no more messages on the way */
-	public static final String ALL_AGENTS_IDLE = "ALL_AGENTS_IDLE";
+	public static final MessageType ALL_AGENTS_IDLE = MessageType.SYSTEM.newChild("AgentInterface", "ALL_AGENTS_IDLE");
 	
 	/** A message containing statistics about messages sent
 	 * @author Thomas Leaute
 	 */
-	public static class ComStatsMessage extends MessageWith3Payloads< HashMap<String, Integer>, HashMap<String, Long>, HashMap<String, Long> > {
+	public static class ComStatsMessage extends MessageWith3Payloads< HashMap<MessageType, Integer>, HashMap<MessageType, Long>, HashMap<MessageType, Long> > {
 
 		/** The type of this message */
-		public static final String COM_STATS_MSG_TYPE = "Communication statistics";
+		public static final MessageType COM_STATS_MSG_TYPE = MessageType.SYSTEM.newChild("AgentInterface", "Communication statistics");
 		
 		/** The sender agent */
 		private Object sender;
@@ -85,8 +86,8 @@ public interface AgentInterface < V extends Addable<V> > {
 		 * @param msgSizesSent 		the amount of information sent to each other agent, in bytes
 		 * @param maxMsgSizes 		for each message type, the size (in bytes) of the largest message of this type
 		 */
-		public ComStatsMessage(Object sender, HashMap<String, Integer> msgNbrs, HashMap<Object, Integer> msgNbrsSent, 
-				HashMap<String, Long> msgSizes, HashMap<Object, Long> msgSizesSent, HashMap<String, Long> maxMsgSizes) {
+		public ComStatsMessage(Object sender, HashMap<MessageType, Integer> msgNbrs, HashMap<Object, Integer> msgNbrsSent, 
+				HashMap<MessageType, Long> msgSizes, HashMap<Object, Long> msgSizesSent, HashMap<MessageType, Long> maxMsgSizes) {
 			super(COM_STATS_MSG_TYPE, msgNbrs, msgSizes, maxMsgSizes);
 			this.sender = sender;
 			this.msgNbrsSent = msgNbrsSent;
@@ -106,17 +107,17 @@ public interface AgentInterface < V extends Addable<V> > {
 		}
 
 		/** @return for each message type, the number of messages sent of that type */
-		public HashMap<String, Integer> getMsgNbrs () {
+		public HashMap<MessageType, Integer> getMsgNbrs () {
 			return this.getPayload1();
 		}
 		
 		/** @return for each message type, the total amount of information sent in messages of that type, in bytes */
-		public HashMap<String, Long> getMsgSizes () {
+		public HashMap<MessageType, Long> getMsgSizes () {
 			return this.getPayload2();
 		}
 		
 		/** @return for each message type, the size (in bytes) of the largest message of this type */
-		public HashMap<String, Long> getMaxMsgSizes () {
+		public HashMap<MessageType, Long> getMaxMsgSizes () {
 			return this.getPayload3();
 		}
 		
@@ -178,16 +179,16 @@ public interface AgentInterface < V extends Addable<V> > {
 	}
 	
 	/** The message an agent uses to ask the white pages for an address*/
-	public static final String LOCAL_AGENT_ADDRESS_REQUEST = "local-address-request";
+	public static final MessageType LOCAL_AGENT_ADDRESS_REQUEST = MessageType.SYSTEM.newChild("AgentInterface", "local-address-request");
 	
 	/** an agent reports to its local white pages*/
-	public static final String LOCAL_AGENT_REPORTING = "local-agent-reporting";
+	public static final MessageType LOCAL_AGENT_REPORTING = MessageType.SYSTEM.newChild("AgentInterface", "local-agent-reporting");
 
 	/** Message used to tell an agent to start its algorithm */
-	public static final String START_AGENT = "Start-Agent";
+	public static final MessageType START_AGENT = MessageType.SYSTEM.newChild("AgentInterface", "Start-Agent");
 	
 	/** Message used to tell an agent to stop */
-	public static final String STOP_AGENT = "Stop-Agent";
+	public static final MessageType STOP_AGENT = MessageType.SYSTEM.newChild("AgentInterface", "Stop-Agent");
 	
 	/** Tells the agent to report to the local white pages */
 	public void report ();

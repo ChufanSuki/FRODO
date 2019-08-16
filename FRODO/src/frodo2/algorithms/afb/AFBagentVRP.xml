@@ -59,6 +59,10 @@ How to contact the authors:
 	 -->
 	<modules>
 	
+		<!-- Collects and reports the solution found -->
+		<module className = "frodo2.algorithms.SolutionCollector" 
+				reportStats = "true" />
+		
 		<!-- For each connected component of the constraint graph, elects a root variable for the variable ordering.
 			- nbrSteps: must be greater than the diameter of the largest connected component in the constraint graph
 		 -->
@@ -79,9 +83,9 @@ How to contact the authors:
 			</varElectionHeuristic>
 			
 			<messages>
-				<message name = "START_MSG_TYPE" 
-						 value = "START_AGENT" 
-						 ownerClass = "frodo2.algorithms.AgentInterface" />
+				<message myFieldName = "START_MSG_TYPE" 
+						 targetFieldName = "START_AGENT" 
+						 targetClass = "frodo2.algorithms.AgentInterface" />
 			</messages>
 		</module>
 		
@@ -98,27 +102,31 @@ How to contact the authors:
 			- convergence: whether to keep track of the convergence towards the optimal solution (default = false)
 		-->
 		<module className = "frodo2.algorithms.afb.AFB" 
-				reportStats = "true" 
 				convergence = "false" >
 			
 			<messages>
-				<message name = "ORDER_MSG_TYPE" 
-						 value = "ORDER_MSG_TYPE" 
-						 ownerClass = "frodo2.algorithms.varOrdering.linear.OrderMsg" />
-				<message name = "ORDER_STATS_MSG_TYPE" 
-						 value = "STATS_MSG_TYPE" 
-						 ownerClass = "frodo2.algorithms.varOrdering.linear.OrderMsg" />
+				<message myFieldName = "ORDER_MSG_TYPE" 
+						 targetFieldName = "ORDER_MSG_TYPE" 
+						 targetClass = "frodo2.algorithms.varOrdering.linear.OrderMsg" />
+				<message myFieldName = "ORDER_STATS_MSG_TYPE" 
+						 targetFieldName = "STATS_MSG_TYPE" 
+						 targetClass = "frodo2.algorithms.varOrdering.linear.OrderMsg" />
 			</messages>
 		</module>
 		
-		<!-- Prints out all messages received and sent by the agent
-			WARNING! This can significantly affect runtime performance. Only use this module for debugging purposes. 
-				- hideSystemMessages: whether to display system messages (default: true)
+		<!-- Displays the messages exchanged
+			- perAgent: if true, each agent reports itself the messages it exchanges 
+				WARNING! This can significantly affect runtime performance. Only use this setting for debugging purposes. 
+			- hideSystemMessages: whether to display system messages (default: true)
+		 	- visualizer: the class of the Visualizer to be used; supported values: 
+		 		- [empty string]: no visualizer; messages are not displayed
+		 		- frodo2.gui.ConsoleVisualizer: messages are printed out in the console
+		 		- frodo2.gui.jung.JungVisualizer: a visualizer based on JUNG2
 		 -->
-		<!--
 		<module className = "frodo2.algorithms.test.MessageDebugger" 
-		 		hideSystemMessages = "true" />
-		 -->
+				perAgent = "false" 
+		 		hideSystemMessages = "true" 
+		 		visualizer = "" />
 		 
 	</modules>
 </agentDescription>

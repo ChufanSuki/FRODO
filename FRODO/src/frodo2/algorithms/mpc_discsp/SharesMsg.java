@@ -30,6 +30,7 @@ import java.math.BigInteger;
 import java.util.Arrays;
 
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 
 /** In MPC-DisCSP4, a message containing a vector of shares
  * @author Thomas Leaute
@@ -38,7 +39,7 @@ import frodo2.communication.Message;
 public class SharesMsg extends Message implements Externalizable {
 	
 	/** The type of this message */
-	public final static String SHARES_MSG_TYPE = "SharesMsg";
+	public final static MessageType SHARES_MSG_TYPE = new MessageType ("MPC", "Shares");
 	
 	/** The sender agent */
 	private int agent;

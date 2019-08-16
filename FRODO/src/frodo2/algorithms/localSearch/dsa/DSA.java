@@ -40,9 +40,10 @@ import java.util.Map.Entry;
 import org.jdom2.Element;
 
 import frodo2.algorithms.AgentInterface;
+import frodo2.algorithms.SolutionCollector;
 import frodo2.algorithms.StatsReporterWithConvergence;
 import frodo2.communication.Message;
-import frodo2.communication.MessageWith3Payloads;
+import frodo2.communication.MessageType;
 import frodo2.communication.Queue;
 import frodo2.solutionSpaces.Addable;
 import frodo2.solutionSpaces.AddableConflicts;
@@ -81,16 +82,13 @@ implements StatsReporterWithConvergence<Val> {
 	// The message types
 
 	/** The type of the message telling the module to start */
-	public static String START_MSG_TYPE = AgentInterface.START_AGENT;
+	public static MessageType START_MSG_TYPE = AgentInterface.START_AGENT;
 
 	/** The type of the message used to report a value to neighboring variables */
-	public static String VALUE_MSG_TYPE = "VALUE";
+	public static MessageType VALUE_MSG_TYPE = new MessageType ("DSA", "VALUE");
 
 	/** The type of the message containing the assignment history */
-	public static final String CONV_STATS_MSG_TYPE = "DSAConvStatsMsg";
-
-	/** The type of the output messages containing the optimal assignment to a variable */
-	public static final String OUTPUT_MSG_TYPE = "OutputMessageDSA";
+	public static final MessageType CONV_STATS_MSG_TYPE = new MessageType ("DSA", "ConvStats");
 
 	/** When \c true, every variable writes log information to a log file */
 	protected final boolean LOG = false;
@@ -98,20 +96,11 @@ implements StatsReporterWithConvergence<Val> {
 	/** A list of buffered writers used to log information during debugging*/
 	protected HashMap<String, BufferedWriter> loggers;
 	
-	/** Whether to report stats */
-	protected boolean reportStats = true;
-
 	/** Whether the listener should record the assignment history or not */
 	protected final boolean convergence;
 
-	/** The global assignment */
-	protected Map< String, Val > assignment;
-
 	/** For each variable its assignment history */
 	protected HashMap<String, ArrayList<CurrentAssignment<Val>>> assignmentHistoriesMap;
-
-	/** The global utility of the final variable assignment */
-	protected U finalUtility; 
 
 	// Information on the problem
 
@@ -155,7 +144,6 @@ implements StatsReporterWithConvergence<Val> {
 	 * @param problem 		the overall problem
 	 */
 	public DSA(Element parameters, DCOPProblemInterface<Val, U> problem) {
-		assignment = new HashMap< String, Val> ();
 		assignmentHistoriesMap = new HashMap<String, ArrayList<CurrentAssignment<Val>>>();
 		this.problem = problem;
 		numberOfVariables = problem.getNbrVars();
@@ -176,7 +164,6 @@ implements StatsReporterWithConvergence<Val> {
 			this.p = Double.parseDouble(p);
 
 		this.convergence = Boolean.parseBoolean(parameters.getAttributeValue("convergence"));
-		this.reportStats = Boolean.parseBoolean(parameters.getAttributeValue("reportStats"));
 
 		String decisionStrategy = parameters.getAttributeValue("strategy");
 		if(decisionStrategy == null)
@@ -206,7 +193,6 @@ implements StatsReporterWithConvergence<Val> {
 			this.p = Double.parseDouble(p);
 
 		this.convergence = Boolean.parseBoolean(parameters.getAttributeValue("convergence"));
-		this.reportStats = Boolean.parseBoolean(parameters.getAttributeValue("reportStats"));
 
 		String decisionStrategy = parameters.getAttributeValue("strategy");
 		if(decisionStrategy == null)
@@ -274,8 +260,8 @@ implements StatsReporterWithConvergence<Val> {
 					queue.sendMessage(AgentInterface.STATS_MONITOR, new StatsReporterWithConvergence.ConvStatMessage<Val>(CONV_STATS_MSG_TYPE, var, history));
 				}
 
-				if (this.reportStats) 
-					queue.sendMessage(AgentInterface.STATS_MONITOR, new AssignmentMessage<Val, U>(var, varInfo.currentValue, varInfo.currentUtility));
+				queue.sendMessage(AgentInterface.STATS_MONITOR, new SolutionCollector.AssignmentMessage<Val> (var, varInfo.currentValue));
+				
 				if(++variableFinishedCounter == numberOfVariables) {
 					queue.sendMessageToSelf(new Message (AgentInterface.AGENT_FINISHED));
 					terminated = true;
@@ -322,7 +308,6 @@ implements StatsReporterWithConvergence<Val> {
 	 * @see frodo2.algorithms.StatsReporter#getStatsFromQueue(frodo2.communication.Queue)
 	 */
 	public void getStatsFromQueue(Queue queue) {
-		queue.addIncomingMessagePolicy(OUTPUT_MSG_TYPE, this);
 		queue.addIncomingMessagePolicy(CONV_STATS_MSG_TYPE, this);
 	}
 
@@ -346,34 +331,14 @@ implements StatsReporterWithConvergence<Val> {
 		return infos.get(variable).currentUtility;
 	}
 
-	/**
-	 * Getter method
-	 * @author Brammert Ottens, 14 aug 2009
-	 * @return the final variable assignments 
-	 */
-	public Map<String, Val> getFinalAssignments() {
-		return assignment;
-	}
-
-	/**
-	 * Getter method
-	 * @author Brammert Ottens, 14 aug 2009
-	 * @return the global utility of the final variable assignment
-	 */
-	public U getFinalUtility() {
-		return finalUtility;
-	}
-
 	/** @see StatsReporterWithConvergence#setSilent(boolean) */
-	public void setSilent(boolean silent) {
-		this.reportStats = ! silent;
-	}
+	public void setSilent(boolean silent) { }
 
 	/** 
 	 * @see frodo2.communication.IncomingMsgPolicyInterface#getMsgTypes()
 	 */
-	public Collection<String> getMsgTypes() {
-		ArrayList<String> msgTypes = new ArrayList<String>(4);
+	public Collection<MessageType> getMsgTypes() {
+		ArrayList<MessageType> msgTypes = new ArrayList<MessageType>(4);
 		msgTypes.add(START_MSG_TYPE);
 		msgTypes.add(VALUE_MSG_TYPE);
 		msgTypes.add(AgentInterface.AGENT_FINISHED);
@@ -386,34 +351,9 @@ implements StatsReporterWithConvergence<Val> {
 	 */
 	@SuppressWarnings("unchecked")
 	public void notifyIn(Message msg) {
-		String type = msg.getType();
-
-		if (type.equals(OUTPUT_MSG_TYPE)) { // in stats gatherer mode, the message containing information about an agent's assignments
-			AssignmentMessage<Val, U> msgCast = (AssignmentMessage<Val, U>) msg;
-
-			String variable = msgCast.getVariable();
-			Val value = msgCast.getValue();
-			U utility = msgCast.getUtility();
-			assignment.put(variable, value);
-			if (this.reportStats) 
-				System.out.println("var `" + variable + "' = " + value + ", \t local utility = " + utility);
-
-			if(assignment.size() == numberOfVariables) {
-				UtilitySolutionSpace<Val, U> sol = problem.getUtility(assignment); 
-				finalUtility = sol.getUtility(0);
-				
-				if (this.reportStats) {
-					if (this.problem.maximize()) 
-						System.out.println("Total optimal utility: " + finalUtility);
-					else 
-						System.out.println("Total optimal cost: " + finalUtility);
-				}
-			}
-
-			return;
-		}
-
-		else if (type.equals(CONV_STATS_MSG_TYPE)) { // in stats gatherer mode, the message sent by a variable containing the assignment history
+		MessageType type = msg.getType();
+		
+		if (type.equals(CONV_STATS_MSG_TYPE)) { // in stats gatherer mode, the message sent by a variable containing the assignment history
 			StatsReporterWithConvergence.ConvStatMessage<Val> msgCast = (StatsReporterWithConvergence.ConvStatMessage<Val>)msg;
 			assignmentHistoriesMap.put(msgCast.getVar(), msgCast.getAssignmentHistory());
 
@@ -466,8 +406,8 @@ implements StatsReporterWithConvergence<Val> {
 						queue.sendMessage(AgentInterface.STATS_MONITOR, new StatsReporterWithConvergence.ConvStatMessage<Val>(CONV_STATS_MSG_TYPE, var, history));
 					}
 
-					if (this.reportStats) 
-						queue.sendMessage(AgentInterface.STATS_MONITOR, new AssignmentMessage<Val, U>(var, varInfo.currentValue, varInfo.currentUtility));
+					queue.sendMessage(AgentInterface.STATS_MONITOR, new SolutionCollector.AssignmentMessage<Val> (var, varInfo.currentValue));
+					
 					if(++variableFinishedCounter == numberOfVariables) {
 						queue.sendMessageToSelf(new Message (AgentInterface.AGENT_FINISHED));
 					}
@@ -487,8 +427,7 @@ implements StatsReporterWithConvergence<Val> {
 						queue.sendMessage(AgentInterface.STATS_MONITOR, new StatsReporterWithConvergence.ConvStatMessage<Val>(CONV_STATS_MSG_TYPE, var, history));
 					}
 
-					if (this.reportStats) 
-						queue.sendMessage(AgentInterface.STATS_MONITOR, new AssignmentMessage<Val, U>(var, varInfo.currentValue, varInfo.currentUtility));
+					queue.sendMessage(AgentInterface.STATS_MONITOR, new SolutionCollector.AssignmentMessage<Val> (var, varInfo.currentValue));
 				}
 
 				queue.sendMessageToSelf(new Message (AgentInterface.AGENT_FINISHED));
@@ -921,41 +860,6 @@ implements StatsReporterWithConvergence<Val> {
 			}
 
 			return false;
-		}
-	}
-
-	/** A message holding an assignment to a variable
-	 * @param <Val> type used for variable values
-	 * @param <U>	type used of utility values
-	 */
-	public static class AssignmentMessage < Val extends Addable<Val>, U extends Addable<U> >
-	extends MessageWith3Payloads <String, Val, U> {
-
-		/** Empty constructor used for externalization */
-		public AssignmentMessage () { }
-
-		/** Constructor 
-		 * @param var 		the variable
-		 * @param val 		the value assigned to the variable \a var
-		 * @param utility	the local utility of this variable
-		 */
-		public AssignmentMessage (String var, Val val, U utility) {
-			super (OUTPUT_MSG_TYPE, var, val, utility);
-		}
-
-		/** @return the variable */
-		public String getVariable () {
-			return this.getPayload1();
-		}
-
-		/** @return the value */
-		public Val getValue () {
-			return this.getPayload2();
-		}
-
-		/** @return the utility */
-		public U getUtility () {
-			return this.getPayload3();
 		}
 	}
 

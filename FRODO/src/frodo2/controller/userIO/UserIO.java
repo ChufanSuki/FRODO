@@ -29,6 +29,7 @@ import java.util.HashMap;
 import frodo2.communication.AgentAddress;
 import frodo2.communication.IncomingMsgPolicyInterface;
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 import frodo2.communication.MessageWithPayload;
 import frodo2.communication.Queue;
 import frodo2.controller.Controller;
@@ -39,22 +40,22 @@ import frodo2.controller.WhitePages;
  * @author brammertottens
  *
  */
-public abstract class UserIO extends Thread implements IncomingMsgPolicyInterface<String>{
+public abstract class UserIO extends Thread implements IncomingMsgPolicyInterface<MessageType>{
 	
 	/** The message type used to convey the configuration file*/
-	public static final String CONFIGURATION_MSG = "Configure";
+	public static final MessageType CONFIGURATION_MSG = MessageType.SYSTEM.newChild("UserIO", "Configure");
 	
-	/** The messag type used to send messages to the user*/
-	public static final String USER_NOTIFICATION_MSG = "User-Notification";
+	/** The message type used to send messages to the user*/
+	public static final MessageType USER_NOTIFICATION_MSG = MessageType.SYSTEM.newChild("UserIO", "User-Notification");
 	
 	/** The message the user sends to start the experiment*/
-	public static final String START_MSG = "StartE";
+	public static final MessageType START_MSG = MessageType.SYSTEM.newChild("UserIO", "StartE");
 	
 	/** Message send to request a list of daemons from the white pages*/
-	public static final String DEAMON_LIST_REQUEST = "Daemon list requested";
+	public static final MessageType DEAMON_LIST_REQUEST = MessageType.SYSTEM.newChild("UserIO", "Daemon list requested");
 	
 	/** Message send to request a list of agents from the white pages*/
-	public static final String AGENTS_LIST_REQUEST = "Agent list requested";
+	public static final MessageType AGENTS_LIST_REQUEST = MessageType.SYSTEM.newChild("UserIO", "Agent list requested");
 	
 	/** The queue of the controller*/
 	protected Queue controlQueue;
@@ -69,7 +70,7 @@ public abstract class UserIO extends Thread implements IncomingMsgPolicyInterfac
 	private Object queue_lock = new Object();
 	
 	/** The list of messages types this listener wants to be notified of */
-	private ArrayList <String> msgTypes = new ArrayList <String> ();
+	private ArrayList <MessageType> msgTypes = new ArrayList <MessageType> ();
 	
 	/**
 	 * A basic constructor
@@ -94,7 +95,7 @@ public abstract class UserIO extends Thread implements IncomingMsgPolicyInterfac
 	}
 
 	/** @see frodo2.communication.IncomingMsgPolicyInterface#getMsgTypes() */
-	public Collection<String> getMsgTypes() {
+	public Collection<MessageType> getMsgTypes() {
 		return msgTypes;
 	}
 	

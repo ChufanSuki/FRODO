@@ -31,8 +31,9 @@ import java.util.List;
 import org.jdom2.Element;
 
 import frodo2.algorithms.AgentInterface;
-import frodo2.algorithms.StatsReporter;
+import frodo2.algorithms.SolutionCollector;
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 import frodo2.solutionSpaces.Addable;
 import frodo2.solutionSpaces.AddableInteger;
 import frodo2.solutionSpaces.DCOPProblemInterface;
@@ -61,7 +62,7 @@ import frodo2.solutionSpaces.DCOPProblemInterface;
 public class MPC_DisWCSP4 < V extends Addable<V>, U extends Addable<U> > extends MPC_DisCSP4<V, U> {
 	
 	/** The type of the start message */
-	public static String START_MSG_TYPE = AgentInterface.START_AGENT;
+	public static MessageType START_MSG_TYPE = AgentInterface.START_AGENT;
 	
 	/** In private constraints, infinite costs are replaced with this value */
 	private final AddableInteger infiniteCost;
@@ -82,19 +83,9 @@ public class MPC_DisWCSP4 < V extends Addable<V>, U extends Addable<U> > extends
 		this.maxCost = Integer.parseInt(params.getAttributeValue("maxTotalCost"));
 	}
 
-	/** Constructor in stats gatherer mode
-	 * @param params 	the parameters
-	 * @param problem 	the overall problem
-	 */
-	public MPC_DisWCSP4 (Element params, DCOPProblemInterface<V, U> problem) {
-		super(params, problem);
-		this.infiniteCost = null;
-		this.maxCost = 0;
-	}
-	
-	/** @see StatsReporter#getMsgTypes() */
+	/** @see MPC_DisCSP4#getMsgTypes() */
 	@Override
-	public Collection<String> getMsgTypes() {
+	public Collection<MessageType> getMsgTypes() {
 		return Arrays.asList(
 				MPC_DisWCSP4.START_MSG_TYPE, 
 				SharesMsg.SHARES_MSG_TYPE, 
@@ -108,13 +99,7 @@ public class MPC_DisWCSP4 < V extends Addable<V>, U extends Addable<U> > extends
 	@Override
 	public void notifyIn(Message msg) {
 		
-		String type = msg.getType();
-		
-		if (type.equals(SOLUTION_MSG_TYPE)) { // in stats gatherer mode, the optimal assignment to a variable
-			
-			super.notifyIn(msg);
-			return;
-		}
+		MessageType type = msg.getType();
 		
 //		System.out.println(this.problem.getAgent() + " got " + msg);
 		
@@ -192,8 +177,7 @@ public class MPC_DisWCSP4 < V extends Addable<V>, U extends Addable<U> > extends
 
 			// The first agent notifies the stats gatherer of the infeasibility
 			if (this.myAgentID == 0) {
-				if (this.reportStats) 
-					this.queue.sendMessage(AgentInterface.STATS_MONITOR, new SolutionMsg<V> (null, null));
+				this.queue.sendMessage(AgentInterface.STATS_MONITOR, new SolutionCollector.AssignmentMessage<V> (null, null));
 				
 				// Also notify the empty agents
 				for (String agent : this.agents) 

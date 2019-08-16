@@ -27,6 +27,7 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.io.Serializable;
 import java.lang.reflect.Array;
+import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -106,7 +107,8 @@ extends BasicHypercube<V, UL> implements UtilitySolutionSpaceLimited<V, U, UL> {
 	/** @see BasicHypercube#readUtilities(java.io.ObjectInput) */
 	@SuppressWarnings("unchecked")
 	@Override
-	protected void readUtilities (ObjectInput in) throws ClassNotFoundException, IOException {
+	protected void readUtilities (ObjectInput in) 
+			throws ClassNotFoundException, IOException, InvocationTargetException, NoSuchMethodException {
 		
 		final boolean externalize = this.infeasibleUtil.externalize();
 
@@ -117,7 +119,7 @@ extends BasicHypercube<V, UL> implements UtilitySolutionSpaceLimited<V, U, UL> {
 			if (externalize) {
 				UL util = null;
 				try {
-					util = classOfUL.newInstance();
+					util = classOfUL.getConstructor().newInstance();
 				} catch (InstantiationException e) { // should never happen
 					e.printStackTrace();
 				} catch (IllegalAccessException e) { // should never happen

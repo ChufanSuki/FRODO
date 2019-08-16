@@ -26,6 +26,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -42,11 +43,14 @@ import java.util.TreeMap;
 import org.jdom2.Document;
 import org.jdom2.Element;
 import org.jdom2.JDOMException;
+import org.jdom2.output.Format;
+import org.jdom2.output.XMLOutputter;
 
 import frodo2.algorithms.AgentInterface.ComStatsMessage;
 import frodo2.algorithms.test.AllTests;
 import frodo2.communication.IncomingMsgPolicyInterface;
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 import frodo2.communication.MessageWith2Payloads;
 import frodo2.communication.MessageWrapper;
 import frodo2.communication.Queue;
@@ -64,8 +68,9 @@ import frodo2.solutionSpaces.ProblemInterface;
  * @author Thomas Leaute
  * @author Brammert Ottens
  * @param <V> the type used for variable values
+ * @param <U> the type used for utility values
  */
-public class AgentFactory < V extends Addable<V> > implements IncomingMsgPolicyInterface<String> {
+public class AgentFactory < V extends Addable<V>, U extends Addable<U> > implements IncomingMsgPolicyInterface<MessageType> {
 	
 	static {
 		assert assertWarning();
@@ -91,8 +96,9 @@ public class AgentFactory < V extends Addable<V> > implements IncomingMsgPolicyI
 	 * @return a new instance of an agent
 	 * @todo Make it possible to not have to manually choose the port number
 	 */
-	public static < V extends Addable<V> > AgentInterface<V> createAgent (QueueOutputPipeInterface toDaemonPipe, QueueOutputPipeInterface toControllerPipe, 
-			ProblemInterface<V, ?> probDesc, Document agentDesc, int port) {
+	public static < V extends Addable<V>, U extends Addable<U> > AgentInterface<V> createAgent (
+			QueueOutputPipeInterface toDaemonPipe, QueueOutputPipeInterface toControllerPipe, 
+			ProblemInterface<V, U> probDesc, Document agentDesc, int port) {
 		return createAgent(toDaemonPipe, toControllerPipe, probDesc, agentDesc, true, port);
 	}
 	
@@ -107,8 +113,9 @@ public class AgentFactory < V extends Addable<V> > implements IncomingMsgPolicyI
 	 * @return a new instance of an agent
 	 * @todo Make it possible to not have to manually choose the port number
 	 */
-	public static < V extends Addable<V> > AgentInterface<V> createAgent (QueueOutputPipeInterface toDaemonPipe, QueueOutputPipeInterface toControllerPipe, 
-			ProblemInterface<V, ?> probDesc, Document agentDesc, boolean statsToController, int port) {
+	public static < V extends Addable<V>, U extends Addable<U> > AgentInterface<V> createAgent (
+			QueueOutputPipeInterface toDaemonPipe, QueueOutputPipeInterface toControllerPipe, 
+			ProblemInterface<V, U> probDesc, Document agentDesc, boolean statsToController, int port) {
 
 		assert ! Boolean.parseBoolean(agentDesc.getRootElement().getAttributeValue("measureTime")) :
 			"measureTime == true, but the Simulated Time metric does not support TCP pipes";
@@ -133,7 +140,8 @@ public class AgentFactory < V extends Addable<V> > implements IncomingMsgPolicyI
 	 * @param mailman 			the CentralMailer; ignored if not measuring Simulated Time
 	 * @return a new instance of an agent
 	 */
-	public static < V extends Addable<V> > AgentInterface<V> createAgent(QueueOutputPipeInterface controllerPipe, ProblemInterface<V, ?> probDesc, Document agentDesc, CentralMailer mailman) {
+	public static < V extends Addable<V>, U extends Addable<U> > AgentInterface<V> createAgent(
+			QueueOutputPipeInterface controllerPipe, ProblemInterface<V, U> probDesc, Document agentDesc, CentralMailer mailman) {
 
 		try {
 			AgentInterface<V> agent = instantiateAgent(probDesc, agentDesc, mailman);
@@ -160,7 +168,8 @@ public class AgentFactory < V extends Addable<V> > implements IncomingMsgPolicyI
 	 * @throws IllegalArgumentException 	if an error occurs in passing arguments to the constructor of the agent class
 	 */
 	@SuppressWarnings("unchecked")
-	private static < V extends Addable<V> > AgentInterface<V> instantiateAgent (ProblemInterface<V, ?> probDesc, Document agentDesc, CentralMailer mailman) 
+	private static < V extends Addable<V>, U extends Addable<U> > AgentInterface<V> instantiateAgent (
+			ProblemInterface<V, U> probDesc, Document agentDesc, CentralMailer mailman) 
 	throws ClassNotFoundException, NoSuchMethodException, IllegalArgumentException, InstantiationException, 
 	IllegalAccessException, InvocationTargetException {
 
@@ -192,6 +201,7 @@ public class AgentFactory < V extends Addable<V> > implements IncomingMsgPolicyI
 		String timeout = null;
 		Document problem = null;
 		Document agent = null;
+		String outputFilePath = null;
 		for (int i = 0; i < args.length; i++) {
 			String arg = args[i];
 
@@ -224,9 +234,18 @@ public class AgentFactory < V extends Addable<V> > implements IncomingMsgPolicyI
 				continue;
 			}
 
+			// Parse the output file name
+			if ("-o".equals(args[i])) {
+				if (i + 1 >= args.length) 
+					System.err.println("Option `-o' must be followed by an output file path");
+				else 
+					outputFilePath = args[++i];
+				continue;
+			}
+
 			if (problem == null) { // parse the problem file
 				try {
-					System.out.println("Parsing the input problem file " + arg);
+					System.out.println("Parsing the input problem file: " + arg);
 					problem = XCSPparser.parse(new File (arg), false);
 				} catch (JDOMException e) {
 					e.printStackTrace();
@@ -237,7 +256,7 @@ public class AgentFactory < V extends Addable<V> > implements IncomingMsgPolicyI
 				}
 			} else { // parse the agent configuration file
 				try {
-					System.out.println("Parsing the input agent configuration file " + arg);
+					System.out.println("Parsing the input agent configuration file: " + arg);
 					agent = XCSPparser.parse(new File (arg), false);
 				} catch (JDOMException e) {
 					e.printStackTrace();
@@ -270,9 +289,9 @@ public class AgentFactory < V extends Addable<V> > implements IncomingMsgPolicyI
 		System.out.println("Setting up the agents...");
 
 		if (timeout == null) {
-			new AgentFactory (problem, agent);
+			new AgentFactory (problem, agent, outputFilePath);
 		} else 
-			new AgentFactory (problem, agent, Long.parseLong(timeout));
+			new AgentFactory (problem, agent, outputFilePath, Long.parseLong(timeout));
 	}
 
 	/** The queue used to listen to the agents */
@@ -285,7 +304,7 @@ public class AgentFactory < V extends Addable<V> > implements IncomingMsgPolicyI
 	private Map< String, AgentInterface<V> > agents;
 
 	/** Each agent's subproblem */
-	private Map< String, ProblemInterface<V, ?> > subProbs;
+	private Map< String, ProblemInterface<V, U> > subProbs;
 
 	/** Number of agents finished */
 	private int nbrAgentsFinished;
@@ -309,7 +328,7 @@ public class AgentFactory < V extends Addable<V> > implements IncomingMsgPolicyI
 	private final boolean measureMsgs;
 
 	/** For each message type, the number of messages sent of that type */
-	private TreeMap<String, Integer> msgNbrs = new TreeMap<String, Integer> ();
+	private TreeMap<MessageType, Integer> msgNbrs = new TreeMap<MessageType, Integer> ();
 
 	/** For each agent, the number of messages sent by that agent */
 	private TreeMap<Object, Integer> msgNbrsSentPerAgent = new TreeMap<Object, Integer> ();
@@ -318,7 +337,7 @@ public class AgentFactory < V extends Addable<V> > implements IncomingMsgPolicyI
 	private TreeMap<Object, Integer> msgNbrsReceivedPerAgent = new TreeMap<Object, Integer> ();
 	
 	/** For each message type, the total amount of information sent in messages of that type, in bytes */
-	private TreeMap<String, Long> msgSizes = new TreeMap<String, Long> ();
+	private TreeMap<MessageType, Long> msgSizes = new TreeMap<MessageType, Long> ();
 	
 	/** For each agent, the total amount of information sent by that agent, in bytes */
 	private TreeMap<Object, Long> msgSizesSentPerAgent = new TreeMap<Object, Long> ();
@@ -327,11 +346,8 @@ public class AgentFactory < V extends Addable<V> > implements IncomingMsgPolicyI
 	private TreeMap<Object, Long> msgSizesReceivedPerAgent = new TreeMap<Object, Long> ();
 	
 	/** For each message type, the size (in bytes) of the largest message */
-	private TreeMap<String, Long> maxMsgSizes = new TreeMap<String, Long> ();
+	private TreeMap<MessageType, Long> maxMsgSizes = new TreeMap<MessageType, Long> ();
 
-	/** The statistics listeners */
-	private Collection<StatsReporter> statsReporters;
-	
 	/** If true, stats should be sent to the controller; else, to the daemon */
 	private boolean statsToController;
 
@@ -363,7 +379,7 @@ public class AgentFactory < V extends Addable<V> > implements IncomingMsgPolicyI
 	private Document agentDesc;
 
 	/** The problem */
-	private ProblemInterface<V, ?> problem;
+	private ProblemInterface<V, U> problem;
 
 	/** The CentralMailer */
 	private CentralMailer mailman;
@@ -377,9 +393,16 @@ public class AgentFactory < V extends Addable<V> > implements IncomingMsgPolicyI
 	/** \c true when algorithm ran out of memory */
 	private boolean outOfMemory;
 	
+	/** The path to the output file */
+	private final String outputFilePath;
+	
+	/** The solution collector */
+	private SolutionCollector<V, U> solCollector;
+	
 	/** Empty constructor */
 	protected AgentFactory () {
 		this.measureMsgs = this.measureTime = this.useTCP = false;
+		this.outputFilePath = null;
 	}
 
 	/** Constructor
@@ -388,6 +411,15 @@ public class AgentFactory < V extends Addable<V> > implements IncomingMsgPolicyI
 	 */
 	public AgentFactory (Document problemDesc, Document agentDesc) {
 		this (problemDesc, agentDesc, null, null, true);
+	}
+
+	/** Constructor
+	 * @param problemDesc 		the problem description
+	 * @param agentDesc 			the agent description
+	 * @param outputFilePath 	the path to the output file
+	 */
+	public AgentFactory (Document problemDesc, Document agentDesc, String outputFilePath) {
+		this (problemDesc, agentDesc, outputFilePath, null, null, true);
 	}
 
 	/** Constructor
@@ -400,6 +432,16 @@ public class AgentFactory < V extends Addable<V> > implements IncomingMsgPolicyI
 	}
 
 	/** Constructor
+	 * @param problemDesc 		the problem description
+	 * @param agentDesc 			the agent description
+	 * @param outputFilePath 	the path to the output file
+	 * @param timeout 			the timeout in milliseconds
+	 */
+	public AgentFactory (Document problemDesc, Document agentDesc, String outputFilePath, long timeout) {
+		this (problemDesc, agentDesc, outputFilePath, null, timeout, true);
+	}
+
+	/** Constructor
 	 * @param problemDesc 	the problem description
 	 * @param agentDesc 	the agent description
 	 * @param solGatherers 	listeners that will be notified of the statistics sent by the agents (if not \c null, behaves silently)
@@ -408,6 +450,19 @@ public class AgentFactory < V extends Addable<V> > implements IncomingMsgPolicyI
 		this(problemDesc, agentDesc, solGatherers, null, true);
 	}
 
+	/** Constructor
+	 * @param problemDesc 		the problem description
+	 * @param agentDesc 			the agent description
+	 * @param outputFilePath 	the path to the output file
+	 * @param solGatherers 		listeners that will be notified of the statistics sent by the agents (if not \c null, behaves silently)
+	 * @param timeout 			the timeout, in milliseconds. If \c null, uses the default timeout. 
+	 * @param statsToController if true, stats should be sent to the controller; else, to the daemon
+	 */
+	public AgentFactory (Document problemDesc, Document agentDesc, String outputFilePath, Collection<? extends StatsReporter> solGatherers, 
+			Long timeout, boolean statsToController)  {
+		this(problemDesc, agentDesc, outputFilePath, solGatherers, timeout, false, statsToController);
+	}
+	
 	/** Constructor
 	 * @param problemDesc 		the problem description
 	 * @param agentDesc 		the agent description
@@ -428,12 +483,27 @@ public class AgentFactory < V extends Addable<V> > implements IncomingMsgPolicyI
 	 * @param useTCP 			Whether to use TCP pipes or shared memory pipes
 	 * @param statsToController if true, stats should be sent to the controller; else, to the daemon
 	 */
-	@SuppressWarnings("unchecked")
 	public AgentFactory (Document problemDesc, Document agentDesc, Collection<? extends StatsReporter> solGatherers, 
+			Long timeout, boolean useTCP, boolean statsToController)  {
+		this (problemDesc, agentDesc, null, solGatherers, timeout, useTCP, statsToController);
+	}
+	
+	/** Constructor
+	 * @param problemDesc 		the problem description
+	 * @param agentDesc 			the agent description
+	 * @param outputFilePath 	the path to the output file
+	 * @param solGatherers 		listeners that will be notified of the statistics sent by the agents (if not \c null, behaves silently)
+	 * @param timeout 			the timeout, in milliseconds. If \c null, uses the default timeout. 
+	 * @param useTCP 			Whether to use TCP pipes or shared memory pipes
+	 * @param statsToController if true, stats should be sent to the controller; else, to the daemon
+	 */
+	@SuppressWarnings("unchecked")
+	public AgentFactory (Document problemDesc, Document agentDesc, String outputFilePath, Collection<? extends StatsReporter> solGatherers, 
 			Long timeout, boolean useTCP, boolean statsToController)  {
 
 		this.agentDesc = agentDesc;
 		this.useTCP = useTCP;
+		this.outputFilePath = outputFilePath;
 
 		// Parse the problem
 		try {
@@ -466,7 +536,7 @@ public class AgentFactory < V extends Addable<V> > implements IncomingMsgPolicyI
 	 * @param solGatherers 	listeners that will be notified of the statistics sent by the agents (if not \c null, behaves silently)
 	 * @param timeout 		the timeout, in milliseconds. If \c null, uses the default timeout. 
 	 */
-	public AgentFactory (ProblemInterface<V, ?> problem, Document agentDesc, Collection<? extends StatsReporter> solGatherers, Long timeout)  {
+	public AgentFactory (ProblemInterface<V, U> problem, Document agentDesc, Collection<? extends StatsReporter> solGatherers, Long timeout)  {
 		this(problem, agentDesc, solGatherers, timeout, false, true);
 	}
 	
@@ -477,7 +547,7 @@ public class AgentFactory < V extends Addable<V> > implements IncomingMsgPolicyI
 	 * @param timeout 			the timeout, in milliseconds. If \c null, uses the default timeout. 
 	 * @param useTCP 			Whether to use TCP pipes or shared memory pipes
 	 */
-	public AgentFactory (ProblemInterface<V, ?> problem, Document agentDesc, Collection<? extends StatsReporter> solGatherers, 
+	public AgentFactory (ProblemInterface<V, U> problem, Document agentDesc, Collection<? extends StatsReporter> solGatherers, 
 			Long timeout, boolean useTCP)  {
 		this(problem, agentDesc, solGatherers, timeout, useTCP, true);
 	}
@@ -490,12 +560,27 @@ public class AgentFactory < V extends Addable<V> > implements IncomingMsgPolicyI
 	 * @param useTCP 			Whether to use TCP pipes or shared memory pipes
 	 * @param statsToController if true, stats should be sent to the controller; else, to the daemon
 	 */
-	public AgentFactory (ProblemInterface<V, ?> problem, Document agentDesc, Collection<? extends StatsReporter> solGatherers, 
+	public AgentFactory (ProblemInterface<V, U> problem, Document agentDesc, Collection<? extends StatsReporter> solGatherers, 
+			Long timeout, boolean useTCP, boolean statsToController)  {
+		this (problem, agentDesc, null, solGatherers, timeout, useTCP, statsToController);
+	}
+	
+	/** Constructor
+	 * @param problem 			the problem
+	 * @param agentDesc 			the agent description
+	 * @param outputFilePath 	the path to the output file
+	 * @param solGatherers 		listeners that will be notified of the statistics sent by the agents (if not \c null, behaves silently)
+	 * @param timeout 			the timeout, in milliseconds. If \c null, uses the default timeout. 
+	 * @param useTCP 			Whether to use TCP pipes or shared memory pipes
+	 * @param statsToController if true, stats should be sent to the controller; else, to the daemon
+	 */
+	public AgentFactory (ProblemInterface<V, U> problem, Document agentDesc, String outputFilePath, Collection<? extends StatsReporter> solGatherers, 
 			Long timeout, boolean useTCP, boolean statsToController)  {
 		
 		this.agentDesc = agentDesc;
 		this.problem = problem;
 		this.useTCP = useTCP;
+		this.outputFilePath = outputFilePath;
 
 		// Check whether we should measure distributed time
 		String measureTime = agentDesc.getRootElement().getAttributeValue("measureTime");
@@ -537,11 +622,11 @@ public class AgentFactory < V extends Addable<V> > implements IncomingMsgPolicyI
 			else { // use the CentralMailer
 				Element mailmanElmt = agentDesc.getRootElement().getChild("mailman");
 				if(mailmanElmt == null)
-					mailman = new CentralMailer (this.measureMsgs, Boolean.parseBoolean(agentDesc.getRootElement().getAttributeValue("useDelay")), null);
+					mailman = new CentralMailer (this.problem, this.agentDesc.getRootElement());
 				else {
 					Class<? extends CentralMailer> mailerClass = (Class<? extends CentralMailer>)Class.forName(mailmanElmt.getAttributeValue("mailmanClass"));
-					Constructor<? extends CentralMailer> constructor = mailerClass.getConstructor(boolean.class, boolean.class, Element.class);
-					mailman = constructor.newInstance(this.measureMsgs, Boolean.parseBoolean(agentDesc.getRootElement().getAttributeValue("useDelay")), mailmanElmt);
+					Constructor<? extends CentralMailer> constructor = mailerClass.getConstructor(ProblemInterface.class, Element.class);
+					mailman = constructor.newInstance(this.problem, this.agentDesc.getRootElement());
 				}
 
 				this.queue = mailman.newQueue(Controller.CONTROLLER, false);
@@ -563,10 +648,10 @@ public class AgentFactory < V extends Addable<V> > implements IncomingMsgPolicyI
 			Set<String> agentNames = problem.getAgents();
 			nbrAgents = agentNames.size();
 			agents = new HashMap< String, AgentInterface<V> > (nbrAgents);
-			subProbs = new HashMap< String, ProblemInterface<V, ?> > ();
+			subProbs = new HashMap< String, ProblemInterface<V, U> > ();
 			synchronized (agents) {
 				for (String agent : agentNames) {
-					ProblemInterface<V, ?> subProb = problem.getSubProblem(agent);
+					ProblemInterface<V, U> subProb = problem.getSubProblem(agent);
 					if (this.useTCP) 
 						agents.put(agent, (AgentInterface<V>) AgentFactory.createAgent(pipe, pipe, subProb, agentDesc, statsToController, ++port));
 					else 
@@ -579,15 +664,14 @@ public class AgentFactory < V extends Addable<V> > implements IncomingMsgPolicyI
 
 					// Read the problem description class name from the agent description, the standard value is DCOPProblemInterface
 					Element parserDesc = agentDesc.getRootElement().getChild("parser");
-					Class<? extends ProblemInterface<V, ?>> probDescClass = (Class<? extends ProblemInterface<V, ?>>)DCOPProblemInterface.class;
+					Class<? extends ProblemInterface<V, U>> probDescClass = (Class<? extends ProblemInterface<V, U>>)DCOPProblemInterface.class;
 					if(parserDesc != null) {
 						String probDescClassName = parserDesc.getAttributeValue("probDescClass");
 						if(probDescClassName != null)
-							probDescClass = (Class<? extends ProblemInterface<V, ?>>) Class.forName(probDescClassName);
+							probDescClass = (Class<? extends ProblemInterface<V, U>>) Class.forName(probDescClassName);
 					}
 
 					List<Element> modules = agentDesc.getRootElement().getChild("modules").getChildren();
-					statsReporters = new ArrayList<StatsReporter> (modules.size());
 					for (Element statsListener : modules) {
 
 						// Skip it if it is not a stats reporter with reportStats == true
@@ -599,9 +683,13 @@ public class AgentFactory < V extends Addable<V> > implements IncomingMsgPolicyI
 						Class<? extends StatsReporter> listenerClass = (Class<? extends StatsReporter>) Class.forName(statsListener.getAttributeValue("className"));
 						Constructor<? extends StatsReporter> constructor = listenerClass.getConstructor(Element.class, probDescClass);
 						StatsReporter listener = constructor.newInstance(statsListener, problem);
-
-						this.statsReporters.add(listener);
 						listener.getStatsFromQueue(this.queue);
+					}
+
+					// Listen for the solution
+					if (this.problem instanceof DCOPProblemInterface) {
+						this.solCollector = new SolutionCollector<V, U> (null, (DCOPProblemInterface<V, U>) this.problem);
+						this.solCollector.getStatsFromQueue(this.queue);
 					}
 				}
 			}
@@ -632,8 +720,8 @@ public class AgentFactory < V extends Addable<V> > implements IncomingMsgPolicyI
 		Element parserElmt = this.agentDesc.getRootElement().getChild("parser");
 		if (parserElmt != null) {
 			String parserClassName = parserElmt.getAttributeValue("parserClass");
-			Class<? extends ProblemInterface<V, ?>> parserClass = (Class<? extends ProblemInterface<V, ?>>) Class.forName(parserClassName);
-			Constructor<? extends ProblemInterface<V, ?>> constructor = parserClass.getConstructor(Document.class, Element.class);
+			Class<? extends ProblemInterface<V, U>> parserClass = (Class<? extends ProblemInterface<V, U>>) Class.forName(parserClassName);
+			Constructor<? extends ProblemInterface<V, U>> constructor = parserClass.getConstructor(Document.class, Element.class);
 			return constructor.newInstance(problemDesc, parserElmt);
 		} else 
 			return new XCSPparser (problemDesc);
@@ -647,6 +735,10 @@ public class AgentFactory < V extends Addable<V> > implements IncomingMsgPolicyI
 				timedOut = true;
 				System.err.println("Timed out after " + this.timeout + " ms (simulated time)");
 			}
+			
+			// Write the solution found to the output file
+			this.writeSol();
+
 			return;
 		}
 
@@ -670,13 +762,54 @@ public class AgentFactory < V extends Addable<V> > implements IncomingMsgPolicyI
 				}
 			}
 		}
+		
+		// Write the solution found to the output file
+		this.writeSol();
+	}
+
+	/** Writes the reported solution to the output file*/
+	private void writeSol() {
+		
+		// Return if we have not been collecting the solution or an output file has not been defined
+		if (this.solCollector == null || this.outputFilePath == null || this.outputFilePath.isEmpty()) 
+			return; 
+		
+		Element outElmt = new Element ("solution");
+		Document outDoc = new Document (outElmt);
+		
+		if (this.solCollector != null) {
+			
+			// Write the solution valuation (utility/cost)
+			U valuation = this.solCollector.getUtility();
+			if (valuation != null) 
+				outElmt.setAttribute("valuation", valuation.toString());
+			
+			// Write the assignment to each variable
+			Map<String, V> sol = this.solCollector.getSolution();
+			if (sol != null) {
+				for (Map.Entry<String, V> entry : sol.entrySet()) {
+					Element assignment = new Element ("assignment");
+					assignment.setAttribute("variable", entry.getKey());
+					assignment.setAttribute("value", entry.getValue().toString());
+					outElmt.addContent(assignment);
+				}
+			}
+		}
+		
+		try {
+			System.out.println("Writing the solution to the file: " + this.outputFilePath);
+			new XMLOutputter(Format.getPrettyFormat()).output(outDoc, new FileWriter (this.outputFilePath));
+		} catch (IOException e) {
+			System.err.println("Failed to write to the file: " + this.outputFilePath);
+			e.printStackTrace();
+		}
 	}
 
 	/** Restarts the algorithm on a new problem
 	 * @param problem 	the new problem
 	 */
 	@SuppressWarnings({ "unchecked", "rawtypes" })
-	public void restart (ProblemInterface<V, ?> problem) {
+	public void restart (ProblemInterface<V, U> problem) {
 
 		// Update the problem
 		this.problem.reset((ProblemInterface) problem);
@@ -686,9 +819,9 @@ public class AgentFactory < V extends Addable<V> > implements IncomingMsgPolicyI
 		this.finalNCCCcount = -1;
 		this.finalTime = -1;
 		if (this.measureMsgs) {
-			this.msgNbrs = new TreeMap<String, Integer> ();
-			this.msgSizes = new TreeMap<String, Long> ();
-			this.maxMsgSizes = new TreeMap<String, Long> ();
+			this.msgNbrs = new TreeMap<MessageType, Integer> ();
+			this.msgSizes = new TreeMap<MessageType, Long> ();
+			this.maxMsgSizes = new TreeMap<MessageType, Long> ();
 		}
 		Set<String> agentNames = problem.getAgents();
 		this.nbrAgents = agentNames.size();
@@ -720,7 +853,7 @@ public class AgentFactory < V extends Addable<V> > implements IncomingMsgPolicyI
 					agent.report();
 
 				} else { // new agent
-					ProblemInterface<V, ?> subProb = problem.getSubProblem(agentName);
+					ProblemInterface<V, U> subProb = problem.getSubProblem(agentName);
 					if (this.useTCP) 
 						agents.put(agentName, (AgentInterface<V>) AgentFactory.createAgent(pipe, pipe, subProb, agentDesc, statsToController, ++port));
 					else 
@@ -752,8 +885,8 @@ public class AgentFactory < V extends Addable<V> > implements IncomingMsgPolicyI
 	}
 
 	/** @see frodo2.communication.IncomingMsgPolicyInterface#getMsgTypes() */
-	public Collection<String> getMsgTypes() {
-		ArrayList<String> types = new ArrayList<String> (7);
+	public Collection<MessageType> getMsgTypes() {
+		ArrayList<MessageType> types = new ArrayList<MessageType> (7);
 		types.add(AgentInterface.LOCAL_AGENT_REPORTING);
 		types.add(AgentInterface.LOCAL_AGENT_ADDRESS_REQUEST);
 		types.add(AgentInterface.AGENT_CONNECTED);
@@ -768,7 +901,7 @@ public class AgentFactory < V extends Addable<V> > implements IncomingMsgPolicyI
 	@SuppressWarnings("unchecked")
 	public void notifyIn(Message msg) {
 
-		String type = msg.getType();
+		MessageType type = msg.getType();
 
 		if (type.equals(AgentInterface.LOCAL_AGENT_REPORTING)) {
 			LocalAgentReport msgCast = (LocalAgentReport) msg;
@@ -813,8 +946,8 @@ public class AgentFactory < V extends Addable<V> > implements IncomingMsgPolicyI
 					ComStatsMessage msgCast = (ComStatsMessage) msg;
 
 					// Increment nbrMsgs
-					for (Map.Entry<String, Integer> entry : msgCast.getMsgNbrs().entrySet()) {
-						String msgType = entry.getKey();
+					for (Map.Entry<MessageType, Integer> entry : msgCast.getMsgNbrs().entrySet()) {
+						MessageType msgType = entry.getKey();
 
 						Integer nbr = this.msgNbrs.get(msgType);
 						if (nbr == null) 
@@ -843,8 +976,8 @@ public class AgentFactory < V extends Addable<V> > implements IncomingMsgPolicyI
 						this.msgNbrsSentPerAgent.put(sender, nbr + totalSent);
 					
 					// Increment msgSizes
-					for (Map.Entry<String, Long> entry : msgCast.getMsgSizes().entrySet()) {
-						String msgType = entry.getKey();
+					for (Map.Entry<MessageType, Long> entry : msgCast.getMsgSizes().entrySet()) {
+						MessageType msgType = entry.getKey();
 
 						Long size = this.msgSizes.get(msgType);
 						if (size == null) 
@@ -872,8 +1005,8 @@ public class AgentFactory < V extends Addable<V> > implements IncomingMsgPolicyI
 						this.msgSizesSentPerAgent.put(sender, info + totalInfoSent);
 					
 					// Update maxMsgSizes
-					for (Map.Entry<String, Long> entry : msgCast.getMaxMsgSizes().entrySet()) {
-						String msgType = entry.getKey();
+					for (Map.Entry<MessageType, Long> entry : msgCast.getMaxMsgSizes().entrySet()) {
+						MessageType msgType = entry.getKey();
 						
 						Long maxSize = this.maxMsgSizes.get(msgType);
 						if (maxSize == null || entry.getValue() > maxSize) 
@@ -961,20 +1094,20 @@ public class AgentFactory < V extends Addable<V> > implements IncomingMsgPolicyI
 	 * @param msgSizesReceivedPerAgent 	For each agent, the total amount of information received by that agent, in bytes
 	 * @param maxMsgSizes 				For each message type, the size (in bytes) of the largest message
 	 */
-	public static void printMsgStats(Map<String, Integer> msgNbrs,
+	public static void printMsgStats(Map<MessageType, Integer> msgNbrs,
 			Map<Object, Integer> msgNbrsSentPerAgent,
 			Map<Object, Integer> msgNbrsReceivedPerAgent,
-			Map<String, Long> msgSizes,
+			Map<MessageType, Long> msgSizes,
 			Map<Object, Long> msgSizesSentPerAgent,
 			Map<Object, Long> msgSizesReceivedPerAgent,
-			Map<String, Long> maxMsgSizes) {
+			Map<MessageType, Long> maxMsgSizes) {
 		
 		NumberFormat formatter = NumberFormat.getInstance();
 
 		// Print the number of messages sent and received
 		int totalNbr = 0;
 		System.out.println("Number of messages sent (by type): ");
-		for (Map.Entry<String, Integer> entry : msgNbrs.entrySet()) {
+		for (Map.Entry<MessageType, Integer> entry : msgNbrs.entrySet()) {
 			int nbr = entry.getValue();
 			System.out.println("\t" + entry.getKey() + ":\t" + formatter.format(nbr));
 			totalNbr += nbr;
@@ -992,7 +1125,7 @@ public class AgentFactory < V extends Addable<V> > implements IncomingMsgPolicyI
 		// Print the amount of information sent
 		long totalSize = 0;
 		System.out.println("Amount of information sent (by type, in bytes): ");
-		for (Map.Entry<String, Long> entry : msgSizes.entrySet()) {
+		for (Map.Entry<MessageType, Long> entry : msgSizes.entrySet()) {
 			long size = entry.getValue();
 			System.out.println("\t" + entry.getKey() + ":\t" + formatter.format(size));
 			totalSize += size;
@@ -1010,7 +1143,7 @@ public class AgentFactory < V extends Addable<V> > implements IncomingMsgPolicyI
 		// Print the maximum message size
 		long maxSize = 0;
 		System.out.println("Size of the largest message sent (by type, in bytes): ");
-		for (Map.Entry<String, Long> entry : maxMsgSizes.entrySet()) {
+		for (Map.Entry<MessageType, Long> entry : maxMsgSizes.entrySet()) {
 			long size = entry.getValue();
 			System.out.println("\t" + entry.getKey() + ":\t" + formatter.format(size));
 			maxSize = Math.max(size, maxSize);
@@ -1066,7 +1199,7 @@ public class AgentFactory < V extends Addable<V> > implements IncomingMsgPolicyI
 	 * @author Brammert Ottens, 24 aug 2009
 	 * @return the total number of messages that have been sent
 	 */
-	public TreeMap<String, Integer> getMsgNbrs() {
+	public TreeMap<MessageType, Integer> getMsgNbrs() {
 		return this.msgNbrs;
 	}
 
@@ -1084,7 +1217,7 @@ public class AgentFactory < V extends Addable<V> > implements IncomingMsgPolicyI
 	 * @author Brammert Ottens, 24 aug 2009
 	 * @return the total amount of information that has been sent
 	 */
-	public TreeMap<String, Long> getMsgSizes() {
+	public TreeMap<MessageType, Long> getMsgSizes() {
 		return this.msgSizes;
 	}
 	
@@ -1099,7 +1232,7 @@ public class AgentFactory < V extends Addable<V> > implements IncomingMsgPolicyI
 	}
 
 	/** @return for each message type, the size (in bytes) of the largest message of that type */
-	public TreeMap<String, Long> getMaxMsgSizes() {
+	public TreeMap<MessageType, Long> getMaxMsgSizes() {
 		return this.maxMsgSizes;
 	}
 

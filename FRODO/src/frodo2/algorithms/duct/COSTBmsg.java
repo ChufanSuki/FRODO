@@ -28,6 +28,7 @@ import java.io.ObjectOutput;
 
 import frodo2.algorithms.duct.Sampling;
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 import frodo2.communication.MessageWith3Payloads;
 import frodo2.solutionSpaces.AddableReal;
 
@@ -60,7 +61,7 @@ public class COSTBmsg extends MessageWith3Payloads<String, AddableReal, AddableR
 	 * @param cost		the estimated cost for the sampled value
 	 * @param bound		the bound of the variable
 	 */
-	public COSTBmsg(String type, String receiver, AddableReal cost, AddableReal bound) {
+	public COSTBmsg(MessageType type, String receiver, AddableReal cost, AddableReal bound) {
 		super(type, receiver, cost, bound);
 	}
 	

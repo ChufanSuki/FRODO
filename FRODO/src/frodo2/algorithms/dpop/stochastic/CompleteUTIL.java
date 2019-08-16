@@ -34,14 +34,14 @@ import java.util.Set;
 import org.jdom2.Element;
 
 import frodo2.algorithms.AgentInterface;
+import frodo2.algorithms.SolutionCollector;
 import frodo2.algorithms.dpop.UTILpropagation;
-import frodo2.algorithms.dpop.VALUEpropagation.AssignmentsMessage;
 import frodo2.algorithms.dpop.stochastic.ExpectedUTIL.Method;
-import frodo2.algorithms.dpop.VALUEpropagation;
 import frodo2.algorithms.varOrdering.dfs.DFSgeneration;
 import frodo2.algorithms.varOrdering.dfs.DFSgeneration.DFSview;
 import frodo2.algorithms.varOrdering.dfs.DFSgeneration.MessageDFSoutput;
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 import frodo2.communication.MessageWith2Payloads;
 import frodo2.communication.Queue;
 import frodo2.solutionSpaces.Addable;
@@ -60,7 +60,7 @@ import frodo2.solutionSpaces.hypercube.ScalarHypercube;
 public class CompleteUTIL < Val extends Addable<Val>, U extends Addable<U> > extends UTILpropagation<Val, U> {
 	
 	/** The type of the messages telling what random variables should be projected out at given decision variable */
-	public static final String RAND_VARS_PROJ_MSG_TYPE = "Where to project random variables";
+	public static final MessageType RAND_VARS_PROJ_MSG_TYPE = new MessageType ("E[DPOP]", "CompleteUTIL", "Where to project random variables");
 	
 	/** Message telling what random variables should be projected out at given decision variable */
 	public static class RandVarsProjMsg extends MessageWith2Payloads< String, ArrayList<String> > {
@@ -210,7 +210,7 @@ public class CompleteUTIL < Val extends Addable<Val>, U extends Addable<U> > ext
 	@Override
 	public void getStatsFromQueue(Queue queue) {
 		super.getStatsFromQueue(queue);
-		queue.addIncomingMessagePolicy(VALUEpropagation.OUTPUT_MSG_TYPE, this);
+		queue.addIncomingMessagePolicy(SolutionCollector.ASSIGNMENTS_MSG_TYPE, this);
 		queue.addIncomingMessagePolicy(DFSgeneration.STATS_MSG_TYPE, this);
 		queue.addIncomingMessagePolicy(RAND_VARS_PROJ_MSG_TYPE, this);
 	}
@@ -256,7 +256,7 @@ public class CompleteUTIL < Val extends Addable<Val>, U extends Addable<U> > ext
 	@Override
 	public void notifyIn(Message msg) {
 
-		String type = msg.getType();
+		MessageType type = msg.getType();
 		
 		if (type.equals(DFSgeneration.STATS_MSG_TYPE)) { // statistics message
 			
@@ -332,24 +332,19 @@ public class CompleteUTIL < Val extends Addable<Val>, U extends Addable<U> > ext
 			return;
 		}
 		
-		if (type.equals(VALUEpropagation.OUTPUT_MSG_TYPE)) { // we are in stats gatherer mode
+		if (type.equals(SolutionCollector.ASSIGNMENTS_MSG_TYPE)) { // we are in stats gatherer mode
 			
-			AssignmentsMessage<Val> msgCast = (AssignmentsMessage<Val>) msg;
+			SolutionCollector.AssignmentsMessage<Val> msgCast = (SolutionCollector.AssignmentsMessage<Val>) msg;
 			String[] vars = msgCast.getVariables();
 			ArrayList<Val> vals = msgCast.getValues();
 			for (int i = 0; i < vars.length; i++) {
 				String var = vars[i];
 				Val val = vals.get(i);
-				if (this.reportStats) 
-					System.out.println("var `" + var + "' = " + val);
 				solution.put(var, val);
 			}
 			
 			// When we have received all messages, print out the corresponding utility. 
 			if (--this.remainingVars <= 0) {
-				
-				if (this.reportStats) 
-					System.out.println("Total reported " + (this.maximize ? "utility: " : "cost: ") + this.optUtil);
 				
 				this.expectedUtil = this.problem.getExpectedUtility(this.solution).getUtility(0);
 				if (this.reportStats) 

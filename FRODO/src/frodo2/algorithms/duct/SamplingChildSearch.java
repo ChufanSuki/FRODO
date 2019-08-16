@@ -41,6 +41,7 @@ import frodo2.algorithms.duct.VALUEmsg;
 import frodo2.algorithms.varOrdering.dfs.DFSgeneration;
 import frodo2.algorithms.varOrdering.dfs.DFSgeneration.DFSview;
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 import frodo2.solutionSpaces.Addable;
 import frodo2.solutionSpaces.AddableReal;
 import frodo2.solutionSpaces.DCOPProblemInterface;
@@ -79,23 +80,9 @@ public class SamplingChildSearch <V extends Addable<V>> extends SamplingPruningS
 	@SuppressWarnings("unchecked")
 	@Override
 	public void notifyIn(Message msg) {
-		String type = msg.getType();
+		MessageType type = msg.getType();
 		
-		if (type.equals(ASS_MSG_TYPE)) {
-			AssignmentMessage<V> msgCast = (AssignmentMessage<V>)msg;
-			assignment.put(msgCast.getSender(), msgCast.getValue());
-			if(this.reportStats) {
-				System.out.println("Variable " + msgCast.getSender() + " = " + msgCast.getValue());
-
-				// When we have received all messages, print out the corresponding utility. 
-				/// @author Thomas Leaute
-				if (this.assignment.keySet().containsAll(this.problem.getVariables())) 
-					System.out.println("Total "
-							+ (this.problem.maximize() ? "utility: " : "cost: ")
-							+ this.problem.getUtility(this.assignment, true).getUtility(0));
-			}
-			return;
-		} else if (type.equals(BOUND_MSG_TYPE)) {
+		if (type.equals(BOUND_MSG_TYPE)) {
 			BoundStatsMsg msgCast = (BoundStatsMsg)msg;
 			finalBound = finalBound == null ? msgCast.getFinalBound() : finalBound.add(msgCast.getFinalBound());
 			return;
@@ -148,12 +135,10 @@ public class SamplingChildSearch <V extends Addable<V>> extends SamplingPruningS
 			if(finished) {
 				if(varInfo.leaf) {
 					varInfo.solveLeaf();
-					if (this.reportStats) 
-						queue.sendMessage(AgentInterface.STATS_MONITOR, varInfo.getAssignmentMessage(varInfo.currentValue));
+					queue.sendMessage(AgentInterface.STATS_MONITOR, varInfo.getAssignmentMessage(varInfo.currentValue));
 				} else {
 					reportValue(varInfo, finished);
-					if (this.reportStats) 
-						queue.sendMessage(AgentInterface.STATS_MONITOR, varInfo.getAssignmentMessage(varInfo.currentValue));
+					queue.sendMessage(AgentInterface.STATS_MONITOR, varInfo.getAssignmentMessage(varInfo.currentValue));
 				}
 				if(--this.numberOfActiveVariables == 0)
 					queue.sendMessageToSelf(new Message(AgentInterface.AGENT_FINISHED));
@@ -176,11 +161,9 @@ public class SamplingChildSearch <V extends Addable<V>> extends SamplingPruningS
 					if(!finished){ // if not converged, perform sampling
 						varInfo.sample();
 					} else { // report optimal value to the stats reporter
-						if (this.reportStats) {
-							queue.sendMessage(AgentInterface.STATS_MONITOR, varInfo.getAssignmentMessage(varInfo.variableID, varInfo.currentValue));
-							if(varInfo.parent == null) // the root has finished
-								queue.sendMessage(AgentInterface.STATS_MONITOR, new BoundStatsMsg(varInfo.getFinalBound()));
-						}
+						queue.sendMessage(AgentInterface.STATS_MONITOR, varInfo.getAssignmentMessage(varInfo.variableID, varInfo.currentValue));
+						if(this.reportStats && varInfo.parent == null) // the root has finished
+							queue.sendMessage(AgentInterface.STATS_MONITOR, new BoundStatsMsg(varInfo.getFinalBound()));
 						if(--this.numberOfActiveVariables == 0)
 							queue.sendMessageToSelf(new Message(AgentInterface.AGENT_FINISHED));
 					}
@@ -215,8 +198,7 @@ public class SamplingChildSearch <V extends Addable<V>> extends SamplingPruningS
 					
 			if(varInfo.parent == null) {
 				if(varInfo.leaf) {
-					if (this.reportStats) 
-						queue.sendMessage(AgentInterface.STATS_MONITOR, varInfo.getAssignmentMessage(receiver, varInfo.solveSingleton(maximize)));
+					queue.sendMessage(AgentInterface.STATS_MONITOR, varInfo.getAssignmentMessage(receiver, varInfo.solveSingleton(maximize)));
 
 					if(--this.numberOfActiveVariables == 0) {
 						queue.sendMessageToSelf(new Message(AgentInterface.AGENT_FINISHED));

@@ -54,17 +54,17 @@ public class MsgSizeMonitorTest extends TestCase {
 		
 		MsgSizeMonitor monitor = new MsgSizeMonitor ();
 		
-		Message msg = new Message ("Test");
+		Message msg = new Message (new MessageType ("Test"));
 		String dest = "dest";
 		
 		// The first time we send the message, its size must be positive
 		assertTrue (monitor.getMsgSize(dest, msg) > 0);
 		
-		// The following times, the size must be 5 = 1 marker byte + an int reference
-		assertEquals (5, monitor.getMsgSize(dest, msg));
-		assertEquals (5, monitor.getMsgSize(dest, msg));
-		assertEquals (5, monitor.getMsgSize(dest, msg));
-		assertEquals (5, monitor.getMsgSize(dest, msg));
+		// The following times, the size must be 2 * (5 = 1 marker byte + an int reference): 1 for the message class, and 1 for the message itself
+		assertEquals (10, monitor.getMsgSize(dest, msg));
+		assertEquals (10, monitor.getMsgSize(dest, msg));
+		assertEquals (10, monitor.getMsgSize(dest, msg));
+		assertEquals (10, monitor.getMsgSize(dest, msg));
 		
 		monitor.close();
 	}

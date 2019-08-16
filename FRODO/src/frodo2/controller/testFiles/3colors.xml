@@ -23,7 +23,7 @@ How to contact the authors:
 <instance>
   <presentation name="sampleProblem" maxConstraintArity="2" format="XCSP 2.1_FRODO" />
   
-  <agents nbrAgents="3">
+  <agents nbAgents="3">
   	<agent name="agentX" />
   	<agent name="agentY" />
   	<agent name="agentZ" />

@@ -29,6 +29,7 @@ import java.util.LinkedList;
 import frodo2.communication.IncomingMsgPolicyInterface;
 import frodo2.communication.Message;
 import frodo2.communication.MessageSerializedSimple;
+import frodo2.communication.MessageType;
 import frodo2.communication.MessageWrapper;
 import frodo2.communication.Queue;
 import frodo2.communication.QueueTest;
@@ -45,7 +46,7 @@ import junit.framework.TestSuite;
 public class QueueIOPipeTest extends TestCase {
 	
 	/** A listener that collects received messages */
-	private static class Collector implements IncomingMsgPolicyInterface<String> {
+	private static class Collector implements IncomingMsgPolicyInterface<MessageType> {
 		
 		/** The messages received */
 		private LinkedList<Message> messages = new LinkedList<Message> ();
@@ -58,9 +59,9 @@ public class QueueIOPipeTest extends TestCase {
 		}
 
 		/** @see IncomingMsgPolicyInterface#getMsgTypes() */
-		public Collection<String> getMsgTypes() {
-			ArrayList<String> msgTypes = new ArrayList<String> (1);
-			msgTypes.add(Queue.ALLMESSAGES);
+		public Collection<MessageType> getMsgTypes() {
+			ArrayList<MessageType> msgTypes = new ArrayList<MessageType> (1);
+			msgTypes.add(MessageType.ROOT);
 			return msgTypes;
 		}
 
@@ -206,7 +207,7 @@ public class QueueIOPipeTest extends TestCase {
 	public void test2QueuesInSeries () throws InterruptedException {
 		
 		// Send a message to the first queue
-		Message msg = new Message ("2 queues in series");
+		Message msg = new Message (new MessageType ("2 queues in series"));
 		MessageWrapper wrap = new MessageWrapper (msg);
 		wrap.setDestination("queue1");
 		toQueue1.addMessage(wrap);
@@ -232,7 +233,7 @@ public class QueueIOPipeTest extends TestCase {
 		
 		// Send a message to the first queue
 		String data = "raw data for 2 queues in series serialized";
-		MessageSerializedSimple <String> msg = new MessageSerializedSimple <String> ("2 queues in series serialized", data);
+		MessageSerializedSimple <String> msg = new MessageSerializedSimple <String> (new MessageType ("2 queues in series serialized"), data);
 		MessageWrapper wrap = new MessageWrapper (msg);
 		wrap.setDestination("queue1");
 		toQueue1.addMessage(wrap);
@@ -259,19 +260,19 @@ public class QueueIOPipeTest extends TestCase {
 	public void test2QueuesInSeriesMultiple () throws InterruptedException {
 		
 		// Send messages to the first queue
-		Message msg1 = new Message ("2 queues in series - message 1");
+		Message msg1 = new Message (new MessageType ("2 queues in series - message 1"));
 		MessageWrapper wrap = new MessageWrapper (msg1);
 		wrap.setDestination("queue1");
 		wrap.setTime(1);
 		toQueue1.addMessage(wrap);
 		
-		Message msg2 = new Message ("2 queues in series - message 2");
+		Message msg2 = new Message (new MessageType ("2 queues in series - message 2"));
 		wrap = new MessageWrapper (msg2);
 		wrap.setDestination("queue1");
 		wrap.setTime(2);
 		toQueue1.addMessage(wrap);
 		
-		Message msg3 = new Message ("2 queues in series - message 3");
+		Message msg3 = new Message (new MessageType ("2 queues in series - message 3"));
 		wrap = new MessageWrapper (msg3);
 		wrap.setDestination("queue1");
 		wrap.setTime(3);

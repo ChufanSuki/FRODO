@@ -60,6 +60,10 @@ How to contact the authors:
 	 -->
 	<modules>
 		
+		<!-- Collects and reports the solution found -->
+		<module className = "frodo2.algorithms.SolutionCollector" 
+				reportStats = "true" />
+		
 		<!-- For each connected component of the constraint graph, elects a root variable for the DFS tree using the secure algorithm in P-DPOP
 			- minNbrLies: must be greater than the diameter of the largest connected component in the constraint graph
 		 -->
@@ -118,9 +122,9 @@ How to contact the authors:
 			
 			<!-- Overriding the input message type so that DFSgeneration listens to the output of SecureRerooting, not of VariableElection -->
 			<messages>
-				<message name = "ROOT_VAR_MSG_TYPE" 
-						 value = "OUTPUT" 
-						 ownerClass = "frodo2.algorithms.dpop.privacy.SecureRerooting" />
+				<message myFieldName = "ROOT_VAR_MSG_TYPE" 
+						 targetFieldName = "OUTPUT" 
+						 targetClass = "frodo2.algorithms.dpop.privacy.SecureRerooting" />
 			</messages>
 		</module>
 		
@@ -160,14 +164,19 @@ How to contact the authors:
 						  infinity = "1" />
 		</module>
 		
-		<!-- Prints out all messages received and sent by the agent
-			WARNING! This can significantly affect runtime performance. Only use this module for debugging purposes. 
-				- hideSystemMessages: whether to display system messages (default: true)
+		<!-- Displays the messages exchanged
+			- perAgent: if true, each agent reports itself the messages it exchanges 
+				WARNING! This can significantly affect runtime performance. Only use this setting for debugging purposes. 
+			- hideSystemMessages: whether to display system messages (default: true)
+		 	- visualizer: the class of the Visualizer to be used; supported values: 
+		 		- [empty string]: no visualizer; messages are not displayed
+		 		- frodo2.gui.ConsoleVisualizer: messages are printed out in the console
+		 		- frodo2.gui.jung.JungVisualizer: a visualizer based on JUNG2
 		 -->
-		<!--
 		<module className = "frodo2.algorithms.test.MessageDebugger" 
-		 		hideSystemMessages = "true" />
-		 -->
+				perAgent = "false" 
+		 		hideSystemMessages = "true" 
+		 		visualizer = "" />
 		 
 	</modules>
 </agentDescription>

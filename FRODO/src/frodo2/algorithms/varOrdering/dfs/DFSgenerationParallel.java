@@ -45,6 +45,7 @@ import frodo2.algorithms.varOrdering.election.LeaderElectionMaxID.MessageLEoutpu
 import frodo2.communication.IncomingMsgPolicyInterface;
 import frodo2.communication.Message;
 import frodo2.communication.MessageListener;
+import frodo2.communication.MessageType;
 import frodo2.communication.MessageWrapper;
 import frodo2.communication.OutgoingMsgPolicyInterface;
 import frodo2.communication.Queue;
@@ -102,13 +103,13 @@ public class DFSgenerationParallel < S extends Comparable <S> & Serializable > i
 		public FakeQueue (S root) {
 			this.root = root;
 
-			inPolicies = new HashMap <String, ArrayList< IncomingMsgPolicyInterface<String> > > ();
-			ArrayList< IncomingMsgPolicyInterface<String> > policies = new ArrayList< IncomingMsgPolicyInterface<String> >();
-			inPolicies.put(ALLMESSAGES, policies);
+			inPolicies = new HashMap <MessageType, ArrayList< IncomingMsgPolicyInterface<MessageType> > > ();
+			ArrayList< IncomingMsgPolicyInterface<MessageType> > policies = new ArrayList< IncomingMsgPolicyInterface<MessageType> >();
+			inPolicies.put(MessageType.ROOT, policies);
 			
-			outPolicies = new HashMap <String, ArrayList< OutgoingMsgPolicyInterface<String> > > ();
-			ArrayList< OutgoingMsgPolicyInterface<String> > policiesOut = new ArrayList< OutgoingMsgPolicyInterface<String> >();
-			outPolicies.put(ALLMESSAGES, policiesOut);
+			outPolicies = new HashMap <MessageType, ArrayList< OutgoingMsgPolicyInterface<MessageType> > > ();
+			ArrayList< OutgoingMsgPolicyInterface<MessageType> > policiesOut = new ArrayList< OutgoingMsgPolicyInterface<MessageType> >();
+			outPolicies.put(MessageType.ROOT, policiesOut);
 		}
 
 		/** @see Queue#sendMessage(java.lang.Object, Message) */
@@ -142,7 +143,7 @@ public class DFSgenerationParallel < S extends Comparable <S> & Serializable > i
 		@Override
 		public void sendMessageToSelf(Message msg) {
 			
-			String msgType = msg.getType();
+			MessageType msgType = msg.getType();
 			
 			// If the message is a DFSoutput, record it
 			if (msgType.equals(DFSgeneration.OUTPUT_MSG_TYPE)) {
@@ -172,12 +173,12 @@ public class DFSgenerationParallel < S extends Comparable <S> & Serializable > i
 		}
 
 		/** Does the same as the superclass, but without the need to synchronize on a lock
-		 * @see Queue#notifyInListeners(Message) 
+		 * @see Queue#notifyInListeners(Message, Object) 
 		 */
 		@Override
-		public void notifyInListeners (Message msg) {
+		public void notifyInListeners (Message msg, Object toAgent) {
 			
-			String msgType = msg.getType();
+			MessageType msgType = msg.getType();
 			
 			// Check whether this is the DFSoutput for the candidate root
 			if (msgType.equals(DFSgeneration.OUTPUT_MSG_TYPE)) {
@@ -199,17 +200,14 @@ public class DFSgenerationParallel < S extends Comparable <S> & Serializable > i
 					this.varNbrMsgs.put(var, msgCast);
 			}
 			
-			// First notify the policies listening for ALL messages
-			ArrayList< IncomingMsgPolicyInterface<String> > policies = new ArrayList< IncomingMsgPolicyInterface<String> > (inPolicies.get(ALLMESSAGES));
-			for (IncomingMsgPolicyInterface<String> module : policies) // iterate over a copy in case a listener wants to add more listeners
-				module.notifyIn(msg);
-
-			// Notify the listeners for this message type, if any
-			ArrayList< IncomingMsgPolicyInterface<String> > modules = inPolicies.get(msg.getType());
-			if (modules != null) {
-				policies = new ArrayList< IncomingMsgPolicyInterface<String> > (modules);
-				for (IncomingMsgPolicyInterface<String> module : policies) // iterate over a copy in case a listener wants to add more listeners
-					module.notifyIn(msg);
+			// Notify the listeners for this message type and its ancestors
+			for (MessageType type = msg.getType(); type != null; type = type.getParent()) {
+				ArrayList< IncomingMsgPolicyInterface<MessageType> > modules = inPolicies.get(type);
+				if (modules != null) {
+					ArrayList< IncomingMsgPolicyInterface<MessageType> > policies = new ArrayList< IncomingMsgPolicyInterface<MessageType> > (modules);
+					for (IncomingMsgPolicyInterface<MessageType> module : policies) // iterate over a copy in case a listener wants to add more listeners
+						module.notifyIn(msg);
+				}
 			}
 		}
 		
@@ -220,6 +218,7 @@ public class DFSgenerationParallel < S extends Comparable <S> & Serializable > i
 		private void releaseOutput (String var, boolean isRoot) {
 			
 			// Release the DFS output messages for this variable
+			assert this.dfsStatsMsgs.containsKey(var);
 			queue.sendMessage(AgentInterface.STATS_MONITOR, this.dfsStatsMsgs.remove(var));
 			Message msg = this.dfsOrderMsgs.remove(var);
 			if (msg != null) 
@@ -245,7 +244,7 @@ public class DFSgenerationParallel < S extends Comparable <S> & Serializable > i
 		 * @see Queue#addIncomingMessagePolicy(IncomingMsgPolicyInterface) 
 		 */
 		@Override
-		public void addIncomingMessagePolicy (IncomingMsgPolicyInterface <String> policy) {
+		public void addIncomingMessagePolicy (IncomingMsgPolicyInterface <MessageType> policy) {
 			super.addIncomingMessagePolicy(policy);
 			policy.setQueue(new SinkQueue ());
 		}
@@ -253,13 +252,13 @@ public class DFSgenerationParallel < S extends Comparable <S> & Serializable > i
 	}
 	
 	/** The type of the message telling the module to start */
-	public static String START_MSG_TYPE = AgentInterface.START_AGENT;
+	public static MessageType START_MSG_TYPE = AgentInterface.START_AGENT;
 
 	/** The type of the messages containing DFS messages for a particular candidate root */
-	public static final String PARALLEL_DFS_MSG_TYPE = "ParallelDFSwrapper";
+	public static final MessageType PARALLEL_DFS_MSG_TYPE = new MessageType ("VarOrdering", "DFSgenerationParallel", "ParallelDFSwrapper");
 	
 	/** The type of the messages telling variables to release their DFS output messages */
-	final static String RELEASE_OUTPUT_MSG_TYPE = "ReleaseDFSoutput";
+	final static MessageType RELEASE_OUTPUT_MSG_TYPE = new MessageType ("VarOrdering", "DFSgenerationParallel", "ReleaseDFSoutput");
 	
 	/** The problem */
 	private DCOPProblemInterface<?, ?> problem;
@@ -295,7 +294,7 @@ public class DFSgenerationParallel < S extends Comparable <S> & Serializable > i
 	private DFSgeneration<?, ?> statsGatherer;
 
 	/** The DFS heuristic module (if the heuristic needs to exchange messages) */
-	private IncomingMsgPolicyInterface<String> dfsHeuristic;
+	private IncomingMsgPolicyInterface<MessageType> dfsHeuristic;
 	
 	/** The DFS heuristic messages received */
 	private ArrayList<Message> heuristicMsgs = new ArrayList<Message> ();
@@ -330,7 +329,7 @@ public class DFSgenerationParallel < S extends Comparable <S> & Serializable > i
 		this.dfsGenerationParams = params.getChild("dfsGeneration");
 		if (this.dfsGenerationParams != null) {
 			String className = this.dfsGenerationParams.getAttributeValue("className");
-			Class< MessageListener<String> > moduleClass = (Class< MessageListener<String> >) Class.forName(className);
+			Class< MessageListener<MessageType> > moduleClass = (Class< MessageListener<MessageType> >) Class.forName(className);
 			this.dfsGenerationConstructor = (Constructor< ? extends DFSgeneration<?, ?> >) moduleClass.getConstructor(DCOPProblemInterface.class, Element.class);
 			
 			// Override the message types if required
@@ -339,24 +338,25 @@ public class DFSgenerationParallel < S extends Comparable <S> & Serializable > i
 				for (Element msgElmt : (List<Element>) allMsgsElmt.getChildren()) {
 					
 					// Look up the new value for the message type
-					String newType = msgElmt.getAttributeValue("value");
-					String ownerClassName = msgElmt.getAttributeValue("ownerClass");
-					if (ownerClassName != null) { // the attribute "value" actually refers to a field in a class
-						Class<?> ownerClass = Class.forName(ownerClassName);
+					MessageType newType = MessageType.fromXML(msgElmt.getChild("type"));
+					String targetClassName = msgElmt.getAttributeValue("targetClass");
+					if (targetClassName != null) { // look up the value of a field in a class
+						String targetFieldName = msgElmt.getAttributeValue("targetFieldName");
+						Class<?> targetClass = Class.forName(targetClassName);
 						try {
-							Field field = ownerClass.getDeclaredField(newType);
-							newType = (String) field.get(newType);
+							Field field = targetClass.getDeclaredField(targetFieldName);
+							newType = (MessageType) field.get(null);
 						} catch (NoSuchFieldException e) {
-							System.err.println("Unable to read the value of the field " + ownerClass.getName() + "." + newType);
+							System.err.println("Unable to read the value of the field " + targetClass.getName() + "." + targetFieldName);
 							e.printStackTrace();
 						}
 					}
 					
 					// Set the message type to its new value
 					try {
-						SingleQueueAgent.setMsgType(moduleClass, msgElmt.getAttributeValue("name"), newType);
+						SingleQueueAgent.setMsgType(moduleClass, msgElmt.getAttributeValue("myFieldName"), newType);
 					} catch (NoSuchFieldException e) {
-						System.err.println("Unable to find the field " + moduleClass.getName() + "." + msgElmt.getAttributeValue("name"));
+						System.err.println("Unable to find the field " + moduleClass.getName() + "." + msgElmt.getAttributeValue("myFieldName"));
 						e.printStackTrace();
 					}
 				}
@@ -377,8 +377,8 @@ public class DFSgenerationParallel < S extends Comparable <S> & Serializable > i
 			for (Class<?> moduleInterfaces : dfsHeuristicClass.getInterfaces()) {
 				if (moduleInterfaces.equals(IncomingMsgPolicyInterface.class)) {
 					
-					Constructor< ? extends IncomingMsgPolicyInterface<String> > constructor = 
-						(Constructor< ? extends IncomingMsgPolicyInterface<String> >) dfsHeuristicClass.getConstructor(DCOPProblemInterface.class, Element.class);
+					Constructor< ? extends IncomingMsgPolicyInterface<MessageType> > constructor = 
+						(Constructor< ? extends IncomingMsgPolicyInterface<MessageType> >) dfsHeuristicClass.getConstructor(DCOPProblemInterface.class, Element.class);
 					this.dfsHeuristic = constructor.newInstance(problem, dfsHeuristicParams);
 					
 					break;
@@ -436,8 +436,8 @@ public class DFSgenerationParallel < S extends Comparable <S> & Serializable > i
 	}
 
 	/** @see StatsReporter#getMsgTypes() */
-	public Collection<String> getMsgTypes() {
-		ArrayList<String> types = new ArrayList<String> (3);
+	public Collection<MessageType> getMsgTypes() {
+		ArrayList<MessageType> types = new ArrayList<MessageType> (3);
 		types.add(START_MSG_TYPE);
 		types.add(PARALLEL_DFS_MSG_TYPE);
 		types.add(AgentInterface.AGENT_FINISHED);
@@ -448,7 +448,7 @@ public class DFSgenerationParallel < S extends Comparable <S> & Serializable > i
 	@SuppressWarnings("unchecked")
 	public void notifyIn(Message msg) {
 		
-		String msgType = msg.getType();
+		MessageType msgType = msg.getType();
 		
 		if (msgType.equals(AgentInterface.AGENT_FINISHED)) {
 			this.reset();
@@ -458,7 +458,7 @@ public class DFSgenerationParallel < S extends Comparable <S> & Serializable > i
 		if (! this.started) 
 			this.init(null);
 		
-		if (msgType.equals(PARALLEL_DFS_MSG_TYPE)) { // a message containing a DFS message corresponding to a given candidate root
+		if (PARALLEL_DFS_MSG_TYPE.isParent(msgType)) { // a message containing a DFS message corresponding to a given candidate root
 			
 			// Retrieve the information from the message
 			ParallelDFSmsg<S> msgCast = (ParallelDFSmsg<S>) msg;
@@ -469,7 +469,7 @@ public class DFSgenerationParallel < S extends Comparable <S> & Serializable > i
 			if (root == null) {
 				
 				for (FakeQueue fakeQueue : this.queues.values()) 
-					fakeQueue.notifyInListeners(dfsMsg);
+					fakeQueue.notifyInListeners(dfsMsg, null);
 				
 				// Record the message in order to deliver it to future FakeQueues
 				this.heuristicMsgs.add(dfsMsg);
@@ -487,7 +487,7 @@ public class DFSgenerationParallel < S extends Comparable <S> & Serializable > i
 			if (fakeQueue == null) // the corresponding candidate root is unknown; create a new FakeQueue for it
 				fakeQueue = this.newFakeQueue(root);
 			
-			fakeQueue.notifyInListeners(dfsMsg);
+			fakeQueue.notifyInListeners(dfsMsg, null);
 		}
 	}
 
@@ -526,7 +526,7 @@ public class DFSgenerationParallel < S extends Comparable <S> & Serializable > i
 			
 			// Create a FakeQueue and tell the corresponding DFSgeneration module that this variable is a root
 			FakeQueue fakeQueue = this.newFakeQueue(myScore);
-			fakeQueue.notifyInListeners(new MessageLEoutput<S> (var, true, myScore));
+			fakeQueue.notifyInListeners(new MessageLEoutput<S> (var, true, myScore), null);
 		}
 		
 		this.owners = this.problem.getOwners();
@@ -563,7 +563,7 @@ public class DFSgenerationParallel < S extends Comparable <S> & Serializable > i
 		
 		// Deliver the heuristic messages
 		for (Message message : this.heuristicMsgs) 
-			fakeQueue.notifyInListeners(message);
+			fakeQueue.notifyInListeners(message, null);
 		
 		return fakeQueue;
 	}

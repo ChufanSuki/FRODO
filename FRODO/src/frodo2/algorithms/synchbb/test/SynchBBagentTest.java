@@ -33,6 +33,7 @@ import org.jdom2.Element;
 
 import frodo2.algorithms.Problem;
 import frodo2.algorithms.Solution;
+import frodo2.algorithms.SolutionCollector;
 import frodo2.algorithms.XCSPparser;
 import frodo2.algorithms.StatsReporterWithConvergence.CurrentAssignment;
 import frodo2.algorithms.dpop.DPOPsolver;
@@ -207,6 +208,10 @@ public class SynchBBagentTest <V extends Addable<V>, U extends Addable<U> > exte
 		this.synchBBmodule.setSilent(true);
 		this.synchBBmodule.getStatsFromQueue(super.queue);
 		
+		solCollector = new SolutionCollector<V, U> (null, problem);
+		solCollector.setSilent(true);
+		solCollector.getStatsFromQueue(queue);
+		
 		// Listen for the linear order on variables
 		LinearOrdering<V, U> module = new LinearOrdering<V, U> (null, problem);
 		module.setSilent(true);
@@ -227,11 +232,11 @@ public class SynchBBagentTest <V extends Addable<V>, U extends Addable<U> > exte
 		
 		// Check the utility
 		U util = sol.getUtility();
-		assertEquals (util, this.synchBBmodule.getOptCost());
+		assertEquals (util, this.solCollector.getUtility());
 		
 		// If the problem is feasible, check the assignments
 		if (util != this.problem.getPlusInfUtility() && util != this.problem.getMinInfUtility()) {
-			assertEquals (util, this.problem.getUtility(this.synchBBmodule.getOptAssignments()).getUtility(0));
+			assertEquals (util, this.problem.getUtility(this.solCollector.getSolution()).getUtility(0));
 
 			// Check that each variable has an assignment history
 			HashMap< String, ArrayList< CurrentAssignment<V> > > histories = this.synchBBmodule.getAssignmentHistories();

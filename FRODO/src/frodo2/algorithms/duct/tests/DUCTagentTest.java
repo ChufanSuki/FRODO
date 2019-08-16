@@ -64,6 +64,7 @@ import frodo2.algorithms.test.AllTests;
 import frodo2.algorithms.varOrdering.dfs.DFSgeneration;
 import frodo2.communication.IncomingMsgPolicyInterface;
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 import frodo2.communication.MessageWith2Payloads;
 import frodo2.communication.Queue;
 import frodo2.communication.QueueOutputPipeInterface;
@@ -80,7 +81,7 @@ import frodo2.solutionSpaces.DCOPProblemInterface;
  * @author Brammert Ottens
  * @todo Many tests should inherit this class to favor code reuse. 
  */
-public class DUCTagentTest extends TestCase implements IncomingMsgPolicyInterface<String> {
+public class DUCTagentTest extends TestCase implements IncomingMsgPolicyInterface<MessageType> {
 
 	/** Maximum number of variables in the problem 
 	 * @note Must be at least 2. 
@@ -160,7 +161,7 @@ public class DUCTagentTest extends TestCase implements IncomingMsgPolicyInterfac
 	private boolean useTCP;
 
 	/** The type of the start message */
-	protected String startMsgType;
+	protected MessageType startMsgType;
 
 	/** Whether we should maximize or minimize */
 	protected boolean maximize = true;
@@ -205,15 +206,17 @@ public class DUCTagentTest extends TestCase implements IncomingMsgPolicyInterfac
 	 * @param startMsgType 		the new type for the start message
 	 * @throws JDOMException 	if parsing the agent configuration file failed
 	 */
-	protected void setStartMsgType (String startMsgType) throws JDOMException {
-		this.startMsgType = AgentInterface.START_AGENT;
+	protected void setStartMsgType (MessageType startMsgType) throws JDOMException {
 		if (startMsgType != null) {
 			this.startMsgType = startMsgType;
 			for (Element module2 : (List<Element>) agentConfig.getRootElement().getChild("modules").getChildren()) {
 				for (Element message : (List<Element>) module2.getChild("messages").getChildren()) {
-					if (message.getAttributeValue("name").equals("START_MSG_TYPE")) {
-						message.setAttribute("value", startMsgType);
-						message.removeAttribute("ownerClass");
+					if (message.getAttributeValue("myFieldName").equals("START_MSG_TYPE") 
+							&& message.getAttributeValue("targetFieldName").equals("START_AGENT")
+							&& message.getAttributeValue("targetClass").equals(AgentInterface.class.getName())) {
+						message.removeAttribute("targetFieldName");
+						message.removeAttribute("targetClass");
+						message.addContent(startMsgType.toXML());
 					}
 				}
 			}
@@ -674,9 +677,7 @@ public class DUCTagentTest extends TestCase implements IncomingMsgPolicyInterfac
 		// Create the set of agents
 		Set<String> agentsSet;
 		// We want to test with potentially empty agents
-		agentsSet = new HashSet<String> ();
-		for (int i = graph.clusters.size() - 1; i >= 0; i--) 
-			agentsSet.add(Integer.toString(i));
+		agentsSet = new HashSet<String> (graph.clusters.keySet());
 		nbrAgents = agentsSet.size();
 		
 		// Go through the list of agents and instantiate them
@@ -727,8 +728,8 @@ public class DUCTagentTest extends TestCase implements IncomingMsgPolicyInterfac
 	}
 
 	/** @see frodo2.communication.IncomingMsgPolicyInterface#getMsgTypes() */
-	public Collection<String> getMsgTypes() {
-		ArrayList<String> types = new ArrayList<String> (4);
+	public Collection<MessageType> getMsgTypes() {
+		ArrayList<MessageType> types = new ArrayList<MessageType> (4);
 		types.add(AgentInterface.LOCAL_AGENT_REPORTING);
 		types.add(AgentInterface.LOCAL_AGENT_ADDRESS_REQUEST);
 		types.add(AgentInterface.AGENT_CONNECTED);

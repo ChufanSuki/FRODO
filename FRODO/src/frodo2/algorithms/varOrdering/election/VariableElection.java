@@ -37,6 +37,7 @@ import frodo2.algorithms.heuristics.ScoringHeuristic;
 import frodo2.algorithms.heuristics.VarNameHeuristic;
 import frodo2.communication.IncomingMsgPolicyInterface;
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 import frodo2.communication.Queue;
 import frodo2.solutionSpaces.DCOPProblemInterface;
 
@@ -49,13 +50,13 @@ import frodo2.solutionSpaces.DCOPProblemInterface;
  * @param <S> the type used for the variables' scores
  * @note S must properly override equals(Object) and hashCode(). 
  */
-public class VariableElection < S extends Comparable <S> & Serializable > extends Queue implements IncomingMsgPolicyInterface<String> {
+public class VariableElection < S extends Comparable <S> & Serializable > extends Queue implements IncomingMsgPolicyInterface<MessageType> {
 
 	/** The type of the message telling the module to start */
-	public static String START_MSG_TYPE = AgentInterface.START_AGENT;
+	public static MessageType START_MSG_TYPE = AgentInterface.START_AGENT;
 	
 	/** The type of the message telling the agent finished */
-	public static String FINISH_MSG_TYPE = AgentInterface.AGENT_FINISHED;
+	public static MessageType FINISH_MSG_TYPE = AgentInterface.AGENT_FINISHED;
 
 	/** The queue on which it should call sendMessage() */
 	private Queue queue;
@@ -165,8 +166,8 @@ public class VariableElection < S extends Comparable <S> & Serializable > extend
 	/** Listens to messages of types LeaderElectionMaxID.START_MSG_TYPE and LeaderElectionMaxID.LE_MSG_TYPE. 
 	 * @see frodo2.communication.IncomingMsgPolicyInterface#getMsgTypes()
 	 */
-	public Collection <String> getMsgTypes() {
-		ArrayList <String> msgTypes = new ArrayList <String> (3);
+	public Collection <MessageType> getMsgTypes() {
+		ArrayList <MessageType> msgTypes = new ArrayList <MessageType> (3);
 		msgTypes.add(START_MSG_TYPE);
 		msgTypes.add(LeaderElectionMaxID.LE_MSG_TYPE);
 		msgTypes.add(FINISH_MSG_TYPE);
@@ -181,7 +182,7 @@ public class VariableElection < S extends Comparable <S> & Serializable > extend
 	@SuppressWarnings("unchecked")
 	public void notifyIn(Message msg) {
 		
-		String msgType = msg.getType();
+		MessageType msgType = msg.getType();
 		
 		if (msgType.equals(FINISH_MSG_TYPE)) {
 			this.reset();
@@ -226,7 +227,7 @@ public class VariableElection < S extends Comparable <S> & Serializable > extend
 	public void setQueue(Queue queue) {
 		this.queue = queue;
 		if (this.heuristic instanceof IncomingMsgPolicyInterface) 
-			queue.addIncomingMessagePolicy((IncomingMsgPolicyInterface<String>) this.heuristic);
+			queue.addIncomingMessagePolicy((IncomingMsgPolicyInterface<MessageType>) this.heuristic);
 	}
 
 	/** Method called by the LeaderElectionMaxID listeners in order to send a message to specified variables

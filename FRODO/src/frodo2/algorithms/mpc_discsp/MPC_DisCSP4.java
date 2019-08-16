@@ -39,9 +39,10 @@ import java.util.TreeMap;
 import org.jdom2.Element;
 
 import frodo2.algorithms.AgentInterface;
-import frodo2.algorithms.StatsReporter;
+import frodo2.algorithms.SolutionCollector;
+import frodo2.communication.IncomingMsgPolicyInterface;
 import frodo2.communication.Message;
-import frodo2.communication.MessageWith2Payloads;
+import frodo2.communication.MessageType;
 import frodo2.communication.Queue;
 import frodo2.solutionSpaces.Addable;
 import frodo2.solutionSpaces.AddableInteger;
@@ -64,46 +65,13 @@ import frodo2.solutionSpaces.hypercube.ScalarHypercube;
  * @param <V> the type used for variable values
  * @param <U> the type used for utility values, in stats gatherer mode only (in normal mode, AddableInteger is used)
  */
-public class MPC_DisCSP4 < V extends Addable<V>, U extends Addable<U> > implements StatsReporter {
-	
-	/** The type of solution messages */
-	protected static final String SOLUTION_MSG_TYPE = "Solution";
-
-	/** A message containing the optimal solution for a variable
-	 * @param <V> the type used for variable values
-	 */
-	public static class SolutionMsg < V extends Addable<V> > extends MessageWith2Payloads<String, V> {
-		
-		/** Empty constructor used for externalization */
-		public SolutionMsg () { }
-
-		/** Constructor
-		 * @param var 	the variable
-		 * @param val 	the optimal value for the variable
-		 */
-		public SolutionMsg (String var, V val) {
-			super (SOLUTION_MSG_TYPE, var, val);
-		}
-		
-		/** @return the variable */
-		public String getVar () {
-			return super.getPayload1();
-		}
-		
-		/** @return the optimal value for the variable */
-		public V getVal () {
-			return super.getPayload2();
-		}
-	}
+public class MPC_DisCSP4 < V extends Addable<V>, U extends Addable<U> > implements IncomingMsgPolicyInterface<MessageType> {
 	
 	/** The queue used to exchange messages */
 	protected Queue queue;
 	
 	/** The problem */
 	protected DCOPProblemInterface<V, U> problem;
-	
-	/** Whether to report stats */
-	protected boolean reportStats = true;
 	
 	/** Whether the algorithm has been started */
 	protected boolean started = false;
@@ -224,9 +192,6 @@ public class MPC_DisCSP4 < V extends Addable<V>, U extends Addable<U> > implemen
 	/** The feasible solution found, if any */
 	private HashMap<String, V> solution;
 
-	/** The cost of the solution found */
-	private U optCost;
-
 	/** The matrix used to reduce the degree of a product polynomial. 
 	 * 
 	 * It is V^-1 * P * V, where V is the Vandermonde matrix, and P is a projection. 
@@ -257,48 +222,15 @@ public class MPC_DisCSP4 < V extends Addable<V>, U extends Addable<U> > implemen
 		assert this.modulo.compareTo(BigInteger.valueOf(Integer.MAX_VALUE)) < 0 : "The modulo is too big";
 		this.cryptoScheme = new PaillierCryptoScheme (Integer.parseInt(params.getAttributeValue("nbrBits")));
 		this.plusinf = plusinf;
-		this.reportStats = Boolean.parseBoolean(params.getAttributeValue("reportStats"));
 	}
 
-	/** Constructor in stats gatherer mode
-	 * @param params 	the parameters
-	 * @param problem 	the overall problem
-	 */
-	public MPC_DisCSP4 (Element params, DCOPProblemInterface<V, U> problem) {
-		this.problem = problem;
-		this.modulo = null;
-		this.cryptoScheme = null;
-		this.solution = new HashMap<String, V> (problem.getNbrVars());
-		this.plusinf = new AddableInteger (1);
-	}
-	
-	/** @return the solution found */
-	public HashMap<String, V> getSolution () {
-		return this.solution;
-	}
-	
-	/** @return the true cost of the solution found */
-	public U getOptCost () {
-		return this.optCost;
-	}
-
-	/** @see StatsReporter#reset() */
-	public void reset() {
-		this.solution = new HashMap<String, V> ();
-	}
-
-	/** @see StatsReporter#setQueue(Queue) */
+	/** @see IncomingMsgPolicyInterface#setQueue(Queue) */
 	public void setQueue(Queue queue) {
 		this.queue = queue;
 	}
 
-	/** @see StatsReporter#setSilent(boolean) */
-	public void setSilent(boolean silent) {
-		this.reportStats = ! silent;
-	}
-
-	/** @see StatsReporter#getMsgTypes() */
-	public Collection<String> getMsgTypes() {
+	/** @see IncomingMsgPolicyInterface#getMsgTypes() */
+	public Collection<MessageType> getMsgTypes() {
 		return Arrays.asList(
 				AgentInterface.START_AGENT, 
 				SharesMsg.SHARES_MSG_TYPE, 
@@ -308,53 +240,10 @@ public class MPC_DisCSP4 < V extends Addable<V>, U extends Addable<U> > implemen
 				);
 	}
 
-	/** @see StatsReporter#getStatsFromQueue(Queue) */
-	public void getStatsFromQueue(Queue queue) {
-		queue.addIncomingMessagePolicy(SOLUTION_MSG_TYPE, this);
-	}
-
-	/** @see StatsReporter#notifyIn(Message) */
+	/** @see IncomingMsgPolicyInterface#notifyIn(Message) */
 	public void notifyIn(Message msg) {
 		
-		String type = msg.getType();
-		
-		if (type.equals(SOLUTION_MSG_TYPE)) { // in stats gatherer mode, the optimal assignment to a variable
-			
-			@SuppressWarnings("unchecked")
-			SolutionMsg<V> msgCast = (SolutionMsg<V>) msg;
-			String var = msgCast.getVar();
-			
-			if (var == null) { // infeasible
-				if (this.problem.maximize()) { // maximization problem
-					if (this.reportStats) 
-						System.out.println("Optimal total utility: -infinity");
-					this.optCost = this.problem.getMinInfUtility();
-				} else { // minimization problem
-					if (this.reportStats) 
-						System.out.println("Optimal total cost: infinity");
-					this.optCost = this.problem.getPlusInfUtility();
-				}
-				
-			} else { // feasible
-				V val = msgCast.getVal();
-				this.solution.put(var, val);
-				if (this.reportStats) 
-					System.out.println("var `" + var + "' = " + val);
-				
-				// If all optimal assignments have been received, compute the corresponding cost
-				if (this.solution.size() == this.problem.getNbrVars()) {
-					this.optCost = this.problem.getUtility(this.solution).getUtility(0);
-					if (this.reportStats) {
-						if (this.problem.maximize()) 
-							System.out.println("Optimal total utility: " + this.optCost);
-						else 
-							System.out.println("Optimal total cost: " + this.optCost);
-					}
-				}
-			}
-			
-			return;
-		}
+		MessageType type = msg.getType();
 		
 //		System.out.println(this.problem.getAgent() + " got " + msg);
 		
@@ -821,8 +710,7 @@ public class MPC_DisCSP4 < V extends Addable<V>, U extends Addable<U> > implemen
 					// Store and report the solution
 					V val = this.problem.getDomain(var)[index.intValue()];
 					this.solution.put(var, val);
-					if (this.reportStats) 
-						this.queue.sendMessage(AgentInterface.STATS_MONITOR, new SolutionMsg<V> (var, val));
+					this.queue.sendMessage(AgentInterface.STATS_MONITOR, new SolutionCollector.AssignmentMessage<V> (var, val));
 					
 //					System.out.println(var + " = " + val);
 				}
@@ -843,8 +731,10 @@ public class MPC_DisCSP4 < V extends Addable<V>, U extends Addable<U> > implemen
 
 		// The first agent notifies the stats gatherer of the infeasibility
 		if (this.myAgentID == 0) {
-			if (this.reportStats) 
-				this.queue.sendMessage(AgentInterface.STATS_MONITOR, new SolutionMsg<V> (null, null));
+			ArrayList<V> sol = new ArrayList<V> (this.vars.length);
+			for (int i = 0; i < vars.length; i++) 
+				sol.add(this.problem.getDomain(this.vars[i])[0]); // arbitrarily assign to each variable its first domain value
+			this.queue.sendMessage(AgentInterface.STATS_MONITOR, new SolutionCollector.AssignmentsMessage<V> (this.vars, sol));
 
 			// Also notify the empty agents
 			for (String agent : this.agents) 
@@ -979,6 +869,12 @@ public class MPC_DisCSP4 < V extends Addable<V>, U extends Addable<U> > implemen
 		
 		assert ! this.problem.maximize() : "Maximization problems are not supported";
 		
+		// Order the variables lexicographically
+		final int nbrVars = this.problem.getNbrVars();
+		this.vars = new String [nbrVars];
+		this.problem.getVariables().toArray(this.vars);
+		Arrays.sort(this.vars);
+		
 		// Check if this agent is alone
 		this.agents = new ArrayList<String> (this.problem.getAgents());
 		if (this.agents.size() == 1) {
@@ -999,8 +895,11 @@ public class MPC_DisCSP4 < V extends Addable<V>, U extends Addable<U> > implemen
 				// Check if the problem is infeasible
 				if (projOutput.space.getUtility(0).compareTo(plusinf) >= 0) { // infeasible
 
-					if (this.reportStats) 
-						this.queue.sendMessage(AgentInterface.STATS_MONITOR, new SolutionMsg<V> (null, null));
+					ArrayList<V> sol = new ArrayList<V> (this.vars.length);
+					for (int i = 0; i < vars.length; i++) 
+						sol.add(this.problem.getDomain(this.vars[i])[0]); // arbitrarily assign to each variable its first domain value
+					this.queue.sendMessage(AgentInterface.STATS_MONITOR, new SolutionCollector.AssignmentsMessage<V> (this.vars, sol));
+					
 					this.queue.sendMessageToSelf(new Message (AgentInterface.AGENT_FINISHED));
 					return;
 				}
@@ -1013,16 +912,14 @@ public class MPC_DisCSP4 < V extends Addable<V>, U extends Addable<U> > implemen
 						V val = values.get(i);
 						this.solution.put(var, val);
 
-						if (this.reportStats) 
-							this.queue.sendMessage(AgentInterface.STATS_MONITOR, new SolutionMsg<V> (var, val));
+						this.queue.sendMessage(AgentInterface.STATS_MONITOR, new SolutionCollector.AssignmentMessage<V> (var, val));
 					}
 				}
 			}
 			
-			if (this.reportStats) // Assign random values to unconstrained variables
-				for (String var : this.problem.getMyVars()) 
-					if (! this.solution.containsKey(var)) 
-						this.queue.sendMessage(AgentInterface.STATS_MONITOR, new SolutionMsg<V> (var, this.problem.getDomain(var)[0]));
+			for (String var : this.problem.getMyVars()) 
+				if (! this.solution.containsKey(var)) 
+					this.queue.sendMessage(AgentInterface.STATS_MONITOR, new SolutionCollector.AssignmentMessage<V> (var, this.problem.getDomain(var)[0]));
 			
 			this.queue.sendMessageToSelf(new Message (AgentInterface.AGENT_FINISHED));
 			return;
@@ -1102,11 +999,7 @@ public class MPC_DisCSP4 < V extends Addable<V>, U extends Addable<U> > implemen
 			this.solShares.put(var, new BigInteger [this.nbrAgents]);
 		this.solution = new HashMap<String, V> (nbrIntVars);
 		
-		// Order the variables lexicographically
-		final int nbrVars = this.problem.getNbrVars();
-		this.vars = new String [nbrVars];
-		this.problem.getVariables().toArray(this.vars);
-		Arrays.sort(this.vars);
+		// Look up the variable domains
 		V[][] doms = (V[][]) Array.newInstance(classOfDom, nbrVars);
 		for (int i = 0; i < nbrVars; i++) 
 			doms[i] = this.problem.getDomain(this.vars[i]);
@@ -1140,8 +1033,12 @@ public class MPC_DisCSP4 < V extends Addable<V>, U extends Addable<U> > implemen
 		this.nbrSols = sPrimePrime.size();
 		
 		if (this.nbrSols == 0) { // infeasible
-			if (this.myAgentID == 0 && this.reportStats) 
-				this.queue.sendMessage(AgentInterface.STATS_MONITOR, new SolutionMsg<V> (null, null));
+			if (this.myAgentID == 0) {
+				ArrayList<V> sol = new ArrayList<V> (this.vars.length);
+				for (int i = 0; i < vars.length; i++) 
+					sol.add(this.problem.getDomain(this.vars[i])[0]); // arbitrarily assign to each variable its first domain value
+				this.queue.sendMessage(AgentInterface.STATS_MONITOR, new SolutionCollector.AssignmentsMessage<V> (this.vars, sol));
+			}
 			this.queue.sendMessageToSelf(new Message (AgentInterface.AGENT_FINISHED));
 			return;
 		}

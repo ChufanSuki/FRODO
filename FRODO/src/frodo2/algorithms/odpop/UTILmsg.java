@@ -29,6 +29,7 @@ import java.io.ObjectOutput;
 import java.lang.reflect.Array;
 import java.util.Arrays;
 
+import frodo2.communication.MessageType;
 import frodo2.communication.MessageWith2Payloads;
 import frodo2.solutionSpaces.Addable;
 
@@ -77,7 +78,7 @@ extends MessageWith2Payloads<String, String> implements Externalizable {
 	 * @param receiver		The recipient of the message
 	 * @param good			The good to be send
 	 */
-	public UTILmsg(String type, String sender, String receiver, Good<Val, U> good) {
+	public UTILmsg(MessageType type, String sender, String receiver, Good<Val, U> good) {
 		super(type, sender, receiver);
 		values = good.getValues();
 		utility = good.getUtility();

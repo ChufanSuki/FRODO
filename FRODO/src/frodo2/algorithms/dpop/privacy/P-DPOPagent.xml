@@ -63,15 +63,19 @@ How to contact the authors:
 	 -->
 	<modules>
 		
+		<!-- Collects and reports the solution found -->
+		<module className = "frodo2.algorithms.SolutionCollector" 
+				reportStats = "true" />
+		
 		<!-- For each connected component of the constraint graph, elects a root variable for the DFS tree using the secure algorithm in P-DPOP
 			- minNbrLies: must be greater than the diameter of the largest connected component in the constraint graph
 		 -->
 		<module className = "frodo2.algorithms.varOrdering.election.SecureVarElection" 
 				minNbrLies = "150" >
 			<messages>
-				<message name = "START_MSG_TYPE" 
-						 value = "START_AGENT" 
-						 ownerClass = "frodo2.algorithms.AgentInterface" />
+				<message myFieldName = "START_MSG_TYPE" 
+						 targetFieldName = "START_AGENT" 
+						 targetClass = "frodo2.algorithms.AgentInterface" />
 			</messages>
 		</module>
 		
@@ -90,12 +94,12 @@ How to contact the authors:
 			</dfsHeuristic>
 			
 			<messages>
-				<message name = "START_MSG_TYPE" 
-						 value = "START_AGENT" 
-						 ownerClass = "frodo2.algorithms.AgentInterface" />
-				<message name = "ROOT_VAR_MSG_TYPE" 
-						 value = "OUTPUT_MSG_TYPE" 
-						 ownerClass = "frodo2.algorithms.varOrdering.election.LeaderElectionMaxID" />
+				<message myFieldName = "START_MSG_TYPE" 
+						 targetFieldName = "START_AGENT" 
+						 targetClass = "frodo2.algorithms.AgentInterface" />
+				<message myFieldName = "ROOT_VAR_MSG_TYPE" 
+						 targetFieldName = "OUTPUT_MSG_TYPE" 
+						 targetClass = "frodo2.algorithms.varOrdering.election.LeaderElectionMaxID" />
 			</messages>
 		</module>
 		
@@ -103,8 +107,7 @@ How to contact the authors:
 			- mergeBack: (default is false) if true, merges back-edges by using the same codenames for each variable's (pseudo-)children to improve performance (at the expense of topology privacy)
 			- numBits: The size in bits of the obfuscation keys used to obfuscate utilities. This parameter should be at least 128 to ensure decent utility obfuscation
 		-->
-		<module className = "frodo2.algorithms.dpop.privacy.VariableObfuscation"
-				reportStats = "true" 
+		<module className = "frodo2.algorithms.dpop.privacy.VariableObfuscation" 
 				mergeBack = "false"
 				numBits = "128" >
 		</module>
@@ -116,12 +119,12 @@ How to contact the authors:
 				reportStats = "true" 
 				minNCCCs = "false" >
 			<messages>
-				<message name = "START_MSG_TYPE" 
-						 value = "START_AGENT" 
-						 ownerClass = "frodo2.algorithms.AgentInterface" />
-				<message name = "DFS_MSG_TYPE" 
-						 value = "OUTPUT_MSG_TYPE" 
-						 ownerClass = "frodo2.algorithms.varOrdering.dfs.DFSgeneration" />
+				<message myFieldName = "START_MSG_TYPE" 
+						 targetFieldName = "START_AGENT" 
+						 targetClass = "frodo2.algorithms.AgentInterface" />
+				<message myFieldName = "DFS_MSG_TYPE" 
+						 targetFieldName = "OUTPUT_MSG_TYPE" 
+						 targetClass = "frodo2.algorithms.varOrdering.dfs.DFSgeneration" />
 			</messages>
 		</module>
 		
@@ -129,32 +132,36 @@ How to contact the authors:
 			- swap: whether optimal conditional assignments should be swapped until the VALUE message is received (default: false)
 		 -->
 		<module className = "frodo2.algorithms.dpop.VALUEpropagation" 
-				reportStats = "true" 
 				swap = "false" >
 			<messages>
-				<message name = "START_MSG_TYPE" 
-						 value = "START_AGENT" 
-						 ownerClass = "frodo2.algorithms.AgentInterface" />
-				<message name = "DFS_MSG_TYPE" 
-						 value = "OUTPUT_MSG_TYPE" 
-						 ownerClass = "frodo2.algorithms.varOrdering.dfs.DFSgeneration" />
-				<message name = "UTIL_MSG_TYPE" 
-						 value = "OUTPUT_MSG_TYPE" 
-						 ownerClass = "frodo2.algorithms.dpop.UTILpropagation" />
-				<message name = "SEPARATOR_MSG_TYPE" 
-						 value = "SEPARATOR_MSG_TYPE" 
-						 ownerClass = "frodo2.algorithms.dpop.UTILpropagation" />
+				<message myFieldName = "START_MSG_TYPE" 
+						 targetFieldName = "START_AGENT" 
+						 targetClass = "frodo2.algorithms.AgentInterface" />
+				<message myFieldName = "DFS_MSG_TYPE" 
+						 targetFieldName = "OUTPUT_MSG_TYPE" 
+						 targetClass = "frodo2.algorithms.varOrdering.dfs.DFSgeneration" />
+				<message myFieldName = "UTIL_MSG_TYPE" 
+						 targetFieldName = "OUTPUT_MSG_TYPE" 
+						 targetClass = "frodo2.algorithms.dpop.UTILpropagation" />
+				<message myFieldName = "SEPARATOR_MSG_TYPE" 
+						 targetFieldName = "SEPARATOR_MSG_TYPE" 
+						 targetClass = "frodo2.algorithms.dpop.UTILpropagation" />
 			</messages>
 		</module>
 		
-		<!-- Prints out all messages received and sent by the agent
-			WARNING! This can significantly affect runtime performance. Only use this module for debugging purposes. 
-				- hideSystemMessages: whether to display system messages (default: true)
+		<!-- Displays the messages exchanged
+			- perAgent: if true, each agent reports itself the messages it exchanges 
+				WARNING! This can significantly affect runtime performance. Only use this setting for debugging purposes. 
+			- hideSystemMessages: whether to display system messages (default: true)
+		 	- visualizer: the class of the Visualizer to be used; supported values: 
+		 		- [empty string]: no visualizer; messages are not displayed
+		 		- frodo2.gui.ConsoleVisualizer: messages are printed out in the console
+		 		- frodo2.gui.jung.JungVisualizer: a visualizer based on JUNG2
 		 -->
-		<!--
 		<module className = "frodo2.algorithms.test.MessageDebugger" 
-		 		hideSystemMessages = "true" />
-		 -->
+				perAgent = "false" 
+		 		hideSystemMessages = "true" 
+		 		visualizer = "" />
 		 
 	</modules>
 </agentDescription>

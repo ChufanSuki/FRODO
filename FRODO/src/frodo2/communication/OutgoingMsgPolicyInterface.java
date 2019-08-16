@@ -22,6 +22,8 @@ How to contact the authors:
 
 package frodo2.communication;
 
+import java.util.Collection;
+
 /** This interface describes a listener that is notified by a queue of outgoing messages
  * @author Thomas Leaute
  * @param <T> the class used for message types
@@ -35,10 +37,38 @@ public interface OutgoingMsgPolicyInterface <T> extends MessageListener<T> {
 		/** the message should be discarded */ DISCARD, 
 		/** the message can be discarded */ DONTCARE }
 
-	/** Notifies the object of an outgoing message
+	/** Notifies the listener of an outgoing message
 	 * @param msg 	outgoing message 
 	 * @return The decision on what should be done with \a msg
 	 */
 	public Decision notifyOut (Message msg);
 	
+	/** Notifies the listener of an outgoing message
+	 * @param fromAgent 	ID of the sender agent 
+	 * @param msg 			the outgoing message
+	 * @return The decision on what should be done with \a msg
+	 */
+	public default Decision notifyOut (Object fromAgent, Message msg) {
+		return this.notifyOut(fromAgent, msg, null);
+	}
+
+	/** Notifies the listener of an outgoing message
+	 * @param fromAgent 	ID of the sender agent 
+	 * @param msg 			the outgoing message
+	 * @param toAgents 		IDs of the destination agents
+	 * @return The decision on what should be done with \a msg
+	 */
+	public default Decision notifyOut (Object fromAgent, Message msg, Collection<? extends Object> toAgents) {
+		return this.notifyOut(msg);
+	}
+
+	/** Notifies the listener of an outgoing message
+	 * @param msg 			the outgoing message
+	 * @param toAgents 		IDs of the destination agents
+	 * @return The decision on what should be done with \a msg
+	 */
+	public default Decision notifyOut (Message msg, Collection<? extends Object> toAgents) {
+		return this.notifyOut(null, msg, toAgents);
+	}
+
 }

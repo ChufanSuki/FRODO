@@ -22,6 +22,7 @@ How to contact the authors:
 
 package frodo2.algorithms.adopt;
 
+import frodo2.communication.MessageType;
 import frodo2.communication.MessageWith3Payloads;
 import frodo2.solutionSpaces.Addable;
 import frodo2.solutionSpaces.UtilitySolutionSpace;
@@ -43,7 +44,7 @@ extends MessageWith3Payloads<String, String, UtilitySolutionSpace<Val, U>> {
 	 * @param parent		the parent of the variable
 	 * @param lb 			lower bound
 	 */
-	public BoundsMsg(String type, String variableId, String parent, UtilitySolutionSpace<Val, U> lb) {
+	public BoundsMsg(MessageType type, String variableId, String parent, UtilitySolutionSpace<Val, U> lb) {
 		super(type, variableId, parent, lb);
 	}
 	

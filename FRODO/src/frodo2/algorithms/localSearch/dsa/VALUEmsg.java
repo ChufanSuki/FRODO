@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
+import frodo2.communication.MessageType;
 import frodo2.communication.MessageWith3Payloads;
 import frodo2.solutionSpaces.Addable;
 
@@ -51,7 +52,7 @@ implements Externalizable {
 	 * @param receiver	the receiver of this message
 	 * @param payload	the value of the variable
 	 */
-	public VALUEmsg(String type, String sender, String receiver, Val payload) {
+	public VALUEmsg(MessageType type, String sender, String receiver, Val payload) {
 		super(type, sender, receiver, payload);
 		assert(!sender.equals(receiver));
 	}

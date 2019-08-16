@@ -39,6 +39,7 @@ import frodo2.algorithms.varOrdering.dfs.DFSgeneration;
 import frodo2.algorithms.varOrdering.dfs.DFSgeneration.DFSview;
 import frodo2.communication.IncomingMsgPolicyInterface;
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 import frodo2.communication.Queue;
 import frodo2.solutionSpaces.Addable;
 import frodo2.solutionSpaces.DCOPProblemInterface;
@@ -59,13 +60,13 @@ public class Preprocessing <Val extends Addable<Val>, U extends Addable<U> >
 implements StatsReporter {
 
 	/** The type of the message telling the module to start */
-	public static String START_MSG_TYPE = AgentInterface.START_AGENT;
+	public static MessageType START_MSG_TYPE = AgentInterface.START_AGENT;
 
 	/** The type of message containing the heuristics */
-	public final static String HEURISTICS_MSG_TYPE = "Heuristics";
+	public final static MessageType HEURISTICS_MSG_TYPE = new MessageType ("ADOPT", "Preprocessing", "Heuristics");
 	
 	/** The type of the heuristics stats message*/
-	public final static String HEURISTICS_STAT_MSG_TYPE = "Heuristics stat";
+	public final static MessageType HEURISTICS_STAT_MSG_TYPE = new MessageType ("ADOPT", "Preprocessing", "Heuristics stats");
 
 	/** Whether to report stats */
 	private boolean reportStats = true;
@@ -223,7 +224,7 @@ implements StatsReporter {
 	}
 	
 	/** 
-	 * @see frodo2.algorithms.StatsReporter#getStatsFromQueue(frodo2.communication.Queue)
+	 * @see StatsReporter#getStatsFromQueue(Queue)
 	 */
 	public void getStatsFromQueue(Queue queue) {
 		queue.addIncomingMessagePolicy(HEURISTICS_STAT_MSG_TYPE, this);
@@ -244,8 +245,8 @@ implements StatsReporter {
 	}
 
 	/** @see IncomingMsgPolicyInterface#getMsgTypes() */
-	public Collection<String> getMsgTypes() {
-		ArrayList <String> msgTypes = new ArrayList <String> (4);
+	public Collection<MessageType> getMsgTypes() {
+		ArrayList <MessageType> msgTypes = new ArrayList <MessageType> (4);
 		msgTypes.add(START_MSG_TYPE);
 		msgTypes.add(DFSgeneration.OUTPUT_MSG_TYPE);
 		msgTypes.add(heuristic.getMsgType());
@@ -257,7 +258,7 @@ implements StatsReporter {
 	@SuppressWarnings("unchecked")
 	public void notifyIn( Message msg) {
 		
-		String type = msg.getType();
+		MessageType type = msg.getType();
 		
 		if(type.equals(HEURISTICS_STAT_MSG_TYPE)) { // in stats gatherer mode
 			BoundsMsg<Val, U> msgCast = (BoundsMsg<Val, U>) msg;
@@ -279,7 +280,7 @@ implements StatsReporter {
 			
 			String var = msgCast.getVar();
 			DFSview<Val, U> relationships = msgCast.getNeighbors();
-			frodo2.algorithms.adopt.Preprocessing.PreprocessingHeuristic.VariableInfo<Val, U> varInfo = heuristic.getVariableInfo(var);
+			Preprocessing.PreprocessingHeuristic.VariableInfo<Val, U> varInfo = heuristic.getVariableInfo(var);
 			
 			// set the lower neighbours
 			String parent = relationships.getParent();
@@ -317,7 +318,7 @@ implements StatsReporter {
 			HeuristicMsg<Val, U> msgCast = (HeuristicMsg<Val, U>)msg;
 			String var = msgCast.getReceiver();
 			UtilitySolutionSpace<Val, U> space = msgCast.getSpace();
-			frodo2.algorithms.adopt.Preprocessing.PreprocessingHeuristic.VariableInfo<Val, U> varInfo = heuristic.getVariableInfo(var);
+			Preprocessing.PreprocessingHeuristic.VariableInfo<Val, U> varInfo = heuristic.getVariableInfo(var);
 			
 			heuristic.processHeuristicsInfoMessage(space, var);
 			
@@ -365,7 +366,7 @@ implements StatsReporter {
 		 * Report the messages this heuristic shall be listening to
 		 * @return a list of message types
 		 */
-		public String getMsgType();
+		public MessageType getMsgType();
 		
 		/**
 		 * Returns the variable info for \c var
@@ -524,7 +525,7 @@ implements StatsReporter {
 		}
 		
 		/**
-		 * @see frodo2.algorithms.adopt.Preprocessing.PreprocessingHeuristic#init()
+		 * @see Preprocessing.PreprocessingHeuristic#init()
 		 */
 		public void init() {
 			infos = new HashMap<String, VariableInfo<Val, U>>(p.variables.size());
@@ -536,28 +537,28 @@ implements StatsReporter {
 		}
 		
 		/** @see Preprocessing.PreprocessingHeuristic#getMsgType() */
-		public String getMsgType() {
+		public MessageType getMsgType() {
 			return null;
 		}
 
 		/** 
 		 * Does nothing for the simple heuristics
-		 * @see frodo2.algorithms.adopt.Preprocessing.PreprocessingHeuristic#processDFSOutput(frodo2.solutionSpaces.UtilitySolutionSpace, java.util.List, String)
+		 * @see Preprocessing.PreprocessingHeuristic#processDFSOutput(UtilitySolutionSpace, java.util.List, String)
 		 */
 		public void processDFSOutput(UtilitySolutionSpace<Val, U> space,
 				List<String> constraint_variables, String var) {}
 
 		/** 
 		 * Does nothing for the simple heuristics
-		 * @see frodo2.algorithms.adopt.Preprocessing.PreprocessingHeuristic#processHeuristicsInfoMessage(frodo2.solutionSpaces.UtilitySolutionSpace, java.lang.String)
+		 * @see Preprocessing.PreprocessingHeuristic#processHeuristicsInfoMessage(UtilitySolutionSpace, java.lang.String)
 		 */
 		public void processHeuristicsInfoMessage(
 				UtilitySolutionSpace<Val, U> space, String var) {}
 
 		/** 
-		 * @see frodo2.algorithms.adopt.Preprocessing.PreprocessingHeuristic#getVariableInfo(java.lang.String)
+		 * @see Preprocessing.PreprocessingHeuristic#getVariableInfo(java.lang.String)
 		 */
-		public frodo2.algorithms.adopt.Preprocessing.PreprocessingHeuristic.VariableInfo<Val, U> getVariableInfo(
+		public Preprocessing.PreprocessingHeuristic.VariableInfo<Val, U> getVariableInfo(
 				String var) {
 			return infos.get(var);
 		}
@@ -589,7 +590,7 @@ implements StatsReporter {
 		HashMap<String, VariableInfo> infos;
 		
 		/** The type of the heuristic message send by this heuristic*/
-		public static final String HEURISTIC_INFO_TYPE  = "DP0 heuristic info";
+		public static final MessageType HEURISTIC_INFO_TYPE  = new MessageType ("ADOPT", "Preprocessing", "DP0 heuristic info");
 		
 		/** Constructor 
 		 * @param p A link to the super class*/
@@ -598,7 +599,7 @@ implements StatsReporter {
 		}
 		
 		/**
-		 * @see frodo2.algorithms.adopt.Preprocessing.PreprocessingHeuristic#init()
+		 * @see Preprocessing.PreprocessingHeuristic#init()
 		 */
 		public void init() {
 			infos = new HashMap<String, VariableInfo>(p.variables.size());
@@ -610,14 +611,14 @@ implements StatsReporter {
 		}
 
 		/** 
-		 * @see frodo2.algorithms.adopt.Preprocessing.PreprocessingHeuristic#getMsgType()
+		 * @see Preprocessing.PreprocessingHeuristic#getMsgType()
 		 */
-		public String getMsgType() {
+		public MessageType getMsgType() {
 			return DP0.HEURISTIC_INFO_TYPE;
 		}
 
 		/** 
-		 * @see frodo2.algorithms.adopt.Preprocessing.PreprocessingHeuristic#processDFSOutput(frodo2.solutionSpaces.UtilitySolutionSpace, java.util.List, String)
+		 * @see Preprocessing.PreprocessingHeuristic#processDFSOutput(UtilitySolutionSpace, java.util.List, String)
 		 */
 		public void processDFSOutput(UtilitySolutionSpace<Val, U> space,
 				List<String> constraint_variables, String var) {
@@ -628,7 +629,7 @@ implements StatsReporter {
 		}
 
 		/** 
-		 * @see frodo2.algorithms.adopt.Preprocessing.PreprocessingHeuristic#processHeuristicsInfoMessage(frodo2.solutionSpaces.UtilitySolutionSpace, java.lang.String)
+		 * @see Preprocessing.PreprocessingHeuristic#processHeuristicsInfoMessage(UtilitySolutionSpace, java.lang.String)
 		 */
 		public void processHeuristicsInfoMessage(
 				UtilitySolutionSpace<Val, U> space, String var) {
@@ -638,9 +639,9 @@ implements StatsReporter {
 		}
 
 		/** 
-		 * @see frodo2.algorithms.adopt.Preprocessing.PreprocessingHeuristic#getVariableInfo(java.lang.String)
+		 * @see Preprocessing.PreprocessingHeuristic#getVariableInfo(java.lang.String)
 		 */
-		public frodo2.algorithms.adopt.Preprocessing.PreprocessingHeuristic.VariableInfo<Val, U> getVariableInfo(
+		public Preprocessing.PreprocessingHeuristic.VariableInfo<Val, U> getVariableInfo(
 				String var) {
 			return infos.get(var);
 		}
@@ -659,7 +660,7 @@ implements StatsReporter {
 		 * 
 		 * @author Brammert Ottens, 18 mei 2009
 		 */
-		public class VariableInfo extends frodo2.algorithms.adopt.Preprocessing.PreprocessingHeuristic.VariableInfo<Val, U> {
+		public class VariableInfo extends Preprocessing.PreprocessingHeuristic.VariableInfo<Val, U> {
 			
 			/**
 			 * A constructor
@@ -671,7 +672,7 @@ implements StatsReporter {
 			}
 			
 			/**
-			 * @see frodo2.algorithms.adopt.Preprocessing.PreprocessingHeuristic.VariableInfo#setParent(java.lang.String)
+			 * @see Preprocessing.PreprocessingHeuristic.VariableInfo#setParent(java.lang.String)
 			 */
 			@Override
 			public void setParent(String parent) {
@@ -682,7 +683,7 @@ implements StatsReporter {
 			}
 			
 			/**
-			 * @see frodo2.algorithms.adopt.Preprocessing.PreprocessingHeuristic.VariableInfo#isHeuristicReady()
+			 * @see Preprocessing.PreprocessingHeuristic.VariableInfo#isHeuristicReady()
 			 */
 			@Override
 			public boolean isHeuristicReady() {
@@ -691,7 +692,7 @@ implements StatsReporter {
 			
 			/**
 			 * As soon as the DFS information has been received, the info message is ready to be send 
-			 * @see frodo2.algorithms.adopt.Preprocessing.PreprocessingHeuristic.VariableInfo#isInfoReady()
+			 * @see Preprocessing.PreprocessingHeuristic.VariableInfo#isInfoReady()
 			 */
 			public boolean isInfoReady() {
 				return !infoSent && numberOfChildren != -1 && parent != null;
@@ -711,7 +712,7 @@ implements StatsReporter {
 	public static class DP1 <Val extends Addable<Val>, U extends Addable<U> > implements PreprocessingHeuristic<Val, U> {
 
 		/** The type of the heuristic message send by this heuristic*/
-		public static final String HEURISTIC_INFO_TYPE  = "DP1 heuristic info";
+		public static final MessageType HEURISTIC_INFO_TYPE  = new MessageType ("ADOPT", "Preprocessing", "DP1 heuristic info");
 		
 		/** A link to the parent class */
 		private Preprocessing<Val, U> p;
@@ -743,14 +744,14 @@ implements StatsReporter {
 		}
 		
 		/** 
-		 * @see frodo2.algorithms.adopt.Preprocessing.PreprocessingHeuristic#getMsgType()
+		 * @see Preprocessing.PreprocessingHeuristic#getMsgType()
 		 */
-		public String getMsgType() {
+		public MessageType getMsgType() {
 			return HEURISTIC_INFO_TYPE;
 		}
 		
 		/**
-		 * @see frodo2.algorithms.adopt.Preprocessing.PreprocessingHeuristic#processDFSOutput(frodo2.solutionSpaces.UtilitySolutionSpace, java.util.List, java.lang.String)
+		 * @see Preprocessing.PreprocessingHeuristic#processDFSOutput(UtilitySolutionSpace, java.util.List, java.lang.String)
 		 */
 		public void processDFSOutput(UtilitySolutionSpace<Val, U> space, List<String> constraint_variables, String var) {
 			VariableInfo varInfo = infos.get(var);
@@ -761,7 +762,7 @@ implements StatsReporter {
 		}
 		
 		/**
-		 * @see frodo2.algorithms.adopt.Preprocessing.PreprocessingHeuristic#processHeuristicsInfoMessage(frodo2.solutionSpaces.UtilitySolutionSpace, java.lang.String)
+		 * @see Preprocessing.PreprocessingHeuristic#processHeuristicsInfoMessage(UtilitySolutionSpace, java.lang.String)
 		 */
 		public void processHeuristicsInfoMessage(UtilitySolutionSpace<Val, U> space, String var) {
 			VariableInfo varInfo = infos.get(var);
@@ -770,9 +771,9 @@ implements StatsReporter {
 		}
 		
 		/** 
-		 * @see frodo2.algorithms.adopt.Preprocessing.PreprocessingHeuristic#getVariableInfo(java.lang.String)
+		 * @see Preprocessing.PreprocessingHeuristic#getVariableInfo(java.lang.String)
 		 */
-		public frodo2.algorithms.adopt.Preprocessing.PreprocessingHeuristic.VariableInfo<Val, U> getVariableInfo(
+		public Preprocessing.PreprocessingHeuristic.VariableInfo<Val, U> getVariableInfo(
 				String var) {
 			return infos.get(var);
 		}
@@ -801,7 +802,7 @@ implements StatsReporter {
 		 * @author Brammert Ottens, 20 mei 2009
 		 *
 		 */
-		public class VariableInfo extends frodo2.algorithms.adopt.Preprocessing.PreprocessingHeuristic.VariableInfo<Val, U> {
+		public class VariableInfo extends Preprocessing.PreprocessingHeuristic.VariableInfo<Val, U> {
 			
 			/**
 			 * Constructor
@@ -829,7 +830,7 @@ implements StatsReporter {
 			}
 			
 			/**
-			 * @see frodo2.algorithms.adopt.Preprocessing.PreprocessingHeuristic.VariableInfo#isHeuristicReady()
+			 * @see Preprocessing.PreprocessingHeuristic.VariableInfo#isHeuristicReady()
 			 */
 			@Override
 			public boolean isHeuristicReady() {
@@ -837,7 +838,7 @@ implements StatsReporter {
 			}
 			
 			/**
-			 * @see frodo2.algorithms.adopt.Preprocessing.PreprocessingHeuristic.VariableInfo#isInfoReady()
+			 * @see Preprocessing.PreprocessingHeuristic.VariableInfo#isInfoReady()
 			 */
 			@Override
 			public boolean isInfoReady() {
@@ -856,7 +857,7 @@ implements StatsReporter {
 	public static class DP2 <Val extends Addable<Val>, U extends Addable<U> > implements PreprocessingHeuristic<Val, U> {
 
 		/** The type of the heuristic message send by this heuristic*/
-		public static final String HEURISTIC_INFO_TYPE  = "DP2 heuristic info";
+		public static final MessageType HEURISTIC_INFO_TYPE  = new MessageType ("ADOPT", "Preprocessing", "DP2 heuristic info");
 		
 		/** A link to the parent class */
 		private Preprocessing<Val, U> p;
@@ -874,9 +875,9 @@ implements StatsReporter {
 		}
 				
 		/** 
-		 * @see frodo2.algorithms.adopt.Preprocessing.PreprocessingHeuristic#getMsgType()
+		 * @see Preprocessing.PreprocessingHeuristic#getMsgType()
 		 */
-		public String getMsgType() {
+		public MessageType getMsgType() {
 			return HEURISTIC_INFO_TYPE;
 		}
 
@@ -897,7 +898,7 @@ implements StatsReporter {
 		}
 		
 		/** 
-		 * @see frodo2.algorithms.adopt.Preprocessing.PreprocessingHeuristic#processDFSOutput(frodo2.solutionSpaces.UtilitySolutionSpace, java.util.List, java.lang.String)
+		 * @see Preprocessing.PreprocessingHeuristic#processDFSOutput(UtilitySolutionSpace, java.util.List, java.lang.String)
 		 */
 		public void processDFSOutput(UtilitySolutionSpace<Val, U> space,
 				List<String> constraint_variables, String var) {
@@ -915,7 +916,7 @@ implements StatsReporter {
 		}
 
 		/** 
-		 * @see frodo2.algorithms.adopt.Preprocessing.PreprocessingHeuristic#processHeuristicsInfoMessage(frodo2.solutionSpaces.UtilitySolutionSpace, java.lang.String)
+		 * @see Preprocessing.PreprocessingHeuristic#processHeuristicsInfoMessage(UtilitySolutionSpace, java.lang.String)
 		 */
 		public void processHeuristicsInfoMessage(
 				UtilitySolutionSpace<Val, U> space, String var) {
@@ -925,9 +926,9 @@ implements StatsReporter {
 		}
 
 		/** 
-		 * @see frodo2.algorithms.adopt.Preprocessing.PreprocessingHeuristic#getVariableInfo(java.lang.String)
+		 * @see Preprocessing.PreprocessingHeuristic#getVariableInfo(java.lang.String)
 		 */
-		public frodo2.algorithms.adopt.Preprocessing.PreprocessingHeuristic.VariableInfo<Val, U> getVariableInfo(
+		public Preprocessing.PreprocessingHeuristic.VariableInfo<Val, U> getVariableInfo(
 				String var) {
 			return infos.get(var);
 		}
@@ -956,7 +957,7 @@ implements StatsReporter {
 		 * @author brammertottens
 		 *
 		 */
-		public class VariableInfo extends frodo2.algorithms.adopt.Preprocessing.PreprocessingHeuristic.VariableInfo<Val, U> {
+		public class VariableInfo extends Preprocessing.PreprocessingHeuristic.VariableInfo<Val, U> {
 			
 			/** The joint of the constraints between this variable and its ancestors(without its parent), where all variables
 			 * but itself are projected out */
@@ -991,7 +992,7 @@ implements StatsReporter {
 			}
 			
 			/**
-			 * @see frodo2.algorithms.adopt.Preprocessing.PreprocessingHeuristic.VariableInfo#isInfoReady()
+			 * @see Preprocessing.PreprocessingHeuristic.VariableInfo#isInfoReady()
 			 */
 			@Override
 			public boolean isInfoReady() {
@@ -999,7 +1000,7 @@ implements StatsReporter {
 			}
 			
 			/**
-			 * @see frodo2.algorithms.adopt.Preprocessing.PreprocessingHeuristic.VariableInfo#isHeuristicReady()
+			 * @see Preprocessing.PreprocessingHeuristic.VariableInfo#isHeuristicReady()
 			 */
 			@Override
 			public boolean isHeuristicReady() {

@@ -20,35 +20,18 @@ How to contact the authors:
 <https://frodo-ai.tech>
  */
 
-package frodo2.algorithms.localSearch.mgm;
+package frodo2.algorithms;
 
-import frodo2.communication.MessageWith2Payloads;
-import frodo2.solutionSpaces.Addable;
+import frodo2.communication.IncomingMsgPolicyInterface;
+import frodo2.communication.OutgoingMsgPolicyInterface;
 
-/** A message holding an assignment to a variable
- * @param <V> type used for variable values
+/** Defines a module that eavesdrops on the messages exchanged
+ * @author Thomas Leaute
+ * @param <T> the class used for message types
  */
-public class AssignmentMessage <V extends Addable<V>> extends MessageWith2Payloads<String, V> {
+public interface Eavesdroppable <T> {
 
-	/** Empty constructor used for externalization */
-	public AssignmentMessage () { }
-
-	/** Constructor 
-	 * @param var 		the variable
-	 * @param val 		the value assigned to the variable \a var
-	 */
-	public AssignmentMessage (String var, V val) {
-		super (MGM.OUTPUT_MSG_TYPE, var, val);
-	}
-
-	/** @return the variable */
-	public String getVariable () {
-		return this.getPayload1();
-	}
-
-	/** @return the value */
-	public V getValue () {
-		return this.getPayload2();
-	}
-
+	/** @return a MessageListener that listens to incoming and outgoing messages */
+	public < E extends IncomingMsgPolicyInterface<T> & OutgoingMsgPolicyInterface<T> > E getEavesdropper ();
+	
 }

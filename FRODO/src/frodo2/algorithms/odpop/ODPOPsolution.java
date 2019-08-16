@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import frodo2.algorithms.Solution;
+import frodo2.communication.MessageType;
 
 /** An optimal solution to the problem
  * @param <V> type used for variable values
@@ -67,8 +68,8 @@ public class ODPOPsolution<V, U> extends Solution<V, U> {
 	 * @param numberOfCoordinationConstraints the number of constraints that contain variables that are owned by different agents
 	 * @param averageTreeFillPercentage 	the average percentage of the solutionspaces that are filled
 	 */
-	public ODPOPsolution (int nbrVariables, U reportedUtil, U trueUtil, Map<String, V> assignments, int nbrMsgs, TreeMap<String, Integer> msgNbrs, long totalMsgSize, TreeMap<String, Long> msgSizes, 
-			long maxMsgSize, TreeMap<String, Long> maxMsgSizes, long ncccCount, long timeNeeded, HashMap<String, Long> moduleEndTimes, int numberOfCoordinationConstraints, double averageTreeFillPercentage) {
+	public ODPOPsolution (int nbrVariables, U reportedUtil, U trueUtil, Map<String, V> assignments, int nbrMsgs, TreeMap<MessageType, Integer> msgNbrs, long totalMsgSize, TreeMap<MessageType, Long> msgSizes, 
+			long maxMsgSize, TreeMap<MessageType, Long> maxMsgSizes, long ncccCount, long timeNeeded, HashMap<String, Long> moduleEndTimes, int numberOfCoordinationConstraints, double averageTreeFillPercentage) {
 		super (nbrVariables, reportedUtil, trueUtil, assignments, nbrMsgs, totalMsgSize, maxMsgSize, ncccCount, timeNeeded, moduleEndTimes, numberOfCoordinationConstraints);
 		this.averageTreeFillPercentage = averageTreeFillPercentage;
 		this.msgNbrs = msgNbrs;
@@ -95,8 +96,8 @@ public class ODPOPsolution<V, U> extends Solution<V, U> {
 	 * @param percentageOfGoodsSent			the percentage of possible goods that have been sent
 	 * @param maximalCutSum 				The maximal value with which a utility value has been cut
 	 */
-	public ODPOPsolution (int nbrVariables, U reportedUtil, U trueUtil, Map<String, V> assignments, int nbrMsgs, TreeMap<String, Integer> msgNbrs, long totalMsgSize, TreeMap<String, Long> msgSizes, 
-			long maxMsgSize, TreeMap<String, Long> maxMsgSizes, long ncccCount, long timeNeeded, HashMap<String, Long> moduleEndTimes, int numberOfCoordinationConstraints, double averageTreeFillPercentage, double percentageOfGoodsSent, U maximalCutSum) {
+	public ODPOPsolution (int nbrVariables, U reportedUtil, U trueUtil, Map<String, V> assignments, int nbrMsgs, TreeMap<MessageType, Integer> msgNbrs, long totalMsgSize, TreeMap<MessageType, Long> msgSizes, 
+			long maxMsgSize, TreeMap<MessageType, Long> maxMsgSizes, long ncccCount, long timeNeeded, HashMap<String, Long> moduleEndTimes, int numberOfCoordinationConstraints, double averageTreeFillPercentage, double percentageOfGoodsSent, U maximalCutSum) {
 		this (nbrVariables, reportedUtil, trueUtil, assignments, nbrMsgs, msgNbrs, totalMsgSize, msgSizes, maxMsgSize, maxMsgSizes, ncccCount, timeNeeded, moduleEndTimes, numberOfCoordinationConstraints, averageTreeFillPercentage);
 		this.percentageOfGoodsSent = percentageOfGoodsSent;
 		this.maximalCutSum = maximalCutSum;
@@ -124,8 +125,8 @@ public class ODPOPsolution<V, U> extends Solution<V, U> {
 	 * @param percentageOfGoodsSent			the percentage of possible goods that have been sent
 	 * @param maximalCutSum 				The maximal value with which a utility value has been cut
 	 */
-	public ODPOPsolution (int nbrVariables, U reportedUtil, U trueUtil, Map<String, V> assignments, int nbrMsgs, TreeMap<String, Integer> msgNbrs, long totalMsgSize, TreeMap<String, Long> msgSizes, 
-			long maxMsgSize, TreeMap<String, Long> maxMsgSizes, long ncccCount, long timeNeeded, HashMap<String, Long> moduleEndTimes, int numberOfCoordinationConstraints, double averageTreeFillPercentage, double percentageOfGoodsSent, int treeWidth, double dummyFillPercentage, double numberOfDummies, U maximalCutSum) {
+	public ODPOPsolution (int nbrVariables, U reportedUtil, U trueUtil, Map<String, V> assignments, int nbrMsgs, TreeMap<MessageType, Integer> msgNbrs, long totalMsgSize, TreeMap<MessageType, Long> msgSizes, 
+			long maxMsgSize, TreeMap<MessageType, Long> maxMsgSizes, long ncccCount, long timeNeeded, HashMap<String, Long> moduleEndTimes, int numberOfCoordinationConstraints, double averageTreeFillPercentage, double percentageOfGoodsSent, int treeWidth, double dummyFillPercentage, double numberOfDummies, U maximalCutSum) {
 		this(nbrVariables, reportedUtil, trueUtil, assignments, nbrMsgs, msgNbrs, totalMsgSize, msgSizes, maxMsgSize, maxMsgSizes, ncccCount, timeNeeded, moduleEndTimes, numberOfCoordinationConstraints, averageTreeFillPercentage, percentageOfGoodsSent, maximalCutSum);
 		this.treeWidth = treeWidth;
 		this.dummyFillPercentage = dummyFillPercentage;

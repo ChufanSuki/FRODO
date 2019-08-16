@@ -23,6 +23,7 @@ How to contact the authors:
 package frodo2.algorithms;
 
 import java.lang.reflect.Array;
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -206,13 +207,9 @@ public class Problem < V extends Addable<V>, U extends Addable<U> > implements D
 	/** @see DCOPProblemInterface#getZeroUtility() */
 	public U getZeroUtility() {
 		try {
-			return (U) utilClass.newInstance().getZero();
+			return (U) utilClass.getConstructor().newInstance().getZero();
 			
-		} catch (InstantiationException e) {
-			System.err.println("Failed calling the nullary constructor for the class " + utilClass.getName() + " used for utility values");
-			e.printStackTrace();
-			return null;
-		} catch (IllegalAccessException e) {
+		} catch (InvocationTargetException | NoSuchMethodException | InstantiationException | IllegalAccessException e) {
 			System.err.println("Failed calling the nullary constructor for the class " + utilClass.getName() + " used for utility values");
 			e.printStackTrace();
 			return null;
@@ -222,13 +219,9 @@ public class Problem < V extends Addable<V>, U extends Addable<U> > implements D
 	/** @see DCOPProblemInterface#getMinInfUtility() */
 	public U getMinInfUtility() {
 		try {
-			return (U) utilClass.newInstance().getMinInfinity();
+			return (U) utilClass.getConstructor().newInstance().getMinInfinity();
 			
-		} catch (InstantiationException e) {
-			System.err.println("Failed calling the nullary constructor for the class " + utilClass.getName() + " used for utility values");
-			e.printStackTrace();
-			return null;
-		} catch (IllegalAccessException e) {
+		} catch (InvocationTargetException | NoSuchMethodException | InstantiationException | IllegalAccessException e) {
 			System.err.println("Failed calling the nullary constructor for the class " + utilClass.getName() + " used for utility values");
 			e.printStackTrace();
 			return null;
@@ -238,13 +231,9 @@ public class Problem < V extends Addable<V>, U extends Addable<U> > implements D
 	/** @see DCOPProblemInterface#getPlusInfUtility() */
 	public U getPlusInfUtility() {
 		try {
-			return (U) utilClass.newInstance().getPlusInfinity();
+			return (U) utilClass.getConstructor().newInstance().getPlusInfinity();
 			
-		} catch (InstantiationException e) {
-			System.err.println("Failed calling the nullary constructor for the class " + utilClass.getName() + " used for utility values");
-			e.printStackTrace();
-			return null;
-		} catch (IllegalAccessException e) {
+		} catch (InvocationTargetException | NoSuchMethodException | InstantiationException | IllegalAccessException e) {
 			System.err.println("Failed calling the nullary constructor for the class " + utilClass.getName() + " used for utility values");
 			e.printStackTrace();
 			return null;

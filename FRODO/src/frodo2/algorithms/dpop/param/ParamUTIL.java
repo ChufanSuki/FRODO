@@ -29,6 +29,7 @@ import org.jdom2.Element;
 import frodo2.algorithms.AgentInterface;
 import frodo2.algorithms.dpop.UTILpropagation;
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 import frodo2.communication.MessageWith2Payloads;
 import frodo2.communication.Queue;
 import frodo2.solutionSpaces.Addable;
@@ -44,7 +45,7 @@ public class ParamUTIL < Val extends Addable<Val>, U extends Addable<U> >
 extends UTILpropagation<Val, U> {
 	
 	/** The type of the messages containing parametric optimal utility values sent by roots */
-	public static final String OPT_PARAM_UTIL_MSG_TYPE = "OptParamUtilMessage";
+	public static final MessageType OPT_PARAM_UTIL_MSG_TYPE = new MessageType ("Param-DPOP", "UTIL", "OptParamUtil");
 	
 	/** Optimal utility computed by the algorithm, depending on the values of the parameters */
 	private UtilitySolutionSpace<Val, U> optUtil;
@@ -142,7 +143,7 @@ extends UTILpropagation<Val, U> {
 	/** @see UTILpropagation#getStatsFromQueue(Queue) */
 	@Override
 	public void getStatsFromQueue(Queue queue) {
-		ArrayList <String> msgTypes = new ArrayList <String> (2);
+		ArrayList <MessageType> msgTypes = new ArrayList <MessageType> (2);
 		msgTypes.add(OPT_PARAM_UTIL_MSG_TYPE);
 		msgTypes.add(UTIL_STATS_MSG_TYPE);
 		queue.addIncomingMessagePolicy(msgTypes, this);

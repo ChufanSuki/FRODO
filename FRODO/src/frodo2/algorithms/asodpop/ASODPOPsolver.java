@@ -32,9 +32,11 @@ import org.jdom2.Document;
 import org.jdom2.Element;
 
 import frodo2.algorithms.AbstractDCOPsolver;
+import frodo2.algorithms.SolutionCollector;
 import frodo2.algorithms.StatsReporter;
 import frodo2.algorithms.StatsReporterWithConvergence.CurrentAssignment;
 import frodo2.algorithms.varOrdering.dfs.DFSgeneration;
+import frodo2.communication.MessageType;
 import frodo2.solutionSpaces.Addable;
 
 /**
@@ -53,6 +55,9 @@ public class ASODPOPsolver < V extends Addable<V>, U extends Addable<U> > extend
 	
 	/** The DFSgeneration module */
 	protected DFSgeneration<V, U> dfsModule;
+	
+	/** The solution collector */
+	private SolutionCollector<V, U> solCollector;
 
 	/** Default constructor */
 	public ASODPOPsolver () {
@@ -165,6 +170,10 @@ public class ASODPOPsolver < V extends Addable<V>, U extends Addable<U> > extend
 		dfsModule.setSilent(true);
 		solGatherers.add(dfsModule);
 		
+		this.solCollector = new SolutionCollector<V, U>(null, problem);
+		this.solCollector.setSilent(true);
+		solGatherers.add(this.solCollector);
+		
 		return solGatherers;
 	}
 	
@@ -172,15 +181,15 @@ public class ASODPOPsolver < V extends Addable<V>, U extends Addable<U> > extend
 	@Override
 	public ASODPOPsolution<V, U> buildSolution () {
 	
-		Map<String, V> assignment = asodpopModule.getOptAssignments();
-		U reportedUtil = this.asodpopModule.getTotalOptUtil();
+		Map<String, V> assignment = this.solCollector.getSolution();
+		U reportedUtil = this.solCollector.getUtility();
 		U utility = problem.getUtility(assignment).getUtility(0);
 		int nbrMsgs = factory.getNbrMsgs();
-		TreeMap<String, Integer> msgNbrs = factory.getMsgNbrs();
+		TreeMap<MessageType, Integer> msgNbrs = factory.getMsgNbrs();
 		long msgSize = factory.getTotalMsgSize();
-		TreeMap<String, Long> msgSizes = factory.getMsgSizes();
+		TreeMap<MessageType, Long> msgSizes = factory.getMsgSizes();
 		long maxMsgSize = factory.getOverallMaxMsgSize();
-		TreeMap<String, Long> maxMsgSizes = factory.getMaxMsgSizes();
+		TreeMap<MessageType, Long> maxMsgSizes = factory.getMaxMsgSizes();
 		double averageTreeFillPercentage = asodpopModule.getAverageFillTreePercentage();
 		double averageDummyFullPercentage = asodpopModule.getAverageDummyFillTreePercentage();
 		double averageNumberOfDummies = asodpopModule.getAverageNumberOfDummies();
@@ -206,6 +215,7 @@ public class ASODPOPsolver < V extends Addable<V>, U extends Addable<U> > extend
 		super.clear();
 		this.asodpopModule = null;
 		this.dfsModule = null;
+		this.solCollector = null;
 	}
 
 }

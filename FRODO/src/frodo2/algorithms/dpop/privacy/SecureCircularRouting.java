@@ -37,6 +37,7 @@ import frodo2.algorithms.varOrdering.dfs.DFSgenerationWithOrder;
 import frodo2.algorithms.varOrdering.dfs.DFSgeneration.DFSview;
 import frodo2.algorithms.varOrdering.dfs.DFSgeneration.MessageDFSoutput;
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 import frodo2.communication.Queue;
 import frodo2.solutionSpaces.DCOPProblemInterface;
 
@@ -52,21 +53,21 @@ import frodo2.solutionSpaces.DCOPProblemInterface;
 public class SecureCircularRouting implements StatsReporter {
 	
 	/** The type of the wrapper messages used to forward a message to the next variable in the ordering */
-	public static String NEXT_MSG_TYPE = "ToNext";
+	public static MessageType NEXT_MSG_TYPE = new MessageType ("P3/2-DPOP", "SecureCircularRouting", "ToNext");
 	
 	/** The type of the wrapper messages used to forward a message to the previous variable in the ordering */
-	public static String PREVIOUS_MSG_TYPE = "ToPrev";
+	public static MessageType PREVIOUS_MSG_TYPE = new MessageType ("P3/2-DPOP", "SecureCircularRouting", "ToPrev");
 	
 	/** The type of the output messages containing a message to be delivered to a given variable */
-	public static String DELIVERY_MSG_TYPE = "Delivery";
+	public static MessageType DELIVERY_MSG_TYPE = new MessageType ("P3/2-DPOP", "SecureCircularRouting", "Delivery");
 	
 	/** The type of the wrapper message containing a payload message 
 	 * that must be forwarded to the last leaf in the sub-tree rooted at the destination variable 
 	 */
-	static String TO_LAST_LEAF_MSG_TYPE = "ToLeaf";
+	static MessageType TO_LAST_LEAF_MSG_TYPE = new MessageType ("P3/2-DPOP", "SecureCircularRouting", "ToLeaf");
 	
 	/** The type of the messages containing statistics */
-	public static final String STATS_MSG_TYPE = "LinearOrderStats";
+	public static final MessageType STATS_MSG_TYPE = new MessageType ("P3/2-DPOP", "SecureCircularRouting", "LinearOrderStats");
 	
 	/** The agent's queue */
 	private Queue queue;
@@ -149,8 +150,8 @@ public class SecureCircularRouting implements StatsReporter {
 	}
 
 	/** @see StatsReporter#getMsgTypes() */
-	public Collection<String> getMsgTypes() {
-		ArrayList<String> types = new ArrayList<String> (7);
+	public Collection<MessageType> getMsgTypes() {
+		ArrayList<MessageType> types = new ArrayList<MessageType> (7);
 		types.add(AgentInterface.START_AGENT);
 		types.add(DFSgeneration.OUTPUT_MSG_TYPE);
 		types.add(DFSgenerationWithOrder.OUTPUT_MSG_TYPE);
@@ -170,7 +171,7 @@ public class SecureCircularRouting implements StatsReporter {
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	public void notifyIn(Message msg) {
 		
-		String msgType = msg.getType();
+		MessageType msgType = msg.getType();
 		
 		if (msgType.equals(STATS_MSG_TYPE)) { // in stats gatherer mode
 			
@@ -298,7 +299,7 @@ public class SecureCircularRouting implements StatsReporter {
 			return;
 		}
 		
-		else if (msgType.equals(TO_LAST_LEAF_MSG_TYPE)) { // a wrapper message containing a payload that must be forwarded to the last leaf
+		else if (SecureCircularRouting.TO_LAST_LEAF_MSG_TYPE.isParent(msgType)) { // a wrapper message containing a payload that must be forwarded to the last leaf
 			
 			// Parse the information from the message
 			ToLastLeafMsg msgCast = (ToLastLeafMsg) msg;
@@ -346,7 +347,7 @@ public class SecureCircularRouting implements StatsReporter {
 			return;
 		}
 		
-		if (msgType.equals(NEXT_MSG_TYPE)) { // contains a payload message that must be routed to the next variable in the ordering
+		if (NEXT_MSG_TYPE.isParent(msgType)) { // contains a payload message that must be routed to the next variable in the ordering
 			
 			// Get the destination's list of children
 			List<String> children = neighbors.getChildren();
@@ -395,7 +396,7 @@ public class SecureCircularRouting implements StatsReporter {
 			}
 		}
 		
-		else if (msgType.equals(PREVIOUS_MSG_TYPE)) {
+		else if (SecureCircularRouting.PREVIOUS_MSG_TYPE.isParent(msgType)) {
 			// contains a payload message that must be routed to the previous variable in the ordering
 			
 			if (sender.equals(dest)) { // this is the very first routing request sent by a client module

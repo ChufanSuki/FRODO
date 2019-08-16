@@ -51,6 +51,7 @@ import frodo2.algorithms.varOrdering.dfs.DFSgeneration.DFSview;
 import frodo2.algorithms.varOrdering.dfs.DFSgeneration.MessageDFSoutput;
 import frodo2.communication.IncomingMsgPolicyInterface;
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 import frodo2.communication.Queue;
 import frodo2.communication.sharedMemory.QueueIOPipe;
 import frodo2.solutionSpaces.AddableInteger;
@@ -73,8 +74,8 @@ public class testPreprocessing extends TestCase {
 	/** Maximum number of agents */
 	private final int maxNbrAgents = 5;
 	
-	/** The queue we are listening to*/
-	private Queue[] queues;
+	/** The queue we are listening to, indexed by agent name */
+	private Map<String, Queue> queues;
 	
 	/** Used to make the test thread wait */
 	private final ReentrantLock finished_lock = new ReentrantLock ();
@@ -156,7 +157,7 @@ public class testPreprocessing extends TestCase {
 	/** @see junit.framework.TestCase#tearDown() */
 	protected void tearDown () throws Exception {
 		super.tearDown();
-		for(Queue q : queues) {
+		for(Queue q : queues.values()) {
 			q.end();
 		}
 		this.queues = null;
@@ -225,17 +226,15 @@ public class testPreprocessing extends TestCase {
 	 */
 	private void testRandom(String heuristic) throws Exception {
 		
-		int nbrAgents = graph.clusters.size();
-		
 		// Create the queue network
-		queues = new Queue [nbrAgents];
+		queues = new HashMap<String, Queue> ();
 		AllTests.createQueueNetwork(queues, graph, false);
 
 		// Listen for statistics messages
 		Queue myQueue = new Queue (false);
 		myQueue.addIncomingMessagePolicy(new receiveLowerBounds(heuristic, parser, dfs));
 		QueueIOPipe myPipe = new QueueIOPipe (myQueue);
-		for (Queue queue : queues) 
+		for (Queue queue : queues.values()) 
 			queue.addOutputPipe(AgentInterface.STATS_MONITOR, myPipe);
 		
 		// Create the XML parameters
@@ -243,7 +242,7 @@ public class testPreprocessing extends TestCase {
 		params.setAttribute("heuristic", heuristic);
 		
 		for(String a: parser.getAgents()) {
-			Queue queue = queues[Integer.parseInt(a)];
+			Queue queue = queues.get(a);
 
 			XCSPparser<AddableInteger, AddableInteger> subProb = parser.getSubProblem(a);
 			queue.setProblem(subProb);
@@ -255,7 +254,7 @@ public class testPreprocessing extends TestCase {
 		
 		// for each variable, create a MessageDFSoutput
 		for(String a: parser.getAgents()) {
-			Queue queue = queues[Integer.parseInt(a)];
+			Queue queue = queues.get(a);
 			
 			Set<String> variables = parser.getVariables(a);
 			for(String var : variables) {
@@ -500,7 +499,7 @@ public class testPreprocessing extends TestCase {
 	 * @author brammert
 	 *
 	 */
-	private class receiveLowerBounds implements IncomingMsgPolicyInterface<String> {
+	private class receiveLowerBounds implements IncomingMsgPolicyInterface<MessageType> {
 
 		/** The heuristic who's output should be tested */
 		String heuristic;
@@ -526,10 +525,10 @@ public class testPreprocessing extends TestCase {
 		
 		/** 
 		 * 
-		 * @see frodo2.communication.IncomingMsgPolicyInterface#getMsgTypes()
+		 * @see IncomingMsgPolicyInterface#getMsgTypes()
 		 */
-		public Collection<String> getMsgTypes() {
-			ArrayList <String> msgTypes = new ArrayList <String> (3);
+		public Collection<MessageType> getMsgTypes() {
+			ArrayList <MessageType> msgTypes = new ArrayList <MessageType> (1);
 			msgTypes.add(Preprocessing.HEURISTICS_MSG_TYPE);
 			return msgTypes;
 		}
@@ -611,7 +610,7 @@ public class testPreprocessing extends TestCase {
 		
 		/**
 		 * 
-		 * @see frodo2.communication.IncomingMsgPolicyInterface#setQueue(frodo2.communication.Queue)
+		 * @see IncomingMsgPolicyInterface#setQueue(Queue)
 		 */
 		public void setQueue(Queue queue) { }
 		
@@ -622,16 +621,16 @@ public class testPreprocessing extends TestCase {
 	 * @author Brammert Ottens, 19 mei 2009
 	 *
 	 */
-	private class forwardHeuristicsMessage implements IncomingMsgPolicyInterface<String> {
+	private class forwardHeuristicsMessage implements IncomingMsgPolicyInterface<MessageType> {
 	
 		/** the queue */
 		Queue queue;
 
 		/**
-		 * @see frodo2.communication.IncomingMsgPolicyInterface#getMsgTypes()
+		 * @see IncomingMsgPolicyInterface#getMsgTypes()
 		 */
-		public Collection <String> getMsgTypes() {
-			ArrayList<String> msgTypes = new ArrayList<String>(1);
+		public Collection <MessageType> getMsgTypes() {
+			ArrayList<MessageType> msgTypes = new ArrayList<MessageType>(1);
 			msgTypes.add(Preprocessing.HEURISTICS_MSG_TYPE);
 			return msgTypes;
 		}
@@ -650,7 +649,7 @@ public class testPreprocessing extends TestCase {
 		}
 		
 		/**
-		 * @see frodo2.communication.IncomingMsgPolicyInterface#setQueue(frodo2.communication.Queue)
+		 * @see IncomingMsgPolicyInterface#setQueue(Queue)
 		 */
 		public void setQueue(Queue queue) {
 			this.queue = queue;

@@ -33,11 +33,13 @@ import java.util.Random;
 import org.jdom2.Element;
 
 import frodo2.algorithms.AgentInterface;
+import frodo2.algorithms.SolutionCollector;
 import frodo2.algorithms.StatsReporterWithConvergence;
 import frodo2.algorithms.varOrdering.factorgraph.FactorGraphGen;
 import frodo2.algorithms.varOrdering.factorgraph.FunctionNode;
 import frodo2.algorithms.varOrdering.factorgraph.VariableNode;
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 import frodo2.communication.MessageWith2Payloads;
 import frodo2.communication.Queue;
 import frodo2.solutionSpaces.Addable;
@@ -62,17 +64,14 @@ import frodo2.solutionSpaces.hypercube.Hypercube;
 public class MaxSum < V extends Addable<V>, U extends Addable<U> > implements StatsReporterWithConvergence<V> {
 	
 	/** The type of the messages received from function nodes of the graph */
-	public static final String FUNCTION_MSG_TYPE = FunctionMsg.FUNCTION_MSG_TYPE;
+	public static final MessageType FUNCTION_MSG_TYPE = FunctionMsg.FUNCTION_MSG_TYPE;
 
 	/** The type of the messages received from variable nodes of the graph */
-	public static final String VARIABLE_MSG_TYPE = VariableMsg.VARIABLE_MSG_TYPE;
+	public static final MessageType VARIABLE_MSG_TYPE = VariableMsg.VARIABLE_MSG_TYPE;
 
 	/** The type of the messages containing the assignment history */
-	private static final String CONV_STATS_MSG_TYPE = "MaxSumConvStatsMsg";
+	private static final MessageType CONV_STATS_MSG_TYPE = new MessageType ("Max-Sum", "ConvStats");
 
-	/** The type of the messages containing the final assignment to a variable */
-	private static final String SOLUTION_MSG_TYPE = "MaxSumSolMsg";
-	
 	/** Information about an internal variable */
 	private class VarInfo extends VariableNode<V, U> {
 		
@@ -271,21 +270,12 @@ public class MaxSum < V extends Addable<V>, U extends Addable<U> > implements St
 	/** The problem */
 	private DCOPProblemInterface<V, U> problem;
 	
-	/** Whether to report stats */
-	private boolean reportStats = true;
-
 	/** Whether the module has already started the algorithm */
 	private boolean started = false;
 
 	/** The 0 cost */
 	private U zero;
 
-	/** The solution */
-	private HashMap<String, V> solution;
-
-	/** The optimal cost */
-	private U optCost;
-	
 	/** Whether to maximize utility or minimize cost */
 	private final boolean maximize;
 
@@ -320,7 +310,6 @@ public class MaxSum < V extends Addable<V>, U extends Addable<U> > implements St
 
 		this.convergence = Boolean.parseBoolean(parameters.getAttributeValue("convergence"));
 		this.assignmentHistoriesMap = (this.convergence ? new HashMap< String, ArrayList< CurrentAssignment<V> > >() : null);
-		this.reportStats = Boolean.parseBoolean(parameters.getAttributeValue("reportStats"));
 		this.synchronous = Boolean.parseBoolean(parameters.getAttributeValue("synchronous"));
 
 		String maxNbrIter = parameters.getAttributeValue("maxNbrIter");
@@ -345,8 +334,6 @@ public class MaxSum < V extends Addable<V>, U extends Addable<U> > implements St
 	public MaxSum (Element parameters, DCOPProblemInterface<V, U> problem)  {
 		this.problem = problem;
 
-		this.solution = new HashMap<String, V> ();
-		this.optCost = problem.getZeroUtility();
 		this.started = true;
 		this.maximize = this.problem.maximize();
 		this.infeasibleUtil = (this.maximize ? problem.getMinInfUtility() : problem.getPlusInfUtility());
@@ -372,8 +359,7 @@ public class MaxSum < V extends Addable<V>, U extends Addable<U> > implements St
 			// Check if this variable is unconstrained
 			if (varInfo.getFunctions().isEmpty()) {
 				
-				if (this.reportStats) 
-					this.queue.sendMessage(AgentInterface.STATS_MONITOR, new MessageWith2Payloads<String, V> (SOLUTION_MSG_TYPE, varInfo.getVarName(), varInfo.optVal));
+				this.queue.sendMessage(AgentInterface.STATS_MONITOR, new SolutionCollector.AssignmentMessage<V> (varInfo.getVarName(), varInfo.optVal));
 
 				if(convergence) {
 					ArrayList< CurrentAssignment<V> > history = this.assignmentHistoriesMap.get(varInfo.getVarName());
@@ -408,8 +394,8 @@ public class MaxSum < V extends Addable<V>, U extends Addable<U> > implements St
 	}
 
 	/** @see StatsReporterWithConvergence#getMsgTypes() */
-	public Collection<String> getMsgTypes() {
-		ArrayList<String> types = new ArrayList<String> (4);
+	public Collection<MessageType> getMsgTypes() {
+		ArrayList<MessageType> types = new ArrayList<MessageType> (4);
 		types.add(FactorGraphGen.OUTPUT_MSG_TYPE);
 		types.add(FUNCTION_MSG_TYPE);
 		types.add(VARIABLE_MSG_TYPE);
@@ -419,14 +405,11 @@ public class MaxSum < V extends Addable<V>, U extends Addable<U> > implements St
 
 	/** @see StatsReporterWithConvergence#getStatsFromQueue(Queue) */
 	public void getStatsFromQueue(Queue queue) {
-		queue.addIncomingMessagePolicy(SOLUTION_MSG_TYPE, this);
 		queue.addIncomingMessagePolicy(CONV_STATS_MSG_TYPE, this);
 	}
 
 	/** @see StatsReporterWithConvergence#setSilent(boolean) */
-	public void setSilent(boolean silent) {
-		this.reportStats = ! silent;
-	}
+	public void setSilent(boolean silent) { }
 
 	/** @see StatsReporterWithConvergence#setQueue(Queue) */
 	public void setQueue(Queue queue) {
@@ -436,7 +419,7 @@ public class MaxSum < V extends Addable<V>, U extends Addable<U> > implements St
 	/** @see StatsReporterWithConvergence#notifyIn(Message) */
 	public void notifyIn(Message msg) {
 
-		String msgType = msg.getType();
+		MessageType msgType = msg.getType();
 
 		if (msgType.equals(CONV_STATS_MSG_TYPE)) { // in stats gatherer mode, the message sent by a variable containing the assignment history
 			
@@ -446,25 +429,6 @@ public class MaxSum < V extends Addable<V>, U extends Addable<U> > implements St
 
 			return;
 			
-		} else if (msgType.equals(SOLUTION_MSG_TYPE)) { // in stats gatherer mode, the final assignment to a variable
-			
-			@SuppressWarnings("unchecked")
-			MessageWith2Payloads<String, V> msgCast = (MessageWith2Payloads<String, V>) msg;
-			String var = msgCast.getPayload1();
-			V val = msgCast.getPayload2();
-			
-			this.solution.put(var, val);
-			
-			if (this.reportStats) 
-				System.out.println("var `" + var + "' = " + val);
-			
-			if (this.solution.size() == this.problem.getNbrVars()) {
-				this.optCost = this.problem.getUtility(this.solution, true).getUtility(0);
-				if (this.reportStats) 
-					System.out.println((this.maximize ? "Utility" : "Cost") + " of solution found: " + this.optCost);
-			}
-			
-			return;
 		}
 
 //		System.out.println(this.problem.getAgent() + " got " + msg);
@@ -594,8 +558,7 @@ public class MaxSum < V extends Addable<V>, U extends Addable<U> > implements St
 			
 			// Report the final solution if we have reached the last iteration
 			if (varInfo.nbrIter == 0) {
-				if (this.reportStats) 
-					this.queue.sendMessage(AgentInterface.STATS_MONITOR, new MessageWith2Payloads<String, V> (SOLUTION_MSG_TYPE, varInfo.getVarName(), varInfo.optVal));
+				this.queue.sendMessage(AgentInterface.STATS_MONITOR, new SolutionCollector.AssignmentMessage<V> (varInfo.getVarName(), varInfo.optVal));
 				if(convergence)
 					queue.sendMessage(AgentInterface.STATS_MONITOR, new StatsReporterWithConvergence.ConvStatMessage<V>(CONV_STATS_MSG_TYPE, var, assignmentHistoriesMap.get(varInfo.getVarName())));
 
@@ -677,8 +640,7 @@ public class MaxSum < V extends Addable<V>, U extends Addable<U> > implements St
 				if (varInfo.nbrIter > 0 && ! varInfo.getFunctions().isEmpty()) { // unconstrained variables and variables with exhausted iterations have already been terminated
 					
 					assert varInfo.optVal != null;
-					if (this.reportStats) 
-						this.queue.sendMessage(AgentInterface.STATS_MONITOR, new MessageWith2Payloads<String, V> (SOLUTION_MSG_TYPE, varInfo.getVarName(), varInfo.optVal));
+					this.queue.sendMessage(AgentInterface.STATS_MONITOR, new SolutionCollector.AssignmentMessage<V> (varInfo.getVarName(), varInfo.optVal));
 					if(convergence)
 						queue.sendMessage(AgentInterface.STATS_MONITOR, new StatsReporterWithConvergence.ConvStatMessage<V>(CONV_STATS_MSG_TYPE, varInfo.getVarName(), assignmentHistoriesMap.get(varInfo.getVarName())));
 				}
@@ -697,16 +659,6 @@ public class MaxSum < V extends Addable<V>, U extends Addable<U> > implements St
 				return;
 				
 		this.queue.sendMessageToSelf(new Message (AgentInterface.AGENT_FINISHED));
-	}
-
-	/** @return for each variable in the problem, its chosen value */
-	public HashMap<String, V> getOptAssignments () {
-		return this.solution;
-	}
-
-	/** @return the cost of the optimal solution found */
-	public U getOptCost () {
-		return this.optCost;
 	}
 
 	/** @see StatsReporterWithConvergence#getAssignmentHistories() */

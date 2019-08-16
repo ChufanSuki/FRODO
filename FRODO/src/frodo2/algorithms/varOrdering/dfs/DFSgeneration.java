@@ -46,6 +46,7 @@ import frodo2.algorithms.heuristics.VarNameHeuristic;
 import frodo2.algorithms.varOrdering.election.LeaderElectionMaxID;
 import frodo2.communication.IncomingMsgPolicyInterface;
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 import frodo2.communication.MessageWith2Payloads;
 import frodo2.communication.MessageWith3Payloads;
 import frodo2.communication.Queue;
@@ -70,7 +71,7 @@ public class DFSgeneration < V extends Addable<V>, U extends Addable<U> > implem
 	protected Map < String, Collection <String> > openNeighbors;
 
 	/** The type of the message telling the agent finished */
-	public static String FINISH_MSG_TYPE = AgentInterface.AGENT_FINISHED;
+	public static MessageType FINISH_MSG_TYPE = AgentInterface.AGENT_FINISHED;
 
 	/** The view of the DFS from one variable 
 	 * @param <V> the type used for variable values
@@ -365,42 +366,42 @@ public class DFSgeneration < V extends Addable<V>, U extends Addable<U> > implem
 	protected HashMap< Serializable, LinkedList<String> > partialPaths = new HashMap< Serializable, LinkedList<String> > ();
 
 	/** The type of the message telling the module to start */
-	public static String START_MSG_TYPE = AgentInterface.START_AGENT;
+	public static MessageType START_MSG_TYPE = AgentInterface.START_AGENT;
 
 	/** The type of the messages telling whether a given variable is a root */
-	public static String ROOT_VAR_MSG_TYPE = LeaderElectionMaxID.OUTPUT_MSG_TYPE;
+	public static MessageType ROOT_VAR_MSG_TYPE = LeaderElectionMaxID.OUTPUT_MSG_TYPE;
 
 	/** @return the types of the messages telling whether a given variable is a root */
-	protected String getRootVarMsgType () {
+	protected MessageType getRootVarMsgType () {
 		return ROOT_VAR_MSG_TYPE;
 	}
 
 	/** The type of the message used to tell the recipient that it is a child of the sender */
-	public static final String CHILD_MSG_TYPE = "DFSchild";
+	public static final MessageType CHILD_MSG_TYPE = new MessageType ("VarOrdering", "DFSgeneration", "Child");
 	
 	/** @return The type of the message used to tell the recipient that it is a child of the sender */
-	protected String getChildMsgType () {
+	protected MessageType getChildMsgType () {
 		return CHILD_MSG_TYPE;
 	}
 
 	/** The type of the message used to tell the recipient that it is a pseudo-child of the sender */
-	public static String PSEUDO_MSG_TYPE = "DFSpseudo";
+	public static MessageType PSEUDO_MSG_TYPE = new MessageType ("VarOrdering", "DFSgeneration", "Pseudo");
 	
 	/** @return The type of the message used to tell the recipient that it is a pseudo-child of the sender */
-	protected String getPseudoMsgType () {
+	protected MessageType getPseudoMsgType () {
 		return PSEUDO_MSG_TYPE;
 	}
 
 	/** The type of the output messages */
-	public static String OUTPUT_MSG_TYPE = "DFSoutput";
+	public static MessageType OUTPUT_MSG_TYPE = new MessageType ("VarOrdering", "DFSgeneration", "Output");
 	
 	/** @return The type of the output messages */
-	protected String getOutputMsgType () {
+	protected MessageType getOutputMsgType () {
 		return OUTPUT_MSG_TYPE;
 	}
 
 	/** The type of the messages containing statistics */
-	public static final String STATS_MSG_TYPE = "DFSstats";
+	public static final MessageType STATS_MSG_TYPE = new MessageType ("VarOrdering", "DFSgeneration", "Stats");
 
 	/** The time at which the DFS procedure has finished*/
 	private long finalTime = Long.MIN_VALUE;
@@ -439,7 +440,7 @@ public class DFSgeneration < V extends Addable<V>, U extends Addable<U> > implem
 		 * @param var	the variable
 		 * @param view the variable's view of the DFS
 		 */
-		public MessageDFSoutput (String type, String var, DFSview<V, U> view) {
+		public MessageDFSoutput (MessageType type, String var, DFSview<V, U> view) {
 			super (type, new String[]{var}, view);
 		}
 
@@ -448,7 +449,7 @@ public class DFSgeneration < V extends Addable<V>, U extends Addable<U> > implem
 		 * @param vars	the variables
 		 * @param view 	the variables' view of the DFS
 		 */
-		public MessageDFSoutput (String type, String[] vars, DFSview<V, U> view) {
+		public MessageDFSoutput (MessageType type, String[] vars, DFSview<V, U> view) {
 			super (type, vars, view);
 		}
 
@@ -563,13 +564,13 @@ public class DFSgeneration < V extends Addable<V>, U extends Addable<U> > implem
 	/** Selects the next child as the one that has the highest score 
 	 * @param <S> the type used for the scores
 	 */
-	public static class ScoreBroadcastingHeuristic < S extends Comparable<S> & Serializable > extends BlindScoringHeuristic<S> implements IncomingMsgPolicyInterface<String> {
+	public static class ScoreBroadcastingHeuristic < S extends Comparable<S> & Serializable > extends BlindScoringHeuristic<S> implements IncomingMsgPolicyInterface<MessageType> {
 
 		/** The type of messages containing the scores of given variables */
-		static final String SCORE_MSG_TYPE = "HeuristicScores";
+		static final MessageType SCORE_MSG_TYPE = new MessageType ("VarOrdering", "DFSgeneration", "ScoreBroadcastingHeuristic", "HeuristicScores");
 
 		/** The type of messages containing the scores of given variables */
-		static final String SCORE_SINGLE_VAR_MSG_TYPE = "HeuristicScoreSingleVar";
+		static final MessageType SCORE_SINGLE_VAR_MSG_TYPE = new MessageType ("VarOrdering", "DFSgeneration", "ScoreBroadcastingHeuristic", "HeuristicScoreSingleVar");
 
 		/** The problem */
 		private DCOPProblemInterface<?, ?> problem;
@@ -671,8 +672,8 @@ public class DFSgeneration < V extends Addable<V>, U extends Addable<U> > implem
 		}
 
 		/** @see IncomingMsgPolicyInterface#getMsgTypes() */
-		public Collection<String> getMsgTypes() {
-			ArrayList<String> types = new ArrayList<String> (3);
+		public Collection<MessageType> getMsgTypes() {
+			ArrayList<MessageType> types = new ArrayList<MessageType> (3);
 			types.add(SCORE_MSG_TYPE);
 			types.add(SCORE_SINGLE_VAR_MSG_TYPE);
 			types.add(START_MSG_TYPE);
@@ -684,7 +685,7 @@ public class DFSgeneration < V extends Addable<V>, U extends Addable<U> > implem
 		@SuppressWarnings("unchecked")
 		public void notifyIn(Message msg) {
 
-			String msgType = msg.getType();
+			MessageType msgType = msg.getType();
 
 			if (msgType.equals(FINISH_MSG_TYPE)) {
 				this.reset();
@@ -869,8 +870,8 @@ public class DFSgeneration < V extends Addable<V>, U extends Addable<U> > implem
 	}
 
 	/** @see frodo2.communication.IncomingMsgPolicyInterface#getMsgTypes() */
-	public Collection <String> getMsgTypes() {
-		ArrayList <String> msgTypes = new ArrayList <String> (5);
+	public Collection <MessageType> getMsgTypes() {
+		ArrayList <MessageType> msgTypes = new ArrayList <MessageType> (5);
 		msgTypes.add(START_MSG_TYPE);
 		msgTypes.add(this.getRootVarMsgType());
 		msgTypes.add(this.getChildMsgType());
@@ -888,7 +889,7 @@ public class DFSgeneration < V extends Addable<V>, U extends Addable<U> > implem
 	@SuppressWarnings("unchecked")
 	public void notifyIn(Message msg) {
 
-		String msgType = msg.getType();
+		MessageType msgType = msg.getType();
 
 		if (msgType.equals(STATS_MSG_TYPE)) { // statistics message
 
@@ -1227,7 +1228,7 @@ public class DFSgeneration < V extends Addable<V>, U extends Addable<U> > implem
 	public void setQueue(Queue queue) {
 		this.queue = queue;
 		if (this.heuristic instanceof IncomingMsgPolicyInterface) 
-			queue.addIncomingMessagePolicy((IncomingMsgPolicyInterface<String>) this.heuristic);
+			queue.addIncomingMessagePolicy((IncomingMsgPolicyInterface<MessageType>) this.heuristic);
 	}
 
 	/** @see StatsReporter#getStatsFromQueue(Queue) */

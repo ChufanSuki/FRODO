@@ -34,6 +34,7 @@ import frodo2.algorithms.AgentFactory;
 import frodo2.algorithms.AgentInterface;
 import frodo2.communication.IncomingMsgPolicyInterface;
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 import frodo2.communication.MessageWith3Payloads;
 import frodo2.communication.MessageWithPayload;
 import frodo2.communication.Queue;
@@ -48,13 +49,13 @@ import frodo2.solutionSpaces.ProblemInterface;
  * @author Brammert Ottens, Thomas Leaute
  *
  */
-public class Constructor implements IncomingMsgPolicyInterface<String> {
+public class Constructor implements IncomingMsgPolicyInterface<MessageType> {
 
 	/** The daemon queue*/
 	Queue queue;
 	
 	/** The list of messages types this listener wants to be notified of */
-	private ArrayList <String> msgTypes = new ArrayList <String> ();
+	private ArrayList <MessageType> msgTypes = new ArrayList <MessageType> ();
 	
 	/** The output pipe to communicate with the daemon*/
 	private QueueOutputPipeInterface outputToDaemon;
@@ -102,7 +103,7 @@ public class Constructor implements IncomingMsgPolicyInterface<String> {
 	/** 
 	 * @see frodo2.communication.IncomingMsgPolicyInterface#getMsgTypes()
 	 */
-	public Collection<String> getMsgTypes() {
+	public Collection<MessageType> getMsgTypes() {
 		return msgTypes;
 	}
 	
@@ -112,7 +113,7 @@ public class Constructor implements IncomingMsgPolicyInterface<String> {
 	 */
 	@SuppressWarnings("unchecked")
 	public void notifyIn(Message msg) {
-		String type = msg.getType();
+		MessageType type = msg.getType();
 		AgentInterface<?> agent = null;
 		
 		if(type.equals(ConfigurationManager.AGENT_CONFIGURATION_MESSAGE)) {

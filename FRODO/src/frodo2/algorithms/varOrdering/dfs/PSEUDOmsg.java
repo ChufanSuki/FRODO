@@ -24,6 +24,7 @@ package frodo2.algorithms.varOrdering.dfs;
 
 import java.io.Serializable;
 
+import frodo2.communication.MessageType;
 import frodo2.communication.MessageWith3Payloads;
 
 /** A token indicating that the destination variable is a pseudo-child of the sender variable */
@@ -38,7 +39,7 @@ public class PSEUDOmsg extends MessageWith3Payloads <String, String, Serializabl
 	 * @param dest 		recipient variable
 	 * @param rootID 	the root ID
 	 */
-	public PSEUDOmsg (String type, String sender, String dest, Serializable rootID) {
+	public PSEUDOmsg (MessageType type, String sender, String dest, Serializable rootID) {
 		super (type, sender, dest, rootID);
 	}
 	

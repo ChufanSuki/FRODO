@@ -39,7 +39,7 @@ public class RandGraphFactory {
 	
 	/** A graph 
 	 * 
-	 * Nodes are represented by Integers, starting at 0.
+	 * Nodes are represented by Integers, starting at 0, prefixed with the letter "x".
 	 */
 	public static class Graph {
 		
@@ -58,11 +58,11 @@ public class RandGraphFactory {
 		/** For each node, the set of its neighbors */
 		public Map< String, Set <String> > neighborhoods;
 
-		/** A list of node clusters */
-		public List < List <String> > clusters;
+		/** Node clusters, indexed by their names */
+		public HashMap < String, List <String> > clusters;
 		
-		/** The index of the cluster each node belongs to */
-		public Map<String, Integer> clusterOf;
+		/** The name of the cluster each node belongs to */
+		public Map<String, String> clusterOf;
 
 		/** Constructor 
 		 * @param nodes list of nodes
@@ -72,7 +72,7 @@ public class RandGraphFactory {
 		 * @param clusters list of node clusters
 		 */
 		public Graph(List<String> nodes, Edge[] edges, List< List<String> > components, Map< String, Set<String> > neighborhoods, 
-				List< List<String> > clusters) {
+				HashMap< String, List<String> > clusters) {
 			this.nodes = nodes;
 			this.edges = edges;
 			this.components = components;
@@ -81,10 +81,10 @@ public class RandGraphFactory {
 
 			if (clusters != null) {
 				// Compute the clusters
-				this.clusterOf = new HashMap<String, Integer> (nodes.size());
+				this.clusterOf = new HashMap<String, String> (nodes.size());
 				for (int i = 0; i < clusters.size(); i++) {
-					for (String var : clusters.get(i)) {
-						clusterOf.put(var, i);
+					for (String var : clusters.get("a" + i)) {
+						clusterOf.put(var, "a" + i);
 					}
 				}
 			}
@@ -105,18 +105,19 @@ public class RandGraphFactory {
 					out.append(node + ";\n");
 				}
 			} else {
-				for (int i = 0; i < clusters.size(); i++) {
-					out.append("\tsubgraph cluster_" + i + " {\n");
-					out.append("\t\tlabel = " + i + ";\n");
-					List<String> nodes = clusters.get(i);
+				for (Map.Entry< String, List<String> > cluster : this.clusters.entrySet()) {
+					String clusterName = cluster.getKey();
+					out.append("\tsubgraph cluster_" + clusterName + " {\n");
+					out.append("\t\tlabel = " + clusterName + ";\n");
+					List<String> nodes = cluster.getValue();
 					if (nodes.isEmpty())
-						out.append("\t\tempty_" + i + " [label=\"\" shape=none];\n");
+						out.append("\t\tempty_" + clusterName + " [label=\"\" shape=none];\n");
 					for (String node : nodes) {
 						out.append("\t\t" + node);
 						
 						// If this node is connected to at least one node inside a different cluster, fill it
 						for (String neigh : this.neighborhoods.get(node)) {
-							if (i != this.clusterOf.get(neigh)) {
+							if (! clusterName.equals(this.clusterOf.get(neigh))) {
 								out.append(" [style=\"filled\"]");
 								break;
 							}
@@ -198,7 +199,7 @@ public class RandGraphFactory {
 		// Create the nodes
 		List<String> nodes = new ArrayList<String> (nbrNodes);
 		for (int i = 0; i < nbrNodes; i++) 
-			nodes.add(Integer.toString(i));
+			nodes.add("x" + Integer.toString(i));
 		
 		// Keep track of the connected components of the graph; initially one component per node
 		List< List<String> > components = new ArrayList< List<String> > (nbrNodes);
@@ -222,14 +223,14 @@ public class RandGraphFactory {
 
 			// Pick two nodes at random, for which an edge does not exist yet
 			int i1 = 0, i2 = 0;
-			String i1Name = "0", i2Name = "0";
+			String i1Name = "x0", i2Name = "x0";
 			boolean newEdge = false;
 			while (! newEdge) {
 				newEdge = true;
 				i1 = (int) (Math.random() * (nbrNodes - 1));
-				i1Name = Integer.toString(i1);
+				i1Name = "x" + Integer.toString(i1);
 				i2 = i1 + (int) (Math.random() * (nbrNodes - i1 - 1)) + 1;
-				i2Name = Integer.toString(i2);
+				i2Name = "x" + Integer.toString(i2);
 				for (int j = 0; j < i; j++) {
 					if (edges[j].source.equals(i1Name) && edges[j].dest.equals(i2Name)) {
 						newEdge = false;
@@ -262,11 +263,11 @@ public class RandGraphFactory {
 		} else {
 			
 			// Randomly assign nodes to clusters
-			List <List <String>> clusters = new ArrayList <List <String>> (nbrClusters);
+			HashMap <String, List <String> > clusters = new HashMap <String, List <String>> ();
 			for (int i = 0; i < nbrClusters; i++) 
-				clusters.add(new ArrayList <String> ());
+				clusters.put("a" + i, new ArrayList <String> ());
 			for (int i = 0; i < nbrNodes; i++) {
-				clusters.get((int) (Math.random() * nbrClusters)).add(Integer.toString(i));
+				clusters.get("a" + (int) (Math.random() * nbrClusters)).add("x" + Integer.toString(i));
 			}
 			
 			return new Graph (nodes, edges, components, neighbors, clusters);	
@@ -320,11 +321,10 @@ public class RandGraphFactory {
 			graph = RandGraphFactory.getRandGraph(maxNbrNodes, maxNbrEdges, maxNbrClusters);
 
 			// Make sure that all nodes in any given cluster belong to the same component
-			int nbrClusters = graph.clusters.size();
-			for (int i = 0; i < nbrClusters && !wrong; i++) {
+			for (Map.Entry< String, List<String> > cluster : graph.clusters.entrySet()) {
 				
 				// Get the component of the first node
-				Iterator<String> iter = graph.clusters.get(i).iterator();
+				Iterator<String> iter = cluster.getValue().iterator();
 				if (! iter.hasNext()) // empty cluster
 					continue;
 				Integer comp = graph.componentOf.get(iter.next());
@@ -333,6 +333,8 @@ public class RandGraphFactory {
 				while (iter.hasNext() && !wrong) 
 					if (! graph.componentOf.get(iter.next()).equals(comp)) 
 						wrong = true;
+				
+				if (wrong) break;
 			}
 		}
 		
@@ -439,17 +441,17 @@ public class RandGraphFactory {
 		
 		// Generate the nodes and clusters
 		List<String> nodes = new ArrayList<String> (nbrNodes);
-		List< List<String> > clusters = new ArrayList< List<String> > (nbrNodes);
+		HashMap< String, List<String> > clusters = new HashMap< String, List<String> > ();
 		for (int i = 0; i < nbrNodes; i++) {
-			String name = Integer.toString(i);
+			String name = "x" + Integer.toString(i);
 			nodes.add(name);
-			clusters.add(Arrays.asList(name));
+			clusters.put("a" + i, Arrays.asList(name));
 		}
 		
 		// Initialize the neighborhoods
 		HashMap< String, Set<String> > neighborhoods = new HashMap< String, Set<String> > (nbrNodes);
-		for (int i = 0; i < nbrNodes; i++) 
-			neighborhoods.put(Integer.toString(i), new HashSet<String> ());
+		for (String node : nodes) 
+			neighborhoods.put(node, new HashSet<String> ());
 		
 		// Generate the edges and neighborhoods
 		ArrayList<Edge> edges = new ArrayList<Edge> (nbrNodes - 1); // each node has an edge with its parent, except the root

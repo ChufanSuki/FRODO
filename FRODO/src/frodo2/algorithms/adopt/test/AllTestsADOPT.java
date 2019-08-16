@@ -27,7 +27,7 @@ import junit.framework.Test;
 import junit.framework.TestSuite;
 
 /**
- * Test suite for all tests in frodo2.algorithms.adopt.test
+ * Test suite for all ADOPT tests
  * @author brammert
  *
  */
@@ -35,7 +35,7 @@ public class AllTestsADOPT {
 
 	/** @return The suite of unit tests */
 	public static Test suite() {
-		TestSuite suite = new TestSuite("All tests in frodo2.algorithms.adopt.test");
+		TestSuite suite = new TestSuite("All ADOPT tests");
 		//$JUnit-BEGIN$
 		suite.addTest(testPreprocessing.suite());
 		suite.addTest(testADOPT.suite());

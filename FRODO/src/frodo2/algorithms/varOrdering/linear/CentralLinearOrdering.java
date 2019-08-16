@@ -38,6 +38,7 @@ import org.jdom2.Element;
 import frodo2.algorithms.AgentInterface;
 import frodo2.algorithms.StatsReporter;
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 import frodo2.communication.MessageWith3Payloads;
 import frodo2.communication.Queue;
 import frodo2.solutionSpaces.Addable;
@@ -58,13 +59,13 @@ import frodo2.solutionSpaces.UtilitySolutionSpace;
 public abstract class CentralLinearOrdering < V extends Addable<V>, U extends Addable<U> > implements StatsReporter {
 	
 	/** The type of the message telling the module to start */
-	public static String START_MSG_TYPE = AgentInterface.START_AGENT;
+	public static MessageType START_MSG_TYPE = AgentInterface.START_AGENT;
 
 	/** The type of messages sent by agents to the dictator with information on their variables */
-	public static final String REPORT_MSG_TYPE = "VarOrderReport";
+	public static final MessageType REPORT_MSG_TYPE = new MessageType ("VarOrdering", "CentralLinearOrdering", "VarOrderReport");
 	
 	/** The type of the message notifying the agent of the chosen ordering, excluding the spaces */
-	private static final String TEMP_OUTPUT_MSG_TYPE = "VarOrderNoSpace";
+	private static final MessageType TEMP_OUTPUT_MSG_TYPE = new MessageType ("VarOrdering", "CentralLinearOrdering", "VarOrderNoSpace");
 
 	/** This module's queue */
 	protected Queue queue;
@@ -175,8 +176,8 @@ public abstract class CentralLinearOrdering < V extends Addable<V>, U extends Ad
 	}
 
 	/** @see StatsReporter#getMsgTypes() */
-	public Collection<String> getMsgTypes() {
-		ArrayList<String> types = new ArrayList<String> (4);
+	public Collection<MessageType> getMsgTypes() {
+		ArrayList<MessageType> types = new ArrayList<MessageType> (4);
 		types.add(START_MSG_TYPE);
 		types.add(AgentInterface.AGENT_FINISHED);
 		types.add(REPORT_MSG_TYPE);
@@ -188,7 +189,7 @@ public abstract class CentralLinearOrdering < V extends Addable<V>, U extends Ad
 	@SuppressWarnings("unchecked")
 	public void notifyIn(Message msg) {
 
-		String msgType = msg.getType();
+		MessageType msgType = msg.getType();
 		
 		if (msgType.equals(OrderMsg.STATS_MSG_TYPE)) { // stats message containing the linear order
 			

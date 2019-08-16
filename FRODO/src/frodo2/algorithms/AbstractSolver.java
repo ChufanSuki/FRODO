@@ -46,7 +46,7 @@ public abstract class AbstractSolver < P extends ProblemInterface<V, U>, V exten
 	protected Document agentDesc;
 	
 	/** The agent factory */
-	protected AgentFactory<V> factory;
+	protected AgentFactory<V, U> factory;
 
 	/** The class of the parser to be used */
 	protected Class< ? extends XCSPparser<V, U> > parserClass; /// @bug MAS solvers don't use the XCSPparser
@@ -149,7 +149,7 @@ public abstract class AbstractSolver < P extends ProblemInterface<V, U>, V exten
 	/** Sets the agent factory
 	 * @param factory 	the agent factory
 	 */
-	public void setFactory (AgentFactory<V> factory) {
+	public void setFactory (AgentFactory<V, U> factory) {
 		this.factory = factory;
 	}
 	
@@ -412,7 +412,7 @@ public abstract class AbstractSolver < P extends ProblemInterface<V, U>, V exten
 			this.solGatherers = this.getSolGatherers();
 
 			// Solve the problem
-			this.factory = new AgentFactory<V> (problem, agentDesc, solGatherers, timeout, this.useTCP);
+			this.factory = new AgentFactory<V, U> (problem, agentDesc, solGatherers, timeout, this.useTCP);
 			
 		} else { // we already have an agent factory; just restart it
 			

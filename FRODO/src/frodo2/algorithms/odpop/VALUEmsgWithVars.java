@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
+import frodo2.communication.MessageType;
 import frodo2.communication.MessageWith2Payloads;
 import frodo2.solutionSpaces.Addable;
 
@@ -59,7 +60,7 @@ extends MessageWith2Payloads<String, HashMap<String, Val>> implements Externaliz
 	 * @param dest 			destination variable
 	 * @param values 		array of values for the variables in \a variables, in the same order
 	 */
-	protected VALUEmsgWithVars(String type, String dest, HashMap<String, Val> values) {
+	protected VALUEmsgWithVars(MessageType type, String dest, HashMap<String, Val> values) {
 		super(type, dest, values);
 	}
 

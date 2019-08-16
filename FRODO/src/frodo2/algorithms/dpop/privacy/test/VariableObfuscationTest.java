@@ -55,6 +55,7 @@ import frodo2.algorithms.varOrdering.dfs.DFSgeneration;
 import frodo2.algorithms.varOrdering.election.SecureVarElection;
 import frodo2.communication.IncomingMsgPolicyInterface;
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 import frodo2.communication.Queue;
 import frodo2.communication.QueueOutputPipeInterface;
 import frodo2.communication.sharedMemory.QueueIOPipe;
@@ -73,7 +74,7 @@ import junit.framework.TestSuite;
  * @todo Add test to verify that all variables are using the transmitted codeName and domain 
  * @todo Add test that testifies that all domains used correspond to the correct variable/codeName in UTILmsg
  */
-public class VariableObfuscationTest < V extends Addable<V> > extends TestCase implements IncomingMsgPolicyInterface<String> {
+public class VariableObfuscationTest < V extends Addable<V> > extends TestCase implements IncomingMsgPolicyInterface<MessageType> {
 	
 	/** Maximum number of variables in the random graph 
 	 * @note Must be at least 2. 
@@ -92,11 +93,11 @@ public class VariableObfuscationTest < V extends Addable<V> > extends TestCase i
 	/** Random graph used to generate a constraint graph */
 	protected RandGraphFactory.Graph graph;
 
-	/** List of queues corresponding to the different agents */
-	private Queue[] queues;
+	/** List of queues, indexed by agent name */
+	private Map<String, Queue> queues;
 	
-	/** One output pipe used to send messages to each queue */
-	protected QueueOutputPipeInterface[] pipes;
+	/** One output pipe used to send messages to each queue, indexed by the queue's agent name */
+	protected Map<String, QueueOutputPipeInterface> pipes;
 	
 	/** Whether to test using TCP pipes */
 	private final boolean useTCP;
@@ -223,22 +224,22 @@ public class VariableObfuscationTest < V extends Addable<V> > extends TestCase i
 		
 		// Create the queue network
 		nbrAgents = graph.clusters.size();
-		queues = new Queue [nbrAgents];
+		queues = new HashMap<String, Queue> (nbrAgents);
 		pipes = AllTests.createQueueNetwork(queues, graph, useTCP);
 		
 		// Listen for statistics messages
 		Queue myQueue = new Queue (false);
 		QueueIOPipe myPipe = new QueueIOPipe (myQueue);
-		for (Queue queue : this.queues) 
+		for (Queue queue : this.queues.values()) 
 			queue.addOutputPipe(AgentInterface.STATS_MONITOR, myPipe);
 		DFSgeneration dfsModule = new DFSgeneration (null, this.parser);
 		dfsModule.setSilent(true); // set to false to see the DFS
 		dfsModule.getStatsFromQueue(myQueue);
 
 		// Instantiate the modules
-		for (int i = 0; i < graph.clusters.size(); i++){
-			Queue queue = queues[i];
-			String agent = Integer.toString(i);
+		for (Map.Entry<String, Queue> entry : queues.entrySet()){
+			Queue queue = entry.getValue();
+			String agent = entry.getKey();
 			
 			queue.addIncomingMessagePolicy(this);
 			
@@ -267,7 +268,7 @@ public class VariableObfuscationTest < V extends Addable<V> > extends TestCase i
 		}		
 		
 		// Tell all agents to start the protocol
-		for (Queue queue : this.queues) 
+		for (Queue queue : this.queues.values()) 
 			queue.sendMessageToSelf(new Message (AgentInterface.START_AGENT));
 
 		// Wait until all agents have sent their outputs
@@ -320,12 +321,12 @@ public class VariableObfuscationTest < V extends Addable<V> > extends TestCase i
 		super.tearDown();
 		graph = null;
 		this.parser = null;
-		for (Queue queue : queues) {
+		for (Queue queue : queues.values()) {
 			queue.end();
 		}
 		queues = null;
 		
-		for (QueueOutputPipeInterface pipe : pipes) {
+		for (QueueOutputPipeInterface pipe : pipes.values()) {
 			pipe.close();
 		}
 		pipes = null;
@@ -344,7 +345,7 @@ public class VariableObfuscationTest < V extends Addable<V> > extends TestCase i
 	@SuppressWarnings("unchecked")
 	public void notifyIn(Message msg) {
 
-		String msgType = msg.getType();
+		MessageType msgType = msg.getType();
 		
 		if (msgType.equals(VariableObfuscation.CODE_NAME_TYPE)){
 			
@@ -428,8 +429,8 @@ public class VariableObfuscationTest < V extends Addable<V> > extends TestCase i
 	/**
 	 * @see frodo2.communication.MessageListener#getMsgTypes()
 	 */
-	public Collection<String> getMsgTypes() {
-		ArrayList <String> msgTypes = new ArrayList <String> (4);
+	public Collection<MessageType> getMsgTypes() {
+		ArrayList <MessageType> msgTypes = new ArrayList <MessageType> (4);
 		msgTypes.add(VariableObfuscation.CODE_NAME_TYPE);
 		msgTypes.add(VariableObfuscation.OBFUSCATED_VALUE_TYPE);
 		msgTypes.add(VariableObfuscation.OBFUSCATED_UTIL_TYPE);

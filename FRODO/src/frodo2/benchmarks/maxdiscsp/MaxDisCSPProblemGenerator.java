@@ -118,7 +118,7 @@ public class MaxDisCSPProblemGenerator
 			for (String varID : graph.nodes) {
 				Element agent = new Element ("agent");
 				elmt.addContent(agent);
-				agent.setAttribute("name", "a" + varID);
+				agent.setAttribute("name", "a_" + varID);
 			}
 	
 			// Create the "domains" element
@@ -142,9 +142,9 @@ public class MaxDisCSPProblemGenerator
 			{
 				elmt = new Element ("variable");
 				varsElement.addContent(elmt);
-				elmt.setAttribute("name", "x" + varID);
+				elmt.setAttribute("name", varID);
 				elmt.setAttribute("domain", "D");
-				elmt.setAttribute("agent", "a" + varID); // make sure each agent owns one variable
+				elmt.setAttribute("agent", "a_" + varID); // make sure each agent owns one variable
 			}
 	
 			// Create the "relations" and "constraints" elements
@@ -162,8 +162,8 @@ public class MaxDisCSPProblemGenerator
 				Edge e = graph.edges[i];		
 				List<String> vars = new ArrayList<String>();
 				
-				vars.add("x" + e.dest);
-				vars.add("x" + e.source);
+				vars.add(e.dest);
+				vars.add(e.source);
 				Hypercube< AddableInteger, AddableInteger > hypercube = randHypercube(vars, k, p2);
 				hypercube.setName("c_" + Integer.toString(i));
 	

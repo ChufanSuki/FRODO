@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import frodo2.algorithms.StatsReporterWithConvergence.CurrentAssignment;
+import frodo2.communication.MessageType;
 import frodo2.solutionSpaces.Addable;
 
 /** An optimal solution to the problem
@@ -61,9 +62,9 @@ public class SolutionWithConvergence<V extends Addable<V>, U> extends Solution <
 	 * @param assignmentHistories 			the history of variable assignments
 	 */
 	public SolutionWithConvergence (int nbrVariables, U reportedUtil, U trueUtil, Map<String, V> assignments, 
-			int nbrMsgs, TreeMap<String, Integer> msgNbrs, TreeMap<Object, Integer> msgsNbrsSentPerAgent, TreeMap<Object, Integer> msgsNbrsReceivedPerAgent, 
-			long totalMsgSize, TreeMap<String, Long> msgSizes, TreeMap<Object, Long> msgSizesSentPerAgent, TreeMap<Object, Long> msgSizesReveivedPerAgent, 
-			long maxMsgSize, TreeMap<String, Long> maxMsgSizes, long ncccCount, long timeNeeded, HashMap<String, Long> moduleEndTimes, 
+			int nbrMsgs, TreeMap<MessageType, Integer> msgNbrs, TreeMap<Object, Integer> msgsNbrsSentPerAgent, TreeMap<Object, Integer> msgsNbrsReceivedPerAgent, 
+			long totalMsgSize, TreeMap<MessageType, Long> msgSizes, TreeMap<Object, Long> msgSizesSentPerAgent, TreeMap<Object, Long> msgSizesReveivedPerAgent, 
+			long maxMsgSize, TreeMap<MessageType, Long> maxMsgSizes, long ncccCount, long timeNeeded, HashMap<String, Long> moduleEndTimes, 
 			HashMap< String, ArrayList< CurrentAssignment<V> > > assignmentHistories) {
 		super(nbrVariables, reportedUtil, trueUtil, assignments, nbrMsgs, msgNbrs, msgsNbrsSentPerAgent, msgsNbrsReceivedPerAgent, totalMsgSize, msgSizes, msgSizesSentPerAgent, msgSizesReveivedPerAgent, maxMsgSize, maxMsgSizes, ncccCount, timeNeeded, moduleEndTimes, 0, 0);
 		this.assignmentHistories = assignmentHistories;

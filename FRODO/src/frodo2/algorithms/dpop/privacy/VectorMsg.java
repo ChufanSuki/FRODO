@@ -72,7 +72,7 @@ public class VectorMsg<C extends Addable<C>, E extends AddableLimited<C,E>> exte
 		if (elmt.externalize()) {
 			for (int i = 1; i < size; i++) {
 				try {
-					elmt = classOfE.newInstance();
+					elmt = classOfE.getConstructor().newInstance();
 				} catch (Exception e) {
 					e.printStackTrace();
 				}

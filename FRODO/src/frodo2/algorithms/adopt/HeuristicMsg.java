@@ -22,6 +22,7 @@ How to contact the authors:
 
 package frodo2.algorithms.adopt;
 
+import frodo2.communication.MessageType;
 import frodo2.communication.MessageWith3Payloads;
 import frodo2.solutionSpaces.Addable;
 import frodo2.solutionSpaces.UtilitySolutionSpace;
@@ -45,7 +46,7 @@ public class HeuristicMsg<Val extends Addable<Val>,  U extends Addable<U> > exte
 	 * @param sender 	the sender of this message
 	 * @param h			the minimal utility of the variables sub problem
 	 */
-	public HeuristicMsg(String type, String receiver, String sender, UtilitySolutionSpace<Val, U> h) {
+	public HeuristicMsg(MessageType type, String receiver, String sender, UtilitySolutionSpace<Val, U> h) {
 		super(type, receiver, sender, h);
 	}
 	

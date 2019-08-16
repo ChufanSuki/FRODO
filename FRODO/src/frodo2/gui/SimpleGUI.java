@@ -54,12 +54,10 @@ import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
-import javax.swing.JProgressBar;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.JTextPane;
-import javax.swing.WindowConstants;
 import javax.swing.text.DefaultEditorKit;
 
 import org.jdom2.Document;
@@ -92,6 +90,9 @@ public class SimpleGUI extends JFrame implements ActionListener, ItemListener {
 	/**Text field containing path of problem file*/
 	private JTextField problemField;
 
+	/** Text field containing path to the output file */
+	private JTextField outputField;
+
 	/**List of DCOP solving agents*/
 	private JComboBox<String> agentList;
 
@@ -116,15 +117,41 @@ public class SimpleGUI extends JFrame implements ActionListener, ItemListener {
 	/**String indicating the path of a temporary agent configuration file, if used*/
 	private String tempAgentFile = null;
 
+	/** The button to select an input problem file */
+	private JButton problemBrowseBtn;
+
+	/** The button to select an output file */
+	private JButton outputBrowseBtn;
+
+	/** The button to edit the problem file */
+	private JButton problemEditBtn;
+
+	/** The button to edit the agent file */
+	private JButton agentEditBtn;
+
+	/** The button to start solving */
+	private JButton solveBtn;
 
 	/**
 	 * Constructor defining and building the GUI
 	 * 
-	 * @param problemFilePath Path to problem file to use
-	 * @param agentFilePath Path to agent configuration file to use
-	 * @param timeout Timeout value
+	 * @param problemFilePath 	Path to problem file to use
+	 * @param agentFilePath 		Path to agent configuration file to use
+	 * @param timeout 			Timeout value
 	 */
 	public SimpleGUI(String problemFilePath, String agentFilePath, String timeout) {
+		this (problemFilePath, agentFilePath, timeout, null);
+	}
+		
+	/**
+	 * Constructor defining and building the GUI
+	 * 
+	 * @param problemFilePath 	Path to problem file to use
+	 * @param agentFilePath 		Path to agent configuration file to use
+	 * @param timeout 			Timeout value
+	 * @param outputFilePath 	Path to the output file. If null, no output file is created.
+	 */
+	public SimpleGUI(String problemFilePath, String agentFilePath, String timeout, String outputFilePath) {
 		super("FRODO");
 
 		//Configure menu bar
@@ -139,13 +166,13 @@ public class SimpleGUI extends JFrame implements ActionListener, ItemListener {
 		//Configure basic layout
 		this.setLayout(new BorderLayout());
 		JPanel center = new JPanel();
-		center.setLayout(new GridLayout(3, 1));
+		center.setLayout(new GridLayout(4, 1));
 		JPanel south = new JPanel();
 		south.setLayout(new BorderLayout());
 
 		//Configure sub-panel containing components related to choosing problem file
 		JPanel problemPanel = new JPanel();
-		problemPanel.setLayout(new GridLayout(4, 1));
+		problemPanel.setLayout(new GridLayout(3, 1));
 
 		// Label
 		JLabel problemLabel = new JLabel("Choose a problem file:");
@@ -169,14 +196,14 @@ public class SimpleGUI extends JFrame implements ActionListener, ItemListener {
 		problemChooser.add(problemButtons, BorderLayout.EAST);
 		
 		// The Browse button
-		JButton problemBrowse = new JButton("Browse");
-		problemBrowse.addActionListener(this);
-		problemButtons.add(problemBrowse);
+		this.problemBrowseBtn = new JButton("Browse");
+		problemBrowseBtn.addActionListener(this);
+		problemButtons.add(problemBrowseBtn);
 		
 		// The Edit button
-		JButton problemEdit = new JButton("Edit");
-		problemEdit.addActionListener(this);
-		problemButtons.add(problemEdit);
+		this.problemEditBtn = new JButton("Edit");
+		problemEditBtn.addActionListener(this);
+		problemButtons.add(problemEditBtn);
 		
 		// The Render button
 		JButton problemRender = new JButton ("Render");
@@ -217,11 +244,11 @@ public class SimpleGUI extends JFrame implements ActionListener, ItemListener {
 		}
 		
 		agentList.addItemListener(this);
-		JButton agentEdit = new JButton("Edit Agent File");
-		agentEdit.addActionListener(this);
+		agentEditBtn = new JButton("Edit Agent File");
+		agentEditBtn.addActionListener(this);
 
 		agentChooser.add(agentList, BorderLayout.CENTER);
-		agentChooser.add(agentEdit, BorderLayout.EAST);
+		agentChooser.add(agentEditBtn, BorderLayout.EAST);
 
 		agentError = new JLabel("Agent description file was not found or is not valid");
 		agentError.setForeground(Color.RED);
@@ -248,18 +275,50 @@ public class SimpleGUI extends JFrame implements ActionListener, ItemListener {
 		timeoutPanel.add(timeoutField);
 		timeoutPanel.add(timeoutError);
 
+		
+		//Configure sub-panel containing components related to choosing output file
+		JPanel outputPanel = new JPanel();
+		outputPanel.setLayout(new GridLayout(3, 1));
+
+		// Label
+		JLabel outputLabel = new JLabel("Choose an output file:");
+		outputPanel.add(outputLabel);
+
+		// Overall panel
+		JPanel outputChooser = new JPanel();
+		outputChooser.setLayout(new BorderLayout());
+		outputPanel.add(outputChooser);
+		
+		// The field to choose the problem
+		this.outputField = new JTextField(30);
+		if(outputFilePath != null) {	//Set the output file to the file given as parameter
+			outputField.setText(outputFilePath);
+		}
+		outputChooser.add(outputField, BorderLayout.CENTER);
+		
+		// The problem buttons
+		JPanel outputButtons = new JPanel();
+		outputButtons.setLayout(new GridLayout(1, 1));
+		outputChooser.add(outputButtons, BorderLayout.EAST);
+		
+		// The Browse button
+		this.outputBrowseBtn = new JButton("Browse");
+		outputBrowseBtn.addActionListener(this);
+		outputButtons.add(outputBrowseBtn);
+
 
 		//Add all sub panels to the center panel
 		center.add(problemPanel);
 		center.add(agentPanel);
 		center.add(timeoutPanel);
+		center.add(outputPanel);
 
 
 		//Configure lower panel containing solve button
-		JButton solve = new JButton("Solve");
-		solve.addActionListener(this);
+		solveBtn = new JButton("Solve");
+		solveBtn.addActionListener(this);
 
-		south.add(solve, BorderLayout.EAST);
+		south.add(solveBtn, BorderLayout.EAST);
 
 		
 		//Add center and south panel
@@ -297,6 +356,7 @@ public class SimpleGUI extends JFrame implements ActionListener, ItemListener {
 		String agentFilePath = null;
 		boolean agentFileGiven = false;	//Assures we only check for agent file once
 		String timeout = null;
+		String outputFilePath = null;
 		
 		for(int i = 0; i < args.length; i++) {
 
@@ -313,6 +373,14 @@ public class SimpleGUI extends JFrame implements ActionListener, ItemListener {
 					i++;
 				}
 			}
+			
+			// Parse the output file name
+			else if ("-o".equals(args[i])) {
+				if (i + 1 >= args.length) 
+					System.err.println("Option `-o' must be followed by an output file path");
+				else 
+					outputFilePath = args[++i];
+			}
 
 			//Parse problem file (must be the first or the only file given)
 			else if(!problemFileGiven) {
@@ -322,7 +390,7 @@ public class SimpleGUI extends JFrame implements ActionListener, ItemListener {
 					problemFilePath = problemFile.getAbsolutePath();
 				}
 				else {
-					System.err.println("Given problem file could not be found");
+					System.err.println("Given problem file could not be found: " + args[i]);
 				}
 			}
 
@@ -334,13 +402,12 @@ public class SimpleGUI extends JFrame implements ActionListener, ItemListener {
 					agentFilePath = agentFile.getAbsolutePath();
 				}
 				else {
-					System.err.println("Given agent configuration file could not be found");
+					System.err.println("Given agent configuration file could not be found: " + args[i]);
 				}
 			}
 		}
 		
-
-		new SimpleGUI(problemFilePath, agentFilePath, timeout);
+		new SimpleGUI(problemFilePath, agentFilePath, timeout, outputFilePath);
 	}
 
 	
@@ -358,15 +425,26 @@ public class SimpleGUI extends JFrame implements ActionListener, ItemListener {
 			JOptionPane.showMessageDialog(this, new JScrollPane(licenseArea), "FRODO License", JOptionPane.PLAIN_MESSAGE);
 		}
 
-		//Browses for an existing problem file
-		else if(actionCommand.equals("Browse")) {	//Browse button in problem file part
+		else if(actionCommand.equals("Browse")) {	//Browse button in problem file part or output file part
 			JFileChooser fileChooser = new JFileChooser(".");
-			int option = fileChooser.showOpenDialog(this);
-			if(option != JFileChooser.CANCEL_OPTION && option != JFileChooser.ERROR_OPTION) {	//User did not exit dialog without choosing
-				File problemFile = fileChooser.getSelectedFile();
-				problemField.setText(problemFile.getAbsolutePath());
-				problemError.setVisible(false);
+			
+			// Check whether this is the Browse button for the input problem or for the output file
+			if (e.getSource() == this.problemBrowseBtn) { // input problem
+				int option = fileChooser.showOpenDialog(this);
+				if(option != JFileChooser.CANCEL_OPTION && option != JFileChooser.ERROR_OPTION) {	//User did not exit dialog without choosing
+					File problemFile = fileChooser.getSelectedFile();
+					problemField.setText(problemFile.getAbsolutePath());
+					problemError.setVisible(false);
+				}
+
+			} else if (e.getSource() == this.outputBrowseBtn) { // output file
+				int option = fileChooser.showSaveDialog(this);
+				if(option != JFileChooser.CANCEL_OPTION && option != JFileChooser.ERROR_OPTION) {	//User did not exit dialog without choosing
+					File problemFile = fileChooser.getSelectedFile();
+					this.outputField.setText(problemFile.getAbsolutePath()); 
+				}
 			}
+			
 			fileChooser = null;	//Needs to be done, as open JFileChooser instances may cause problems when exiting the program
 		}
 
@@ -383,10 +461,18 @@ public class SimpleGUI extends JFrame implements ActionListener, ItemListener {
 		// Starts a DOTrenderer for the selected problem
 		else if (actionCommand.equals("Render")) {
 			try {
+				// Parse the XCSP
 				XCSPparser<AddableInteger, AddableInteger> parser = 
 					new XCSPparser<AddableInteger, AddableInteger> (XCSPparser.parse(this.problemField.getText(), false));
+				
+				// Render the problem
 				new DOTrenderer ("Constraint graph", parser.toDOT());
+				/// @todo Parse the visualizer class from the agent configuration file 
+//				Visualizer viz = new JungVisualizer ();
+//				viz.render(parser);
+				
 			} catch (Exception e2) {
+				e2.printStackTrace(System.err);
 				this.problemError.setVisible(true);
 			}
 		}
@@ -711,6 +797,11 @@ public class SimpleGUI extends JFrame implements ActionListener, ItemListener {
 					((Element)module).setAttribute("DOTrenderer", dotRendererClass);
 				}
 			}
+			
+			// Set the visualizer for all modules containing this attribute
+			for (Element module : root.getChild("modules").getChildren()) 
+				if (module.getAttribute("visualizer") != null) 
+					module.setAttribute("visualizer", "frodo2.gui.jung.JungVisualizer");
 
 			//Saves the modified Document in a temporary file, which will be given to the solver
 			new XMLOutputter(Format.getPrettyFormat()).output(doc, new FileWriter (new File(tempAgentFileName)));
@@ -733,28 +824,14 @@ public class SimpleGUI extends JFrame implements ActionListener, ItemListener {
 				paramsOK = false;
 			}
 		}
+		
+		/// @todo Check that the output file path is valid
+		String outputFilePath = this.outputField.getText();
 
 		//All parameters are valid
 		if(paramsOK) {
-			this.setEnabled(false);	//Lock the window
+			this.enableProblemDef(false); // prevents the user from changing the problem definition while the algorithm is running
 			
-			//Show infinite progress bar while solver is working
-			JProgressBar progressBar = new JProgressBar();
-			progressBar.setIndeterminate(true);
-			progressBar.setString("Solving DCOP...");
-			progressBar.setStringPainted(true);
-			final JOptionPane progressViewer = new JOptionPane(progressBar, JOptionPane.PLAIN_MESSAGE);
-			progressViewer.setOptions(new String[0]);
-			final JDialog dialog = progressViewer.createDialog(SimpleGUI.this, "Please wait...");
-			new Thread(new Runnable() {
-
-				public void run() {
-					dialog.setEnabled(false);
-					dialog.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
-					dialog.setVisible(true);
-				}
-			}).start();
-
 			//Start solver in a new thread; else, progress bar can not be shown correctly
 			new Thread(new Runnable() {
 
@@ -769,11 +846,11 @@ public class SimpleGUI extends JFrame implements ActionListener, ItemListener {
 						Document agent = XCSPparser.parse(tempAgentFileName, false);
 
 						System.out.println("Setting up the agents...");
-						AgentFactory<?> factory;
+						AgentFactory<?, ?> factory;
 						if (timeoutString.length() > 0) 
-							factory = new AgentFactory (problem, agent, Long.parseLong(timeoutString));
+							factory = new AgentFactory (problem, agent, outputFilePath, Long.parseLong(timeoutString));
 						else
-							factory = new AgentFactory (problem, agent);
+							factory = new AgentFactory (problem, agent, outputFilePath);
 
 						System.out.println("Waiting for the agents to terminate...");
 						factory.end();
@@ -783,11 +860,26 @@ public class SimpleGUI extends JFrame implements ActionListener, ItemListener {
 						e.printStackTrace();
 					}
 					
-					dialog.dispose();
-					SimpleGUI.this.setEnabled(true);	//Unlocks the window when solver is done
+					SimpleGUI.this.enableProblemDef(true);	//Unlocks the window when solver is done
 				}
 			}).start();
 		}
+	}
+
+	/** Enables or disables input fields used to define the problem (problem instance, agent...)
+	 * @param enabled 	whether the input fields should be enabled
+	 */
+	private void enableProblemDef(boolean enabled) {
+		
+		this.problemField.setEnabled(enabled);
+		this.problemBrowseBtn.setEnabled(enabled);
+		this.problemEditBtn.setEnabled(enabled);
+		this.agentList.setEnabled(enabled);
+		this.agentEditBtn.setEnabled(enabled);
+		this.timeoutField.setEnabled(enabled);
+		this.outputField.setEnabled(enabled);
+		this.outputBrowseBtn.setEnabled(enabled);
+		this.solveBtn.setEnabled(enabled);
 	}
 
 	/**

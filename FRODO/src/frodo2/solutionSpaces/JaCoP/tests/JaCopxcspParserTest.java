@@ -1389,7 +1389,7 @@ public class JaCopxcspParserTest extends TestCase {
 
 		JaCoPxcspParser.parseGlobalConstraint(cons, store);
 
-		assertFalse(getSolution()); /// @bug Bug in JaCoP: infeasible LinearInt constraints are not imposed https://github.com/radsz/jacop/issues/21
+		assertFalse(getSolution());
 		
 		resetStore();
 		

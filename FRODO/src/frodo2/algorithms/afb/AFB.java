@@ -42,9 +42,11 @@ import java.util.Iterator;
 import org.jdom2.Element;
 
 import frodo2.algorithms.AgentInterface;
+import frodo2.algorithms.SolutionCollector;
 import frodo2.algorithms.StatsReporterWithConvergence;
 import frodo2.algorithms.varOrdering.linear.OrderMsg;
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 import frodo2.communication.Queue;
 import frodo2.solutionSpaces.Addable;
 import frodo2.solutionSpaces.DCOPProblemInterface;
@@ -62,34 +64,34 @@ public class AFB < V extends Addable<V>, U extends Addable<U> > implements Stats
 	private final boolean verbose = false;
 	
 	/** The type of the message telling AFB to start */
-	public static String START_MSG_TYPE = AgentInterface.START_AGENT;
+	public static MessageType START_MSG_TYPE = AgentInterface.START_AGENT;
 	
 	/** The types of the messages containing the chosen linear order of clusters of variables */
-	public static String ORDER_MSG_TYPE = OrderMsg.ORDER_MSG_TYPE;
+	public static MessageType ORDER_MSG_TYPE = OrderMsg.ORDER_MSG_TYPE;
 	
 	/** The types of the messages containing the chosen linear order of clusters of variables sent to the stats gatherer */
-	public static String ORDER_STATS_MSG_TYPE = OrderMsg.STATS_MSG_TYPE;
+	public static MessageType ORDER_STATS_MSG_TYPE = OrderMsg.STATS_MSG_TYPE;
 
 	/** The type of the FB_CPA messages, sent to request estimations from unassigned agents.*/
-	public static final String FB_CPA_TYPE = "FB_CPA";
+	public static final MessageType FB_CPA_TYPE = new MessageType ("AFB", "FB_CPA");
 
 	/** The type of the CPA messages, sent to the next variable in the ordering.*/
-	public static final String CPA_MSG_TYPE = "CPA_MSG";
+	public static final MessageType CPA_MSG_TYPE = new MessageType ("AFB", "CPA");
 	
 	/** The type of the FB_ESTIMATE messages, sent as response to a FB_CPA message.*/
-	public static final String FB_ESTIMATE_TYPE = "FB_ESTIMATE";
+	public static final MessageType FB_ESTIMATE_TYPE = new MessageType ("AFB", "FB_ESTIMATE");
 
 	/** The type of the message containing the optimal solution found */
-	public static final String OUTPUT_MSG_TYPE = "Solution";
+	public static final MessageType OUTPUT_MSG_TYPE = new MessageType ("AFB", "Solution");
 	
 	/** The type of the messages broadcast by the last variable containing the current upper bound */
-	public static final String UB_MSG_TYPE = "UB"; 
+	public static final MessageType UB_MSG_TYPE = new MessageType ("AFB", "UB"); 
 		
 	/** The type of the message containing the optimal solution found sent to the stats gatherer */
-	public static final String STATS_MSG_TYPE = "SolutionStats";
+	public static final MessageType STATS_MSG_TYPE = new MessageType ("AFB", "SolutionStats");
 		
 	/** The type of the message reporting the convergence for a given component */
-	private static final String CONV_STATS_MSG_TYPE = "Convergence";
+	private static final MessageType CONV_STATS_MSG_TYPE = new MessageType ("AFB", "Convergence");
 	
 			
 	/** A message reporting the convergence for a given component
@@ -264,9 +266,6 @@ public class AFB < V extends Addable<V>, U extends Addable<U> > implements Stats
 		/** The problem */
 		private DCOPProblemInterface<V, U> problem;
 		
-		/** Whether to report stats */
-		private boolean reportStats = true;
-		
 		/** Whether the module has already started the algorithm */
 		private boolean started = false;
 		
@@ -279,16 +278,13 @@ public class AFB < V extends Addable<V>, U extends Addable<U> > implements Stats
 		/** The solution */
 		private HashMap<String, V> solution;
 		
-		/** The optimal cost */
-		private U optCost;
-		
 		/** The class of V */
 		private Class<V> valClass;
 		
 		/** The class of V[] */
 		private Class<V[]> valArrayClass;
 
-		/** Used to store solution messages received by the stats gatherer before their corresponding linear order */
+		/** Used to store solution messages received before their corresponding linear order */
 		private LinkedList< SolutionMsg<V, U> > pendingSolMsgs;
 		
 		/** Used to store convergence messages received by the stats gatherer before their corresponding linear order */
@@ -322,7 +318,6 @@ public class AFB < V extends Addable<V>, U extends Addable<U> > implements Stats
 			this.problem = problem;
 			
 			this.convergence = Boolean.parseBoolean(parameters.getAttributeValue("convergence"));
-			this.reportStats = Boolean.parseBoolean(parameters.getAttributeValue("reportStats"));
 			
 			this.pendingSolMsgs = new LinkedList< SolutionMsg<V, U> > ();
 			this.pendingFbCpaMsgs = new LinkedList< FbCpaMsg<V, U> > ();
@@ -364,8 +359,8 @@ public class AFB < V extends Addable<V>, U extends Addable<U> > implements Stats
 		}
 
 		/** @see StatsReporterWithConvergence#getMsgTypes() */
-		public Collection<String> getMsgTypes() {
-			ArrayList<String> types = new ArrayList<String> (8);
+		public Collection<MessageType> getMsgTypes() {
+			ArrayList<MessageType> types = new ArrayList<MessageType> (8);
 			types.add(START_MSG_TYPE);
 			types.add(AgentInterface.AGENT_FINISHED);
 			types.add(ORDER_MSG_TYPE);
@@ -380,14 +375,11 @@ public class AFB < V extends Addable<V>, U extends Addable<U> > implements Stats
 		/** @see StatsReporterWithConvergence#getStatsFromQueue(Queue) */
 		public void getStatsFromQueue(Queue queue) {
 			queue.addIncomingMessagePolicy(ORDER_STATS_MSG_TYPE, this);
-			queue.addIncomingMessagePolicy(STATS_MSG_TYPE, this);
 			queue.addIncomingMessagePolicy(CONV_STATS_MSG_TYPE, this);
 		}
 
 		/** @see StatsReporterWithConvergence#setSilent(boolean) */
-		public void setSilent(boolean silent) {
-			this.reportStats = ! silent;
-		}
+		public void setSilent(boolean silent) {}
 
 		/** @see StatsReporterWithConvergence#setQueue(Queue) */
 		public void setQueue(Queue queue) {
@@ -398,33 +390,15 @@ public class AFB < V extends Addable<V>, U extends Addable<U> > implements Stats
 		@SuppressWarnings("unchecked")
 		public void notifyIn(Message msg) 
 		{	
-			String msgType = msg.getType();
+			MessageType msgType = msg.getType();
 			
-			if (msgType.equals(STATS_MSG_TYPE)) { // the message containing the solution
-				
-				SolutionMsg<V, U> msgCast = (SolutionMsg<V, U>) msg;
-				if (verbose) 	System.out.println("received SOLUTION MESSAGE with cost "+ msgCast.cost);
-				processStatsMsg(msgCast);
-				
-				return;
-			}
-			
-			else if (msgType.equals(ORDER_STATS_MSG_TYPE)) { // a stats message containing the linear order on variables
+			if (msgType.equals(ORDER_STATS_MSG_TYPE)) { // a stats message containing the linear order on variables
 				
 				OrderMsg<V, U> msgCast = (OrderMsg<V, U>) msg;
 				Comparable<?> compID = msgCast.getComponentID();
 				this.compInfos.put(compID, new ComponentInfo (msgCast.getOrder()));
 				
 				// Process the potentially pending messages for this component
-				for (Iterator< SolutionMsg<V, U> > iter = this.pendingSolMsgs.iterator(); iter.hasNext(); ) {
-					SolutionMsg<V, U> solMsg = iter.next();
-					if (solMsg.componentID.equals(compID)) {
-						iter.remove();
-						this.notifyIn(solMsg);
-						break;
-					}
-				}
-				
 				for (Iterator< ConvergenceMessage<V> > iter = this.pendingConvMsgs.iterator(); iter.hasNext(); ) {
 					ConvergenceMessage<V> convMsg = iter.next();
 					if (convMsg.compID.equals(compID)) {
@@ -593,7 +567,6 @@ public class AFB < V extends Addable<V>, U extends Addable<U> > implements Stats
 
 			else if (msgType.equals(OUTPUT_MSG_TYPE)) { // the solution for a particular component of the constraint graph
 				
-				// Record the solution
 				SolutionMsg<V, U> msgCast = (SolutionMsg<V, U>) msg;
 				ComponentInfo compInfo = this.compInfos.get(msgCast.componentID);
 				
@@ -603,61 +576,38 @@ public class AFB < V extends Addable<V>, U extends Addable<U> > implements Stats
 					return;
 				}
 				
+				// Record the solution
 				for (int i = compInfo.order.length - 1; i >= 0; i--){
 					ClusterInfo cluster = compInfo.clusterInfos.get(i);
 					if (cluster != null) { // internal cluster
 						String[] vars = compInfo.order[i];
 						if (msgCast.solution == null) // no solution found
 							for(int j = vars.length - 1; j >= 0; j--)
-								this.solution.put(vars[j], null);
+								this.solution.put(vars[j], cluster.domains[j][0]); // arbitrarily choose the first value in the domain
 						else {
 							V[] assignment = msgCast.solution[i];
-							for(int j = vars.length - 1; j >= 0; j--)
-								this.solution.put(vars[j], assignment[j]);
+							for(int j = vars.length - 1; j >= 0; j--) 
+								this.solution.put(vars[j], assignment[j] != null ? assignment[j] 
+																				: cluster.domains[j][0]);  // no solution found 
 						}
 					}
 				}
 				
+				// Send the solution to the solution collector
+				String[] vars = new String [this.solution.size()];
+				ArrayList<V> vals = new ArrayList<V> ();
+				int i = 0;
+				for (Map.Entry<String, V> entry : this.solution.entrySet()) {
+					vars[i++] = entry.getKey();
+					assert entry.getValue() != null : "null-assigned variables in the solution: " + this.solution;
+					vals.add(entry.getValue());
+				}
+				this.queue.sendMessage(AgentInterface.STATS_MONITOR, 
+						new SolutionCollector.AssignmentsMessage<V>(vars, vals));
+
 				if (this.solution.size() == this.problem.getNbrIntVars()) 
 					this.queue.sendMessageToSelf(new Message (AgentInterface.AGENT_FINISHED));
 			}
-		}
-
-		/**
-		 * @param msgCast The solution message.
-		 */
-		private void processStatsMsg(SolutionMsg<V, U> msgCast)
-		{
-			// Defer the message if we have not received the linear order for this component yet
-			ComponentInfo compInfo = this.compInfos.get(msgCast.componentID);
-			if (compInfo == null) {
-				this.pendingSolMsgs.add(msgCast);
-				return;
-			}
-			
-			// Record the solution
-			final int nbrClusters = compInfo.order.length;
-			for (int i = 0; i < nbrClusters; i++) {
-				String[] cluster = compInfo.order[i];
-				for(int j = 0; j < cluster.length; j++){
-					String var = cluster[j];
-					V val = this.problem.getDomain(var)[0];
-					if (msgCast.solution != null && msgCast.solution[i][j] != null) 
-						val = msgCast.solution[i][j];
-					this.solution.put(var, val);
-					if (this.reportStats) 
-						System.out.println("var `" + var + "' = " + val);
-				}
-			}
-			
-			if (this.solution.size() == this.problem.getVariables().size()) {
-				
-				this.optCost = this.problem.getUtility(solution).getUtility(0);
-				
-				if (this.reportStats) 
-					System.out.println("Total optimal " + (this.problem.maximize() ? "utility: " : "cost: ") + this.optCost);				
-			}
-			return;
 		}
 
 		/**
@@ -1154,10 +1104,6 @@ public class AFB < V extends Addable<V>, U extends Addable<U> > implements Stats
 			{
 				if (verbose) System.out.println("Sent solution message to all: cost="+compInfo.B);
 				this.queue.sendMessageToMulti(compInfo.agents, new SolutionMsg<V, U> (OUTPUT_MSG_TYPE, compID, compInfo.bestSol, compInfo.B));
-				
-				if (this.reportStats) 
-					this.queue.sendMessage(AgentInterface.STATS_MONITOR, new SolutionMsg<V, U> (STATS_MSG_TYPE, compID, compInfo.bestSol, compInfo.B));
-				
 				compInfo.solutionSent = true;
 			}
 			
@@ -1165,16 +1111,6 @@ public class AFB < V extends Addable<V>, U extends Addable<U> > implements Stats
 				this.queue.sendMessage(AgentInterface.STATS_MONITOR, new ConvergenceMessage<V> (compID, compInfo.history));
 		}
 		
-		/** @return for each variable in the problem, its chosen value */
-		public HashMap<String, V> getOptAssignments () {
-			return this.solution;
-		}
-		
-		/** @return the cost of the optimal solution found */
-		public U getOptCost () {
-			return this.optCost;
-		}
-
 		/** @see StatsReporterWithConvergence#getAssignmentHistories() */
 		public HashMap< String, ArrayList< CurrentAssignment<V> > > getAssignmentHistories() {
 			return this.assignmentHistoriesMap;

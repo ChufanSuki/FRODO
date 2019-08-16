@@ -30,6 +30,7 @@ import java.lang.reflect.Array;
 import java.util.Arrays;
 
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 import frodo2.solutionSpaces.Addable;
 
 	/** A message containing the optimal solution found so far 
@@ -58,7 +59,7 @@ import frodo2.solutionSpaces.Addable;
 		 * @param solution 	the chosen assignments to variables
 		 * @param cost 		the optimal cost
 		 */
-		public SolutionMsg (String type, Comparable<?> componentID, V[][] solution, U cost) {
+		public SolutionMsg (MessageType type, Comparable<?> componentID, V[][] solution, U cost) {
 			super (type);
 			this.componentID = componentID;
 			this.solution = solution;
@@ -101,7 +102,7 @@ import frodo2.solutionSpaces.Addable;
 			
 			super.readExternal(in);
 			
-			super.type = (String) in.readObject();
+			super.type = (MessageType) in.readObject();
 			this.componentID = (Comparable<?>) in.readObject();
 			this.cost = (U) in.readObject();
 			

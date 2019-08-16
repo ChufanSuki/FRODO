@@ -104,7 +104,7 @@ public class SolutionCounter< V extends Addable<V>, U extends Addable<U> > {
 		
 		// Solve the problem
 		this.agentDesc.getRootElement().getChild("parser").setAttribute("displayGraph", "false");
-		new AgentFactory<V> (problem, agentDesc, solGatherers).end();
+		new AgentFactory<V, U> (problem, agentDesc, solGatherers).end();
 		
 		variablesReported = valueModule.getReportedVariables();
 		valuesReported = valueModule.getReportedValues();

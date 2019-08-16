@@ -46,6 +46,7 @@ import frodo2.algorithms.AgentInterface.ComStatsMessage;
 import frodo2.communication.AgentAddress;
 import frodo2.communication.IncomingMsgPolicyInterface;
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 import frodo2.communication.MessageWith3Payloads;
 import frodo2.communication.MessageWithPayload;
 import frodo2.communication.MessageWrapper;
@@ -60,22 +61,22 @@ import frodo2.solutionSpaces.ProblemInterface;
  * @author Brammert Ottens
  * @author Thomas Leaute
  */
-public class ConfigurationManager implements IncomingMsgPolicyInterface <String> {
+public class ConfigurationManager implements IncomingMsgPolicyInterface <MessageType> {
 	
 	/** The message send to the Daemon that contain the configuration of an agent*/
-	public static final String AGENT_CONFIGURATION_MESSAGE = "Agent-Configuration";
+	public static final MessageType AGENT_CONFIGURATION_MESSAGE = MessageType.SYSTEM.newChild("ConfigurationManager", "Agent-Configuration");
 	
 	/** The message type used to ask the white pages for a list of available daemons*/
-	public static final String REQUEST_DAEMONS_CONFIG_MSG = "Request-Daemons-Config";
+	public static final MessageType REQUEST_DAEMONS_CONFIG_MSG = MessageType.SYSTEM.newChild("ConfigurationManager", "Request-Daemons-Config");
 	
 	/** Message used to tell the white pages that the algorithm can start */
-	public static final String START = "Start";
+	public static final MessageType START = MessageType.SYSTEM.newChild("ConfigurationManager", "Start");
 	
 	/** Message used to tell the white pages that the agent can connect to their neighbours */
-	public static final String CONNECT = "Connect";
+	public static final MessageType CONNECT = MessageType.SYSTEM.newChild("ConfigurationManager", "Connect");
 	
 	/** Message to signal to the white pages to kill the agents*/
-	public static final String KILL_ALL_AGENTS = "Kill-All-Agents";
+	public static final MessageType KILL_ALL_AGENTS = MessageType.SYSTEM.newChild("ConfigurationManager", "Kill-All-Agents");
 
 	/** The text displayed when the experiment is over */
 	public static final String END_TEXT = "All experiments are finished";
@@ -106,7 +107,7 @@ public class ConfigurationManager implements IncomingMsgPolicyInterface <String>
 	private String resultFile;
 	
 	/** The list of messages types this listener wants to be notified of */
-	protected ArrayList <String> msgTypes = new ArrayList <String> ();
+	protected ArrayList <MessageType> msgTypes = new ArrayList <MessageType> ();
 	
 	/** The list of daemons that are available*/
 	private HashMap<String, AgentAddress> daemonList;
@@ -152,7 +153,7 @@ public class ConfigurationManager implements IncomingMsgPolicyInterface <String>
 	private boolean measureMsgs = false;
 	
 	/** For each message type, the number of messages sent of that type */
-	private TreeMap<String, Integer> msgNbrs;
+	private TreeMap<MessageType, Integer> msgNbrs;
 	
 	/** For each agent, the number of messages sent by that agent */
 	private TreeMap<Object, Integer> msgNbrsSentPerAgent = new TreeMap<Object, Integer> ();
@@ -161,7 +162,7 @@ public class ConfigurationManager implements IncomingMsgPolicyInterface <String>
 	private TreeMap<Object, Integer> msgNbrsReceivedPerAgent = new TreeMap<Object, Integer> ();
 	
 	/** For each message type, the total amount of information sent in messages of that type, in bytes */
-	private TreeMap<String, Long> msgSizes;
+	private TreeMap<MessageType, Long> msgSizes;
 	
 	/** For each agent, the total amount of information sent by that agent, in bytes */
 	private TreeMap<Object, Long> msgSizesSentPerAgent = new TreeMap<Object, Long> ();
@@ -170,7 +171,7 @@ public class ConfigurationManager implements IncomingMsgPolicyInterface <String>
 	private TreeMap<Object, Long> msgSizesReceivedPerAgent = new TreeMap<Object, Long> ();
 	
 	/** For each message type, the size (in bytes) of the largest message */
-	private TreeMap<String, Long> maxMsgSizes;
+	private TreeMap<MessageType, Long> maxMsgSizes;
 
 	/** The statistics listeners */
 	private Collection<StatsReporter> statsReporters;
@@ -210,7 +211,7 @@ public class ConfigurationManager implements IncomingMsgPolicyInterface <String>
 	}
 
 	/** @see frodo2.communication.IncomingMsgPolicyInterface#getMsgTypes() */
-	public Collection<String> getMsgTypes() {
+	public Collection<MessageType> getMsgTypes() {
 		return msgTypes;
 	}
 	
@@ -234,7 +235,7 @@ public class ConfigurationManager implements IncomingMsgPolicyInterface <String>
 	@SuppressWarnings("unchecked")
 	public void notifyIn(Message msg) {
 		
-		String msgType = msg.getType();
+		MessageType msgType = msg.getType();
 		String configFile = null;
 		
 		if(msgType.equals(UserIO.CONFIGURATION_MSG)) { // a configuration message has been received
@@ -370,8 +371,8 @@ public class ConfigurationManager implements IncomingMsgPolicyInterface <String>
 			ComStatsMessage msgCast = (ComStatsMessage) msg;
 
 			// Increment nbrMsgs
-			for (Map.Entry<String, Integer> entry : msgCast.getMsgNbrs().entrySet()) {
-				String type = entry.getKey();
+			for (Map.Entry<MessageType, Integer> entry : msgCast.getMsgNbrs().entrySet()) {
+				MessageType type = entry.getKey();
 
 				Integer nbr = this.msgNbrs.get(type);
 				if (nbr == null) 
@@ -400,8 +401,8 @@ public class ConfigurationManager implements IncomingMsgPolicyInterface <String>
 				this.msgNbrsSentPerAgent.put(sender, nbr + totalSent);
 
 			// Increment msgSizes
-			for (Map.Entry<String, Long> entry : msgCast.getMsgSizes().entrySet()) {
-				String type = entry.getKey();
+			for (Map.Entry<MessageType, Long> entry : msgCast.getMsgSizes().entrySet()) {
+				MessageType type = entry.getKey();
 
 				Long size = this.msgSizes.get(type);
 				if (size == null) 
@@ -429,8 +430,8 @@ public class ConfigurationManager implements IncomingMsgPolicyInterface <String>
 				this.msgSizesSentPerAgent.put(sender, info + totalInfoSent);
 
 			// Update maxMsgSizes
-			for (Map.Entry<String, Long> entry : msgCast.getMaxMsgSizes().entrySet()) {
-				String type = entry.getKey();
+			for (Map.Entry<MessageType, Long> entry : msgCast.getMaxMsgSizes().entrySet()) {
+				MessageType type = entry.getKey();
 
 				Long maxSize = this.maxMsgSizes.get(type);
 				if (maxSize == null || entry.getValue() > maxSize) 
@@ -633,9 +634,9 @@ public class ConfigurationManager implements IncomingMsgPolicyInterface <String>
 			// Check whether we should be counting messages
 			String measureMsgs = this.agentDescriptionDoc.getRootElement().getAttributeValue("measureMsgs");
 			if (measureMsgs != null) {
-				this.msgNbrs = new TreeMap<String, Integer> ();
-				this.msgSizes = new TreeMap<String, Long> ();
-				this.maxMsgSizes = new TreeMap<String, Long> ();
+				this.msgNbrs = new TreeMap<MessageType, Integer> ();
+				this.msgSizes = new TreeMap<MessageType, Long> ();
+				this.maxMsgSizes = new TreeMap<MessageType, Long> ();
 				this.measureMsgs = Boolean.parseBoolean(measureMsgs);
 			} else 
 				this.measureMsgs = false;

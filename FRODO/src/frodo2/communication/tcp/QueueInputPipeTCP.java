@@ -24,6 +24,7 @@ package frodo2.communication.tcp;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
+import java.lang.reflect.InvocationTargetException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
@@ -100,7 +101,7 @@ public class QueueInputPipeTCP extends Thread implements QueueInputPipeInterface
 				try {
 					@SuppressWarnings("unchecked")
 					Class<? extends Message> msgClass = (Class<? extends Message>) input.readObject();
-					Message msg = msgClass.newInstance();
+					Message msg = msgClass.getConstructor().newInstance();
 					msg.readExternal(input);
 					server.queue.addToInbox(new MessageWrapper(msg));
 					
@@ -114,13 +115,7 @@ public class QueueInputPipeTCP extends Thread implements QueueInputPipeInterface
 						server.sockets.remove(socket);
 					}
 					return;
-				} catch (ClassNotFoundException e) {
-					e.printStackTrace();
-					continue;
-				} catch (InstantiationException e) {
-					e.printStackTrace();
-					continue;
-				} catch (IllegalAccessException e) {
+				} catch (InvocationTargetException | NoSuchMethodException | IllegalAccessException | InstantiationException | ClassNotFoundException e) {
 					e.printStackTrace();
 					continue;
 				}
@@ -145,7 +140,7 @@ public class QueueInputPipeTCP extends Thread implements QueueInputPipeInterface
 		super ("QueueInputPipeTCP");
 		servSocket = new ServerSocket (port);
 		if (maxNbrConnections != null) {
-			nbrConnections = new Integer(maxNbrConnections);
+			nbrConnections = Integer.valueOf(maxNbrConnections);
 			sockets = new ArrayList<Socket> (nbrConnections);
 		} else
 			sockets = new ArrayList<Socket> ();

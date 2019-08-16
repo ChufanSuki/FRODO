@@ -42,13 +42,16 @@ import org.jdom2.Element;
 
 import frodo2.algorithms.AgentInterface;
 import frodo2.algorithms.RandGraphFactory;
+import frodo2.algorithms.SolutionCollector;
 import frodo2.algorithms.StatsReporter;
 import frodo2.algorithms.XCSPparser;
 import frodo2.algorithms.dpop.UTILpropagation;
 import frodo2.algorithms.dpop.VALUEpropagation;
 import frodo2.algorithms.test.AllTests;
 import frodo2.algorithms.varOrdering.dfs.DFSgeneration.DFSview;
+import frodo2.communication.IncomingMsgPolicyInterface;
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 import frodo2.communication.Queue;
 import frodo2.communication.QueueOutputPipeInterface;
 import frodo2.communication.sharedMemory.QueueIOPipe;
@@ -77,8 +80,8 @@ public class VALUEpropagationTest < U extends Addable<U> > extends TestCase {
 	/** Maximum number of agents */
 	private final int maxNbrAgents = 10;
 
-	/** List of queues corresponding to the different agents */
-	protected Queue[] queues = new Queue[0];
+	/** List of queues, indexed by agent name */
+	protected Map<String, Queue> queues = new HashMap<String, Queue> ();
 	
 	/** Random graph used to generate a constraint graph */
 	protected RandGraphFactory.Graph graph;
@@ -179,7 +182,7 @@ public class VALUEpropagationTest < U extends Addable<U> > extends TestCase {
 		graph = null;
 		dfs = null;
 		optAssignments = null;
-		for (Queue queue : queues) {
+		for (Queue queue : queues.values()) {
 			queue.end();
 		}
 		queues = null;
@@ -192,9 +195,10 @@ public class VALUEpropagationTest < U extends Addable<U> > extends TestCase {
 	 * @return 				the new listener
 	 * @throws Exception 	if an error occurs
 	 */
+	@SuppressWarnings("unchecked")
 	protected Listener newListenerInstance(boolean useTCP, boolean useXML) 
 	throws Exception {
-		return new Listener (useTCP, useXML, UTILpropagation.class, VALUEpropagation.class, false);
+		return new Listener (useTCP, useXML, UTILpropagation.class, (Class<? extends IncomingMsgPolicyInterface<MessageType>>) VALUEpropagation.class, false);
 	}
 
 	/** Tests the UTIL and VALUE propagation protocols on a random graph
@@ -217,8 +221,8 @@ public class VALUEpropagationTest < U extends Addable<U> > extends TestCase {
 		/** For each variable, the constraint it is responsible for enforcing */
 		protected Map< String, UtilitySolutionSpace<AddableInteger, U> > hypercubes;
 		
-		/** The pipes of the queue network */
-		private QueueOutputPipeInterface[] pipes; 
+		/** The pipes of the queue network, indexed by agent name */
+		private Map<String, QueueOutputPipeInterface> pipes; 
 		
 		/** The Listener's own queue */
 		private Queue myQueue;
@@ -227,7 +231,7 @@ public class VALUEpropagationTest < U extends Addable<U> > extends TestCase {
 		private List< ? extends UtilitySolutionSpace<AddableInteger, U> > spaces;
 
 		/** The statistics gatherer */
-		private VALUEpropagation<AddableInteger> statsGatherer;
+		private SolutionCollector<AddableInteger, U> solCollector;
 		
 		/** The parser for the problem */
 		protected XCSPparser<AddableInteger, U> parser;
@@ -246,11 +250,11 @@ public class VALUEpropagationTest < U extends Addable<U> > extends TestCase {
 		 * @throws IllegalArgumentException 	if the VALUEpropagation constructor does not take the proper arguments
 		 */
 		public Listener (boolean useTCP, boolean useXML, 
-				Class< ? extends StatsReporter > UTILpropClass, Class< ? extends StatsReporter > VALUEpropClass, boolean withAnonymVars) 
+				Class< ? extends IncomingMsgPolicyInterface<MessageType> > UTILpropClass, 
+						Class< ? extends IncomingMsgPolicyInterface<MessageType> > VALUEpropClass, boolean withAnonymVars) 
 		throws IOException, NoSuchMethodException, IllegalArgumentException, 
 		InstantiationException, IllegalAccessException, InvocationTargetException {
 			
-			int nbrAgents = graph.clusters.size();
 			int nbrVars = graph.nodes.size();
 			
 			// Count the number of messages received from the modules: 
@@ -258,62 +262,62 @@ public class VALUEpropagationTest < U extends Addable<U> > extends TestCase {
 			nbrMsgsRemaining = nbrVars + graph.components.size();
 
 			// Create the queue network
-			queues = new Queue [nbrAgents];
+			queues = new HashMap<String, Queue> ();
 			pipes = AllTests.createQueueNetwork(queues, graph, useTCP);
 
 			// Create the map associating to each variable the ID of its owner agent
 			HashMap<String, String> owners = new HashMap<String, String> (graph.nodes.size());
-			for (Map.Entry<String, Integer> entry : graph.clusterOf.entrySet()) 
-				owners.put(entry.getKey(), entry.getValue().toString());
+			for (Map.Entry<String, String> entry : graph.clusterOf.entrySet()) 
+				owners.put(entry.getKey(), entry.getValue());
 			
 			// Listen for statistics messages
 			myQueue = new Queue (false);
 			this.getStatsFromQueue(myQueue);
 			QueueIOPipe myPipe = new QueueIOPipe (myQueue);
-			for (Queue queue : queues) 
+			for (Queue queue : queues.values()) 
 				queue.addOutputPipe(AgentInterface.STATS_MONITOR, myPipe);
 			parser = new XCSPparser<AddableInteger, U> (AllTests.generateProblem(graph, (withAnonymVars ? graph.nodes.size() : 0), maximize));
 			parser.setUtilClass(utilClass);
 			dfs = UTILpropagationTest.computeDFS(graph, parser, withAnonymVars);
-			statsGatherer = new VALUEpropagation<AddableInteger> (null, parser);
-			statsGatherer.setSilent(true);
-			statsGatherer.getStatsFromQueue(myQueue);
+			solCollector = new SolutionCollector<AddableInteger, U> (null, parser);
+			solCollector.setSilent(true);
+			solCollector.getStatsFromQueue(myQueue);
 			
 			// Create the listeners
 			spaces = parser.getSolutionSpaces(withAnonymVars);
 			if (useXML) { // use the XML-based constructor
 				for (String agent : parser.getAgents()) {
-					Queue queue = queues[Integer.parseInt(agent)];
+					Queue queue = queues.get(agent);
 
 					XCSPparser<AddableInteger, U> subproblem = parser.getSubProblem(agent);
 					subproblem.setUtilClass(utilClass);
 					queue.setProblem(subproblem);
 
 					// Instantiate the UTIL propagation module
-					Constructor<?> constructor = UTILpropClass.getConstructor(DCOPProblemInterface.class);
-					queue.addIncomingMessagePolicy((StatsReporter) constructor.newInstance(subproblem));
+					Constructor< ? extends IncomingMsgPolicyInterface<MessageType>> constructor = UTILpropClass.getConstructor(DCOPProblemInterface.class);
+					queue.addIncomingMessagePolicy((IncomingMsgPolicyInterface<MessageType>) constructor.newInstance(subproblem));
 
 					// Instantiate the VALUE propagation module
 					constructor = VALUEpropClass.getConstructor(DCOPProblemInterface.class, Element.class);
-					queue.addIncomingMessagePolicy((StatsReporter) constructor.newInstance(subproblem, null));
+					queue.addIncomingMessagePolicy((IncomingMsgPolicyInterface<MessageType>) constructor.newInstance(subproblem, null));
 
 					queue.addIncomingMessagePolicy(this);
 				}
 
 			} else { // use the manual constructor not based on XML
 				for (String agent : parser.getAgents()) {
-					Queue queue = queues[Integer.parseInt(agent)];
+					Queue queue = queues.get(agent);
 					
 					DCOPProblemInterface<AddableInteger, U> subproblem = parser.getSubProblem(agent);
 					subproblem.setUtilClass(utilClass);
 
 					// Instantiate the UTIL propagation module
-					Constructor<?> constructor = UTILpropClass.getConstructor(DCOPProblemInterface.class);
-					queue.addIncomingMessagePolicy((StatsReporter) constructor.newInstance(subproblem));
+					Constructor< ? extends IncomingMsgPolicyInterface<MessageType>> constructor = UTILpropClass.getConstructor(DCOPProblemInterface.class);
+					queue.addIncomingMessagePolicy((IncomingMsgPolicyInterface<MessageType>) constructor.newInstance(subproblem));
 					
 					// Instantiate the VALUE propagation module
 					constructor = VALUEpropClass.getConstructor(DCOPProblemInterface.class, Boolean.class);
-					queue.addIncomingMessagePolicy((StatsReporter) constructor.newInstance(subproblem, false));
+					queue.addIncomingMessagePolicy((IncomingMsgPolicyInterface<MessageType>) constructor.newInstance(subproblem, false));
 					
 					queue.addIncomingMessagePolicy(this);
 				}
@@ -349,7 +353,7 @@ public class VALUEpropagationTest < U extends Addable<U> > extends TestCase {
 			// Properly close the pipes
 			/// @bug Sometimes, the pipes are closed while the VALUEpropagation listeners are still sending messages;
 			/// this throws a SocketException, but the unit tests still pass and are still valid. 
-			for (QueueOutputPipeInterface pipe : pipes) {
+			for (QueueOutputPipeInterface pipe : pipes.values()) {
 				pipe.close();
 			}
 			myQueue.end();
@@ -382,9 +386,9 @@ public class VALUEpropagationTest < U extends Addable<U> > extends TestCase {
 		/** Listens to the outputs of the UTIL and VALUE propagation protocols 
 		 * @see frodo2.communication.IncomingMsgPolicyInterface#getMsgTypes()
 		 */
-		public Collection<String> getMsgTypes() {
-			ArrayList<String> types = new ArrayList<String> (2);
-			types.add(VALUEpropagation.OUTPUT_MSG_TYPE);
+		public Collection<MessageType> getMsgTypes() {
+			ArrayList<MessageType> types = new ArrayList<MessageType> (2);
+			types.add(SolutionCollector.ASSIGNMENTS_MSG_TYPE);
 			types.add(UTILpropagation.OPT_UTIL_MSG_TYPE);
 			return types;
 		}
@@ -393,7 +397,7 @@ public class VALUEpropagationTest < U extends Addable<U> > extends TestCase {
 		@SuppressWarnings("unchecked")
 		public void notifyIn(Message msg) {
 
-			String type = msg.getType();
+			MessageType type = msg.getType();
 			
 			if (type.equals(UTILpropagation.OPT_UTIL_MSG_TYPE)) { // message sent by a root containing the optimal utility value
 				UTILpropagation.OptUtilMessage<U> msgCast = (UTILpropagation.OptUtilMessage<U>) msg;
@@ -405,8 +409,8 @@ public class VALUEpropagationTest < U extends Addable<U> > extends TestCase {
 				}
 			}
 			
-			else if (type.equals(VALUEpropagation.OUTPUT_MSG_TYPE)) { // optimal assignment to a variable
-				VALUEpropagation.AssignmentsMessage<AddableInteger> msgCast = (VALUEpropagation.AssignmentsMessage<AddableInteger>) msg;
+			else if (type.equals(SolutionCollector.ASSIGNMENTS_MSG_TYPE)) { // optimal assignment to a variable
+				SolutionCollector.AssignmentsMessage<AddableInteger> msgCast = (SolutionCollector.AssignmentsMessage<AddableInteger>) msg;
 				synchronized (optAssignments) {
 					String[] vars = msgCast.getVariables();
 					ArrayList<AddableInteger> vals = msgCast.getValues();
@@ -428,7 +432,7 @@ public class VALUEpropagationTest < U extends Addable<U> > extends TestCase {
 
 		/** @see StatsReporter#getStatsFromQueue(Queue) */
 		public void getStatsFromQueue(Queue queue) {
-			queue.addIncomingMessagePolicy(VALUEpropagation.OUTPUT_MSG_TYPE, this);
+			queue.addIncomingMessagePolicy(SolutionCollector.ASSIGNMENTS_MSG_TYPE, this);
 		}
 
 		/** @see StatsReporter#setSilent(boolean) */

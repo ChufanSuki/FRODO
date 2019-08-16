@@ -28,6 +28,7 @@ import java.util.HashMap;
 import org.jdom2.Document;
 
 import frodo2.algorithms.AbstractDCOPsolver;
+import frodo2.algorithms.SolutionCollector;
 import frodo2.algorithms.SolutionWithConvergence;
 import frodo2.algorithms.StatsReporter;
 import frodo2.algorithms.varOrdering.dfs.DFSgeneration;
@@ -42,6 +43,9 @@ public class ADOPTsolver< V extends Addable<V>, U extends Addable<U> > extends A
 
 	/** The ADOPT module */
 	private ADOPT<V, U> adoptModule;
+	
+	/** The solution collector module */
+	private SolutionCollector<V, U> solCollector;
 	
 	/** The DFSgeneration module */
 	private DFSgeneration<V, U> dfsModule;
@@ -137,7 +141,11 @@ public class ADOPTsolver< V extends Addable<V>, U extends Addable<U> > extends A
 	@Override
 	public ArrayList<StatsReporter> getSolGatherers() {
 
-		ArrayList<StatsReporter> solGatherers = new ArrayList<StatsReporter> (2);
+		ArrayList<StatsReporter> solGatherers = new ArrayList<StatsReporter> (4);
+		
+		solCollector = new SolutionCollector<V, U>(null, problem);
+		solCollector.setSilent(true);
+		solGatherers.add(solCollector);
 		
 		adoptModule = new ADOPT<V, U>(null, problem);
 		adoptModule.setSilent(true);
@@ -160,9 +168,9 @@ public class ADOPTsolver< V extends Addable<V>, U extends Addable<U> > extends A
 
 		HashMap<String, Long> times = new HashMap<String, Long> ();
 		times.put(dfsModule.getClass().toString(), dfsModule.getFinalTime());
-		times.put(adoptModule.getClass().toString(), adoptModule.getFinalTime());
+		times.put(this.solCollector.getClass().toString(), this.solCollector.getFinalTime());
 		
-		return new SolutionWithConvergence<V, U> (this.problem.getNbrVars(), adoptModule.getTotalOptUtil(), super.problem.getUtility(this.adoptModule.getOptAssignments()).getUtility(0), adoptModule.getOptAssignments(), 
+		return new SolutionWithConvergence<V, U> (this.problem.getNbrVars(), null, this.solCollector.getUtility(), solCollector.getSolution(), 
 				factory.getNbrMsgs(), factory.getMsgNbrs(), factory.getMsgNbrsSentPerAgent(), factory.getMsgNbrsReceivedPerAgent(), 
 				factory.getTotalMsgSize(), factory.getMsgSizes(), factory.getMsgSizesSentPerAgent(), factory.getMsgSizesReceivedPerAgent(), 
 				factory.getOverallMaxMsgSize(), factory.getMaxMsgSizes(), 
@@ -173,6 +181,7 @@ public class ADOPTsolver< V extends Addable<V>, U extends Addable<U> > extends A
 	@Override
 	protected void clear () {
 		super.clear();
+		this.solCollector = null;
 		this.adoptModule = null;
 		this.dfsModule = null;
 	}

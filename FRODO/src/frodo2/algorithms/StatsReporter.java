@@ -23,6 +23,7 @@ How to contact the authors:
 package frodo2.algorithms;
 
 import frodo2.communication.IncomingMsgPolicyInterface;
+import frodo2.communication.MessageType;
 import frodo2.communication.Queue;
 
 /** An interface that any listener sending statistics message should implement
@@ -32,9 +33,8 @@ import frodo2.communication.Queue;
  * @warning All modules implementing this class should have a constructor that takes in two arguments: 
  * a JDOM Element describing the StatsReporter and its parameters, and a DCOPProblemInterface for the overall problem. 
  * @todo Using two different constructors with reversed parameter orders is confusing; use a single constructor. 
- * @todo Create StatsReporters that gather usual stats (solution, ...) to improve code reuse across algorithms. 
  */
-public interface StatsReporter extends IncomingMsgPolicyInterface<String> {
+public interface StatsReporter extends IncomingMsgPolicyInterface<MessageType> {
 	
 	/** Registers the StatsReporter to be notified of the stats messages received by the given queue
 	 * @param queue the queue

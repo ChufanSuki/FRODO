@@ -33,6 +33,7 @@ import org.jdom2.Element;
 import frodo2.algorithms.AgentInterface;
 import frodo2.algorithms.varOrdering.election.LeaderElectionMaxID;
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 import frodo2.communication.MessageWith3Payloads;
 import frodo2.solutionSpaces.Addable;
 import frodo2.solutionSpaces.DCOPProblemInterface;
@@ -51,46 +52,46 @@ import frodo2.solutionSpaces.DCOPProblemInterface;
 public class DFSgenerationWithOrder < V extends Addable<V>, U extends Addable<U> > extends DFSgeneration<V, U> {
 	
 	/** The type of the messages telling whether a given variable is a root */
-	public static String ROOT_VAR_MSG_TYPE = LeaderElectionMaxID.OUTPUT_MSG_TYPE;
+	public static MessageType ROOT_VAR_MSG_TYPE = LeaderElectionMaxID.OUTPUT_MSG_TYPE;
 	
 	/** @see DFSgeneration#getRootVarMsgType() */
 	@Override
-	protected String getRootVarMsgType () {
+	protected MessageType getRootVarMsgType () {
 		return ROOT_VAR_MSG_TYPE;
 	}
 
 	/** The type of the message used to tell the recipient that it is a child of the sender */
-	public static String CHILD_ORDER_MSG_TYPE = "CHILDwithOrder";
+	public static MessageType CHILD_ORDER_MSG_TYPE = new MessageType ("VarOrdering", "DFSgenerationWithOrder", "CHILDwithOrder");
 	
 	/** @see DFSgeneration#getChildMsgType() */
 	@Override
-	protected String getChildMsgType () {
+	protected MessageType getChildMsgType () {
 		return CHILD_ORDER_MSG_TYPE;
 	}
 
 	/** The type of the message used to tell the recipient that it is a pseudo-child of the sender */
-	public static String PSEUDO_ORDER_MSG_TYPE = "PSEUDOwithOrder";
+	public static MessageType PSEUDO_ORDER_MSG_TYPE = new MessageType ("VarOrdering", "DFSgenerationWithOrder", "PSEUDOwithOrder");
 	
 	/** @return The type of the message used to tell the recipient that it is a pseudo-child of the sender */
 	@Override
-	protected String getPseudoMsgType () {
+	protected MessageType getPseudoMsgType () {
 		return PSEUDO_ORDER_MSG_TYPE;
 	}
 
 	/** The type of the output messages */
-	public static String OUTPUT_MSG_TYPE = "DFSoutput_DFSgenerationWithOrder";
+	public static MessageType OUTPUT_MSG_TYPE = new MessageType ("VarOrdering", "DFSgenerationWithOrder", "DFSoutput_DFSgenerationWithOrder");
 	
 	/** @return The type of the output messages */
 	@Override
-	protected String getOutputMsgType () {
+	protected MessageType getOutputMsgType () {
 		return OUTPUT_MSG_TYPE;
 	}
 
 	/** The type of the output messages containing the orders of variables in the DFS */
-	public static final String OUTPUT_ORDER_TYPE = "DFSorderOutput";
+	public static final MessageType OUTPUT_ORDER_TYPE = new MessageType ("VarOrdering", "DFSgenerationWithOrder", "DFSorderOutput");
 	
 	/** The type of the top-down messages sent by the root containing the number of variables in the DFS */
-	public static final String VARIABLE_COUNT_TYPE = "DFSorderVarNbr";
+	public static final MessageType VARIABLE_COUNT_TYPE = new MessageType ("VarOrdering", "DFSgenerationWithOrder", "DFSorderVarNbr");
 	
 	/** Map of the true final order of this agent's variables */
 	private Map<String, Integer> trueOrder;
@@ -210,8 +211,8 @@ public class DFSgenerationWithOrder < V extends Addable<V>, U extends Addable<U>
 
 	/** @see DFSgeneration#getMsgTypes() */
 	@Override
-	public Collection<String> getMsgTypes() {
-		Collection<String> msgTypes = super.getMsgTypes();
+	public Collection<MessageType> getMsgTypes() {
+		Collection<MessageType> msgTypes = super.getMsgTypes();
 		msgTypes.add(VARIABLE_COUNT_TYPE);
 		return msgTypes;
 	}
@@ -238,7 +239,7 @@ public class DFSgenerationWithOrder < V extends Addable<V>, U extends Addable<U>
 	@Override
 	public void notifyIn(Message msg) {
 		
-		String msgType = msg.getType();
+		MessageType msgType = msg.getType();
 		
 		// Parse the problem if it has not been done yet
 		if (! this.started && ! msgType.equals(STATS_MSG_TYPE) && msgType.equals(AgentInterface.AGENT_FINISHED)) 
@@ -286,7 +287,7 @@ public class DFSgenerationWithOrder < V extends Addable<V>, U extends Addable<U>
 	/** @see DFSgeneration#processAdditionalMsgInformation(Message, java.lang.String, DFSview) */
 	protected void processAdditionalMsgInformation(Message msg, String myVar, DFSview<V, U> myRelationships){
 		
-		String msgType = msg.getType();
+		MessageType msgType = msg.getType();
 		
 		 if (msgType.equals(this.getChildMsgType())){
 			

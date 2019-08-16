@@ -32,7 +32,7 @@ root = "../../../../"
 java = "java"
 javaParamsOld = [
             "-Xmx2G", 
-            "-classpath", root + "frodo2.jar", # includes a (presumably older) version of FRODO from a JAR
+            "-classpath", root + "frodo2.17.jar", # includes a (presumably older) version of FRODO from a JAR
             ]
 javaParamsNew = [
             "-Xmx2G", 
@@ -121,7 +121,7 @@ for i in range(0, nbrProblems):
         outputs += [output]
         
         # Run the experiment
-        frodo2.run(java, javaParamsNew, generator, exp[1], 1, exp[2], timeout, output)
+        frodo2.run(java, javaParamsNew, generator, exp[1], 1, exp[2], timeout, output, saveProblems = False)
 
 # Plot the results for each experiment
 for j in range(0, len(experiments)): 
@@ -131,14 +131,14 @@ for j in range(0, len(experiments)):
     output = outputs[j]
 
     # Plot curves with x = problem size and y = performance of each algorithm
-#     frodo2.plot(output, xCol = 8, yCol = 14, block = False) # 14 = message size
-#     frodo2.plot(output, xCol = 8, yCol = 12, block = (j == len(experiments)-1)) # 12 = runtime
+#     frodo2.plot(output, xCol = 9, yCol = 15, block = False) # 15 = message size
+#     frodo2.plot(output, xCol = 9, yCol = 13, block = (j == len(experiments)-1)) # 13 = runtime
 
     # Scatter plot with one data point per instance, x = old algorithm and y = new algorithm
     xAlgo = exp[2][0][0]
     yAlgo = exp[2][1][0]
-    frodo2.plotScatter(output, xAlgo, yAlgo, metricsCol = 18, timeouts = False, block = False, loglog = False) # 18 = solution quality 
-    frodo2.plotScatter(output, xAlgo, yAlgo, metricsCol = 14, timeouts = True, block = False) # 14 = message size
-    frodo2.plotScatter(output, xAlgo, yAlgo, metricsCol = 14, timeouts = False, block = False) # 14 = message size
-    frodo2.plotScatter(output, xAlgo, yAlgo, metricsCol = 12, timeouts = True, block = False) # 12 = runtime
-    frodo2.plotScatter(output, xAlgo, yAlgo, metricsCol = 12, timeouts = False, block = (j == len(experiments)-1)) # 12 = runtime
+    frodo2.plotScatter(output, xAlgo, yAlgo, metricsCol = 19, timeouts = False, block = False, loglog = False) # 19 = solution quality 
+    frodo2.plotScatter(output, xAlgo, yAlgo, metricsCol = 15, timeouts = True, block = False) # 15 = message size
+    frodo2.plotScatter(output, xAlgo, yAlgo, metricsCol = 15, timeouts = False, block = False) # 15 = message size
+    frodo2.plotScatter(output, xAlgo, yAlgo, metricsCol = 13, timeouts = True, block = False) # 13 = runtime
+    frodo2.plotScatter(output, xAlgo, yAlgo, metricsCol = 13, timeouts = False, block = (j == len(experiments)-1)) # 13 = runtime

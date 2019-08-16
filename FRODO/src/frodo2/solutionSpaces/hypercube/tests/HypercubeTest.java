@@ -839,9 +839,9 @@ public class HypercubeTest extends TestCase {
 		U infeasibleUtil = null;
 		try {
 			if (inf == Infinity.PLUS_INFINITY) 
-				infeasibleUtil = utilClass.newInstance().getPlusInfinity();
+				infeasibleUtil = utilClass.getConstructor().newInstance().getPlusInfinity();
 			else 
-				infeasibleUtil = utilClass.newInstance().getMinInfinity();
+				infeasibleUtil = utilClass.getConstructor().newInstance().getMinInfinity();
 		} catch (Exception e) {
 			fail();
 		}
@@ -932,7 +932,7 @@ public class HypercubeTest extends TestCase {
 		utility_values = (U[]) Array.newInstance(utilClass, number_of_utilities);
 		U utilInstance = null;
 		try {
-			utilInstance = utilClass.newInstance();
+			utilInstance = utilClass.getConstructor().newInstance();
 		} catch (Exception e) {
 			fail();
 		}

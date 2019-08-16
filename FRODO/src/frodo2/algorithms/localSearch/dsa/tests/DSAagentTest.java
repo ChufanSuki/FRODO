@@ -41,12 +41,13 @@ import org.jdom2.JDOMException;
 import frodo2.algorithms.AgentFactory;
 import frodo2.algorithms.AgentInterface;
 import frodo2.algorithms.Problem;
+import frodo2.algorithms.SolutionCollector;
 import frodo2.algorithms.XCSPparser;
 import frodo2.algorithms.localSearch.dsa.DSA;
-import frodo2.algorithms.localSearch.dsa.DSA.AssignmentMessage;
 import frodo2.algorithms.test.AllTests;
 import frodo2.communication.IncomingMsgPolicyInterface;
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 import frodo2.communication.MessageWith2Payloads;
 import frodo2.communication.MessageWrapper;
 import frodo2.communication.Queue;
@@ -69,7 +70,7 @@ import junit.framework.TestSuite;
  * @param <U> the type used for utility values
  * @author Brammert Ottens, Thomas Leaute
  */
-public class DSAagentTest < V extends Addable<V>, U extends Addable<U> > extends TestCase  implements IncomingMsgPolicyInterface<String> {
+public class DSAagentTest < V extends Addable<V>, U extends Addable<U> > extends TestCase  implements IncomingMsgPolicyInterface<MessageType> {
 
 	/** Maximum number of variables in the problem 
 	 * @note Must be at least 2. 
@@ -122,7 +123,7 @@ public class DSAagentTest < V extends Addable<V>, U extends Addable<U> > extends
 	protected DSA<V, U> statsGatherer;
 	
 	/** The type of the start message */
-	protected String startMsgType;
+	protected MessageType startMsgType;
 
 	/** The description of the agent */
 	protected Document agentDesc;
@@ -155,7 +156,7 @@ public class DSAagentTest < V extends Addable<V>, U extends Addable<U> > extends
 	 * @param domClass 			The class used for variable values
 	 * @param utilClass 		the class used for utility values
 	 */
-	public DSAagentTest(boolean useXCSP, boolean useTCP, boolean countNCCCs, boolean useCentralMailer, String startMsgType, String strategy, Class<V> domClass, Class<U> utilClass) {
+	public DSAagentTest(boolean useXCSP, boolean useTCP, boolean countNCCCs, boolean useCentralMailer, MessageType startMsgType, String strategy, Class<V> domClass, Class<U> utilClass) {
 		super ("testRandom");
 		this.useXCSP = useXCSP;
 		this.useTCP = useTCP;
@@ -163,6 +164,7 @@ public class DSAagentTest < V extends Addable<V>, U extends Addable<U> > extends
 		this.useCentralMailer = useCentralMailer;
 		this.domClass = domClass;
 		this.utilClass = utilClass;
+		this.startMsgType = startMsgType;
 		this.strategy = strategy;
 	}
 
@@ -170,14 +172,20 @@ public class DSAagentTest < V extends Addable<V>, U extends Addable<U> > extends
 	 * @param startMsgType 		the new type for the start message
 	 * @throws JDOMException 	if parsing the agent configuration file failed
 	 */
-	protected void setStartMsgType (String startMsgType) throws JDOMException {
+	protected void setStartMsgType (MessageType startMsgType) throws JDOMException {
 		if (startMsgType != null) {
 			this.startMsgType = startMsgType;
 			for (Element module2 : (List<Element>) this.agentDesc.getRootElement().getChild("modules").getChildren()) {
-				for (Element message : (List<Element>) module2.getChild("messages").getChildren()) {
-					if (message.getAttributeValue("name").equals("START_MSG_TYPE")) {
-						message.setAttribute("value", startMsgType);
-						message.removeAttribute("ownerClass");
+				Element messages = module2.getChild("messages");
+				if (messages != null) {
+					for (Element message : messages.getChildren()) {
+						if (message.getAttributeValue("myFieldName").equals("START_MSG_TYPE") 
+								&& message.getAttributeValue("targetFieldName").equals("START_AGENT")
+								&& message.getAttributeValue("targetClass").equals(AgentInterface.class.getName())) {
+							message.removeAttribute("targetFieldName");
+							message.removeAttribute("targetClass");
+							message.addContent(startMsgType.toXML());
+						}
 					}
 				}
 			}
@@ -262,7 +270,7 @@ public class DSAagentTest < V extends Addable<V>, U extends Addable<U> > extends
 		suite.addTest(tmp);
 		
 		tmp = new TestSuite ("Tests DSA A using QueueIOPipes and a different type of start message AddableInteger utilities");
-		tmp.addTest(new RepeatedTest (new DSAagentTest<AddableInteger, AddableInteger> (true, false, false, false, "START NOW!", DSA.A.class.getName(), AddableInteger.class, AddableInteger.class), 50));
+		tmp.addTest(new RepeatedTest (new DSAagentTest<AddableInteger, AddableInteger> (true, false, false, false, new MessageType ("START NOW!"), DSA.A.class.getName(), AddableInteger.class, AddableInteger.class), 50));
 		suite.addTest(tmp);
 		
 		tmp = new TestSuite ("Tests DSA A using QueueIOPipes and AddableReal utilities");
@@ -334,7 +342,7 @@ public class DSAagentTest < V extends Addable<V>, U extends Addable<U> > extends
 		suite.addTest(tmp);
 		
 		tmp = new TestSuite ("Tests DSA A using QueueIOPipes and a different type of start message AddableReal utilities");
-		tmp.addTest(new RepeatedTest (new DSAagentTest<AddableInteger, AddableReal> (true, false, false, false, "START NOW!", DSA.A.class.getName(), AddableInteger.class, AddableReal.class), 50));
+		tmp.addTest(new RepeatedTest (new DSAagentTest<AddableInteger, AddableReal> (true, false, false, false, new MessageType ("START NOW!"), DSA.A.class.getName(), AddableInteger.class, AddableReal.class), 50));
 		suite.addTest(tmp);
 		
 		return suite;
@@ -457,13 +465,13 @@ public class DSAagentTest < V extends Addable<V>, U extends Addable<U> > extends
 	}
 
 	/** @see frodo2.communication.IncomingMsgPolicyInterface#getMsgTypes() */
-	public Collection<String> getMsgTypes() {
-		ArrayList<String> types = new ArrayList<String> (5);
+	public Collection<MessageType> getMsgTypes() {
+		ArrayList<MessageType> types = new ArrayList<MessageType> (5);
 		types.add(AgentInterface.LOCAL_AGENT_REPORTING);
 		types.add(AgentInterface.LOCAL_AGENT_ADDRESS_REQUEST);
 		types.add(AgentInterface.AGENT_CONNECTED);
 		types.add(AgentInterface.AGENT_FINISHED);
-		types.add(DSA.OUTPUT_MSG_TYPE);
+		types.add(SolutionCollector.ASSIGNMENT_MSG_TYPE);
 		return types;
 	}
 
@@ -471,7 +479,7 @@ public class DSAagentTest < V extends Addable<V>, U extends Addable<U> > extends
 	@SuppressWarnings("unchecked")
 	public void notifyIn(Message msg) {
 		
-		String msgType = msg.getType();
+		MessageType msgType = msg.getType();
 		
 		if (msgType.equals(AgentInterface.LOCAL_AGENT_REPORTING)) {
 			LocalAgentReport msgCast = (LocalAgentReport) msg;
@@ -523,12 +531,12 @@ public class DSAagentTest < V extends Addable<V>, U extends Addable<U> > extends
 				assertTrue (queue.getCurrentMessageWrapper().getTime() >= 0);
 		}
 		
-		else if (msgType.equals(DSA.OUTPUT_MSG_TYPE)) {
+		else if (msgType.equals(SolutionCollector.ASSIGNMENT_MSG_TYPE)) {
 			
 			if (this.countNCCCs)  {
 				
 				// Don't check the NCCC counter if this variable is unconstrained
-				AssignmentMessage<V, U> msgCast = (AssignmentMessage<V, U>) msg;
+				SolutionCollector.AssignmentMessage<V> msgCast = (SolutionCollector.AssignmentMessage<V>) msg;
 				if (this.problem.getSolutionSpaces(msgCast.getVariable(), null).isEmpty()) 
 					return;
 				

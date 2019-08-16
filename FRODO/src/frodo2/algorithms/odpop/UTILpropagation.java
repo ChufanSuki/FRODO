@@ -28,12 +28,14 @@ import org.jdom2.Element;
 
 import frodo2.algorithms.AgentInterface;
 import frodo2.algorithms.StatsReporter;
+import frodo2.algorithms.odpop.DONEmsg;
 import frodo2.algorithms.odpop.Good;
 import frodo2.algorithms.odpop.goodsTree.GoodsTree;
 import frodo2.algorithms.odpop.goodsTree.InnerNodeTree.InnerNodeTree;
 import frodo2.algorithms.odpop.goodsTree.InnerNodeTree.LeafNode;
 import frodo2.algorithms.odpop.goodsTree.leafNodeTree.LeafNodeTree;
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 import frodo2.solutionSpaces.Addable;
 import frodo2.solutionSpaces.DCOPProblemInterface;
 import frodo2.solutionSpaces.UtilitySolutionSpace;
@@ -82,7 +84,7 @@ public class UTILpropagation < Val extends Addable<Val>, U extends Addable<U> > 
 	 */
 	@SuppressWarnings("unchecked")
 	public void notifyIn(Message msg) {
-		String type = msg.getType();
+		MessageType type = msg.getType();
 
 		if(this.agentFinished)
 			return;

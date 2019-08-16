@@ -37,6 +37,7 @@ import frodo2.algorithms.dpop.param.ParamUTIL;
 import frodo2.algorithms.dpop.param.ParamUTIL.OptUtilMessage;
 import frodo2.algorithms.dpop.test.UTILpropagationTest;
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 import frodo2.solutionSpaces.Addable;
 import frodo2.solutionSpaces.AddableInteger;
 import frodo2.solutionSpaces.AddableReal;
@@ -171,8 +172,8 @@ public class ParamUTILtest < U extends Addable<U> > extends UTILpropagationTest<
 
 		/** @see frodo2.algorithms.dpop.test.UTILpropagationTest.Listener#getMsgTypes() */
 		@Override
-		public Collection<String> getMsgTypes() {
-			ArrayList<String> types = new ArrayList<String> (2);
+		public Collection<MessageType> getMsgTypes() {
+			ArrayList<MessageType> types = new ArrayList<MessageType> (2);
 			types.add(ParamUTIL.SEPARATOR_MSG_TYPE);
 			types.add(ParamUTIL.OPT_PARAM_UTIL_MSG_TYPE);
 			return types;

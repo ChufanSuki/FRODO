@@ -37,7 +37,9 @@ import frodo2.algorithms.dpop.param.ParamUTIL;
 import frodo2.algorithms.dpop.param.ParamVALUE;
 import frodo2.algorithms.dpop.param.ParamUTIL.OptUtilMessage;
 import frodo2.algorithms.dpop.test.VALUEpropagationTest;
+import frodo2.communication.IncomingMsgPolicyInterface;
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 import frodo2.communication.Queue;
 import frodo2.solutionSpaces.Addable;
 import frodo2.solutionSpaces.AddableInteger;
@@ -157,10 +159,11 @@ public class ParamVALUEtest < U extends Addable<U> > extends VALUEpropagationTes
 		 * @throws InstantiationException 		would be thrown if ParamVALUE were abstract
 		 * @throws IllegalArgumentException 	if the ParamVALUE constructor does not take the proper arguments
 		 */
+		@SuppressWarnings("unchecked")
 		public Listener (boolean useTCP, boolean useXML) 
 		throws IOException, NoSuchMethodException, IllegalArgumentException, 
 		InstantiationException, IllegalAccessException, InvocationTargetException {
-			super (useTCP, useXML, ParamUTIL.class, ParamVALUE.class, true);
+			super (useTCP, useXML, ParamUTIL.class, (Class<? extends IncomingMsgPolicyInterface<MessageType>>) ParamVALUE.class, true);
 		}
 		
 		/** @see frodo2.algorithms.dpop.test.VALUEpropagationTest.Listener#checkOutput() */
@@ -190,8 +193,8 @@ public class ParamVALUEtest < U extends Addable<U> > extends VALUEpropagationTes
 		
 		/** @see frodo2.algorithms.dpop.test.VALUEpropagationTest.Listener#getMsgTypes() */
 		@Override
-		public Collection<String> getMsgTypes() {
-			ArrayList<String> types = new ArrayList<String> (2);
+		public Collection<MessageType> getMsgTypes() {
+			ArrayList<MessageType> types = new ArrayList<MessageType> (2);
 			types.add(ParamVALUE.PARAM_OUTPUT_MSG_TYPE);
 			types.add(ParamUTIL.OPT_PARAM_UTIL_MSG_TYPE);
 			return types;
@@ -202,7 +205,7 @@ public class ParamVALUEtest < U extends Addable<U> > extends VALUEpropagationTes
 		@SuppressWarnings("unchecked")
 		public void notifyIn(Message msg) {
 
-			String type = msg.getType();
+			MessageType type = msg.getType();
 			
 			if (type.equals(ParamUTIL.OPT_PARAM_UTIL_MSG_TYPE)) { // message sent by a root containing the optimal utility value
 				OptUtilMessage<AddableInteger, U> msgCast = (OptUtilMessage<AddableInteger, U>) msg;

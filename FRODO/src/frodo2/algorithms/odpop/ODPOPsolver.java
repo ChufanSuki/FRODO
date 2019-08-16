@@ -25,13 +25,17 @@ package frodo2.algorithms.odpop;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.TreeMap;
 
 import org.jdom2.Document;
 
 import frodo2.algorithms.AbstractDCOPsolver;
+import frodo2.algorithms.SolutionCollector;
 import frodo2.algorithms.StatsReporter;
+import frodo2.algorithms.odpop.ODPOPsolution;
 import frodo2.algorithms.varOrdering.dfs.DFSgeneration;
+import frodo2.communication.MessageType;
 import frodo2.solutionSpaces.Addable;
 
 /** A DCOP solver using O-DPOP
@@ -50,6 +54,9 @@ extends AbstractDCOPsolver< V, U, ODPOPsolution<V, U> > {
 	
 	/** The DFSgeneration module */
 	protected DFSgeneration<V, U> dfsModule;
+	
+	/** The solution collector */
+	private SolutionCollector<V, U> solCollector;
 
 	/** Default constructor */
 	public ODPOPsolver () {
@@ -149,7 +156,7 @@ extends AbstractDCOPsolver< V, U, ODPOPsolution<V, U> > {
 	@Override
 	public ArrayList<StatsReporter> getSolGatherers() {
 		
-		ArrayList<StatsReporter> solGatherers = new ArrayList<StatsReporter> (3);
+		ArrayList<StatsReporter> solGatherers = new ArrayList<StatsReporter> (4);
 		
 		dfsModule = new DFSgeneration<V, U> (null, problem);
 		dfsModule.setSilent(true);
@@ -163,6 +170,10 @@ extends AbstractDCOPsolver< V, U, ODPOPsolution<V, U> > {
 		valueModule.setSilent(true);
 		solGatherers.add(valueModule);
 		
+		this.solCollector = new SolutionCollector<V, U> (null, problem);
+		this.solCollector.setSilent(true);
+		solGatherers.add(this.solCollector);
+		
 		return solGatherers;
 	}
 	
@@ -170,14 +181,14 @@ extends AbstractDCOPsolver< V, U, ODPOPsolution<V, U> > {
 	@Override
 	public ODPOPsolution<V, U> buildSolution() {
 		
-		HashMap<String, V> assignment = valueModule.getOptAssignments();
-		U utility = problem.getUtility(assignment).getUtility(0);
+		Map<String, V> assignment = this.solCollector.getSolution();
+		U utility = this.solCollector.getUtility();
 		int nbrMsgs = factory.getNbrMsgs();
-		TreeMap<String, Integer> msgNbrs = factory.getMsgNbrs();
+		TreeMap<MessageType, Integer> msgNbrs = factory.getMsgNbrs();
 		long msgSize = factory.getTotalMsgSize();
-		TreeMap<String, Long> msgSizes = factory.getMsgSizes();
+		TreeMap<MessageType, Long> msgSizes = factory.getMsgSizes();
 		long maxMsgSize = factory.getOverallMaxMsgSize();
-		TreeMap<String, Long> maxMsgSizes = factory.getMaxMsgSizes();
+		TreeMap<MessageType, Long> maxMsgSizes = factory.getMaxMsgSizes();
 		double averageTreeFillPercentage = valueModule.getAverageFillTreePercentage();
 		double averageDummyFullPercentage = valueModule.getAverageDummyFillTreePercentage();
 		double averageNumberOfDummies = valueModule.getAverageNumberOfDummies();
@@ -201,6 +212,7 @@ extends AbstractDCOPsolver< V, U, ODPOPsolution<V, U> > {
 		super.clear();
 		this.utilModule = null;
 		this.valueModule = null;
+		this.solCollector = null;
 	}
 
 }

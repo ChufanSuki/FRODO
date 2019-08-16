@@ -38,6 +38,7 @@ import frodo2.algorithms.varOrdering.election.MaxIDmsg;
 import frodo2.algorithms.varOrdering.election.VarElectionMessenger;
 import frodo2.communication.IncomingMsgPolicyInterface;
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 import frodo2.communication.Queue;
 
 /** JUnit test for the class VarElectionMEssengerTest */
@@ -47,7 +48,7 @@ public class VarElectionMessengerTest extends LeaderElectionMaxIDTest<Integer> {
 	 * A IncomingMsgPolicyInterface used in JUNIT VarElectionMessengerTest to test whenever ID send are strictly increasing
 	 * @author Eric Zbinden
 	 */
-	private class IdIncreasingVerifyer implements IncomingMsgPolicyInterface<String> {
+	private class IdIncreasingVerifyer implements IncomingMsgPolicyInterface<MessageType> {
 		
 		/**
 		 * A map containing all last ID received from all neighbors
@@ -92,8 +93,8 @@ public class VarElectionMessengerTest extends LeaderElectionMaxIDTest<Integer> {
 		/**
 		 * @see frodo2.communication.MessageListener#getMsgTypes()
 		 */
-		public Collection<String> getMsgTypes() {
-			ArrayList <String> msgTypes = new ArrayList <String> (1);
+		public Collection<MessageType> getMsgTypes() {
+			ArrayList <MessageType> msgTypes = new ArrayList <MessageType> (1);
 			msgTypes.add(LeaderElectionMaxID.LE_MSG_TYPE);
 			return msgTypes;
 		}
@@ -144,16 +145,16 @@ public class VarElectionMessengerTest extends LeaderElectionMaxIDTest<Integer> {
 	 */
 	protected Map<String, Integer> initiatingIDandListener(){
 		
-		Map<String, Integer> uniqueIDs = new HashMap<String, Integer>(queues.length);
+		Map<String, Integer> uniqueIDs = new HashMap<String, Integer>(queues.size());
 		
 		//Generate ID
-		List<Integer> ids = new ArrayList<Integer>(queues.length);
+		HashMap<String, Integer> ids = new HashMap<String, Integer>(queues.size());
 		Random rand = new Random();
 		boolean colision;
 		do{
 			colision = false;
 			int max = Integer.MIN_VALUE;
-			for(int i=0; i<queues.length;i++){
+			for(String agent : queues.keySet()){
 				int newID = rand.nextInt();
 				if (newID == max){
 					colision = true;
@@ -161,26 +162,27 @@ public class VarElectionMessengerTest extends LeaderElectionMaxIDTest<Integer> {
 					max = newID;
 					colision = false;
 				}
-				ids.add(newID);
+				ids.put(agent, newID);
 			}
 			
 		}while(colision);
 		
 		// Generate the listeners
-		for (int i =0; i<queues.length; i++) {
-			String name = graph.nodes.get(i);
+		for (Map.Entry<String, Queue> entry : queues.entrySet()) {
+			String name = entry.getKey();
 			
 			//link name and id
-			uniqueIDs.put(name, ids.get(i));
+			uniqueIDs.put(name, ids.get(name));
 			
 			//listeners
-			queues[i].addIncomingMessagePolicy(new VarElectionMessenger(
+			Queue queue = entry.getValue();
+			queue.addIncomingMessagePolicy(new VarElectionMessenger(
 					name,
-					ids.get(i),
+					ids.get(name),
 					graph.neighborhoods.get(name),
 					nbrAgents - 1)); //add to compute the algo
-			queues[i].addIncomingMessagePolicy(this); //add to verify the result
-			queues[i].addIncomingMessagePolicy(new IdIncreasingVerifyer(graph.neighborhoods.get(name))); //add to verify ID increasing or not			
+			queue.addIncomingMessagePolicy(this); //add to verify the result
+			queue.addIncomingMessagePolicy(new IdIncreasingVerifyer(graph.neighborhoods.get(name))); //add to verify ID increasing or not			
 		}
 		
 		return uniqueIDs;

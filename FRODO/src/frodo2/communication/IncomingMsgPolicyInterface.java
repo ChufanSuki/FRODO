@@ -30,9 +30,17 @@ package frodo2.communication;
  */
 public interface IncomingMsgPolicyInterface <T> extends MessageListener<T> {
 	
-	/** Notifies the object of an incoming object
+	/** Notifies the listener of an incoming message
 	 * @param msg Incoming object 
 	 */
 	public void notifyIn (Message msg);
+	
+	/** Notifies the listener of an incoming message
+	 * @param msg 		incoming object 
+	 * @param toAgent 	ID of the destination agent
+	 */
+	public default void notifyIn (Message msg, Object toAgent) {
+		this.notifyIn(msg);
+	}
 	
 }

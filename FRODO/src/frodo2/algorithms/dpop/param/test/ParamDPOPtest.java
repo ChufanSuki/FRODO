@@ -38,6 +38,7 @@ import frodo2.algorithms.dpop.param.ParamUTIL;
 import frodo2.algorithms.dpop.param.ParamVALUE;
 import frodo2.algorithms.dpop.test.DPOPagentTest;
 import frodo2.algorithms.test.AllTests;
+import frodo2.communication.MessageType;
 import frodo2.communication.Queue;
 import frodo2.communication.QueueOutputPipeInterface;
 import frodo2.communication.mailer.CentralMailer;
@@ -80,7 +81,7 @@ public class ParamDPOPtest < V extends Addable<V>, U extends Addable<U> > extend
 	 * @param domClass 			the class used for variable values
 	 * @param utilClass 		the class used for utility values
 	 */
-	public ParamDPOPtest(boolean useXCSP, boolean useTCP, boolean allProbs, boolean useCentralMailer, String startMsgType, Class<V> domClass, Class<U> utilClass) {
+	public ParamDPOPtest(boolean useXCSP, boolean useTCP, boolean allProbs, boolean useCentralMailer, MessageType startMsgType, Class<V> domClass, Class<U> utilClass) {
 		super(useXCSP, useTCP, useCentralMailer, false, domClass, utilClass, startMsgType);
 	}
 
@@ -117,7 +118,7 @@ public class ParamDPOPtest < V extends Addable<V>, U extends Addable<U> > extend
 		suite.addTest(tmp);
 		
 		tmp = new TestSuite ("Tests using QueueIOPipes with a different type for the start message");
-		tmp.addTest(new RepeatedTest (new ParamDPOPtest<AddableInteger, AddableInteger> (true, false, false, false, "START NOW!", AddableInteger.class, AddableInteger.class), 50));
+		tmp.addTest(new RepeatedTest (new ParamDPOPtest<AddableInteger, AddableInteger> (true, false, false, false, new MessageType ("START NOW!"), AddableInteger.class, AddableInteger.class), 50));
 		suite.addTest(tmp);
 		
 		return suite;

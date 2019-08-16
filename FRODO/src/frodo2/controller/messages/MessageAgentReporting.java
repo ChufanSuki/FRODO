@@ -31,6 +31,7 @@ import java.io.ObjectOutput;
 
 import frodo2.communication.AgentAddress;
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 
 /**
  * @author brammertottens
@@ -44,10 +45,10 @@ import frodo2.communication.Message;
 public class MessageAgentReporting extends Message {
 
 	/** The type of the message used by an agent to report to the white pages*/
-	public static final String AGENT_REPORTING = "Agent-Reporting";
+	public static final MessageType AGENT_REPORTING = MessageType.SYSTEM.newChild("MessageAgentReporting", "Agent-Reporting");
 	
 	/** The type of the message used by an daemon to report to the white pages*/
-	public static final String DEAMON_REPORTING = "Daemon-Reporting";
+	public static final MessageType DEAMON_REPORTING = MessageType.SYSTEM.newChild("MessageAgentReporting", "Daemon-Reporting");
 	
 	/** The ID of the agent*/
 	private String ID;
@@ -64,7 +65,7 @@ public class MessageAgentReporting extends Message {
 	 * @param ID the ID of the agent
 	 * @param address the address of the agent
 	 */
-	public MessageAgentReporting(String type, String ID, AgentAddress address) {
+	public MessageAgentReporting(MessageType type, String ID, AgentAddress address) {
 		super(type);
 		this.ID = ID;
 		this.address = address;

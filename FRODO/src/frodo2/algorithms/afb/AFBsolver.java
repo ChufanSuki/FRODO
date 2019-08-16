@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import org.jdom2.Document;
 
 import frodo2.algorithms.AbstractDCOPsolver;
+import frodo2.algorithms.SolutionCollector;
 import frodo2.algorithms.SolutionWithConvergence;
 import frodo2.algorithms.StatsReporter;
 import frodo2.solutionSpaces.Addable;
@@ -40,6 +41,9 @@ public class AFBsolver< V extends Addable<V>, U extends Addable<U> > extends Abs
 
 	/** The AFB module */
 	protected AFB<V, U> module;
+	
+	/** The solution collector module */
+	private SolutionCollector<V, U> solCollector;
 
 	/** Default constructor 
 	 * @param filename the name of the file containing the description of the algorithm*/
@@ -94,11 +98,15 @@ public class AFBsolver< V extends Addable<V>, U extends Addable<U> > extends Abs
 	@Override
 	public ArrayList<StatsReporter> getSolGatherers() {
 
-		ArrayList<StatsReporter> solGatherers = new ArrayList<StatsReporter> (1);
+		ArrayList<StatsReporter> solGatherers = new ArrayList<StatsReporter> (2);
 		
 		module = new AFB<V, U> (null, problem);
 		module.setSilent(true);
 		solGatherers.add(module);
+		
+		this.solCollector = new SolutionCollector<V, U> (null, problem);
+		this.solCollector.setSilent(true);
+		solGatherers.add(solCollector);
 		
 		return solGatherers;
 	}
@@ -106,7 +114,7 @@ public class AFBsolver< V extends Addable<V>, U extends Addable<U> > extends Abs
 	/** @see AbstractDCOPsolver#buildSolution() */
 	@Override
 	public SolutionWithConvergence<V, U> buildSolution () {
-		return new SolutionWithConvergence<V, U> (this.problem.getNbrVars(), module.getOptCost(), super.problem.getUtility(this.module.getOptAssignments()).getUtility(0), module.getOptAssignments(), 
+		return new SolutionWithConvergence<V, U> (this.problem.getNbrVars(), null, this.solCollector.getUtility(), this.solCollector.getSolution(), 
 				factory.getNbrMsgs(), factory.getMsgNbrs(), factory.getMsgNbrsSentPerAgent(), factory.getMsgNbrsReceivedPerAgent(), 
 				factory.getTotalMsgSize(), factory.getMsgSizes(), factory.getMsgSizesSentPerAgent(), factory.getMsgSizesReceivedPerAgent(), 
 				factory.getOverallMaxMsgSize(), factory.getMaxMsgSizes(), 

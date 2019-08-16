@@ -29,6 +29,7 @@ import java.io.ObjectOutput;
 import java.util.Arrays;
 
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 
 /** In MPC-DisCSP4, a message containing a vector of ElGamal-encrypted shares
  * @author Thomas Leaute
@@ -36,7 +37,7 @@ import frodo2.communication.Message;
 public class EncrSharesMsg extends Message implements Externalizable {
 	
 	/** The type of this message */
-	public final static String ENCR_SHARES_MSG_TYPE = "EncrSharesMsg";
+	public final static MessageType ENCR_SHARES_MSG_TYPE = new MessageType ("MPC", "EncrShares");
 	
 	/** The encrypted shares */
 	private PaillierInteger[] shares;

@@ -241,7 +241,7 @@ public class CordeauToXCSP {
 		
 		Float depotRadius = null;
 		if (args.length == 2) 
-			depotRadius = new Float (args[1]);
+			depotRadius = Float.valueOf(args[1]);
 		
 		String outputFile = file.getName() + (args.length == 2 ? "_radius" + args[1] : "") + 
 			(extensional ? "_extensional" : "") + 
@@ -316,7 +316,7 @@ public class CordeauToXCSP {
 		}
 		
 		if (depotRadius == null) 
-			depotRadius = (maxMaxDist > 0 ? new Float (maxMaxDist / 2.) : new Float(Float.MAX_VALUE));
+			depotRadius = (maxMaxDist > 0 ? Float.valueOf(maxMaxDist / 2f) : Float.valueOf(Float.MAX_VALUE));
 		
 		// Parse the description of each customer. The format is: 
 		// id x y 0 demand 1 nbrDepots [list of depots that can serve the customer, identified by 2^depotID]
@@ -371,7 +371,7 @@ public class CordeauToXCSP {
 					// Remove this customer if it is too far away
 					if (depotRadiusSquared < Math.pow(customer.x - depot.x, 2) + Math.pow(customer.y - depot.y, 2)) {
 						iter.remove();
-						customer.depots.remove(new Integer (depot.id));
+						customer.depots.remove(Integer.valueOf(depot.id));
 					}
 				}
 			}

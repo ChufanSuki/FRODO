@@ -33,6 +33,7 @@ import java.util.Collection;
 import frodo2.communication.AgentAddress;
 import frodo2.communication.IncomingMsgPolicyInterface;
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 import frodo2.communication.MessageWithPayload;
 import frodo2.communication.Queue;
 import frodo2.communication.QueueOutputPipeInterface;
@@ -47,7 +48,7 @@ import frodo2.controller.ConfigurationManager;
  * @author Brammert Ottens, Thomas Leaute
  *
  */
-public abstract class UserIO extends Thread implements IncomingMsgPolicyInterface<String> {
+public abstract class UserIO extends Thread implements IncomingMsgPolicyInterface<MessageType> {
 	
 	/** The daemon this UI belongs to*/
 	Daemon daemon;
@@ -56,7 +57,7 @@ public abstract class UserIO extends Thread implements IncomingMsgPolicyInterfac
 	Queue queue;
 	
 	/** The list of messages types this listener wants to be notified of */
-	private ArrayList <String> msgTypes = new ArrayList <String> ();
+	private ArrayList <MessageType> msgTypes = new ArrayList <MessageType> ();
 
 	/**
 	 * Constructor
@@ -87,7 +88,7 @@ public abstract class UserIO extends Thread implements IncomingMsgPolicyInterfac
 	/** 
 	 * @see frodo2.communication.IncomingMsgPolicyInterface#getMsgTypes()
 	 */
-	public Collection<String> getMsgTypes() {
+	public Collection<MessageType> getMsgTypes() {
 		return msgTypes;
 	}
 

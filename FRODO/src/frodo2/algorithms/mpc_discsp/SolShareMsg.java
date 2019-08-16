@@ -31,6 +31,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 
 /** A message containing shares of optimal values for some variables
  * @author Thomas Leaute
@@ -38,7 +39,7 @@ import frodo2.communication.Message;
 public class SolShareMsg extends Message implements Externalizable {
 	
 	/** The type of the messages containing shares of optimal values for some variables */
-	public static final String SOL_SHARE_MSG_TYPE = "SolutionShare";
+	public static final MessageType SOL_SHARE_MSG_TYPE = new MessageType ("MPC", "SolutionShare");
 	
 	/** The ID of the sender agent */
 	private int sender;

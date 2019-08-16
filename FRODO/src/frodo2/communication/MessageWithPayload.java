@@ -55,7 +55,7 @@ public class MessageWithPayload < T extends Serializable > extends Message {
 	 * @param type the type of this message
 	 * @param payload the payload of this message
 	 */
-	public MessageWithPayload(String type, T payload) {
+	public MessageWithPayload(MessageType type, T payload) {
 		super(type);
 		this.payload = payload;
 	}

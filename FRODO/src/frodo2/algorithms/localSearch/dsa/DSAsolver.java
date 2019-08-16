@@ -30,6 +30,7 @@ import org.jdom2.Document;
 import org.jdom2.Element;
 
 import frodo2.algorithms.AbstractDCOPsolver;
+import frodo2.algorithms.SolutionCollector;
 import frodo2.algorithms.SolutionWithConvergence;
 import frodo2.algorithms.StatsReporter;
 import frodo2.solutionSpaces.Addable;
@@ -47,6 +48,9 @@ public class DSAsolver < V extends Addable<V>, U extends Addable<U> > extends Ab
 	
 	/** The DSA module */
 	protected DSA<V, U> dsaModule;
+
+	/** The SolutionCollector module */
+	protected SolutionCollector<V, U> solCollector;
 
 	/**
 	 * Constructor
@@ -157,11 +161,15 @@ public class DSAsolver < V extends Addable<V>, U extends Addable<U> > extends Ab
 	@Override
 	public ArrayList<StatsReporter> getSolGatherers() {
 
-		ArrayList<StatsReporter> solGatherers = new ArrayList<StatsReporter> (1);
+		ArrayList<StatsReporter> solGatherers = new ArrayList<StatsReporter> (2);
 		
 		dsaModule = new DSA<V, U>((Element)null, problem);
 		dsaModule.setSilent(true);
 		solGatherers.add(dsaModule);
+		
+		solCollector = new SolutionCollector<V, U>((Element)null, problem);
+		solCollector.setSilent(true);
+		solGatherers.add(solCollector);
 		
 		return solGatherers;
 	}
@@ -172,7 +180,7 @@ public class DSAsolver < V extends Addable<V>, U extends Addable<U> > extends Ab
 		
 		HashMap<String, Long> timesNeeded = new HashMap<String, Long> ();
 
-		return new SolutionWithConvergence<V, U> (super.problem.getNbrVars(), dsaModule.getFinalUtility(), super.problem.getUtility(this.dsaModule.getFinalAssignments()).getUtility(0), dsaModule.getFinalAssignments(), 
+		return new SolutionWithConvergence<V, U> (super.problem.getNbrVars(), null, this.solCollector.getUtility(), solCollector.getSolution(), 
 				factory.getNbrMsgs(), factory.getMsgNbrs(), factory.getMsgNbrsSentPerAgent(), factory.getMsgNbrsReceivedPerAgent(), 
 				factory.getTotalMsgSize(), factory.getMsgSizes(), factory.getMsgSizesSentPerAgent(), factory.getMsgSizesReceivedPerAgent(), 
 				factory.getOverallMaxMsgSize(), factory.getMaxMsgSizes(), factory.getNcccs(), factory.getTime(), timesNeeded, dsaModule.getAssignmentHistories());
@@ -183,6 +191,7 @@ public class DSAsolver < V extends Addable<V>, U extends Addable<U> > extends Ab
 	public void clear () {
 		super.clear();
 		this.dsaModule = null;
+		this.solCollector = null;
 	}
 
 }

@@ -36,12 +36,15 @@ import java.util.Map;
 import org.jdom2.Element;
 
 import frodo2.algorithms.AgentInterface;
+import frodo2.algorithms.SolutionCollector;
 import frodo2.algorithms.StatsReporter;
+import frodo2.algorithms.odpop.VALUEmsgWithVars;
 import frodo2.algorithms.odpop.goodsTree.GoodsTree;
 import frodo2.algorithms.odpop.goodsTree.InnerNodeTree.LeafNode;
 import frodo2.algorithms.varOrdering.dfs.DFSgeneration;
 import frodo2.algorithms.varOrdering.dfs.DFSgeneration.DFSview;
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 import frodo2.communication.MessageWith2Payloads;
 import frodo2.communication.MessageWithPayload;
 import frodo2.communication.Queue;
@@ -57,24 +60,21 @@ import frodo2.solutionSpaces.DCOPProblemInterface;
 public class VALUEpropagation < Val extends Addable<Val>, U extends Addable<U> > implements StatsReporter {
 	
 	/** The type of the message telling the module to start */
-	public static String START_MSG_TYPE = AgentInterface.START_AGENT;
+	public static MessageType START_MSG_TYPE = AgentInterface.START_AGENT;
 	
 	/** The type of the value message */
-	public static final String VALUE_MSG_TYPE = "ODPOP_VALUE";
+	public static final MessageType VALUE_MSG_TYPE = new MessageType ("O-DPOP", "VALUEpropagation", "VALUE");
 	
 	/** The type of the message used to request the GoodsTree from the UTIL propagation module */
-	public static final String GOODS_TREE_REQUEST_MESSAGE = "Goodstree request message";
+	public static final MessageType GOODS_TREE_REQUEST_MESSAGE = new MessageType ("O-DPOP", "VALUEpropagation", "Goodstree request");
 	
 	/** The type of the output messages containing the optimal assignment to a variable */
-	public static final String OUTPUT_MSG_TYPE = "ODPOP_OutputMessageVALUEpropagation";
+	public static final MessageType OUTPUT_MSG_TYPE = new MessageType ("O-DPOP", "VALUEpropagation", "OutputVALUEpropagation");
 	
 	// Variables used to collect statistics
 
 	/** Whether to report stats */
 	private boolean reportStats = true;
-	
-	/** A repository for variable assignments collected in stats mode*/
-	private HashMap<String, Val> assignments;
 	
 	// Variables needed during runtime
 	/** The agent's problem */
@@ -150,9 +150,7 @@ public class VALUEpropagation < Val extends Addable<Val>, U extends Addable<U> >
 	 * @param problem 		the overall problem
 	 * @param parameters 	the description of what statistics should be reported (currently unused)
 	 */
-	public VALUEpropagation(Element parameters, DCOPProblemInterface<Val, U> problem) {
-		assignments = new HashMap<String, Val>();
-	}
+	public VALUEpropagation(Element parameters, DCOPProblemInterface<Val, U> problem) { }
 	
 	/**
 	 * Constructor used in the AgentFactory
@@ -172,13 +170,6 @@ public class VALUEpropagation < Val extends Addable<Val>, U extends Addable<U> >
 		queue.addIncomingMessagePolicy(OUTPUT_MSG_TYPE, this);
 	}
 
-	/**
-	 * @return the assignments reported by the different variables
-	 */
-	public HashMap<String, Val> getOptAssignments() {
-		return this.assignments;
-	}
-	
 	/**
 	 * Returns the time at which this module has finished, 
 	 * determined by looking at the timestamp of the stat messages
@@ -241,8 +232,8 @@ public class VALUEpropagation < Val extends Addable<Val>, U extends Addable<U> >
 	/**
 	 * @see frodo2.communication.IncomingMsgPolicyInterface#getMsgTypes()
 	 */
-	public Collection<String> getMsgTypes() {
-		ArrayList <String> msgTypes = new ArrayList<String>(5);
+	public Collection<MessageType> getMsgTypes() {
+		ArrayList <MessageType> msgTypes = new ArrayList<MessageType>(5);
 		msgTypes.add(START_MSG_TYPE);
 		msgTypes.add(VALUE_MSG_TYPE);
 		msgTypes.add(UTILpropagationFullDomain.GOODS_TREE_MSG_TYPE);
@@ -259,11 +250,10 @@ public class VALUEpropagation < Val extends Addable<Val>, U extends Addable<U> >
 		if(this.agentFinished)
 			return;
 		
-		String type = msg.getType();
+		MessageType type = msg.getType();
 		
 		if(type.equals(OUTPUT_MSG_TYPE)) {
 			AssignmentMessage<Val, U> msgCast = (AssignmentMessage<Val, U>)msg;
-			assignments.put(msgCast.getVariable(), msgCast.getValue());
 			
 			this.cumulativeFillPercentage += msgCast.getTreeFillPercentage();
 			this.cumulativeDummyFillPercentage += msgCast.getDummyFillPercentage();
@@ -273,8 +263,6 @@ public class VALUEpropagation < Val extends Addable<Val>, U extends Addable<U> >
 			this.spaceSize = msgCast.getSpaceSize();
 			this.maximalCutSum = this.maximalCutSum == null ? msgCast.getMaximalCut() : maximalCutSum.add(msgCast.getMaximalCut());
 
-			if (this.reportStats) 
-				System.out.println("var `" + msgCast.getVariable() + "' = " + msgCast.getValue());
 			long time = queue.getCurrentMessageWrapper().getTime();
 			if(finalTime < time)
 				finalTime = time;
@@ -403,7 +391,6 @@ public class VALUEpropagation < Val extends Addable<Val>, U extends Addable<U> >
 		this.contextMap = null;
 		this.loggers = null;
 		this.started = false;
-		assignments = new HashMap<String, Val>();		
 	}
 
 	/**
@@ -426,8 +413,10 @@ public class VALUEpropagation < Val extends Addable<Val>, U extends Addable<U> >
 				VALUEmsgWithVars<Val> msg = new VALUEmsgWithVars<Val>(child, null);
 				sendMessageToVariable(child, msg);
 			}
+			
+			this.queue.sendMessage(AgentInterface.STATS_MONITOR, new SolutionCollector.AssignmentMessage<Val>(varID, val));
 			if (this.reportStats) 
-				queue.sendMessage(AgentInterface.STATS_MONITOR, new VALUEpropagation.AssignmentMessage<Val, U> (varID, val, 1, 1, 1, 1, 1, problem.getZeroUtility()));
+				queue.sendMessage(AgentInterface.STATS_MONITOR, new VALUEpropagation.AssignmentMessage<Val, U> (1, 1, 1, 1, 1, problem.getZeroUtility()));
 		} else {
 			HashMap<String, Val> currentContext = contextMap.get(varIndex);
 			tree.getBestAssignmentForOwnVariable(currentContext);
@@ -441,8 +430,10 @@ public class VALUEpropagation < Val extends Addable<Val>, U extends Addable<U> >
 				VALUEmsgWithVars<Val> msg = new VALUEmsgWithVars<Val>(child, tree.getChildValues(currentContext, i));
 				sendMessageToVariable(child, msg);
 			}
+			
+			this.queue.sendMessage(AgentInterface.STATS_MONITOR, new SolutionCollector.AssignmentMessage<Val>(varID, val));
 			if (this.reportStats) 
-				queue.sendMessage(AgentInterface.STATS_MONITOR, new VALUEpropagation.AssignmentMessage<Val, U> (varID, val, tree.getTreeFillPercentage(), tree.getDummiesFillPercentage(), tree.getNumberOfDummies(), tree.getNumberOfGoodsSent(), tree.getSizeOfSpace(), tree.getMaximalCut()));
+				queue.sendMessage(AgentInterface.STATS_MONITOR, new VALUEpropagation.AssignmentMessage<Val, U> (tree.getTreeFillPercentage(), tree.getDummiesFillPercentage(), tree.getNumberOfDummies(), tree.getNumberOfGoodsSent(), tree.getSizeOfSpace(), tree.getMaximalCut()));
 		}
 		
 
@@ -489,7 +480,7 @@ public class VALUEpropagation < Val extends Addable<Val>, U extends Addable<U> >
 	 * @param <U>   type used for utility values
 	 */
 	public static class AssignmentMessage < Val extends Addable<Val>, U extends Addable<U> >
-	extends MessageWith2Payloads <String, Val> {
+	extends Message {
 	
 		/** Stores what percentage of the tree is filled */
 		private double treeFillPercentage;
@@ -539,16 +530,6 @@ public class VALUEpropagation < Val extends Addable<Val>, U extends Addable<U> >
 			this.maximalCut = (U) in.readObject();
 		}
 
-		/** Constructor 
-		 * @param var 		the variable
-		 * @param val 		the value assigned to the variable \a var
-		 * @param treeFillPercentage the percentage of nodes in the tree
-		 */
-		public AssignmentMessage (String var, Val val, double treeFillPercentage) {
-			super (OUTPUT_MSG_TYPE, var, val);
-			this.treeFillPercentage = treeFillPercentage;
-		}
-		
 		/**
 		 * @author Brammert Ottens, 20 jan. 2011
 		 * @return the total number of possible assignments
@@ -566,8 +547,6 @@ public class VALUEpropagation < Val extends Addable<Val>, U extends Addable<U> >
 		}
 
 		/** Constructor 
-		 * @param var 					the variable
-		 * @param val 					the value assigned to the variable \a var
 		 * @param treeFillPercentage 	the percentage of nodes in the tree
 		 * @param dummyFillPercentage 	the percentage of dummy nodes in the tree
 		 * @param numberOfDummies 		the absolute number of dummy nodes in the tree
@@ -575,8 +554,8 @@ public class VALUEpropagation < Val extends Addable<Val>, U extends Addable<U> >
 		 * @param spaceSize 			the total number of possible assignments in the space
 		 * @param maximalCut 			the maximal value with which a utility value has been cut
 		 */
-		public AssignmentMessage (String var, Val val, double treeFillPercentage, double dummyFillPercentage, long numberOfDummies, long numberOfGoodsSent, long spaceSize, U maximalCut) {
-			this (var, val, treeFillPercentage, dummyFillPercentage, numberOfDummies);
+		public AssignmentMessage (double treeFillPercentage, double dummyFillPercentage, long numberOfDummies, long numberOfGoodsSent, long spaceSize, U maximalCut) {
+			this (treeFillPercentage, dummyFillPercentage, numberOfDummies);
 			this.numberOfGoodsSent = numberOfGoodsSent;
 			this.spaceSize = spaceSize;
 			this.maximalCut = maximalCut;
@@ -584,29 +563,17 @@ public class VALUEpropagation < Val extends Addable<Val>, U extends Addable<U> >
 		}
 		
 		/** Constructor 
-		 * @param var 		the variable
-		 * @param val 		the value assigned to the variable \a var
 		 * @param treeFillPercentage the percentage of nodes in the tree
 		 * @param dummyFillPercentage the percentage of dummy nodes in the tree
 		 * @param numberOfDummies the absolute number of dummy nodes in the tree
 		 */
-		public AssignmentMessage (String var, Val val, double treeFillPercentage, double dummyFillPercentage, long numberOfDummies) {
-			super (OUTPUT_MSG_TYPE, var, val);
+		public AssignmentMessage (double treeFillPercentage, double dummyFillPercentage, long numberOfDummies) {
+			super (OUTPUT_MSG_TYPE);
 			this.treeFillPercentage = treeFillPercentage;
 			this.dummyFillPercentage = dummyFillPercentage;
 			this.numberOfDummies = numberOfDummies;
 		}
 	
-		/** @return the variable */
-		public String getVariable () {
-			return this.getPayload1();
-		}
-	
-		/** @return the value */
-		public Val getValue () {
-			return this.getPayload2();
-		}
-		
 		/**
 		 * @author Brammert Ottens, 7 jan 2010
 		 * @return treeFillPercentage

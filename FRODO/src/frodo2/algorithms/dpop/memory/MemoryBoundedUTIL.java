@@ -40,6 +40,7 @@ import frodo2.algorithms.dpop.VALUEpropagation;
 import frodo2.algorithms.dpop.memory.LabelingPhase.OutputMsg;
 import frodo2.algorithms.varOrdering.dfs.DFSgeneration;
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 import frodo2.solutionSpaces.Addable;
 import frodo2.solutionSpaces.DCOPProblemInterface;
 import frodo2.solutionSpaces.UtilitySolutionSpace;
@@ -63,19 +64,19 @@ import frodo2.solutionSpaces.hypercube.ScalarSpaceIter;
 public class MemoryBoundedUTIL < V extends Addable<V>, U extends Addable<U> > extends UTILpropagation<V, U> {
 	
 	/** The type of the message telling the module to start */
-	public static String START_MSG_TYPE = AgentInterface.START_AGENT;
+	public static MessageType START_MSG_TYPE = AgentInterface.START_AGENT;
 	
 	/** @return the type of the start message */
 	@Override
-	public String getStartMsgType () {
+	public MessageType getStartMsgType () {
 		return START_MSG_TYPE;
 	}
 
 	/** The type of the messages containing information about the DFS */
-	public static String DFS_MSG_TYPE = DFSgeneration.OUTPUT_MSG_TYPE;
+	public static MessageType DFS_MSG_TYPE = DFSgeneration.OUTPUT_MSG_TYPE;
 	
 	/** @return the type of the DFS output */
-	public String getDFSMsgType () {
+	public MessageType getDFSMsgType () {
 		return DFS_MSG_TYPE;
 	}
 	
@@ -128,9 +129,9 @@ public class MemoryBoundedUTIL < V extends Addable<V>, U extends Addable<U> > ex
 
 	/** @see UTILpropagation#getMsgTypes() */
 	@Override
-	public Collection<String> getMsgTypes() {
+	public Collection<MessageType> getMsgTypes() {
 		
-		Collection<String> types = super.getMsgTypes();
+		Collection<MessageType> types = super.getMsgTypes();
 		types.add(LabelingPhase.OUTPUT_MSG_TYPE);
 		types.add(LabelMsg.LABEL_MSG_TYPE);
 		types.add(ContextMsg.CONTEXT_MSG_TYPE);
@@ -152,7 +153,7 @@ public class MemoryBoundedUTIL < V extends Addable<V>, U extends Addable<U> > ex
 	@Override
 	public void notifyIn (Message msg) {
 		
-		String msgType = msg.getType();
+		MessageType msgType = msg.getType();
 		
 //		System.out.println(msg);
 		

@@ -44,6 +44,7 @@ import frodo2.algorithms.dpop.test.UTILpropagationTest;
 import frodo2.algorithms.test.AllTests;
 import frodo2.communication.IncomingMsgPolicyInterface;
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 import frodo2.communication.Queue;
 import frodo2.solutionSpaces.AddableInteger;
 import frodo2.solutionSpaces.AddableReal;
@@ -72,7 +73,7 @@ public class SamplingPhaseTest extends LowestCommonAncestorsTest {
 	private HashMap< String, Collection<String> > allHigherRelevantRandVars;
 
 	/** The inner class under test */
-	private Class< ? extends IncomingMsgPolicyInterface<String> > versionClass;
+	private Class< ? extends IncomingMsgPolicyInterface<MessageType> > versionClass;
 	
 	/** Where random variables should be projected out (leaves, lcas, or roots) */
 	private String whereToProj;
@@ -81,7 +82,7 @@ public class SamplingPhaseTest extends LowestCommonAncestorsTest {
 	 * @param versionClass 	the inner class under test 
 	 * @param whereToProj 	where random variables should be projected out (leaves, lcas, or roots)
 	 */
-	public SamplingPhaseTest (Class< ? extends IncomingMsgPolicyInterface<String> > versionClass, String whereToProj) {
+	public SamplingPhaseTest (Class< ? extends IncomingMsgPolicyInterface<MessageType> > versionClass, String whereToProj) {
 		super ("test");
 		this.versionClass = versionClass;
 		this.whereToProj = whereToProj;
@@ -242,11 +243,11 @@ public class SamplingPhaseTest extends LowestCommonAncestorsTest {
 		parameters.setAttribute("whereToProject", this.whereToProj);
 
 		for (String agent : parser.getAgents()) {
-			Queue queue = queues[Integer.parseInt(agent)];
+			Queue queue = queues.get(agent);
 			queue.addIncomingMessagePolicy(this);
 
 			// Create the SamplingPhase module
-			Constructor< ? extends IncomingMsgPolicyInterface<String> > constructor = this.versionClass.getConstructor(DCOPProblemInterface.class, Element.class);
+			Constructor< ? extends IncomingMsgPolicyInterface<MessageType> > constructor = this.versionClass.getConstructor(DCOPProblemInterface.class, Element.class);
 			XCSPparser<AddableInteger, AddableReal> subProblem = parser.getSubProblem(agent);
 			queue.setProblem(subProblem);
 			this.subProblems.put(agent, subProblem);
@@ -257,8 +258,8 @@ public class SamplingPhaseTest extends LowestCommonAncestorsTest {
 	
 	/** @see LowestCommonAncestorsTest#getMsgTypes() */
 	@Override 
-	public Collection<String> getMsgTypes() {
-		ArrayList<String> types = new ArrayList<String> (2);
+	public Collection<MessageType> getMsgTypes() {
+		ArrayList<MessageType> types = new ArrayList<MessageType> (2);
 		types.add(SamplingPhase.PHASE2_MSG_TYPE);
 		types.add(SamplingPhase.RAND_VARS_PROJ_MSG_TYPE);
 		return types;
@@ -269,7 +270,7 @@ public class SamplingPhaseTest extends LowestCommonAncestorsTest {
 	@Override 
 	public void notifyIn(Message msg) {
 		
-		String type = msg.getType();
+		MessageType type = msg.getType();
 		
 		if (type.equals(SamplingPhase.PHASE2_MSG_TYPE)) {
 			

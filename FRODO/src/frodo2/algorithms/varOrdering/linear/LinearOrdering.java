@@ -41,6 +41,7 @@ import frodo2.algorithms.varOrdering.election.LeaderElectionMaxID;
 import frodo2.algorithms.varOrdering.election.LeaderElectionMaxID.MessageLEoutput;
 import frodo2.algorithms.varOrdering.linear.LinearOrdering.MaxWidthMinDom.IntIntStringTuple;
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 import frodo2.communication.Queue;
 import frodo2.solutionSpaces.Addable;
 import frodo2.solutionSpaces.DCOPProblemInterface;
@@ -181,19 +182,19 @@ public class LinearOrdering < V extends Addable<V>, U extends Addable<U> > imple
 	}
 
 	/** The type of the message telling the module to start */
-	public static String START_MSG_TYPE = AgentInterface.START_AGENT;
+	public static MessageType START_MSG_TYPE = AgentInterface.START_AGENT;
 
 	/** The type of the messages sent to request proposals for the next variable to put in the order */
-	static final String REQUEST_MSG_TYPE = "NextVarRequest";
+	static final MessageType REQUEST_MSG_TYPE = new MessageType ("VarOrdering", "LinearOrdering", "NextVarRequest");
 
 	/** The type of the messages containing a proposal for the next variable to put in the order */
-	static final String PROPOSAL_MSG_TYPE = "NextVarProposal";
+	static final MessageType PROPOSAL_MSG_TYPE = new MessageType ("VarOrdering", "LinearOrdering", "NextVarProposal");
 
 	/** The type of the messages notifying an agent that one of its variable is next in the order */
-	static final String NEXT_VAR_MSG_TYPE = "NextVarChosen";
+	static final MessageType NEXT_VAR_MSG_TYPE = new MessageType ("VarOrdering", "LinearOrdering", "NextVarChosen");
 	
 	/** The type of the message notifying the agent of the chosen ordering, excluding the spaces */
-	private static final String TEMP_OUTPUT_MSG_TYPE = "VarOrderNoSpace";
+	private static final MessageType TEMP_OUTPUT_MSG_TYPE = new MessageType ("VarOrdering", "LinearOrdering", "VarOrderNoSpace");
 
 	/** This module's queue */
 	private Queue queue;
@@ -305,8 +306,8 @@ public class LinearOrdering < V extends Addable<V>, U extends Addable<U> > imple
 	}
 
 	/** @see StatsReporter#getMsgTypes() */
-	public Collection<String> getMsgTypes() {
-		ArrayList<String> types = new ArrayList<String> (6);
+	public Collection<MessageType> getMsgTypes() {
+		ArrayList<MessageType> types = new ArrayList<MessageType> (6);
 		types.add(START_MSG_TYPE);
 		types.add(LeaderElectionMaxID.OUTPUT_MSG_TYPE);
 		types.add(NEXT_VAR_MSG_TYPE);
@@ -320,7 +321,7 @@ public class LinearOrdering < V extends Addable<V>, U extends Addable<U> > imple
 	@SuppressWarnings("unchecked")
 	public void notifyIn(Message msg) {
 
-		String msgType = msg.getType();
+		MessageType msgType = msg.getType();
 
 		if (msgType.equals(OrderMsg.STATS_MSG_TYPE)) { // in stats gatherer mode, the output message
 

@@ -63,6 +63,10 @@ How to contact the authors:
 			- ownerClass (optional): if present, specifies the name of a class, and the attribute "value" is then interpreted as a public static String field of that class
 	 -->
 	<modules>
+	
+		<!-- Collects and reports the solution found -->
+		<module className = "frodo2.algorithms.SolutionCollector" 
+				reportStats = "true" />
 		
 		<!-- Rescales the problem into the only form that MPC-DisWCSP4 supports: a minimization problem with non-negative costs
 			- maximize [required]: whether the problem should be made a maximization problem
@@ -71,7 +75,13 @@ How to contact the authors:
 		 -->
 		<module className = "frodo2.algorithms.reformulation.ProblemRescaler" 
 				maximize = "false" 
-				shift = "0" />
+				shift = "0" >
+			<messages>
+				<message myFieldName = "START_MSG_TYPE" 
+						 targetFieldName = "START_AGENT" 
+						 targetClass = "frodo2.algorithms.AgentInterface" />
+			</messages>
+		</module>
 		
 		<!-- The MPC-DisWCSP4 algorithm 
 			- infiniteCost: private constraints are only allowed to be soft constraints; infeasibility is identified by a cost of infiniteCost
@@ -80,26 +90,30 @@ How to contact the authors:
 			- nbrBits: the number of bits to use for Paillier encryption
 		-->
 		<module className = "frodo2.algorithms.mpc_discsp.MPC_DisWCSP4" 
-				reportStats = "true" 
 				infiniteCost = "1000" 
 				maxTotalCost = "10000" 
 				costModulo = "500009" 
 				nbrBits = "512" >
 			<messages>
-				<message name = "START_MSG_TYPE" 
-						 value = "DONE" 
-						 ownerClass = "frodo2.algorithms.reformulation.ProblemRescaler" />
+				<message myFieldName = "START_MSG_TYPE" 
+						 targetFieldName = "DONE" 
+						 targetClass = "frodo2.algorithms.reformulation.ProblemRescaler" />
 			</messages>
 		</module>
 		
-		<!-- Prints out all messages received and sent by the agent
-			WARNING! This can significantly affect runtime performance. Only use this module for debugging purposes. 
-				- hideSystemMessages: whether to display system messages (default: true)
+		<!-- Displays the messages exchanged
+			- perAgent: if true, each agent reports itself the messages it exchanges 
+				WARNING! This can significantly affect runtime performance. Only use this setting for debugging purposes. 
+			- hideSystemMessages: whether to display system messages (default: true)
+		 	- visualizer: the class of the Visualizer to be used; supported values: 
+		 		- [empty string]: no visualizer; messages are not displayed
+		 		- frodo2.gui.ConsoleVisualizer: messages are printed out in the console
+		 		- frodo2.gui.jung.JungVisualizer: a visualizer based on JUNG2
 		 -->
-		<!--
 		<module className = "frodo2.algorithms.test.MessageDebugger" 
-		 		hideSystemMessages = "true" />
-		 -->
+				perAgent = "false" 
+		 		hideSystemMessages = "true" 
+		 		visualizer = "" />
 		 
 	</modules>
 </agentDescription>

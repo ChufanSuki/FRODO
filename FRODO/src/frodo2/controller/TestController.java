@@ -282,7 +282,7 @@ public class TestController extends TestCase {
 		String problemFile = testDir + "randomProblem.xml";
 		BufferedWriter bw = new BufferedWriter(new FileWriter(problemFile));
 		XMLOutputter out = new XMLOutputter(Format.getPrettyFormat());
-		problem.getRootElement().getChild("agents").setAttribute("self", "0");
+		problem.getRootElement().getChild("agents").setAttribute("self", "a0");
 		out.output(problem, bw);
 
 		// Pass the configuration file to the daemon

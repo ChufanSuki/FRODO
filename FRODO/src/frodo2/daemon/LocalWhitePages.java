@@ -35,6 +35,7 @@ import java.util.HashSet;
 import frodo2.algorithms.AgentInterface;
 import frodo2.communication.IncomingMsgPolicyInterface;
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 import frodo2.communication.MessageWith2Payloads;
 import frodo2.communication.MessageWith3Payloads;
 import frodo2.communication.MessageWithPayload;
@@ -51,22 +52,22 @@ import frodo2.controller.messages.MessageAgentReporting;
  * @author brammertottens
  * @todo implement the measure messages and measure nccc's also for the deamon 
  */
-public class LocalWhitePages implements IncomingMsgPolicyInterface<String> {
+public class LocalWhitePages implements IncomingMsgPolicyInterface<MessageType> {
 
 	/** Message used to request to address of a specific agent*/
-	public static final String AGENT_ADDRESS_REQUEST = "Agent-Address-Request";
+	public static final MessageType AGENT_ADDRESS_REQUEST = MessageType.SYSTEM.newChild("LocalWhitePages", "Agent-Address-Request");
 	
 	/** The ID of the controller*/
 	public static final String CONTROLLER_ID = "Controller";
 	
 	/** Send an Output pipe to an agent*/
-	public static final String AGENT_OUTPUT_PIPE = "Agent-Output-Pipe";
+	public static final MessageType AGENT_OUTPUT_PIPE = MessageType.SYSTEM.newChild("LocalWhitePages", "Agent-Output-Pipe");
 	
 	/** Message send to agent to kill it*/
-	public static final String DIE = "Die";
+	public static final MessageType DIE = MessageType.SYSTEM.newChild("LocalWhitePages", "Die");
 	
 	/** Message send when an agent is killed by the daemon*/
-	public static final String AGENTS_KILLED = "Agents-killed";
+	public static final MessageType AGENTS_KILLED = MessageType.SYSTEM.newChild("LocalWhitePages", "Agents-killed");
 	
 	/** Each agent has its own QueueIOPipe for JVM-internal messages*/
 	HashMap<String, QueueOutputPipeInterface> externalAgents;
@@ -78,7 +79,7 @@ public class LocalWhitePages implements IncomingMsgPolicyInterface<String> {
 	private Queue queue;
 	
 	/** The list of messages types this listener wants to be notified of */
-	private ArrayList <String> msgTypes = new ArrayList <String> ();
+	private ArrayList <MessageType> msgTypes = new ArrayList <MessageType> ();
 	
 	/** Pointer to the daemon*/
 	private Daemon daemon;
@@ -126,7 +127,7 @@ public class LocalWhitePages implements IncomingMsgPolicyInterface<String> {
 	/** 
 	 * @see frodo2.communication.IncomingMsgPolicyInterface#getMsgTypes()
 	 */
-	public Collection<String> getMsgTypes() {
+	public Collection<MessageType> getMsgTypes() {
 		return msgTypes;
 	}
 
@@ -136,7 +137,7 @@ public class LocalWhitePages implements IncomingMsgPolicyInterface<String> {
 	 */
 	@SuppressWarnings("unchecked")
 	public void notifyIn(Message msg) {
-		String type = msg.getType();
+		MessageType type = msg.getType();
 
 		if(type.equals(AgentInterface.LOCAL_AGENT_ADDRESS_REQUEST)) { // an agent wants an address
 			MessageWith2Payloads<String, String> msgR = (MessageWith2Payloads<String, String>)msg;

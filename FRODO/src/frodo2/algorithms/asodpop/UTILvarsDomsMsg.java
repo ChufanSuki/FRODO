@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
+import frodo2.communication.MessageType;
 import frodo2.solutionSpaces.Addable;
 
 /**
@@ -71,7 +72,7 @@ public class UTILvarsDomsMsg < Val extends Addable<Val>, U extends Addable<U> > 
 	 * @param good			The good to be send
 	 * @param domains		The domains of the reported variables
 	 */
-	public UTILvarsDomsMsg(String type, String sender, String receiver, Good<Val, U> good, Val[][] domains) {
+	public UTILvarsDomsMsg(MessageType type, String sender, String receiver, Good<Val, U> good, Val[][] domains) {
 		super(type, sender, receiver, good, domains);
 		confirmed = good.isConfirmed();
 		assert variables.length > 0;

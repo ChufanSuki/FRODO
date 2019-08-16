@@ -59,6 +59,7 @@ import frodo2.algorithms.varOrdering.election.VariableElection;
 import frodo2.algorithms.varOrdering.election.LeaderElectionMaxID.MessageLEoutput;
 import frodo2.communication.IncomingMsgPolicyInterface;
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 import frodo2.communication.Queue;
 import frodo2.communication.QueueOutputPipeInterface;
 import frodo2.solutionSpaces.AddableInteger;
@@ -75,7 +76,7 @@ import frodo2.solutionSpaces.UtilitySolutionSpace;
  * while MessageMaxIDs are still in the process of being delivered. Solution to fix this: make VariableElectionTest also listen
  * to MessageMaxIDs, and properly compute how many of these messages it must wait for before it can close the queues. 
  */
-public class VariableElectionTest < S extends Comparable<S> & Serializable > extends TestCase implements IncomingMsgPolicyInterface<String> {
+public class VariableElectionTest < S extends Comparable<S> & Serializable > extends TestCase implements IncomingMsgPolicyInterface<MessageType> {
 	
 	/** Maximum number of variables in the random graph 
 	 * @note Must be at least 2. 
@@ -100,14 +101,14 @@ public class VariableElectionTest < S extends Comparable<S> & Serializable > ext
 	/** Used to wake up the test thread when all agents have finished */
 	protected final Condition finished = finished_lock.newCondition();
 
-	/** List of queues corresponding to the different agents */
-	protected Queue[] queues;
+	/** List of queues, indexed by agent name */
+	protected Map<String, Queue> queues;
 	
 	/** Random graph used to generate a constraint graph */
 	protected RandGraphFactory.Graph graph;
 
-	/** One output pipe used to send messages to each queue */
-	protected QueueOutputPipeInterface[] pipes;
+	/** One output pipe used to send messages to each queue, indexed by the queue's agent name */
+	protected Map<String, QueueOutputPipeInterface> pipes;
 
 	/** \c true whether TCP pipes should be used instead of QueueIOPipes */
 	protected boolean useTCP;
@@ -195,11 +196,11 @@ public class VariableElectionTest < S extends Comparable<S> & Serializable > ext
 		super.tearDown();
 		graph = null;
 		outputs = null;
-		for (Queue queue : queues) {
+		for (Queue queue : queues.values()) {
 			queue.end();
 		}
 		queues = null;
-		for (QueueOutputPipeInterface pipe : pipes) {
+		for (QueueOutputPipeInterface pipe : pipes.values()) {
 			pipe.close();
 		}
 		pipes = null;
@@ -220,10 +221,9 @@ public class VariableElectionTest < S extends Comparable<S> & Serializable > ext
 		
 		int nbrVars = graph.nodes.size();
 		outputs = new HashMap< String, MessageLEoutput<S> > (nbrVars);
-		int nbrAgents = graph.clusters.size();
 		
 		// Create the queue network
-		queues = new Queue [nbrAgents];
+		queues = new HashMap<String, Queue> ();
 		pipes = AllTests.createQueueNetwork(queues, graph, useTCP);
 		
 		// Compute the size of the biggest component
@@ -255,14 +255,14 @@ public class VariableElectionTest < S extends Comparable<S> & Serializable > ext
 			// Create a random problem and go through its list of agents
 			XCSPparser<AddableInteger, AddableInteger> parser = new XCSPparser<AddableInteger, AddableInteger> (AllTests.generateProblem(graph, graph.nodes.size(), true));
 
-			for (int i = 0; i < graph.clusters.size(); i++) {
-				Queue queue = queues[i];
-				String agent = Integer.toString(i);
+			for (Map.Entry<String, List<String>> entry : graph.clusters.entrySet()) {
+				String agent = entry.getKey();
+				Queue queue = queues.get(agent);
 				
 				// Create the map that associates to each variable the ID of its owner agent
 				HashMap<String, String> owners = new HashMap<String, String> (graph.nodes.size());
-				for (Map.Entry<String, Integer> entry : graph.clusterOf.entrySet()) 
-					owners.put(entry.getKey(), entry.getValue().toString());
+				for (Map.Entry<String, String> entry2 : graph.clusterOf.entrySet()) 
+					owners.put(entry2.getKey(), entry2.getValue());
 				
 				// Create the map containing the domains
 				HashMap<String, AddableInteger[]> domains = new HashMap<String, AddableInteger[]> ();
@@ -287,31 +287,31 @@ public class VariableElectionTest < S extends Comparable<S> & Serializable > ext
 
 				// Create the list of neighborhoods and variable unique IDs for this agent
 				if (heuristic == VarNameHeuristic.class) { // default heuristic 
-					for (String var : graph.clusters.get(i)) {
+					for (String var : entry.getValue()) {
 						allScores.put(var, (S) var);
 					}
 					queue.addIncomingMessagePolicy(new VariableElection <String> (subProb, 
 							new VarNameHeuristic(subProb, (Element) null), diameter - 1));
 				
 				} else if (heuristic == MostConnectedHeuristic.class) { // Most Connected heuristic 
-					for (String var : graph.clusters.get(i)) {
-						allScores.put(var, (S) new ScorePair (new Short ((short) graph.neighborhoods.get(var).size()), tiebreakingScores.get(var)));
+					for (String var : entry.getValue()) {
+						allScores.put(var, (S) new ScorePair (Short.valueOf((short) graph.neighborhoods.get(var).size()), tiebreakingScores.get(var)));
 					}
 					queue.addIncomingMessagePolicy(new VariableElection < ScorePair<Short, ?> > (subProb, 
 							new ScoringHeuristicWithTiebreaker (new MostConnectedHeuristic (subProb, null), tiebreaker), 
 							diameter - 1));
 				
 				} else if (heuristic == LeastConnectedHeuristic.class) { // Least Connected heuristic 
-					for (String var : graph.clusters.get(i)) {
-						allScores.put(var, (S) new ScorePair (new Short ((short) - graph.neighborhoods.get(var).size()), tiebreakingScores.get(var)));
+					for (String var : entry.getValue()) {
+						allScores.put(var, (S) new ScorePair (Short.valueOf((short) - graph.neighborhoods.get(var).size()), tiebreakingScores.get(var)));
 					}
 					queue.addIncomingMessagePolicy(new VariableElection < ScorePair<Short, ?> > (subProb, 
 							new ScoringHeuristicWithTiebreaker (new LeastConnectedHeuristic (subProb, null), tiebreaker), 
 							diameter - 1));
 				
 				} else if (heuristic == SmallestDomainHeuristic.class) { // Smallest Domain heuristic 
-					for (String var : graph.clusters.get(i)) {
-						allScores.put(var, (S) new ScorePair (new Short ((short) - parser.getDomainSize(var)), tiebreakingScores.get(var)));
+					for (String var : entry.getValue()) {
+						allScores.put(var, (S) new ScorePair (Short.valueOf((short) - parser.getDomainSize(var)), tiebreakingScores.get(var)));
 					}
 					queue.addIncomingMessagePolicy(new VariableElection < ScorePair<Short, ?> > (subProb, 
 							new ScoringHeuristicWithTiebreaker (new SmallestDomainHeuristic (subProb, null), tiebreaker), 
@@ -327,7 +327,7 @@ public class VariableElectionTest < S extends Comparable<S> & Serializable > ext
 		// Tell all listeners to start the protocol
 		this.remainingOutputs = nbrVars; // output messages
 		Message startMsg = new Message (AgentInterface.START_AGENT);
-		for (Queue queue : queues) {
+		for (Queue queue : queues.values()) {
 			queue.sendMessageToSelf(startMsg);
 		}
 		
@@ -351,7 +351,7 @@ public class VariableElectionTest < S extends Comparable<S> & Serializable > ext
 		this.checkOutputs(heuristic, allScores);
 		
 		// Properly close the pipes
-		for (QueueOutputPipeInterface pipe : pipes) {
+		for (QueueOutputPipeInterface pipe : pipes.values()) {
 			pipe.close();
 		}
 	}
@@ -418,7 +418,7 @@ public class VariableElectionTest < S extends Comparable<S> & Serializable > ext
 		}
 
 		for (String agent : parser.getAgents()) {
-			Queue queue = queues[Integer.parseInt(agent)];
+			Queue queue = queues.get(agent);
 			
 			XCSPparser<AddableInteger, AddableInteger> subProb = parser.getSubProblem(agent);
 			queue.setProblem(subProb);
@@ -457,8 +457,8 @@ public class VariableElectionTest < S extends Comparable<S> & Serializable > ext
 	 * 
 	 * It listens to the output of the leader election protocol. 
 	 */
-	public Collection <String> getMsgTypes() {
-		ArrayList <String> types = new ArrayList <String> ();
+	public Collection <MessageType> getMsgTypes() {
+		ArrayList <MessageType> types = new ArrayList <MessageType> ();
 		types.add(LeaderElectionMaxID.OUTPUT_MSG_TYPE);
 		return types;
 	}
@@ -469,7 +469,7 @@ public class VariableElectionTest < S extends Comparable<S> & Serializable > ext
 	@SuppressWarnings("unchecked")
 	public void notifyIn(Message msg) {
 		
-		String msgType = msg.getType();
+		MessageType msgType = msg.getType();
 
 		if (msgType.equals(LeaderElectionMaxID.OUTPUT_MSG_TYPE)) {
 

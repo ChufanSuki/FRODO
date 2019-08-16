@@ -73,6 +73,19 @@ public class VALUEmsg<Val extends Addable<Val>, U extends Addable<U>>
 		this.threshold = threshold;
 	}
 
+	/** @see Message#toString() */
+	@Override
+	public String toString () {
+		
+		StringBuilder builder = new StringBuilder (super.toString());
+		builder.append("\n\t sender = " + this.sender);
+		builder.append("\n\t receiver = " + this.receiver);
+		builder.append("\n\t value = " + this.value);
+		builder.append("\n\t threshold = " + this.threshold);
+		
+		return builder.toString();
+	}
+
 	/** @see java.io.Externalizable#writeExternal(java.io.ObjectOutput) */
 	public void writeExternal(ObjectOutput out) throws IOException {
 		out.writeObject(this.sender);
@@ -98,6 +111,11 @@ public class VALUEmsg<Val extends Addable<Val>, U extends Addable<U>>
 	public boolean equals(Object msg) {
 		if (msg == null)
 			return false;
+		
+		Message msgCast2 = (Message) msg;
+		if (! this.getType().equals(msgCast2.getType())) 
+			return false;
+		
 		VALUEmsg<Val, U> msgCast = (VALUEmsg<Val, U>) msg;
 		U threshold2 = msgCast.threshold;
 		return sender.equals(msgCast.sender)

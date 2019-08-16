@@ -59,6 +59,10 @@ How to contact the authors:
 			- ownerClass (optional): if present, specifies the name of a class, and the attribute "value" is then interpreted as a public static String field of that class
 	 -->
 	<modules>
+	
+		<!-- Collects and reports the solution found -->
+		<module className = "frodo2.algorithms.SolutionCollector" 
+				reportStats = "true" />
 		
 		<!-- Constructs a DFS pseudo-tree for each connected component of the constraint graph, taking care of root election 
 			- DOTrenderer: the class to be used to display the DFS. Supported values:
@@ -106,22 +110,22 @@ How to contact the authors:
 				</dfsHeuristic>
 			
 				<messages>
-					<message name = "START_MSG_TYPE" 
-							 value = "START_AGENT" 
-							 ownerClass = "frodo2.algorithms.AgentInterface" />
-					<message name = "ROOT_VAR_MSG_TYPE" 
-							 value = "OUTPUT_MSG_TYPE" 
-							 ownerClass = "frodo2.algorithms.varOrdering.election.LeaderElectionMaxID" />
- 					<message name = "FINISH_MSG_TYPE" 
-							 value = "AGENT_FINISHED" 
-							 ownerClass = "frodo2.algorithms.AgentInterface" />
+					<message myFieldName = "START_MSG_TYPE" 
+							 targetFieldName = "START_AGENT" 
+							 targetClass = "frodo2.algorithms.AgentInterface" />
+					<message myFieldName = "ROOT_VAR_MSG_TYPE" 
+							 targetFieldName = "OUTPUT_MSG_TYPE" 
+							 targetClass = "frodo2.algorithms.varOrdering.election.LeaderElectionMaxID" />
+ 					<message myFieldName = "FINISH_MSG_TYPE" 
+							 targetFieldName = "AGENT_FINISHED" 
+							 targetClass = "frodo2.algorithms.AgentInterface" />
 				</messages>
 			</dfsGeneration>
 			
 			<messages>
-				<message name = "START_MSG_TYPE" 
-						 value = "START_AGENT" 
-						 ownerClass = "frodo2.algorithms.AgentInterface" />
+				<message myFieldName = "START_MSG_TYPE" 
+						 targetFieldName = "START_AGENT" 
+						 targetClass = "frodo2.algorithms.AgentInterface" />
 			</messages>
 		</module>
 		
@@ -129,9 +133,9 @@ How to contact the authors:
 		<module className = "frodo2.algorithms.odpop.UTILpropagation" 
 				reportStats = "true" >
 			<messages>
-				<message name = "START_MSG_TYPE" 
-						 value = "START_AGENT" 
-						 ownerClass = "frodo2.algorithms.AgentInterface" />
+				<message myFieldName = "START_MSG_TYPE" 
+						 targetFieldName = "START_AGENT" 
+						 targetClass = "frodo2.algorithms.AgentInterface" />
 			</messages>
 		</module>
 		
@@ -139,20 +143,25 @@ How to contact the authors:
 		<module className = "frodo2.algorithms.odpop.VALUEpropagation" 
 				reportStats = "true" >
 			<messages>
-				<message name = "START_MSG_TYPE" 
-						 value = "START_AGENT" 
-						 ownerClass = "frodo2.algorithms.AgentInterface" />
+				<message myFieldName = "START_MSG_TYPE" 
+						 targetFieldName = "START_AGENT" 
+						 targetClass = "frodo2.algorithms.AgentInterface" />
 			</messages>
 		</module>
 		
-		<!-- Prints out all messages received and sent by the agent
-			WARNING! This can significantly affect runtime performance. Only use this module for debugging purposes. 
-				- hideSystemMessages: whether to display system messages (default: true)
+		<!-- Displays the messages exchanged
+			- perAgent: if true, each agent reports itself the messages it exchanges 
+				WARNING! This can significantly affect runtime performance. Only use this setting for debugging purposes. 
+			- hideSystemMessages: whether to display system messages (default: true)
+		 	- visualizer: the class of the Visualizer to be used; supported values: 
+		 		- [empty string]: no visualizer; messages are not displayed
+		 		- frodo2.gui.ConsoleVisualizer: messages are printed out in the console
+		 		- frodo2.gui.jung.JungVisualizer: a visualizer based on JUNG2
 		 -->
-		<!--
 		<module className = "frodo2.algorithms.test.MessageDebugger" 
-		 		hideSystemMessages = "true" />
-		 -->
+				perAgent = "false" 
+		 		hideSystemMessages = "true" 
+		 		visualizer = "" />
 		 
 	</modules>
 </agentDescription>

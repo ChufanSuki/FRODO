@@ -33,14 +33,14 @@ pages 17-24, Estoril, Portugal, May 13 2008.
 
 # Add the FRODO benchmarks folder to the Python path and import the frodo2 module
 import sys
-sys.path.append("../frodo2.jar/frodo2/benchmarks")
+sys.path.append("../frodo2.17.jar/frodo2/benchmarks")
 import frodo2
 
 # The command to call java and the JVM parameters
 java = "java"
 javaParams = [
 			"-Xmx2G", # sets the Java heap space to 2 GB
-			"-classpath", "../frodo2.jar", # sets the Java classpath to include FRODO
+			"-classpath", "../frodo2.17.jar", # sets the Java classpath to include FRODO
 			]
 
 # Define the random problems to be generated
@@ -86,11 +86,11 @@ timeout = 120 # in seconds
 output = "outputMaxDisCSP.csv"
 
 # Run the experiment
-frodo2.run(java, javaParams, generator, genParams, nbrProblems, algos, timeout, output)
+frodo2.run(java, javaParams, generator, genParams, nbrProblems, algos, timeout, output, saveProblems = False)
 
 # Tip: if some of the algorithms tend to time out most of the time on some problem files, 
 # you can run 2 experiments: one for all algorithms on the smaller problem sizes, 
 # and one with only the faster algorithms on the larger problem sizes
 
 # Plot the graphs
-frodo2.plot(output, xCol = 8, yCol = 11) # yCol = 11 is the NCCC count (the first column has index 0)
+frodo2.plot(output, xCol = 9, yCol = 12) # yCol = 12 is the NCCC count (the first column has index 0)

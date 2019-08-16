@@ -48,6 +48,7 @@ import frodo2.algorithms.duct.termination.TerminateBest;
 import frodo2.algorithms.duct.termination.TerminateMean;
 import frodo2.algorithms.test.AllTests;
 import frodo2.algorithms.varOrdering.dfs.DFSgeneration;
+import frodo2.communication.MessageType;
 import frodo2.communication.Queue;
 import frodo2.communication.QueueOutputPipeInterface;
 import frodo2.communication.mailer.CentralMailer;
@@ -94,15 +95,17 @@ public class DUCTagentPruningSearchTest extends DUCTagentTest {
 	 * @param startMsgType 		the new type for the start message
 	 * @throws JDOMException 	if parsing the agent configuration file failed
 	 */
-	protected void setStartMsgType (String startMsgType) throws JDOMException {
-		this.startMsgType = AgentInterface.START_AGENT;
+	protected void setStartMsgType (MessageType startMsgType) throws JDOMException {
 		if (startMsgType != null) {
 			this.startMsgType = startMsgType;
 			for (Element module2 : (List<Element>) agentConfig.getRootElement().getChild("modules").getChildren()) {
 				for (Element message : (List<Element>) module2.getChild("messages").getChildren()) {
-					if (message.getAttributeValue("name").equals("START_MSG_TYPE")) {
-						message.setAttribute("value", startMsgType);
-						message.removeAttribute("ownerClass");
+					if (message.getAttributeValue("myFieldName").equals("START_MSG_TYPE") 
+							&& message.getAttributeValue("targetFieldName").equals("START_AGENT")
+							&& message.getAttributeValue("targetClass").equals(AgentInterface.class.getName())) {
+						message.removeAttribute("targetFieldName");
+						message.removeAttribute("targetClass");
+						message.addContent(startMsgType.toXML());
 					}
 				}
 			}

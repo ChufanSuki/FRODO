@@ -30,6 +30,7 @@ import org.jdom2.Document;
 import org.jdom2.Element;
 
 import frodo2.algorithms.AbstractDCOPsolver;
+import frodo2.algorithms.SolutionCollector;
 import frodo2.algorithms.SolutionWithConvergence;
 import frodo2.algorithms.StatsReporter;
 import frodo2.solutionSpaces.Addable;
@@ -47,6 +48,9 @@ public class MGMsolver < V extends Addable<V>, U extends Addable<U> > extends Ab
 	
 	/** The MGM module */
 	private MGM<V, U> mgmModule;
+	
+	/** The solution collector */
+	private SolutionCollector<V, U> solCollector;
 
 	/**
 	 * Constructor
@@ -156,11 +160,15 @@ public class MGMsolver < V extends Addable<V>, U extends Addable<U> > extends Ab
 	@Override
 	public ArrayList<StatsReporter> getSolGatherers() {
 
-		ArrayList<StatsReporter> solGatherers = new ArrayList<StatsReporter> (1);
+		ArrayList<StatsReporter> solGatherers = new ArrayList<StatsReporter> (2);
 		
 		mgmModule = new MGM<V, U>((Element)null, problem);
 		mgmModule.setSilent(true);
 		solGatherers.add(mgmModule);
+		
+		this.solCollector = new SolutionCollector<V, U> ((Element)null, problem);
+		this.solCollector.setSilent(true);
+		solGatherers.add(this.solCollector);
 		
 		return solGatherers;
 	}
@@ -171,7 +179,7 @@ public class MGMsolver < V extends Addable<V>, U extends Addable<U> > extends Ab
 		
 		HashMap<String, Long> timesNeeded = new HashMap<String, Long> ();
 		
-		return new SolutionWithConvergence<V, U> (super.problem.getNbrVars(), mgmModule.getFinalSolution(), this.mgmModule.getFinalSolution(), mgmModule.getCurrentSolution(), 
+		return new SolutionWithConvergence<V, U> (super.problem.getNbrVars(), null, this.solCollector.getUtility(), this.solCollector.getSolution(), 
 				factory.getNbrMsgs(), factory.getMsgNbrs(), factory.getMsgNbrsSentPerAgent(), factory.getMsgNbrsReceivedPerAgent(), 
 				factory.getTotalMsgSize(), factory.getMsgSizes(), factory.getMsgSizesSentPerAgent(), factory.getMsgSizesReceivedPerAgent(), 
 				factory.getOverallMaxMsgSize(), factory.getMaxMsgSizes(), factory.getNcccs(), factory.getTime(), timesNeeded, mgmModule.getAssignmentHistories());
@@ -182,6 +190,7 @@ public class MGMsolver < V extends Addable<V>, U extends Addable<U> > extends Ab
 	public void clear () {
 		super.clear();
 		this.mgmModule = null;
+		this.solCollector = null;
 	}
 
 }

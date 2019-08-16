@@ -69,6 +69,22 @@ public class ENDmsg< Val extends Addable<Val> >
 		this.context = (HashMap<String, Val>) context.clone();
 	}
 
+	/** @see java.lang.Object#equals(java.lang.Object) */
+	@SuppressWarnings("unchecked")
+	public boolean equals(Object msg) {
+		if (msg == null)
+			return false;
+		
+		Message msgCast2 = (Message) msg;
+		if (! this.getType().equals(msgCast2.getType())) 
+			return false;
+		
+		ENDmsg<Val> msgCast = (ENDmsg<Val>) msg;
+		return sender.equals(msgCast.sender)
+				&& receiver.equals(msgCast.receiver)
+				&& context.equals(msgCast.context);
+	}
+
 	/** @see java.io.Externalizable#writeExternal(java.io.ObjectOutput) */
 	public void writeExternal(ObjectOutput out) throws IOException {
 		out.writeObject(this.sender);

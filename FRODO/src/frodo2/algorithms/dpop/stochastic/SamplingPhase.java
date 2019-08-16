@@ -40,6 +40,7 @@ import frodo2.algorithms.varOrdering.dfs.DFSgeneration;
 import frodo2.algorithms.varOrdering.dfs.DFSgeneration.DFSview;
 import frodo2.algorithms.varOrdering.dfs.DFSgeneration.MessageDFSoutput;
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 import frodo2.communication.MessageWith2Payloads;
 import frodo2.communication.Queue;
 import frodo2.solutionSpaces.Addable;
@@ -59,10 +60,10 @@ import frodo2.solutionSpaces.UtilitySolutionSpace;
 public class SamplingPhase < V extends Addable<V>, U extends Addable<U> > extends LowestCommonAncestors implements StatsReporter {
 	
 	/** The type of the start message */
-	public static String START_MSG_TYPE = AgentInterface.START_AGENT;
+	public static MessageType START_MSG_TYPE = AgentInterface.START_AGENT;
 	
 	/** The type of the messages telling what random variables should be projected out at given decision variable */
-	public static final String RAND_VARS_PROJ_MSG_TYPE = "Where to project random variables";
+	public static final MessageType RAND_VARS_PROJ_MSG_TYPE = new MessageType ("E[DPOP]", "SamplingPhase", "Where to project random variables");
 	
 	/** Message telling what random variables should be projected out at given decision variable */
 	public static class RandVarsProjMsg extends MessageWith2Payloads< String, HashSet<String> > {
@@ -228,8 +229,8 @@ public class SamplingPhase < V extends Addable<V>, U extends Addable<U> > extend
 	}
 
 	/** @see LowestCommonAncestors#getMsgTypes() */
-	public Collection<String> getMsgTypes() {
-		Collection<String> types = super.getMsgTypes();
+	public Collection<MessageType> getMsgTypes() {
+		Collection<MessageType> types = super.getMsgTypes();
 		types.add(START_MSG_TYPE);
 		types.add(AgentInterface.AGENT_FINISHED);
 		return types;
@@ -239,7 +240,7 @@ public class SamplingPhase < V extends Addable<V>, U extends Addable<U> > extend
 	@Override
 	public void notifyIn(Message msg) {
 		
-		String msgType = msg.getType();
+		MessageType msgType = msg.getType();
 		
 		if (msgType.equals(DFSgeneration.STATS_MSG_TYPE)) { // statistics message
 			
@@ -334,7 +335,7 @@ public class SamplingPhase < V extends Addable<V>, U extends Addable<U> > extend
 	
 	/** @see StatsReporter#getStatsFromQueue(Queue) */
 	public void getStatsFromQueue(Queue queue) {
-		ArrayList <String> msgTypes = new ArrayList <String> (2);
+		ArrayList <MessageType> msgTypes = new ArrayList <MessageType> (2);
 		msgTypes.add(DFSgeneration.STATS_MSG_TYPE);
 		msgTypes.add(RAND_VARS_PROJ_MSG_TYPE);
 		queue.addIncomingMessagePolicy(msgTypes, this);
@@ -494,7 +495,7 @@ public class SamplingPhase < V extends Addable<V>, U extends Addable<U> > extend
 		@SuppressWarnings("unchecked")
 		public void notifyIn (Message msg) {
 			
-			String msgType = msg.getType();
+			MessageType msgType = msg.getType();
 			
 			if (msgType.equals(PHASE1_MSG_TYPE)) { // bottom-up message containing proposed samples
 				
@@ -841,7 +842,7 @@ public class SamplingPhase < V extends Addable<V>, U extends Addable<U> > extend
 		@Override
 		public void notifyIn(Message msg) {
 			
-			String type = msg.getType();
+			MessageType type = msg.getType();
 			
 			if (type.equals(PHASE1_MSG_TYPE)) { // phase 1 message received from a child
 				

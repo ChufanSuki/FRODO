@@ -37,6 +37,7 @@ import frodo2.algorithms.duct.OUTmsg;
 import frodo2.algorithms.varOrdering.dfs.DFSgeneration;
 import frodo2.algorithms.varOrdering.dfs.DFSgeneration.DFSview;
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 import frodo2.solutionSpaces.Addable;
 import frodo2.solutionSpaces.AddableReal;
 import frodo2.solutionSpaces.DCOPProblemInterface;
@@ -83,7 +84,7 @@ public class NormalizeInf <V extends Addable<V>> extends Normalize<V> {
 	@SuppressWarnings("unchecked")
 	@Override
 	public void notifyIn(Message msg) {
-		String type = msg.getType();
+		MessageType type = msg.getType();
 		
 		if(!started)
 			init();

@@ -33,10 +33,12 @@ import org.jdom2.Element;
 
 import frodo2.algorithms.AbstractDCOPsolver;
 import frodo2.algorithms.Solution;
+import frodo2.algorithms.SolutionCollector;
 import frodo2.algorithms.StatsReporter;
 import frodo2.algorithms.XCSPparser;
 import frodo2.algorithms.varOrdering.dfs.DFSgeneration;
 import frodo2.algorithms.varOrdering.dfs.DFSgeneration.DFSview;
+import frodo2.communication.MessageType;
 import frodo2.gui.DOTrenderer;
 import frodo2.solutionSpaces.Addable;
 
@@ -47,11 +49,11 @@ import frodo2.solutionSpaces.Addable;
  */
 public class DPOPsolver< V extends Addable<V>, U extends Addable<U> > extends AbstractDCOPsolver< V, U, Solution<V, U> > {
 
+	/** The solution collector */
+	protected SolutionCollector<V, U> solCollector;
+
 	/** The UTIL propagation module */
 	protected UTILpropagation<V, U> utilModule;
-
-	/** The VALUE propagation module */
-	protected VALUEpropagation<V> valueModule;
 
 	/** The DFSgeneration module */
 	protected DFSgeneration<V, U> dfsModule;
@@ -193,15 +195,15 @@ public class DPOPsolver< V extends Addable<V>, U extends Addable<U> > extends Ab
 	@Override
 	public ArrayList<StatsReporter> getSolGatherers() {
 
-		ArrayList<StatsReporter> solGatherers = new ArrayList<StatsReporter> (3);
+		ArrayList<StatsReporter> solGatherers = new ArrayList<StatsReporter> (4);
+		
+		solCollector = new SolutionCollector<V, U> (null, problem);
+		solCollector.setSilent(true);
+		solGatherers.add(solCollector);
 		
 		utilModule = new UTILpropagation<V, U>(null, problem);
 		utilModule.setSilent(true);
 		solGatherers.add(utilModule);
-		
-		valueModule = new VALUEpropagation<V> (null, problem);
-		valueModule.setSilent(true);
-		solGatherers.add(valueModule);
 		
 		Element params = new Element ("module");
 		params.setAttribute("DOTrenderer", DOTrenderer.class.getName());
@@ -220,13 +222,13 @@ public class DPOPsolver< V extends Addable<V>, U extends Addable<U> > extends Ab
 		if (optUtil == null) 
 			optUtil = super.problem.getZeroUtility();
 		
-		Map<String, V>  solution = valueModule.getSolution();
+		Map<String, V>  solution = this.solCollector.getSolution();
 		int nbrMsgs = factory.getNbrMsgs();
-		TreeMap<String, Integer> msgNbrs = factory.getMsgNbrs();
+		TreeMap<MessageType, Integer> msgNbrs = factory.getMsgNbrs();
 		long totalMsgSize = factory.getTotalMsgSize();
-		TreeMap<String, Long> msgSizes = factory.getMsgSizes();
+		TreeMap<MessageType, Long> msgSizes = factory.getMsgSizes();
 		long maxMsgSize = factory.getOverallMaxMsgSize();
-		TreeMap<String, Long> maxMsgSizes = factory.getMaxMsgSizes();
+		TreeMap<MessageType, Long> maxMsgSizes = factory.getMaxMsgSizes();
 		long ncccs = factory.getNcccs();
 		int maxMsgDim = utilModule.getMaxMsgDim();
 		int numberOfCoordinationConstraints = problem.getNumberOfCoordinationConstraints();
@@ -235,10 +237,10 @@ public class DPOPsolver< V extends Addable<V>, U extends Addable<U> > extends Ab
 		HashMap<String, Long> timesNeeded = new HashMap<String, Long> ();
 		timesNeeded.put(dfsModule.getClass().getName(), dfsModule.getFinalTime());
 		timesNeeded.put(utilModule.getClass().getName(), utilModule.getFinalTime());
-		timesNeeded.put(valueModule.getClass().getName(), valueModule.getFinalTime());
+		timesNeeded.put(this.solCollector.getClass().toString(), this.solCollector.getFinalTime());
 		long totalTime = factory.getTime();
 		
-		return new Solution<V, U> (nbrVariables, optUtil, super.problem.getUtility(solution, true).getUtility(0), solution, 
+		return new Solution<V, U> (nbrVariables, optUtil, this.solCollector.getUtility(), solution, 
 				nbrMsgs, msgNbrs, this.factory.getMsgNbrsSentPerAgent(), this.factory.getMsgNbrsReceivedPerAgent(), 
 				totalMsgSize, msgSizes, this.factory.getMsgSizesSentPerAgent(), this.factory.getMsgSizesReceivedPerAgent(), 
 				maxMsgSize, maxMsgSizes, ncccs, totalTime, timesNeeded, maxMsgDim, numberOfCoordinationConstraints);
@@ -248,8 +250,8 @@ public class DPOPsolver< V extends Addable<V>, U extends Addable<U> > extends Ab
 	@Override
 	public void clear () {
 		super.clear();
+		this.solCollector = null;
 		this.utilModule = null;
-		this.valueModule = null;
 		this.dfsModule = null;
 	}
 	

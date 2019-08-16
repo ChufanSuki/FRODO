@@ -34,17 +34,17 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 
 import org.jdom2.Element;
 
 import frodo2.algorithms.AgentInterface;
-import frodo2.algorithms.StatsReporter;
+import frodo2.algorithms.SolutionCollector;
 import frodo2.algorithms.dpop.UTILpropagation.SolutionMessage;
 import frodo2.algorithms.varOrdering.dfs.DFSgeneration;
 import frodo2.algorithms.varOrdering.dfs.DFSgeneration.DFSview;
+import frodo2.communication.IncomingMsgPolicyInterface;
 import frodo2.communication.Message;
-import frodo2.communication.MessageWith2Payloads;
+import frodo2.communication.MessageType;
 import frodo2.communication.Queue;
 import frodo2.solutionSpaces.Addable;
 import frodo2.solutionSpaces.BasicUtilitySolutionSpace;
@@ -56,29 +56,26 @@ import frodo2.solutionSpaces.DCOPProblemInterface;
  * @todo Improve the implementation by reasoning on groups of variables to be projected together. 
  */
 public class VALUEpropagation < Val extends Addable<Val> > 
-implements StatsReporter {
+implements IncomingMsgPolicyInterface<MessageType> {
 
 	/** The type of the message telling the module to start */
-	public static String START_MSG_TYPE = AgentInterface.START_AGENT;
+	public static MessageType START_MSG_TYPE = AgentInterface.START_AGENT;
 	
 	/** The type of the message telling the agent finished */
-	public static String FINISH_MSG_TYPE = AgentInterface.AGENT_FINISHED;
+	public static MessageType FINISH_MSG_TYPE = AgentInterface.AGENT_FINISHED;
 
 	/** The type of the messages containing information about the DFS */
-	public static String DFS_MSG_TYPE = DFSgeneration.OUTPUT_MSG_TYPE;
+	public static MessageType DFS_MSG_TYPE = DFSgeneration.OUTPUT_MSG_TYPE;
 	
 	/** The type of the messages containing optimal conditional assignments */
-	public static String UTIL_MSG_TYPE = UTILpropagation.OUTPUT_MSG_TYPE;
+	public static MessageType UTIL_MSG_TYPE = UTILpropagation.OUTPUT_MSG_TYPE;
 	
 	/** The type of the messages containing information about separators */
-	public static String SEPARATOR_MSG_TYPE = UTILpropagation.SEPARATOR_MSG_TYPE;
+	public static MessageType SEPARATOR_MSG_TYPE = UTILpropagation.SEPARATOR_MSG_TYPE;
 
 	/** The type of the VALUE messages */
-	public static final String VALUE_MSG_TYPE = "VALUE";
+	public static final MessageType VALUE_MSG_TYPE = new MessageType ("DPOP", "VALUEpropagation", "VALUE");
 	
-	/** The type of the output messages containing the optimal assignment to a variable */
-	public static final String OUTPUT_MSG_TYPE = "OutputMessageVALUEpropagation";
-
 	/** The queue on which it should call sendMessage() */
 	protected Queue queue;
 	
@@ -112,56 +109,18 @@ implements StatsReporter {
 	/** The number of variables owned by this agents that have already sent VALUE messages to all their children */
 	protected int nbrVarsDone = 0;
 	
-	/** Whether to report stats */
-	protected boolean reportStats = true;
-
 	/** If \c true, conditional optimal assignments are swapped until the VALUE message is received */
 	private final boolean swap;
 	
-	/** The time when the last stat message has been received */
-	private long finalTime;
-	
-	/** the sum of the time stamps of all stats messages that have been received */
-	private long cumulativeTime;
-
 	/** How many variables there are in each cluster, identified by its root */
 	private HashMap<String, Integer> clusterSizes = new HashMap<String, Integer> ();
 	
 	/** For each child variable, its corresponding agent */
 	private HashMap<String, String> owners = new HashMap<String, String> ();
 	
-	/** A message holding an assignment to a variable
-	 * @param <Val> type used for variable values
-	 */
-	public static class AssignmentsMessage < Val extends Addable<Val> >
-	extends MessageWith2Payloads< String[], ArrayList<Val> > {
-		
-		/** Empty constructor used for externalization */
-		public AssignmentsMessage () { }
-
-		/** Constructor 
-		 * @param var 		the variable
-		 * @param val 		the value assigned to the variable \a var
-		 */
-		public AssignmentsMessage (String[] var, ArrayList<Val> val) {
-			super (OUTPUT_MSG_TYPE, var, val);
-		}
-		
-		/** @return the variable */
-		public String[] getVariables () {
-			return this.getPayload1();
-		}
-		
-		/** @return the value */
-		public ArrayList<Val> getValues () {
-			return this.getPayload2();
-		}
-		
-		/** @see MessageWith2Payloads#toString() */
-		@Override
-		public String toString () {
-			return "Message(type = `" + super.type + "')\n\tvariables: " + Arrays.asList(this.getVariables()) + "\n\tvalues: " + this.getValues();
-		}
+	/** Default constructor */
+	protected VALUEpropagation () {
+		this.swap = false;
 	}
 	
 	/** Manual constructor that does not use XML elements
@@ -179,12 +138,10 @@ implements StatsReporter {
 	 */
 	public VALUEpropagation (DCOPProblemInterface<Val, ?> problem, Element parameters) {
 		this.problem = problem;
-		if(parameters != null) {
+		if(parameters != null) 
 			this.swap = Boolean.parseBoolean(parameters.getAttributeValue("swap"));
-			this.reportStats = Boolean.parseBoolean(parameters.getAttributeValue("reportStats"));
-		} else {
+		else 
 			this.swap = false;
-		}
 	}
 	
 	/** Parses the problem */
@@ -199,7 +156,7 @@ implements StatsReporter {
 		this.started = true;
 	}
 	
-	/** @see StatsReporter#reset() */
+	/** Resets the state, only keeping the problem */
 	public void reset () {
 		this.allChildren = new HashMap< String, List<String> > ();
 		this.allParents = new HashMap<String, String> ();
@@ -209,25 +166,12 @@ implements StatsReporter {
 		this.solution = new HashMap<String, Val> ();
 		this.valueMessages = new HashMap< String, VALUEmsg<Val> > ();
 		this.started = false;
-		
-		// Only useful in stats gatherer mode
 		this.nbrVarsDone = 0;
 	}
 
-	/** Alternative constructor "statistics gatherer" mode
-	 * @param problem 		the overall problem
-	 * @param parameters 	the description of what statistics should be reported (currently unused)
-	 */
-	public VALUEpropagation (Element parameters, DCOPProblemInterface<Val, ?> problem) {
-		this.swap = false;
-		this.problem = problem;
-		this.nbrVarsDone = 0;
-		this.solution = new HashMap<String, Val> ();
-	}
-	
-	/** @see frodo2.communication.IncomingMsgPolicyInterface#getMsgTypes() */
-	public Collection <String> getMsgTypes() {
-		ArrayList<String> types = new ArrayList<String> (6);
+	/** @see IncomingMsgPolicyInterface#getMsgTypes() */
+	public Collection <MessageType> getMsgTypes() {
+		ArrayList<MessageType> types = new ArrayList<MessageType> (6);
 		types.add(START_MSG_TYPE);
 		types.add(UTIL_MSG_TYPE);
 		types.add(SEPARATOR_MSG_TYPE);
@@ -238,43 +182,14 @@ implements StatsReporter {
 	}
 
 	/** The algorithm
-	 * @see StatsReporter#notifyIn(Message)
+	 * @see IncomingMsgPolicyInterface#notifyIn(Message)
 	 */
 	@SuppressWarnings("unchecked")
 	public void notifyIn(Message msg) {
 		
-		String type = msg.getType();
+		MessageType type = msg.getType();
 		
-		if (type.equals(OUTPUT_MSG_TYPE)) { // we are in stats gatherer mode
-			
-			AssignmentsMessage<Val> msgCast = (AssignmentsMessage<Val>) msg;
-			String[] vars = msgCast.getVariables();
-			ArrayList<Val> vals = msgCast.getValues();
-			for (int i = 0; i < vars.length; i++) {
-				String var = vars[i];
-				Val val = vals.get(i);
-				if (val != null && solution.put(var, val) == null && this.reportStats) 
-					System.out.println("var `" + var + "' = " + val);
-			}
-			
-			Long time = queue.getCurrentMessageWrapper().getTime();
-			cumulativeTime += time;
-			
-			if(finalTime < time)
-				finalTime = time;
-			
-			// When we have received all messages, print out the corresponding utility. 
-			if (this.reportStats && this.solution.keySet().containsAll(this.problem.getVariables())) {
-				if (this.problem.maximize()) 
-					System.out.println("Total optimal utility: " + this.problem.getUtility(this.solution, true).getUtility(0));
-				else 
-					System.out.println("Total optimal cost: " + this.problem.getUtility(this.solution, true).getUtility(0));
-			}
-
-			return;
-		}
-		
-		else if (type.equals(FINISH_MSG_TYPE)) {
+		if (type.equals(FINISH_MSG_TYPE)) {
 			this.reset();
 			return;
 		}
@@ -425,23 +340,11 @@ implements StatsReporter {
 		
 	}
 
-	/** @see frodo2.communication.IncomingMsgPolicyInterface#setQueue(frodo2.communication.Queue) */
+	/** @see IncomingMsgPolicyInterface#setQueue(Queue) */
 	public void setQueue(Queue queue) {
 		this.queue = queue;
 	}
 
-	/** @see StatsReporter#getStatsFromQueue(Queue) */
-	public void getStatsFromQueue(Queue queue) {
-		ArrayList <String> msgTypes = new ArrayList <String> (1);
-		msgTypes.add(OUTPUT_MSG_TYPE);
-		queue.addIncomingMessagePolicy(msgTypes, this);
-	}
-
-	/** @see StatsReporter#setSilent(boolean) */
-	public void setSilent(boolean silent) {
-		this.reportStats = ! silent;
-	}
-	
 	/** Instantiates a VALUE message and sends it
 	 * @param child 		destination variable of the message
 	 * @param separator 	variables to be mentioned in the message
@@ -491,8 +394,7 @@ implements StatsReporter {
 					solution.put(vars[i], value);
 			}
 			
-			if (this.reportStats) 
-				queue.sendMessage(AgentInterface.STATS_MONITOR, new AssignmentsMessage<Val> (vars, optVals));
+			queue.sendMessage(AgentInterface.STATS_MONITOR, new SolutionCollector.AssignmentsMessage<Val> (vars, optVals));
 		}
 		
 		// Go through the list of children 
@@ -523,28 +425,4 @@ implements StatsReporter {
 		}
 	}
 	
-	/** @return for each variable, its assignment in the optimal solution found to the problem */
-	public Map<String, Val> getSolution () {
-		return this.solution;
-	}
-	
-	/**
-	 * Returns the time at which this module has finished, 
-	 * determined by looking at the timestamp of the stat messages
-	 * 
-	 * @author Brammert Ottens, 22 feb 2010
-	 * @return the time at which this module has finished
-	 */
-	public long getFinalTime() {
-		return finalTime;
-	}
-	
-	/**
-	 * @author Brammert Ottens, 7 feb. 2011
-	 * @return the cumulative time used by all agents to reach the final state
-	 */
-	public long getTotalTime() {
-		return cumulativeTime / 1000000;
-	}
-
 }

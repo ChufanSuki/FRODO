@@ -37,16 +37,16 @@ import java.util.Set;
 import org.jdom2.Element;
 
 import frodo2.algorithms.AgentInterface;
-import frodo2.algorithms.StatsReporter;
 import frodo2.algorithms.dpop.UTILmsg;
 import frodo2.algorithms.dpop.UTILpropagation;
 import frodo2.algorithms.dpop.VALUEmsg;
 import frodo2.algorithms.dpop.VALUEpropagation;
 import frodo2.algorithms.dpop.UTILpropagation.OptUtilMessage;
-import frodo2.algorithms.dpop.VALUEpropagation.AssignmentsMessage;
 import frodo2.algorithms.varOrdering.dfs.DFSgeneration;
 import frodo2.algorithms.varOrdering.dfs.DFSgeneration.DFSview;
+import frodo2.communication.IncomingMsgPolicyInterface;
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 import frodo2.communication.OutgoingMsgPolicyInterface;
 import frodo2.communication.Queue;
 import frodo2.solutionSpaces.Addable;
@@ -65,19 +65,20 @@ import frodo2.solutionSpaces.hypercube.Hypercube;
  * @author Eric Zbinden, Thomas Leaute
  *
  */
-public class VariableObfuscation < V extends Addable<V>, U extends Addable<U> > implements OutgoingMsgPolicyInterface<String>, StatsReporter {
+public class VariableObfuscation < V extends Addable<V>, U extends Addable<U> > 
+implements OutgoingMsgPolicyInterface<MessageType>, IncomingMsgPolicyInterface<MessageType> {
 	
 	/** A random Stream */
 	private Random rand = new SecureRandom();
 	
 	/** The type of the messages containing code names */
-	public static final String CODE_NAME_TYPE = "Code_Name";
+	public static final MessageType CODE_NAME_TYPE = new MessageType ("P-DPOP", "VariableObfuscation", "Code_Name");
 	
 	/** The type of obfuscated VALUE messages */
-	public static final String OBFUSCATED_VALUE_TYPE = "OBFUSCATED_VALUE";
+	public static final MessageType OBFUSCATED_VALUE_TYPE = new MessageType ("P-DPOP", "VariableObfuscation", "VALUE");
 	
 	/** The type of obfuscated UTIL messages */
-	public static final String OBFUSCATED_UTIL_TYPE = "OBFUSCATED_UTIL";
+	public static final MessageType OBFUSCATED_UTIL_TYPE = new MessageType ("P-DPOP", "VariableObfuscation", "UTIL");
 	
 	/** A Map containing assignments variable-codeName with mergeBack
 	 * @note must be used only when codeName are generated or to send codeNameMsg when mergeBack=true*/
@@ -167,15 +168,6 @@ public class VariableObfuscation < V extends Addable<V>, U extends Addable<U> > 
 	/** Problem description */
 	private DCOPProblemInterface<V, U> problem;
 
-	/** The number of variables for which the stats gatherer is still waiting for an assignment */
-	private int remainingVars;
-
-	/** The solution found to the problem */
-	private HashMap<String, V> solution;
-
-	/** Whether the stats reporter should print its stats */
-	private boolean silent = false;
-
 	/**
 	 * Constructor
 	 * @param problem problem description
@@ -196,21 +188,6 @@ public class VariableObfuscation < V extends Addable<V>, U extends Addable<U> > 
 		else numBits = Integer.parseInt(numBitArg);
 		
 		this.problem.setUtilClass((Class<U>) AddableBigInteger.class);
-	}
-	
-	/** Constructor in stats gatherer mode
-	 * @param params 	the parameters of this module
-	 * @param problem 	the overall problem
-	 */
-	public VariableObfuscation (Element params, DCOPProblemInterface<V, U> problem) {
-		this.problem = problem;
-		this.remainingVars = problem.getVariables().size();
-		this.solution = new HashMap<String, V> ();
-		this.infeasibleUtil = null;
-		
-		// Not used:
-		this.numBits = 0;
-		this.mergeBack = false;
 	}
 	
 	/**
@@ -442,14 +419,14 @@ public class VariableObfuscation < V extends Addable<V>, U extends Addable<U> > 
 	/** Send the delayed UTILmsg 
 	 * @param myVar the var who can send its UTILmsg */
 	private void sendDelayedMsg(String myVar){
-		for(Message msg : waitingMsg.get(myVar)){
+		for(UTILmsg<V, AddableBigInteger> msg : waitingMsg.get(myVar)){
 				
-			String msgType = msg.getType();
+			MessageType msgType = msg.getType();
 			
 			if(msgType.equals(UTILpropagation.UTIL_MSG_TYPE)){
-				notifyOut(msg);
+				notifyOut(msg.getSenderAgent(), msg, Arrays.asList(this.problem.getOwner(msg.getDestination())));
 			} else if (msgType.equals(VariableObfuscation.OBFUSCATED_UTIL_TYPE)){
-				notifyIn(msg);
+				notifyIn(msg, this.problem.getOwner(msg.getDestination()));
 			}	
 		}
 		waitingMsg.put(myVar, new ArrayList<UTILmsg<V, AddableBigInteger>>());	
@@ -462,7 +439,7 @@ public class VariableObfuscation < V extends Addable<V>, U extends Addable<U> > 
 	@SuppressWarnings("unchecked")
 	public Decision notifyOut(Message msg) {
 		
-		String msgType = msg.getType();
+		MessageType msgType = msg.getType();
 				
 		/************************* DFS MSG *************************/
 		if (msgType.equals(DFSgeneration.OUTPUT_MSG_TYPE)){
@@ -702,8 +679,8 @@ public class VariableObfuscation < V extends Addable<V>, U extends Addable<U> > 
 	/**
 	 * @see frodo2.communication.MessageListener#getMsgTypes()
 	 */
-	public Collection<String> getMsgTypes() {
-		ArrayList <String> msgTypes = new ArrayList <String> (8);
+	public Collection<MessageType> getMsgTypes() {
+		ArrayList <MessageType> msgTypes = new ArrayList <MessageType> (8);
 		msgTypes.add(AgentInterface.START_AGENT);
 		msgTypes.add(UTILpropagation.UTIL_MSG_TYPE);
 		msgTypes.add(UTILpropagation.OPT_UTIL_MSG_TYPE);
@@ -728,40 +705,7 @@ public class VariableObfuscation < V extends Addable<V>, U extends Addable<U> > 
 	@SuppressWarnings("unchecked")
 	public void notifyIn(Message msg) {
 		
-		String msgType = msg.getType();
-		
-		if (msgType.equals(VALUEpropagation.OUTPUT_MSG_TYPE)) { // we are in stats gatherer mode
-			
-			AssignmentsMessage<V> msgCast = (AssignmentsMessage<V>) msg;
-			String[] vars = msgCast.getVariables();
-			ArrayList<V> vals = msgCast.getValues();
-			for (int i = 0; i < vars.length; i++) {
-				String var = vars[i];
-				V val = vals.get(i);
-				if (!silent) 
-					System.out.println("var `" + var + "' = " + val);
-				solution.put(var, val);
-			}
-			
-			// When we have received all messages, print out the corresponding utility. 
-			if (!silent && --this.remainingVars <= 0) {
-				U util = this.problem.getUtility(this.solution, false).getUtility(0);
-				
-				// Fix the utility for infeasible problems
-				if (this.problem.maximize()) {
-					if (util.compareTo(util.fromInt(Integer.MIN_VALUE)) <= 0) 
-						util = this.problem.getMinInfUtility();
-				} else if (util.compareTo(util.fromInt(Integer.MAX_VALUE)) >= 0) 
-					util = this.problem.getPlusInfUtility();
-
-				if (this.problem.maximize()) 
-					System.out.println("Total optimal utility: " + util);
-				else 
-					System.out.println("Total optimal cost: " + util);
-			}
-
-			return;
-		}
+		MessageType msgType = msg.getType();
 		
 		if (! this.started) 
 			this.init();
@@ -1038,18 +982,4 @@ public class VariableObfuscation < V extends Addable<V>, U extends Addable<U> > 
 		return result;
 	}
 
-	/** @see StatsReporter#getStatsFromQueue(Queue) */
-	public void getStatsFromQueue(Queue queue) {
-		queue.addIncomingMessagePolicy(VALUEpropagation.OUTPUT_MSG_TYPE, this);
-	}
-
-	/** @see StatsReporter#reset() */
-	public void reset() {
-		this.remainingVars = problem.getVariables().size();
-	}
-
-	/** @see StatsReporter#setSilent(boolean) */
-	public void setSilent(boolean silent) {
-		this.silent  = silent;
-	}
 }

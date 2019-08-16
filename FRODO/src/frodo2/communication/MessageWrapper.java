@@ -47,7 +47,7 @@ public class MessageWrapper {
 	/** Contains the IDs of the destinations of this message */
 	private Collection<Object> destinations;
 	
-	/** Every queue has a message counter that counts the number of message being send, this field
+	/** Every queue has a message counter that counts the number of messages sent; this field
 	 * contains the value of that counter at the time the message was sent*/
 	private int messageCounter = 0;
 	

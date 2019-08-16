@@ -36,6 +36,7 @@ import frodo2.algorithms.StatsReporter;
 import frodo2.algorithms.varOrdering.dfs.DFSgeneration;
 import frodo2.algorithms.varOrdering.dfs.DFSgeneration.DFSview;
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 import frodo2.communication.MessageWith2Payloads;
 import frodo2.communication.MessageWith3Payloads;
 import frodo2.communication.MessageWith4Payloads;
@@ -58,38 +59,38 @@ public class UTILpropagation < Val extends Addable<Val>, U extends Addable<U> >
 implements StatsReporter {
 	
 	/** The type of the message telling the module to start */
-	public static String START_MSG_TYPE = AgentInterface.START_AGENT;
+	public static MessageType START_MSG_TYPE = AgentInterface.START_AGENT;
 	
 	/** @return the type of the start message */
-	public String getStartMsgType () {
+	public MessageType getStartMsgType () {
 		return START_MSG_TYPE;
 	}
 
 	/** The type of the message telling the agent finished */
-	public static String FINISH_MSG_TYPE = AgentInterface.AGENT_FINISHED;
+	public static MessageType FINISH_MSG_TYPE = AgentInterface.AGENT_FINISHED;
 	
 	/** The type of the messages containing information about the DFS */
-	public static String DFS_MSG_TYPE = DFSgeneration.OUTPUT_MSG_TYPE;
+	public static MessageType DFS_MSG_TYPE = DFSgeneration.OUTPUT_MSG_TYPE;
 	
 	/** @return the type of the DFS output */
-	public String getDFSMsgType () {
+	public MessageType getDFSMsgType () {
 		return DFS_MSG_TYPE;
 	}
 
 	/** The type of the messages containing utilities */
-	public static final String UTIL_MSG_TYPE = "UTIL";
+	public static final MessageType UTIL_MSG_TYPE = new MessageType ("DPOP", "UTILpropagation", "UTIL");
 	
 	/** The type of the messages containing conditional optimal assignments */
-	public static final String OUTPUT_MSG_TYPE = "UTILoutputMessage";
+	public static final MessageType OUTPUT_MSG_TYPE = new MessageType ("DPOP", "UTILpropagation", "UTILoutput");
 	
 	/** The type of the messages containing separators */
-	public static final String SEPARATOR_MSG_TYPE = "SeparatorMessage";
+	public static final MessageType SEPARATOR_MSG_TYPE = new MessageType ("DPOP", "UTILpropagation", "Separator");
 	
 	/** The type of the messages containing optimal utility values sent by roots */
-	public static final String OPT_UTIL_MSG_TYPE = "OptUtilMessage";
+	public static final MessageType OPT_UTIL_MSG_TYPE = new MessageType ("DPOP", "UTILpropagation", "OptUtil");
 	
 	/** The type of messages sent to the statistics monitor */
-	public static final String UTIL_STATS_MSG_TYPE = "UTILstatsMessage";
+	public static final MessageType UTIL_STATS_MSG_TYPE = new MessageType ("DPOP", "UTILpropagation", "UTILstats");
 
 	/** Whether the parser should consider variables with no specified owner */
 	protected boolean withAnonymVars = false;
@@ -310,8 +311,8 @@ implements StatsReporter {
 	}
 	
 	/** @see frodo2.communication.IncomingMsgPolicyInterface#getMsgTypes() */
-	public Collection <String> getMsgTypes() {
-		ArrayList<String> types = new ArrayList<String> (4);
+	public Collection <MessageType> getMsgTypes() {
+		ArrayList<MessageType> types = new ArrayList<MessageType> (4);
 		types.add(this.getStartMsgType());
 		types.add(this.getDFSMsgType());
 		types.add(UTIL_MSG_TYPE);
@@ -327,18 +328,11 @@ implements StatsReporter {
 	@SuppressWarnings("unchecked")
 	public void notifyIn(Message msg) {
 		
-		String type = msg.getType();
+		MessageType type = msg.getType();
 		
 		if (type.equals(OPT_UTIL_MSG_TYPE)) { // we are in stats gatherer mode
 			
 			OptUtilMessage<U> msgCast = (OptUtilMessage<U>) msg;
-			if (this.reportStats) {
-				if (this.maximize) {
-					System.out.println("Optimal utility for component rooted at `" + msgCast.getRoot() + "\': " + msgCast.getUtility());
-				} else 
-					System.out.println("Optimal cost for component rooted at `" + msgCast.getRoot() + "\': " + msgCast.getUtility());
-			}
-			
 			if (this.optUtil == null) {
 				this.optUtil = msgCast.getUtility();
 			} else 
@@ -474,7 +468,7 @@ implements StatsReporter {
 	
 	/** @see StatsReporter#getStatsFromQueue(Queue) */
 	public void getStatsFromQueue(Queue queue) {
-		ArrayList <String> msgTypes = new ArrayList <String> (2);
+		ArrayList <MessageType> msgTypes = new ArrayList <MessageType> (2);
 		msgTypes.add(OPT_UTIL_MSG_TYPE);
 		msgTypes.add(UTIL_STATS_MSG_TYPE);
 		queue.addIncomingMessagePolicy(msgTypes, this);

@@ -45,6 +45,7 @@ import frodo2.algorithms.varOrdering.dfs.DFSgeneration;
 import frodo2.algorithms.varOrdering.dfs.DFSgeneration.DFSview;
 import frodo2.communication.IncomingMsgPolicyInterface;
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 import frodo2.communication.Queue;
 import frodo2.communication.QueueOutputPipeInterface;
 import frodo2.communication.sharedMemory.QueueIOPipe;
@@ -60,7 +61,7 @@ import junit.framework.TestSuite;
  * @author Brammert Ottens, 17 aug. 2011
  * 
  */
-public class NormalizeTest extends TestCase implements IncomingMsgPolicyInterface<String> {
+public class NormalizeTest extends TestCase implements IncomingMsgPolicyInterface<MessageType> {
 
 	/** Maximum number of variables in the random graph 
 	 * @note Must be at least 2. 
@@ -82,8 +83,8 @@ public class NormalizeTest extends TestCase implements IncomingMsgPolicyInterfac
 	 */
 	protected final Object nbrMsgsRemaining_lock = new Object ();
 	
-	/** List of queues corresponding to the different agents */
-	protected Queue[] queues;
+	/** List of queues, indexed by agent name */
+	protected Map<String, Queue> queues;
 	
 	/** The parameters for adopt*/
 	protected Element parameters;
@@ -150,7 +151,7 @@ public class NormalizeTest extends TestCase implements IncomingMsgPolicyInterfac
 		super.tearDown();
 		graph = null;
 		dfs = null;
-		for (Queue queue : queues) {
+		for (Queue queue : queues.values()) {
 			queue.end();
 		}
 		queues = null;
@@ -190,19 +191,17 @@ public class NormalizeTest extends TestCase implements IncomingMsgPolicyInterfac
 	public void test () 
 	throws IOException, NoSuchMethodException, IllegalArgumentException, InstantiationException, IllegalAccessException, ClassNotFoundException, InvocationTargetException {
 		
-		int nbrAgents = graph.clusters.size();
-		
 		nbrMsgsRemaining = graph.nodes.size(); // One spaces message per variable
 		
 		// Create the queue network
-		queues = new Queue [nbrAgents];
-		QueueOutputPipeInterface[] pipes = AllTests.createQueueNetwork(queues, graph, useTCP);
+		queues = new HashMap<String, Queue> ();
+		Map<String, QueueOutputPipeInterface> pipes = AllTests.createQueueNetwork(queues, graph, useTCP);
 
 		// Listen for statistics messages
 		myQueue = new Queue (false);
 		myQueue.addIncomingMessagePolicy(this);
 		QueueIOPipe myPipe = new QueueIOPipe (myQueue);
-		for (Queue queue : queues) 
+		for (Queue queue : queues.values()) 
 			queue.addOutputPipe(AgentInterface.STATS_MONITOR, myPipe);
 		
 		// Create the listeners
@@ -211,7 +210,7 @@ public class NormalizeTest extends TestCase implements IncomingMsgPolicyInterfac
 		parser.setUtilClass(AddableReal.class);
 
 		for (String agent : parser.getAgents()) {
-			Queue queue = queues[Integer.parseInt(agent)];
+			Queue queue = queues.get(agent);
 
 			// Instantiate the listener using reflection
 			XCSPparser<AddableInteger, AddableReal> subprob = parser.getSubProblem(agent);
@@ -267,7 +266,7 @@ public class NormalizeTest extends TestCase implements IncomingMsgPolicyInterfac
 		}
 		
 		// Properly close the pipes
-		for (QueueOutputPipeInterface pipe : pipes) {
+		for (QueueOutputPipeInterface pipe : pipes.values()) {
 			pipe.close();
 		}
 		myQueue.end();
@@ -276,20 +275,20 @@ public class NormalizeTest extends TestCase implements IncomingMsgPolicyInterfac
 	/** Sends messages to the queues to initiate O-DPOP
 	 * @param graph 		the constraint graph
 	 * @param dfs 			the corresponding DFS (for each node in the graph, the relationships of this node)
-	 * @param queues 		the array of queues, indexed by the clusters in the graph
+	 * @param queues 		the array of queues, indexed by the names of the clusters in the graph
 	 */
-	public static void startNormalization(RandGraphFactory.Graph graph, Map<String, DFSview<AddableInteger, AddableReal>> dfs, Queue[] queues) {
+	public static void startNormalization(RandGraphFactory.Graph graph, Map<String, DFSview<AddableInteger, AddableReal>> dfs, 
+			Map<String, Queue> queues) {
 		
 		// To every agent, send its part of the DFS and extract from the problem definition the constraint it is responsible for enforcing
-		int nbrAgents = graph.clusters.size();
-		for (int i = 0; i < nbrAgents; i++) {
-			Queue queue = queues[i];
+		for (Map.Entry<String, Queue> entry : queues.entrySet()) {
+			Queue queue = entry.getValue();
 			// Send the start message to this agent
 			Message msg = new Message (AgentInterface.START_AGENT);
 			queue.sendMessageToSelf(msg);
 
 			// Extract the agent's part of the DFS and the constraint it is responsible for enforcing
-			List<String> variables = graph.clusters.get(i);
+			List<String> variables = graph.clusters.get(entry.getKey());
 			for (String var : variables) {
 				// Extract and send the relationships for this variable
 				msg = new DFSgeneration.MessageDFSoutput<AddableInteger, AddableReal> (var, dfs.get(var));
@@ -308,8 +307,8 @@ public class NormalizeTest extends TestCase implements IncomingMsgPolicyInterfac
 	 * @see frodo2.communication.MessageListener#getMsgTypes()
 	 */
 	@Override
-	public Collection<String> getMsgTypes() {
-		ArrayList<String> msgTypes = new ArrayList<String>(1);
+	public Collection<MessageType> getMsgTypes() {
+		ArrayList<MessageType> msgTypes = new ArrayList<MessageType>(1);
 		msgTypes.add(Normalize.OUT_MSG_TYPE);
 		return msgTypes;
 	}
@@ -320,7 +319,7 @@ public class NormalizeTest extends TestCase implements IncomingMsgPolicyInterfac
 	@SuppressWarnings("unchecked")
 	@Override
 	public void notifyIn(Message msg) {
-			String type = msg.getType();
+			MessageType type = msg.getType();
 			
 			if(type.equals(Normalize.OUT_MSG_TYPE)) {
 				OUTmsg<AddableInteger> msgCast = (OUTmsg<AddableInteger>)msg;

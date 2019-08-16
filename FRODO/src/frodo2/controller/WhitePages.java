@@ -36,6 +36,7 @@ import frodo2.algorithms.AgentInterface;
 import frodo2.communication.AgentAddress;
 import frodo2.communication.IncomingMsgPolicyInterface;
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 import frodo2.communication.MessageWith3Payloads;
 import frodo2.communication.MessageWithPayload;
 import frodo2.communication.Queue;
@@ -49,32 +50,32 @@ import frodo2.daemon.LocalWhitePages;
  * The white pages contains a list of the ip addresses of all
  * agents and all daemons
  */
-public class WhitePages implements IncomingMsgPolicyInterface<String> {
+public class WhitePages implements IncomingMsgPolicyInterface<MessageType> {
 
 	/** Message used by white pages to notified the interested that an agent reported itself*/
-	public static final String AGENT_REPORTED = "Agent-Reported";
+	public static final MessageType AGENT_REPORTED = MessageType.SYSTEM.newChild("WhitePages", "Agent-Reported");
 	
 	/** Message used to tell the configuration Manager that all agents are killed*/
-	public static final String ALL_AGENTS_KILLED = "All-Agents-Killed";
+	public static final MessageType ALL_AGENTS_KILLED = MessageType.SYSTEM.newChild("WhitePages", "All-Agents-Killed");
 	
 	/** The message containing the list of available daemons*/
-	public static final String DEAMONS_CONFIG_MSG = "Daemon-List";
+	public static final MessageType DEAMONS_CONFIG_MSG = MessageType.SYSTEM.newChild("WhitePages", "Daemon-List");
 	
 	/** Message containing the list of registered daemons for the user interface*/
-	public static final String DEAMONS_LIST = "Daemon list";
+	public static final MessageType DEAMONS_LIST = MessageType.SYSTEM.newChild("WhitePages", "Daemon list");
 	
 	/** Message containing the list of registered agents for the user interface*/
-	public static final String AGENTS_LIST = "Agent list";
+	public static final MessageType AGENTS_LIST = MessageType.SYSTEM.newChild("WhitePages", "Agent list");
 	
 	/** Message used to tell an agent to connect to its neighbours  
 	 * @todo This should be defined in AgentInterface */
-	public static final String CONNECT_AGENT = "Connect-Agent";	
+	public static final MessageType CONNECT_AGENT = MessageType.SYSTEM.newChild("WhitePages", "Connect-Agent");	
 	
 	/** Message to signal to the daemon to kill agents*/
-	public static final String KILL_AGENTS = "Kill-Agents";
+	public static final MessageType KILL_AGENTS = MessageType.SYSTEM.newChild("WhitePages", "Kill-Agents");
 	
 	/** Message send to the local white pages that contains the address of an agent*/
-	public static final String AGENT_ADDRESS = "Agent-Address";
+	public static final MessageType AGENT_ADDRESS = MessageType.SYSTEM.newChild("WhitePages", "Agent-Address");
 	
 	/** The list of available daemons*/
 	HashMap<String, AgentAddress> daemons;
@@ -89,7 +90,7 @@ public class WhitePages implements IncomingMsgPolicyInterface<String> {
 	private int daemonCount;
 	
 	/** The list of messages types this listener wants to be notified of */
-	private ArrayList <String> msgTypes = new ArrayList <String> ();
+	private ArrayList <MessageType> msgTypes = new ArrayList <MessageType> ();
 	
 	/** The controllers IP address*/
 	String localAddress;
@@ -123,7 +124,7 @@ public class WhitePages implements IncomingMsgPolicyInterface<String> {
 	/** 
 	 * @see frodo2.communication.IncomingMsgPolicyInterface#getMsgTypes()
 	 */
-	public Collection<String> getMsgTypes() {
+	public Collection<MessageType> getMsgTypes() {
 		return msgTypes;
 	}
 
@@ -132,7 +133,7 @@ public class WhitePages implements IncomingMsgPolicyInterface<String> {
 	 */
 	@SuppressWarnings("unchecked")
 	public void notifyIn(Message msg) {
-		String msgType = msg.getType();
+		MessageType msgType = msg.getType();
 		
 		if(msgType.equals(ConfigurationManager.REQUEST_DAEMONS_CONFIG_MSG)) {
 			MessageWithPayload<HashMap<String, AgentAddress>> newMsg = new MessageWithPayload<HashMap<String, AgentAddress>>(DEAMONS_CONFIG_MSG, daemons);

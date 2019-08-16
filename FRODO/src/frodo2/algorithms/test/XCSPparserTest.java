@@ -321,11 +321,10 @@ public class XCSPparserTest extends TestCase {
 	public void testGetAgents() {
 		
 		Set<String> agents = parserInt.getAgents();
-		int nbrClusters = graph.clusters.size();
 		
 		// Remove all cluster IDs from the list of agents
-		for (int i = 0; i < nbrClusters; i++) 
-			assertTrue (agents.remove(String.valueOf(i)));
+		for (String agent : graph.clusters.keySet()) 
+			assertTrue (agents.remove(agent));
 		
 		assertTrue (agents.isEmpty());
 	}
@@ -414,20 +413,20 @@ public class XCSPparserTest extends TestCase {
 			assertEquals (graph.clusterOf.get(entry.getKey()).toString(), entry.getValue());
 		
 		// Now test on each agent's subproblem
-		for (int i = 0; i < graph.clusters.size(); i++) {
-			String agent = String.valueOf(i);
+		for (Map.Entry<String, List<String>> entry : graph.clusters.entrySet()) {
+			String agent = entry.getKey();
 			
 			DCOPProblemInterface<AddableInteger, AddableInteger> subProb = parserInt.getSubProblem(agent);
 			owners = subProb.getOwners();
 			
 			// Go through all variables owned by the current agent, and examine their neighbors
-			for (String var : graph.clusters.get(i)) {
+			for (String var : entry.getValue()) {
 				
 				assertEquals (agent, owners.get(var));
 				
 				// Go through all neighbors of the current variable
 				for (String neigh : graph.neighborhoods.get(var)) 
-					assertEquals ((int) graph.clusterOf.get(neigh), (int) Integer.parseInt(owners.get(neigh)));
+					assertEquals (graph.clusterOf.get(neigh), owners.get(neigh));
 			}
 		}
 	}
@@ -439,16 +438,16 @@ public class XCSPparserTest extends TestCase {
 		assertEquals (graph.nodes.size(), parserInt.getNbrVars());
 		
 		// Test for each agent's subproblem
-		for (int i = 0; i < graph.clusters.size(); i++) {
+		for (Map.Entry<String, List<String>> entry : graph.clusters.entrySet()) {
 			
 			// Compute the correct number of variables in this agent's subproblem
 			HashSet<String> allVars = new HashSet<String> ();
-			List<String> intVars = graph.clusters.get(i);
+			List<String> intVars = entry.getValue();
 			for (String intVar : intVars) 
 				allVars.addAll(graph.neighborhoods.get(intVar));
 			allVars.addAll(intVars);
 			
-			assertEquals (allVars.size(), parserInt.getSubProblem(String.valueOf(i)).getNbrVars());
+			assertEquals (allVars.size(), parserInt.getSubProblem(entry.getKey()).getNbrVars());
 		}
 	}
 
@@ -456,8 +455,8 @@ public class XCSPparserTest extends TestCase {
 	public void testGetNbrVarsString() {
 		
 		// Test for each agent
-		for (int i = 0; i < graph.clusters.size(); i++)
-			assertEquals (graph.clusters.get(i).size(), parserInt.getNbrVars(String.valueOf(i)));
+		for (Map.Entry<String, List<String>> entry : graph.clusters.entrySet())
+			assertEquals (entry.getValue().size(), parserInt.getNbrVars(entry.getKey()));
 	}
 
 	/** Test method for XCSPparser#getVariables() */
@@ -470,16 +469,16 @@ public class XCSPparserTest extends TestCase {
 		assertTrue (vars.isEmpty());
 		
 		// Now test for each agent's subproblem
-		for (int i = 0; i < graph.clusters.size(); i++) {
+		for (Map.Entry<String, List<String>> entry : graph.clusters.entrySet()) {
 			
 			// Compute the correct set of variables in this agent's subproblem
 			HashSet<String> allVars = new HashSet<String> ();
-			List<String> intVars = graph.clusters.get(i);
+			List<String> intVars = entry.getValue();
 			for (String intVar : intVars) 
 				allVars.addAll(graph.neighborhoods.get(intVar));
 			allVars.addAll(intVars);
 			
-			vars = parserInt.getSubProblem(String.valueOf(i)).getVariables();
+			vars = parserInt.getSubProblem(entry.getKey()).getVariables();
 			for (String var : allVars) 
 				assertTrue (vars.remove(var));
 			assertTrue (vars.isEmpty());
@@ -491,10 +490,10 @@ public class XCSPparserTest extends TestCase {
 	public void testGetVariablesString() {
 		
 		// Test for each agent
-		for (int i = 0; i < graph.clusters.size(); i++) {
+		for (Map.Entry<String, List<String>> entry : graph.clusters.entrySet()) {
 			
-			Collection<String> vars = parserInt.getVariables(String.valueOf(i));
-			for (String var : graph.clusters.get(i)) 
+			Collection<String> vars = parserInt.getVariables(entry.getKey());
+			for (String var : entry.getValue()) 
 				assertTrue (vars.remove(var));
 			
 			assertTrue (vars.isEmpty());
@@ -511,8 +510,7 @@ public class XCSPparserTest extends TestCase {
 	public void testGetExtVars() {
 		
 		// Test for each agent
-		for (int i = 0; i < graph.clusters.size(); i++) {
-			String agent = String.valueOf(i);
+		for (String agent : graph.clusters.keySet()) {
 			
 			DCOPProblemInterface<AddableInteger, AddableInteger> subProb = parserInt.getSubProblem(agent);
 			Set<String> extVars = subProb.getExtVars();
@@ -618,9 +616,9 @@ public class XCSPparserTest extends TestCase {
 		assertTrue (neighborhoods.isEmpty());
 		
 		// Test for each agent
-		for (int i = 0; i < graph.clusters.size(); i++) {
+		for (String agent : graph.clusters.keySet()) {
 			
-			neighborhoods = (onlyAnonymVars ? parserInt.getAnonymNeighborhoods(String.valueOf(i)) : parserInt.getNeighborhoods(String.valueOf(i)));
+			neighborhoods = (onlyAnonymVars ? parserInt.getAnonymNeighborhoods(agent) : parserInt.getNeighborhoods(agent));
 			
 			// Go through the list of correct neighborhoods for this agent
 			for (Map.Entry< String, ? extends Collection<String> > neighborhood : getNeighborhoods(onlyAnonymVars).entrySet()) {
@@ -630,7 +628,7 @@ public class XCSPparserTest extends TestCase {
 				if (this.parserInt.isRandom(var)) 
 					continue;
 
-				if (graph.clusterOf.get(var) == i) {
+				if (graph.clusterOf.get(var).equals(agent)) {
 					
 					Collection<String> neighbors = neighborhoods.remove(var);
 					
@@ -677,9 +675,9 @@ public class XCSPparserTest extends TestCase {
 		assertTrue (sizes.isEmpty());
 
 		// Test for each agent
-		for (int i = 0; i < graph.clusters.size(); i++) {
+		for (String agent : graph.clusters.keySet()) {
 
-			sizes = parserInt.getNeighborhoodSizes(String.valueOf(i));
+			sizes = parserInt.getNeighborhoodSizes(agent);
 
 			// Go through the list of correct neighborhoods for this agent
 			for (Map.Entry< String, ? extends Collection<String> > neighborhood : getNeighborhoods(false).entrySet()) {
@@ -689,7 +687,7 @@ public class XCSPparserTest extends TestCase {
 				if (this.parserInt.isRandom(var)) 
 					continue;
 
-				if (graph.clusterOf.get(var) == i) 
+				if (graph.clusterOf.get(var).equals(agent)) 
 					assertEquals (neighborhood.getValue().size(), (int) sizes.remove(var));
 			}
 			
@@ -727,9 +725,9 @@ public class XCSPparserTest extends TestCase {
 		assertTrue (agentNeighborhoods.isEmpty());
 		
 		// Test for each agent
-		for (int i = 0; i < graph.clusters.size(); i++) {
+		for (String agent : graph.clusters.keySet()) {
 
-			Map< String, Collection<String> > neighborhoods = parserInt.getAgentNeighborhoods(String.valueOf(i));
+			Map< String, Collection<String> > neighborhoods = parserInt.getAgentNeighborhoods(agent);
 			
 			// Go through the list of correct neighborhoods for this agent
 			for (Map.Entry< String, ? extends Collection<String> > neighborhood : trueNeighborhoods.entrySet()) {
@@ -739,19 +737,19 @@ public class XCSPparserTest extends TestCase {
 				if (this.parserInt.isRandom(var)) 
 					continue;
 
-				if (graph.clusterOf.get(var) == i) {
+				if (graph.clusterOf.get(var).equals(agent)) {
 					
 					Collection<String> agents = neighborhoods.get(var);
 					
 					// Compute the correct collection of neighboring agents
 					Collection<String> agents2 = new HashSet<String> ();
 					for (String neighboor : neighborhood.getValue()) 
-						agents2.add(graph.clusterOf.get(neighboor).toString());
-					agents2.remove(String.valueOf(i));
+						agents2.add(graph.clusterOf.get(neighboor));
+					agents2.remove(agent);
 										
 					// Compare the two collections
-					for (String agent : agents2) 
-						assertTrue (agents.remove(agent));
+					for (String agent1 : agents2) 
+						assertTrue (agents.remove(agent1));
 					assertTrue (agents.isEmpty());
 				}
 			}
@@ -768,8 +766,8 @@ public class XCSPparserTest extends TestCase {
 			assertEquals (this.parserInt.getDomain(var).length, this.parserInt.getDomainSize(var));
 		
 		// Test for each agent's subproblem
-		for (int i = 0; i < graph.clusters.size(); i++) {
-			XCSPparser<AddableInteger, AddableInteger> subProb = parserInt.getSubProblem(String.valueOf(i));
+		for (String agent : this.graph.clusters.keySet()) {
+			XCSPparser<AddableInteger, AddableInteger> subProb = parserInt.getSubProblem(agent);
 			
 			allVars = new ArrayList<String> (subProb.getVariables());
 			allVars.addAll(subProb.getVariables(null)); // test also the variables with no specified owner 
@@ -812,8 +810,8 @@ public class XCSPparserTest extends TestCase {
 			assertEquals (Arrays.asList(doms.get(varElmt.getAttributeValue("domain"))), Arrays.asList(parserInt.getDomain(varElmt.getAttributeValue("name"))));
 		
 		// Also check each agent's subproblem
-		for (int i = 0; i < graph.clusters.size(); i++) {
-			XCSPparser<AddableInteger, AddableInteger> subProb = parserInt.getSubProblem(String.valueOf(i));
+		for (String agent : graph.clusters.keySet()) {
+			XCSPparser<AddableInteger, AddableInteger> subProb = parserInt.getSubProblem(agent);
 			for (String var : subProb.getVariables()) 
 				assertEquals (Arrays.asList(parserInt.getDomain(var)), Arrays.asList(subProb.getDomain(var)));
 			for (String var : subProb.getVariables(null)) // also check anonymous variables
@@ -880,8 +878,7 @@ public class XCSPparserTest extends TestCase {
 		List< ? extends UtilitySolutionSpace<AddableInteger, AddableReal> > allProbs = parserReal.getProbabilitySpaces();
 
 		// Test for each agent
-		for (int i = 0; i < graph.clusters.size(); i++) {
-			String agent = String.valueOf(i);
+		for (String agent : graph.clusters.keySet()) {
 			
 			DCOPProblemInterface< AddableInteger, AddableReal > subproblem = parserReal.getSubProblem(agent);
 			
@@ -1040,14 +1037,14 @@ public class XCSPparserTest extends TestCase {
 			this.testGetSolutionSpaces(this.parserInt, new ArrayList< UtilitySolutionSpace<AddableInteger, AddableInteger> > (this.solutionSpaces), var, withRandVars);
 		
 		// Also test for each agent's subproblem
-		for (Integer i = 0; i < graph.clusters.size(); i++) {
-			XCSPparser<AddableInteger, AddableInteger> subProb = parserInt.getSubProblem(i.toString());
+		for (String agent : graph.clusters.keySet()) {
+			XCSPparser<AddableInteger, AddableInteger> subProb = parserInt.getSubProblem(agent);
 			
 			// Filter out the spaces that don't involve any internal variable
 			ArrayList< UtilitySolutionSpace<AddableInteger, AddableInteger> > mySolutionSpaces = new ArrayList< UtilitySolutionSpace<AddableInteger, AddableInteger> > ();
 			ext: for (UtilitySolutionSpace<AddableInteger, AddableInteger> space : this.solutionSpaces) {
 				for (String var : space.getVariables()) {
-					if (i.equals(graph.clusterOf.get(var))) { // internal variable
+					if (agent.equals(graph.clusterOf.get(var))) { // internal variable
 						mySolutionSpaces.add(space);
 						continue ext;
 					}
@@ -1082,8 +1079,8 @@ public class XCSPparserTest extends TestCase {
 		}
 		
 		// Also check each agent's subproblem
-		for (Integer i = 0; i < graph.clusters.size(); i++) {
-			XCSPparser<AddableInteger, AddableReal> subProb = parserReal.getSubProblem(i.toString());
+		for (String agent : graph.clusters.keySet()) {
+			XCSPparser<AddableInteger, AddableReal> subProb = parserReal.getSubProblem(agent);
 			
 			allVars = new HashSet<String> (subProb.getVariables());
 			allVars.addAll(subProb.getVariables(null)); // add variables with no specified owner

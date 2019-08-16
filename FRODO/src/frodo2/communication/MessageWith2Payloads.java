@@ -48,7 +48,7 @@ public class MessageWith2Payloads < T1 extends Serializable, T2 extends Serializ
 	 * @param payload1 first payload
 	 * @param payload2 second payload
 	 */
-	public MessageWith2Payloads(String type, T1 payload1, T2 payload2) {
+	public MessageWith2Payloads(MessageType type, T1 payload1, T2 payload2) {
 		super(type);
 		this.payload1 = payload1;
 		this.payload2 = payload2;

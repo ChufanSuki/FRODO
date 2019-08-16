@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
+import frodo2.communication.MessageType;
 import frodo2.communication.MessageWith2Payloads;
 import frodo2.communication.MessageWithPayload;
 import frodo2.solutionSpaces.Addable;
@@ -41,7 +42,7 @@ import frodo2.solutionSpaces.UtilitySolutionSpace;
 public class VariableMsg < V extends Addable<V>, U extends Addable<U> > extends MessageWith2Payloads< String, UtilitySolutionSpace<V, U> > {
 
 	/** The type of this message */
-	public static final String VARIABLE_MSG_TYPE = "VarToFunction";
+	public static final MessageType VARIABLE_MSG_TYPE = new MessageType ("Max-Sum", "VarToFunction");
 
 	/** Empty constructor used for externalization */
 	public VariableMsg () {

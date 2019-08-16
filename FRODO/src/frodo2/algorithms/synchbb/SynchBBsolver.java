@@ -28,6 +28,7 @@ import org.jdom2.Document;
 import org.jdom2.Element;
 
 import frodo2.algorithms.AbstractDCOPsolver;
+import frodo2.algorithms.SolutionCollector;
 import frodo2.algorithms.SolutionWithConvergence;
 import frodo2.algorithms.StatsReporter;
 import frodo2.algorithms.varOrdering.linear.LinearOrdering;
@@ -43,6 +44,9 @@ public class SynchBBsolver< V extends Addable<V>, U extends Addable<U> > extends
 
 	/** The SynchBB module */
 	protected SynchBB<V, U> module;
+	
+	/** The solution collector */
+	private SolutionCollector<V, U> solCollector;
 
 	/** Default constructor 
 	 * @param filename the name of the file containing the description of the algorithm*/
@@ -138,11 +142,15 @@ public class SynchBBsolver< V extends Addable<V>, U extends Addable<U> > extends
 	@Override
 	public ArrayList<StatsReporter> getSolGatherers() {
 
-		ArrayList<StatsReporter> solGatherers = new ArrayList<StatsReporter> (1);
+		ArrayList<StatsReporter> solGatherers = new ArrayList<StatsReporter> (4);
 		
 		module = new SynchBB<V, U> (null, problem);
 		module.setSilent(true);
 		solGatherers.add(module);
+		
+		this.solCollector = new SolutionCollector<V, U> (null, problem);
+		this.solCollector.setSilent(true);
+		solGatherers.add(this.solCollector);
 		
 		Element params = new Element ("module");
 		params.setAttribute("DOTrenderer", DOTrenderer.class.getName()); // comment out to print to the console
@@ -157,7 +165,7 @@ public class SynchBBsolver< V extends Addable<V>, U extends Addable<U> > extends
 	/** @see AbstractDCOPsolver#buildSolution() */
 	@Override
 	public SolutionWithConvergence<V, U> buildSolution () {
-		return new SolutionWithConvergence<V, U> (this.problem.getNbrVars(), module.getOptCost(), super.problem.getUtility(this.module.getOptAssignments(), true).getUtility(0), module.getOptAssignments(), 
+		return new SolutionWithConvergence<V, U> (this.problem.getNbrVars(), null, this.solCollector.getUtility(), this.solCollector.getSolution(), 
 				factory.getNbrMsgs(), factory.getMsgNbrs(), factory.getMsgNbrsSentPerAgent(), factory.getMsgNbrsReceivedPerAgent(), 
 				factory.getTotalMsgSize(), factory.getMsgSizes(), factory.getMsgSizesSentPerAgent(), factory.getMsgSizesReceivedPerAgent(), 
 				factory.getOverallMaxMsgSize(), factory.getMaxMsgSizes(), 
@@ -169,6 +177,7 @@ public class SynchBBsolver< V extends Addable<V>, U extends Addable<U> > extends
 	protected void clear () {
 		super.clear();
 		this.module = null;
+		this.solCollector = null;
 	}
 
 }

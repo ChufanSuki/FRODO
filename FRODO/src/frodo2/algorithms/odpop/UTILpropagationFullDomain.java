@@ -45,6 +45,7 @@ import frodo2.algorithms.odpop.goodsTree.leafNodeTree.LeafNodeTree;
 import frodo2.algorithms.varOrdering.dfs.DFSgeneration;
 import frodo2.algorithms.varOrdering.dfs.DFSgeneration.DFSview;
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 import frodo2.communication.MessageWith2Payloads;
 import frodo2.communication.MessageWithPayload;
 import frodo2.communication.Queue;
@@ -64,37 +65,37 @@ import frodo2.solutionSpaces.UtilitySolutionSpace;
 public class UTILpropagationFullDomain < Val extends Addable<Val>, U extends Addable<U>, L extends LeafNode<U> > implements StatsReporter {
 
 	/** The type of the message telling the module to start */
-	public static String START_MSG_TYPE = AgentInterface.START_AGENT;
+	public static MessageType START_MSG_TYPE = AgentInterface.START_AGENT;
 
 	/** The type of the UTIL message*/
-	public static final String UTIL_MSG = "ODPOP_UTIL";
+	public static final MessageType UTIL_MSG = new MessageType ("O-DPOP", "UTILpropagation", "UTIL");
 
 	/** The type of a UTIL message with variables */
-	public static final String UTIL_MSG_VARS = "UTIL_VARS";
+	public static final MessageType UTIL_MSG_VARS = new MessageType ("O-DPOP", "UTILpropagation", "UTIL_VARS");
 
 	/** The type of the UTIL message with domain information */
-	public static final String UTIL_MSG_DOM = "UTIL_DOM";
+	public static final MessageType UTIL_MSG_DOM = new MessageType ("O-DPOP", "UTILpropagation", "UTIL_DOM");
 
 	/** The type of the UTIL message with domain information */
-	public static final String UTIL_MSG_DOM_VARS = "UTIL_DOM_VARS";
+	public static final MessageType UTIL_MSG_DOM_VARS = new MessageType ("O-DPOP", "UTILpropagation", "UTIL_DOM_VARS");
 
 	/** The type of the ASK message*/
-	public static final String ASK_MSG = "ASK";
+	public static final MessageType ASK_MSG = new MessageType ("O-DPOP", "UTILpropagation", "ASK");
 
 	/** The type of the DONE message*/
-	public static final String DONE_MSG	= "Done message";
+	public static final MessageType DONE_MSG	= new MessageType ("O-DPOP", "UTILpropagation", "Done");
 
 	/** The type of the messages containing optimal utility values sent by roots */
-	public static final String OPT_UTIL_MSG_TYPE = "ODPOP_OptUtilMessage";
+	public static final MessageType OPT_UTIL_MSG_TYPE = new MessageType ("O-DPOP", "UTILpropagation", "OptUtil");
 
 	/** The type of the message used to start the value propagation */
-	protected static final String VALUE_PROP_START_MSG_TYPE = "Start VALUE propagation";
+	public static final MessageType VALUE_PROP_START_MSG_TYPE = new MessageType ("O-DPOP", "UTILpropagation", "Start VALUE propagation");
 
 	/** The type of the message used to send the GoodsTree to the VALUE propagation module */
-	protected static final String GOODS_TREE_MSG_TYPE = "Goods tree message";
+	public static final MessageType GOODS_TREE_MSG_TYPE = new MessageType ("O-DPOP", "UTILpropagation", "Goods tree");
 
 	/** The type of messages sent to the statistics monitor */
-	protected static final String UTIL_STATS_MSG_TYPE = "ODPOP_UTILstatsMessage";
+	public static final MessageType UTIL_STATS_MSG_TYPE = new MessageType ("O-DPOP", "UTILpropagation", "UTILstats");
 
 	// Variables used to collect statistics
 	
@@ -221,8 +222,8 @@ public class UTILpropagationFullDomain < Val extends Addable<Val>, U extends Add
 	}
 
 	/** @see frodo2.communication.IncomingMsgPolicyInterface#getMsgTypes() */
-	public Collection<String> getMsgTypes() {
-		ArrayList <String> msgTypes = new ArrayList<String>(10);
+	public Collection<MessageType> getMsgTypes() {
+		ArrayList <MessageType> msgTypes = new ArrayList<MessageType>(10);
 		msgTypes.add(START_MSG_TYPE);
 		msgTypes.add(ASK_MSG);
 		msgTypes.add(UTIL_MSG);
@@ -241,7 +242,7 @@ public class UTILpropagationFullDomain < Val extends Addable<Val>, U extends Add
 	 */
 	@SuppressWarnings("unchecked")
 	public void notifyIn(Message msg) {
-		String type = msg.getType();
+		MessageType type = msg.getType();
 
 		if(this.agentFinished)
 			return;

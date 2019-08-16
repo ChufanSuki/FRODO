@@ -42,15 +42,16 @@ import org.jdom2.JDOMException;
 
 import frodo2.algorithms.AgentFactory;
 import frodo2.algorithms.AgentInterface;
+import frodo2.algorithms.SolutionCollector;
 import frodo2.algorithms.XCSPparser;
 import frodo2.algorithms.dpop.DPOPsolver;
 import frodo2.algorithms.odpop.UTILpropagationFullDomain;
-import frodo2.algorithms.odpop.VALUEpropagation;
 import frodo2.algorithms.odpop.goodsTree.InnerNodeTreeFullDomain.LeafNode;
 import frodo2.algorithms.test.AllTests;
 import frodo2.algorithms.varOrdering.dfs.DFSgeneration;
 import frodo2.communication.IncomingMsgPolicyInterface;
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 import frodo2.communication.MessageWith2Payloads;
 import frodo2.communication.Queue;
 import frodo2.communication.QueueOutputPipeInterface;
@@ -74,7 +75,7 @@ import junit.framework.TestSuite;
  * @param <U> the type used for utility values
  * @todo REUSE CODE WITH ODPOPagentTest!!!
  */
-public class ODPOPagentTestFullDomain < V extends Addable<V>, U extends Addable<U> > extends TestCase implements IncomingMsgPolicyInterface<String> {
+public class ODPOPagentTestFullDomain < V extends Addable<V>, U extends Addable<U> > extends TestCase implements IncomingMsgPolicyInterface<MessageType> {
 
 
 	/** Maximum number of variables in the problem 
@@ -118,14 +119,14 @@ public class ODPOPagentTestFullDomain < V extends Addable<V>, U extends Addable<
 	/** The UTILpropagation stats gatherer listening for the solution */
 	private UTILpropagationFullDomain<V, U, LeafNode<U>> statsGathererUTIL;
 	
-	/** The VALUEpropagation stats gatherer listening for the solution */
-	private VALUEpropagation<V, U> statsGathererVALUE;
+	/** The solution collector */
+	private SolutionCollector<V, U> solCollector;
 	
 	/** The DFS tree generation  stats gatherer listening for DFS tree information*/
 	private DFSgeneration<V, U> statsGathererDFS;
 	
 	/** The type of the start message */
-	private String startMsgType;
+	private MessageType startMsgType;
 
 	/** The description of the agent */
 	private Document agentDesc;
@@ -156,11 +157,12 @@ public class ODPOPagentTestFullDomain < V extends Addable<V>, U extends Addable<
 	 * @param domClass 			The class used for variable values
 	 * @param utilClass 		the class used for utility values
 	 */
-	public ODPOPagentTestFullDomain(String string, boolean useCentralMailer, boolean useDelay, String startMsgType, Class<V> domClass, Class<U> utilClass) {
+	public ODPOPagentTestFullDomain(String string, boolean useCentralMailer, boolean useDelay, MessageType startMsgType, Class<V> domClass, Class<U> utilClass) {
 		super (string);
 		this.useCentralMailer = useCentralMailer;
 		this.useDelay = useDelay;
 		this.domClass = domClass;
+		this.startMsgType = startMsgType;
 		this.utilClass = utilClass;
 	}
 
@@ -168,20 +170,36 @@ public class ODPOPagentTestFullDomain < V extends Addable<V>, U extends Addable<
 	 * @param startMsgType 		the new type for the start message
 	 * @throws JDOMException 	if parsing the agent configuration file failed
 	 */
-	private void setStartMsgType (String startMsgType) throws JDOMException {
-		startMsgType = AgentInterface.START_AGENT;
+	private void setStartMsgType (MessageType startMsgType) throws JDOMException {
 		if (startMsgType != null) {
 			this.startMsgType = startMsgType;
-			for (Element module2 : (List<Element>) this.agentDesc.getRootElement().getChild("modules").getChildren()) {
-				for (Element message : (List<Element>) module2.getChild("messages").getChildren()) {
-					if (message.getAttributeValue("name").equals("START_MSG_TYPE")) {
-						message.setAttribute("value", startMsgType);
-						message.removeAttribute("ownerClass");
-					}
-				}
+			for (Element module2 : agentDesc.getRootElement().getChild("modules").getChildren()) {
+				this.setStartMsgType(module2.getChild("messages"), startMsgType);
+				
+				// Also set the start message type for sub-modules (example: DFSgenerationParallel)
+				for (Element submod : module2.getChildren()) 
+					this.setStartMsgType(submod.getChild("messages"), startMsgType);
 			}
 		} else 
 			this.startMsgType = AgentInterface.START_AGENT;
+	}
+
+	/** Overwrites the type of the start messages
+	 * @param messages 		messages element
+	 * @param startMsgType 	the new type of the start messages
+	 */
+	private void setStartMsgType (Element messages, MessageType startMsgType) {
+		if (messages != null) {
+			for (Element message : (List<Element>) messages.getChildren()) {
+				if (message.getAttributeValue("myFieldName").equals("START_MSG_TYPE") 
+						&& message.getAttributeValue("targetFieldName").equals("START_AGENT")
+						&& message.getAttributeValue("targetClass").equals(AgentInterface.class.getName())) {
+					message.removeAttribute("targetFieldName");
+					message.removeAttribute("targetClass");
+					message.addContent(startMsgType.toXML());
+				}
+			}
+		}
 	}
 
 	/** @return the test suite */
@@ -213,7 +231,7 @@ public class ODPOPagentTestFullDomain < V extends Addable<V>, U extends Addable<
 		suite.addTest(tmp);
 		
 		tmp = new TestSuite ("Tests using QueueIOPipes and a different type of start message and integer utilities");
-		tmp.addTest(new RepeatedTest (new ODPOPagentTestFullDomain<AddableInteger, AddableInteger> ("testRandomSharedMemory", false, false, "START NOW!", AddableInteger.class, AddableInteger.class), 500));
+		tmp.addTest(new RepeatedTest (new ODPOPagentTestFullDomain<AddableInteger, AddableInteger> ("testRandomSharedMemory", false, false, new MessageType ("START NOW!"), AddableInteger.class, AddableInteger.class), 500));
 		suite.addTest(tmp);
 		
 		return suite;
@@ -239,11 +257,8 @@ public class ODPOPagentTestFullDomain < V extends Addable<V>, U extends Addable<
 		queue.addIncomingMessagePolicy(this);
 		pipes = new HashMap<Object, QueueOutputPipeInterface> ();
 		statsGathererUTIL = new UTILpropagationFullDomain<V, U, LeafNode<U>> ((Element) null, null);
-		statsGathererVALUE = new VALUEpropagation<V, U> ((Element) null, null);
 		statsGathererUTIL.setSilent(true);
 		statsGathererUTIL.getStatsFromQueue(queue);
-		statsGathererVALUE.setSilent(true);
-		statsGathererVALUE.getStatsFromQueue(queue);
 	}
 	
 	/** @see junit.framework.TestCase#tearDown() */
@@ -264,7 +279,7 @@ public class ODPOPagentTestFullDomain < V extends Addable<V>, U extends Addable<
 		agents = null;
 		this.statsGathererDFS = null;
 		statsGathererUTIL = null;
-		statsGathererVALUE = null;
+		solCollector = null;
 		this.agentDesc = null;
 		this.pipe = null;
 		this.startMsgType = null;
@@ -317,7 +332,11 @@ public class ODPOPagentTestFullDomain < V extends Addable<V>, U extends Addable<
 		statsGathererDFS = new DFSgeneration<V, U> ((Element)null, parser);
 		statsGathererDFS.setSilent(true);
 		statsGathererDFS.getStatsFromQueue(queue);
-		
+
+		solCollector = new SolutionCollector<V, U> ((Element) null, parser);
+		solCollector.setSilent(true);
+		solCollector.getStatsFromQueue(queue);
+
 		String useCentralMailerString = Boolean.toString(useCentralMailer);
 		agentDesc.getRootElement().setAttribute("measureTime", useCentralMailerString);
 		if(agentDesc.getRootElement().getChild("parser") != null)
@@ -378,13 +397,13 @@ public class ODPOPagentTestFullDomain < V extends Addable<V>, U extends Addable<
 		assertEquals (dpopOptUtil, totalOptUtil);
 		
 		// Check that the optimal assignments have indeed the reported utility
-		Map<String, V> optAssignments = statsGathererVALUE.getOptAssignments();
+		Map<String, V> optAssignments = solCollector.getSolution();
 		assertEquals (totalOptUtil, parser.getUtility(optAssignments).getUtility(0));
 	}
 
 	/** @see frodo2.communication.IncomingMsgPolicyInterface#getMsgTypes() */
-	public Collection<String> getMsgTypes() {
-		ArrayList<String> types = new ArrayList<String> (4);
+	public Collection<MessageType> getMsgTypes() {
+		ArrayList<MessageType> types = new ArrayList<MessageType> (4);
 		types.add(AgentInterface.LOCAL_AGENT_REPORTING);
 		types.add(AgentInterface.LOCAL_AGENT_ADDRESS_REQUEST);
 		types.add(AgentInterface.AGENT_CONNECTED);

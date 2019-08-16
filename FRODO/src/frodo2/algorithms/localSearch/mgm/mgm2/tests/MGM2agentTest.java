@@ -42,12 +42,13 @@ import org.jdom2.JDOMException;
 import frodo2.algorithms.AgentFactory;
 import frodo2.algorithms.AgentInterface;
 import frodo2.algorithms.Problem;
+import frodo2.algorithms.SolutionCollector;
 import frodo2.algorithms.XCSPparser;
-import frodo2.algorithms.localSearch.mgm.AssignmentMessage;
 import frodo2.algorithms.localSearch.mgm.mgm2.MGM2;
 import frodo2.algorithms.test.AllTests;
 import frodo2.communication.IncomingMsgPolicyInterface;
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 import frodo2.communication.MessageWith2Payloads;
 import frodo2.communication.MessageWrapper;
 import frodo2.communication.Queue;
@@ -71,7 +72,7 @@ import junit.framework.TestSuite;
  * @author Brammert Ottens, Thomas Leaute
  * @todo CODE REUSE!!!!!!!!!!!!!!
  */
-public class MGM2agentTest < V extends Addable<V>, U extends Addable<U> > extends TestCase  implements IncomingMsgPolicyInterface<String> {
+public class MGM2agentTest < V extends Addable<V>, U extends Addable<U> > extends TestCase  implements IncomingMsgPolicyInterface<MessageType> {
 
 	/** Maximum number of variables in the problem 
 	 * @note Must be at least 2. 
@@ -124,7 +125,7 @@ public class MGM2agentTest < V extends Addable<V>, U extends Addable<U> > extend
 	private MGM2<V, U> statsGatherer;
 	
 	/** The type of the start message */
-	private String startMsgType;
+	private MessageType startMsgType;
 
 	/** The description of the agent */
 	private Document agentDesc;
@@ -153,7 +154,7 @@ public class MGM2agentTest < V extends Addable<V>, U extends Addable<U> > extend
 	 * @param domClass 			The class used for variable values
 	 * @param utilClass 		the class used for utility values
 	 */
-	public MGM2agentTest(boolean useXCSP, boolean useTCP, boolean countNCCCs, boolean useCentralMailer, String startMsgType, Class<V> domClass, Class<U> utilClass) {
+	public MGM2agentTest(boolean useXCSP, boolean useTCP, boolean countNCCCs, boolean useCentralMailer, MessageType startMsgType, Class<V> domClass, Class<U> utilClass) {
 		super ("testRandom");
 		this.useXCSP = useXCSP;
 		this.useTCP = useTCP;
@@ -168,14 +169,20 @@ public class MGM2agentTest < V extends Addable<V>, U extends Addable<U> > extend
 	 * @param startMsgType 		the new type for the start message
 	 * @throws JDOMException 	if parsing the agent configuration file failed
 	 */
-	private void setStartMsgType (String startMsgType) throws JDOMException {
+	private void setStartMsgType (MessageType startMsgType) throws JDOMException {
 		if (startMsgType != null) {
 			this.startMsgType = startMsgType;
 			for (Element module2 : (List<Element>) this.agentDesc.getRootElement().getChild("modules").getChildren()) {
-				for (Element message : (List<Element>) module2.getChild("messages").getChildren()) {
-					if (message.getAttributeValue("name").equals("START_MSG_TYPE")) {
-						message.setAttribute("value", startMsgType);
-						message.removeAttribute("ownerClass");
+				Element messages = module2.getChild("messages");
+				if (messages != null) {
+					for (Element message : messages.getChildren()) {
+						if (message.getAttributeValue("myFieldName").equals("START_MSG_TYPE") 
+								&& message.getAttributeValue("targetFieldName").equals("START_AGENT")
+								&& message.getAttributeValue("targetClass").equals(AgentInterface.class.getName())) {
+							message.removeAttribute("targetFieldName");
+							message.removeAttribute("targetClass");
+							message.addContent(startMsgType.toXML());
+						}
 					}
 				}
 			}
@@ -220,7 +227,7 @@ public class MGM2agentTest < V extends Addable<V>, U extends Addable<U> > extend
 		suite.addTest(tmp);
 		
 		tmp = new TestSuite ("Tests MGM2 using QueueIOPipes and a different type of start message AddableInteger utilities");
-		tmp.addTest(new RepeatedTest (new MGM2agentTest<AddableInteger, AddableInteger> (true, false, false, false, "START NOW!", AddableInteger.class, AddableInteger.class), 50));
+		tmp.addTest(new RepeatedTest (new MGM2agentTest<AddableInteger, AddableInteger> (true, false, false, false, new MessageType ("START NOW!"), AddableInteger.class, AddableInteger.class), 50));
 		suite.addTest(tmp);
 		
 		tmp = new TestSuite ("Tests MGM2 using QueueIOPipes and AddableReal utilities");
@@ -252,7 +259,7 @@ public class MGM2agentTest < V extends Addable<V>, U extends Addable<U> > extend
 		suite.addTest(tmp);
 		
 		tmp = new TestSuite ("Tests MGM2 using QueueIOPipes and a different type of start message AddableReal utilities");
-		tmp.addTest(new RepeatedTest (new MGM2agentTest<AddableInteger, AddableReal> (true, false, false, false, "START NOW!", AddableInteger.class, AddableReal.class), 50));
+		tmp.addTest(new RepeatedTest (new MGM2agentTest<AddableInteger, AddableReal> (true, false, false, false, new MessageType ("START NOW!"), AddableInteger.class, AddableReal.class), 50));
 		suite.addTest(tmp);
 		
 		return suite;
@@ -370,13 +377,13 @@ public class MGM2agentTest < V extends Addable<V>, U extends Addable<U> > extend
 	}
 
 	/** @see frodo2.communication.IncomingMsgPolicyInterface#getMsgTypes() */
-	public Collection<String> getMsgTypes() {
-		ArrayList<String> types = new ArrayList<String> (5);
+	public Collection<MessageType> getMsgTypes() {
+		ArrayList<MessageType> types = new ArrayList<MessageType> (5);
 		types.add(AgentInterface.LOCAL_AGENT_REPORTING);
 		types.add(AgentInterface.LOCAL_AGENT_ADDRESS_REQUEST);
 		types.add(AgentInterface.AGENT_CONNECTED);
 		types.add(AgentInterface.AGENT_FINISHED);
-		types.add(MGM2.OUTPUT_MSG_TYPE);
+		types.add(SolutionCollector.ASSIGNMENT_MSG_TYPE);
 		return types;
 	}
 
@@ -384,7 +391,7 @@ public class MGM2agentTest < V extends Addable<V>, U extends Addable<U> > extend
 	@SuppressWarnings("unchecked")
 	public void notifyIn(Message msg) {
 		
-		String msgType = msg.getType();
+		MessageType msgType = msg.getType();
 		
 		if (msgType.equals(AgentInterface.LOCAL_AGENT_REPORTING)) {
 			LocalAgentReport msgCast = (LocalAgentReport) msg;
@@ -436,12 +443,12 @@ public class MGM2agentTest < V extends Addable<V>, U extends Addable<U> > extend
 				assertTrue (queue.getCurrentMessageWrapper().getTime() >= 0);
 		}
 		
-		else if (msgType.equals(MGM2.OUTPUT_MSG_TYPE)) {
+		else if (msgType.equals(SolutionCollector.ASSIGNMENT_MSG_TYPE)) {
 			
 			if (this.countNCCCs)  {
 				
 				// Don't check the NCCC counter if this variable is unconstrained
-				AssignmentMessage<V> msgCast = (AssignmentMessage<V>) msg;
+				SolutionCollector.AssignmentMessage<V> msgCast = (SolutionCollector.AssignmentMessage<V>) msg;
 				if (this.problem.getSolutionSpaces(msgCast.getVariable(), null).isEmpty()) 
 					return;
 				

@@ -33,8 +33,8 @@ import org.jdom2.Element;
 
 import frodo2.algorithms.AgentInterface;
 import frodo2.algorithms.RandGraphFactory;
+import frodo2.algorithms.SolutionCollector;
 import frodo2.algorithms.XCSPparser;
-import frodo2.algorithms.dpop.VALUEpropagation;
 import frodo2.algorithms.dpop.param.ParamDPOPsolver;
 import frodo2.algorithms.dpop.stochastic.E_DPOPsolver;
 import frodo2.algorithms.dpop.stochastic.SamplingPhase;
@@ -42,6 +42,7 @@ import frodo2.algorithms.dpop.stochastic.E_DPOPsolver.StochSolution;
 import frodo2.algorithms.dpop.stochastic.ExpectedUTIL;
 import frodo2.algorithms.dpop.test.DPOPagentTest;
 import frodo2.algorithms.test.AllTests;
+import frodo2.communication.MessageType;
 import frodo2.communication.Queue;
 import frodo2.communication.QueueOutputPipeInterface;
 import frodo2.communication.mailer.CentralMailer;
@@ -89,7 +90,7 @@ public class E_DPOPagentTest < V extends Addable<V> > extends DPOPagentTest<V, A
 	 * @param startMsgType 			the type of the start message
 	 * @param domClass 				the class used for variable values
 	 */
-	public E_DPOPagentTest(String whereToSample, String whereToProject, String method, boolean useTCP, boolean useCentralMailer, int nbrSamples, String startMsgType, Class<V> domClass) {
+	public E_DPOPagentTest(String whereToSample, String whereToProject, String method, boolean useTCP, boolean useCentralMailer, int nbrSamples, MessageType startMsgType, Class<V> domClass) {
 		super(true, useTCP, useCentralMailer, false, domClass, AddableReal.class, startMsgType);
 		this.nbrSamples = nbrSamples;
 		this.method = method;
@@ -159,7 +160,7 @@ public class E_DPOPagentTest < V extends Addable<V> > extends DPOPagentTest<V, A
 		subSuite.addTest(tmp);
 		
 		tmp = new TestSuite ("Tests using QueueIOPipes and a different type for the start message");
-		tmp.addTest(new RepeatedTest (new E_DPOPagentTest<AddableInteger> ("AtLCAs", "leaves", "expectation", false, false, 0, "START NOW!", AddableInteger.class), 100));
+		tmp.addTest(new RepeatedTest (new E_DPOPagentTest<AddableInteger> ("AtLCAs", "leaves", "expectation", false, false, 0, new MessageType ("START NOW!"), AddableInteger.class), 100));
 		subSuite.addTest(tmp);
 		
 		
@@ -400,9 +401,9 @@ public class E_DPOPagentTest < V extends Addable<V> > extends DPOPagentTest<V, A
 		utilModule = new ExpectedUTIL<V, AddableReal> (null, problem);
 		utilModule.setSilent(true);
 		utilModule.getStatsFromQueue(queue);
-		valueModule = new VALUEpropagation<V> (null, problem);
-		valueModule.setSilent(true);
-		valueModule.getStatsFromQueue(queue);
+		solCollector = new SolutionCollector<V, AddableReal> (null, problem);
+		solCollector.setSilent(true);
+		solCollector.getStatsFromQueue(queue);
 	}
 	
 	/** Checks that the optimal expected utility computed by E[DPOP] is lower

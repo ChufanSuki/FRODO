@@ -28,7 +28,9 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
@@ -44,6 +46,7 @@ import frodo2.algorithms.varOrdering.linear.CentralLinearOrdering;
 import frodo2.algorithms.varOrdering.linear.OrderMsg;
 import frodo2.communication.IncomingMsgPolicyInterface;
 import frodo2.communication.Message;
+import frodo2.communication.MessageType;
 import frodo2.communication.Queue;
 import frodo2.communication.QueueOutputPipeInterface;
 import frodo2.communication.sharedMemory.QueueIOPipe;
@@ -56,7 +59,7 @@ import junit.framework.TestSuite;
 /** Unit tests for CentralLinearOrdering
  * @author Thomas Leaute
  */
-public class CentralLinearOrderingTest extends TestCase implements IncomingMsgPolicyInterface<String> {
+public class CentralLinearOrderingTest extends TestCase implements IncomingMsgPolicyInterface<MessageType> {
 	
 	/** @return the suite of tests */
 	public static TestSuite suite () {
@@ -84,11 +87,11 @@ public class CentralLinearOrderingTest extends TestCase implements IncomingMsgPo
 	/** The parser for the overall problem */
 	private XCSPparser<AddableInteger, AddableInteger> parser;
 
-	/** List of queues corresponding to the different agents */
-	private Queue[] queues;
+	/** List of queues, indexed by agent name */
+	private Map<String, Queue> queues;
 	
-	/** One output pipe used to send messages to each queue */
-	private QueueOutputPipeInterface[] pipes;
+	/** One output pipe used to send messages to each queue, indexed by the queue's agent name */
+	private Map<String, QueueOutputPipeInterface> pipes;
 
 	/** The number of output messages we are still waiting for */
 	private int remainingOutputs;
@@ -125,11 +128,11 @@ public class CentralLinearOrderingTest extends TestCase implements IncomingMsgPo
 	protected void tearDown () throws Exception {
 		this.graph = null;
 		this.parser = null;
-		for (Queue queue : queues) {
+		for (Queue queue : queues.values()) {
 			queue.end();
 		}
 		queues = null;
-		for (QueueOutputPipeInterface pipe : pipes) {
+		for (QueueOutputPipeInterface pipe : pipes.values()) {
 			pipe.close();
 		}
 		pipes = null;
@@ -139,8 +142,8 @@ public class CentralLinearOrderingTest extends TestCase implements IncomingMsgPo
 	}
 	
 	/** @see IncomingMsgPolicyInterface#getMsgTypes() */
-	public Collection<String> getMsgTypes() {
-		ArrayList<String> types = new ArrayList<String> (1);
+	public Collection<MessageType> getMsgTypes() {
+		ArrayList<MessageType> types = new ArrayList<MessageType> (1);
 		types.add(OrderMsg.ORDER_MSG_TYPE);
 		return types;
 	}
@@ -160,27 +163,25 @@ public class CentralLinearOrderingTest extends TestCase implements IncomingMsgPo
 	public void test () throws IOException, NoSuchMethodException, IllegalArgumentException, InstantiationException, IllegalAccessException, InvocationTargetException {
 		
 		// Create the queue network
-		int nbrAgents = graph.clusters.size();
-		queues = new Queue [nbrAgents];
+		queues = new HashMap<String, Queue> ();
 		pipes = AllTests.createQueueNetwork(queues, graph, false);
 		
 		// Make each agent connected to all other agents
-		for (int i = 0; i < nbrAgents; i++) {
-			Queue queue = queues[i];
-			for (int j = 0; j < nbrAgents; j++) 
-				queue.addOutputPipe(Integer.toString(j), pipes[j]);
+		for (Queue queue : queues.values()) {
+			for (Map.Entry<String, QueueOutputPipeInterface> entry : pipes.entrySet()) 
+				queue.addOutputPipe(entry.getKey(), entry.getValue());
 		}
 		
 		// Listen for statistics messages
 		Queue myQueue = new Queue (false);
 		myQueue.addIncomingMessagePolicy(OrderMsg.STATS_MSG_TYPE, this);
 		QueueIOPipe myPipe = new QueueIOPipe (myQueue);
-		for (Queue queue : this.queues) 
+		for (Queue queue : this.queues.values()) 
 			queue.addOutputPipe(AgentInterface.STATS_MONITOR, myPipe);
 
 		// Create the modules
 		for (String agent : parser.getAgents()) {
-			Queue queue = queues[Integer.parseInt(agent)];
+			Queue queue = queues.get(agent);
 			
 			XCSPparser<AddableInteger, AddableInteger> subProb = parser.getSubProblem(agent);
 			queue.setProblem(subProb);
@@ -192,13 +193,13 @@ public class CentralLinearOrderingTest extends TestCase implements IncomingMsgPo
 		
 		// We should expect one stats message + one output message per non-empty agent
 		this.remainingOutputs = 1;
-		for (List<String> agent : graph.clusters) 
+		for (List<String> agent : graph.clusters.values()) 
 			if (! agent.isEmpty()) 
 				this.remainingOutputs++;
 		
 		// Tell all listeners to start the protocol
 		Message startMsg = new Message (AgentInterface.START_AGENT);
-		for (Queue queue : queues) 
+		for (Queue queue : queues.values()) 
 			queue.sendMessageToSelf(startMsg);
 		
 		// Wait until we have received all expected outputs
@@ -219,7 +220,7 @@ public class CentralLinearOrderingTest extends TestCase implements IncomingMsgPo
 		}
 		
 		// Properly close the pipes
-		for (QueueOutputPipeInterface pipe : pipes) {
+		for (QueueOutputPipeInterface pipe : pipes.values()) {
 			pipe.close();
 		}
 		myQueue.end();
