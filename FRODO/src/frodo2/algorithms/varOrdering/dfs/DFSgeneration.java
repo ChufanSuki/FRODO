@@ -748,14 +748,19 @@ public class DFSgeneration < V extends Addable<V>, U extends Addable<U> > implem
 
 	}
 
+	/** Default constructor */
+	public DFSgeneration () {
+		this.withSharedVars = false;
+	}
+
 	/** Constructor 
 	 * @param problem 		the problem
 	 * @param heuristic 	the heuristic
 	 */
 	public DFSgeneration (DCOPProblemInterface<V, U> problem, NextChildChoiceHeuristic heuristic) {
+		this();
 		this.problem = problem;
 		this.heuristic = heuristic;
-		this.withSharedVars = false;
 	}
 
 	/** Constructor
@@ -869,7 +874,7 @@ public class DFSgeneration < V extends Addable<V>, U extends Addable<U> > implem
 		}
 	}
 
-	/** @see frodo2.communication.IncomingMsgPolicyInterface#getMsgTypes() */
+	/** @see IncomingMsgPolicyInterface#getMsgTypes() */
 	public Collection <MessageType> getMsgTypes() {
 		ArrayList <MessageType> msgTypes = new ArrayList <MessageType> (5);
 		msgTypes.add(START_MSG_TYPE);
@@ -1223,7 +1228,7 @@ public class DFSgeneration < V extends Addable<V>, U extends Addable<U> > implem
 		return true;
 	}
 
-	/** @see frodo2.communication.IncomingMsgPolicyInterface#setQueue(frodo2.communication.Queue) */
+	/** @see IncomingMsgPolicyInterface#setQueue(Queue) */
 	@SuppressWarnings("unchecked")
 	public void setQueue(Queue queue) {
 		this.queue = queue;

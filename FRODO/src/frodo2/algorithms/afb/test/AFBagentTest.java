@@ -45,6 +45,7 @@ import frodo2.algorithms.reformulation.ProblemRescaler;
 import frodo2.algorithms.test.AllTests;
 import frodo2.algorithms.varOrdering.election.VariableElection;
 import frodo2.algorithms.varOrdering.linear.LinearOrdering;
+import frodo2.communication.MessageListener;
 import frodo2.communication.MessageType;
 import frodo2.solutionSpaces.Addable;
 import frodo2.solutionSpaces.AddableInteger;
@@ -143,7 +144,7 @@ public class AFBagentTest <V extends Addable<V>, U extends Addable<U> > extends 
 	@SuppressWarnings("unchecked")
 	public AFBagentTest (String agentFile, boolean useXCSP, boolean useTCP, boolean useCentralMailer, boolean countNCCCs, Class<V> domClass, Class<U> utilClass, boolean maximize, int sign) {
 		super (useXCSP, useTCP, useCentralMailer, false, domClass, utilClass, null, 
-				(Class<? extends XCSPparser<V, U>>) XCSPparser.class, false, false, countNCCCs, false, false);
+				(Class<? extends XCSPparser<V, U>>) new XCSPparser<V, U>().getClass(), false, false, countNCCCs, false, false);
 		
 		super.maximize = maximize;
 		this.sign = sign;
@@ -199,7 +200,8 @@ public class AFBagentTest <V extends Addable<V>, U extends Addable<U> > extends 
 
 					// Set the message type to its new value
 					try {
-						SingleQueueAgent.setMsgType(AFB.class, msgElmt.getAttributeValue("myFieldName"), newType);
+						SingleQueueAgent.setMsgType((Class<? extends MessageListener<MessageType>>) new AFB<V, U> ().getClass(),
+								msgElmt.getAttributeValue("myFieldName"), newType);
 					} catch (NoSuchFieldException e) {
 						System.err.println("Unable to find the field " + AFB.class.getName() + "." + msgElmt.getAttributeValue("myFieldName"));
 						e.printStackTrace();

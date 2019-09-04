@@ -69,7 +69,7 @@ public class DUCTagentChildSearchTest extends DUCTagentTest{
 	 */
 	@SuppressWarnings("unchecked")
 	public DUCTagentChildSearchTest(boolean useTCP, boolean useCentralMailer, boolean measureMsgs, String samplingMethodClass, String termination, String bound) {
-		this(useTCP, useCentralMailer, (Class<? extends XCSPparser<AddableInteger, AddableReal>>) XCSPparser.class, measureMsgs, samplingMethodClass, termination, bound);
+		this(useTCP, useCentralMailer, (Class<? extends XCSPparser<AddableInteger, AddableReal>>) new XCSPparser<AddableInteger, AddableReal>().getClass(), measureMsgs, samplingMethodClass, termination, bound);
 	}
 	
 	/** Creates a JUnit test case corresponding to the input method

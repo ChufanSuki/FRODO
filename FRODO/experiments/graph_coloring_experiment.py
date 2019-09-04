@@ -28,14 +28,14 @@ Journal of Artificial Intelligence Research (JAIR), 47:649-695, August 2013.
 
 # Add the FRODO benchmarks folder to the Python path and import the frodo2 module
 import sys
-sys.path.append("../frodo2.17.jar/frodo2/benchmarks")
+sys.path.append("../frodo2.17.1.jar/frodo2/benchmarks")
 import frodo2
 
 # The command to call java and the JVM parameters
 java = "java"
 javaParams = [
 			"-Xmx2G", # sets the Java heap space to 2 GB
-			"-classpath", "../frodo2.17.jar", # sets the Java classpath to include FRODO
+			"-classpath", "../frodo2.17.1.jar", # sets the Java classpath to include FRODO
 			]
 
 # Define the random problems to be generated

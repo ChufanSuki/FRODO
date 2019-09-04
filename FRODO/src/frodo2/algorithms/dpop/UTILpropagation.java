@@ -128,12 +128,17 @@ implements StatsReporter {
 	/** Whether to minimize the NCCC count, at the expense of an increase in runtime */
 	private final boolean minNCCCs;
 	
+	/** Default constructor */
+	public UTILpropagation () {
+		this.minNCCCs = false;
+	}
+	
 	/** Constructor
 	 * @param problem 	the problem description
 	 */
 	public UTILpropagation (DCOPProblemInterface<Val, U> problem) {
+		this();
 		this.problem = problem;
-		this.minNCCCs = false;
 	}
 	
 	/** Constructor from XML descriptions
@@ -256,7 +261,7 @@ implements StatsReporter {
 			return this.getPayload4();
 		}
 		
-		/** @see frodo2.communication.Message#toString() */
+		/** @see Message#toString() */
 		public String toString () {
 			return "Message(type = `" + this.getType() + "')\n\tchild: " + super.getPayload1() + "\n\tparent: " + super.getPayload2() + 
 			"\n\tseparator: " + Arrays.asList(super.getPayload3()) + "\n\tlower agent: " + this.getLowerAgent();
@@ -310,7 +315,7 @@ implements StatsReporter {
 		
 	}
 	
-	/** @see frodo2.communication.IncomingMsgPolicyInterface#getMsgTypes() */
+	/** @see StatsReporter#getMsgTypes() */
 	public Collection <MessageType> getMsgTypes() {
 		ArrayList<MessageType> types = new ArrayList<MessageType> (4);
 		types.add(this.getStartMsgType());
@@ -461,7 +466,7 @@ implements StatsReporter {
 		queue.sendMessageToSelf(new SeparatorMessage (senderVar, dest, separator, senderAgent));
 	}
 
-	/** @see frodo2.communication.IncomingMsgPolicyInterface#setQueue(frodo2.communication.Queue) */
+	/** @see StatsReporter#setQueue(Queue) */
 	public void setQueue(Queue queue) {
 		this.queue = queue;
 	}

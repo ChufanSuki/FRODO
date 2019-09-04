@@ -354,6 +354,9 @@ public class SamplingPhase < V extends Addable<V>, U extends Addable<U> > extend
 		
 		/** The set of random variables that have already been sampled */
 		private HashSet<String> sampledVars = new HashSet<String> ();
+		
+		/** Empty constructor */
+		public AtLeaves () { }
 
 		/** Constructor in statistics gatherer mode
 		 * @param problem 		the overall problem
@@ -437,7 +440,7 @@ public class SamplingPhase < V extends Addable<V>, U extends Addable<U> > extend
 		protected HashMap< String, Map<V, Double> > finalSamples = new HashMap< String, Map<V, Double> > ();
 
 		/** Nullary constructor */
-		protected AtLCAs () { }
+		public AtLCAs () { }
 		
 		/** Constructor in statistics gatherer mode
 		 * @param problem 		the overall problem
@@ -804,6 +807,9 @@ public class SamplingPhase < V extends Addable<V>, U extends Addable<U> > extend
 	 * @param <U> 	the type used for utility values
 	 */
 	public static class AtRoots < V extends Addable<V>, U extends Addable<U> > extends AtLCAs<V, U> {
+		
+		/** Empty constructor */
+		public AtRoots () { }
 		
 		/** Constructor in statistics gatherer mode
 		 * @param problem 		the overall problem

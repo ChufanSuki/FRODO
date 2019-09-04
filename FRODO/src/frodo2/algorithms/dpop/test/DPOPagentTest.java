@@ -200,7 +200,7 @@ public class DPOPagentTest< V extends Addable<V>, U extends Addable<U> > extends
 	 */
 	@SuppressWarnings("unchecked")
 	public DPOPagentTest(boolean useXCSP, boolean useTCP, boolean useCentralMailer, boolean useDelay, Class<V> domClass, Class<U> utilClass) {
-		this(useXCSP, useTCP, useCentralMailer, useDelay, domClass, utilClass, null, (Class<? extends XCSPparser<V, U>>) XCSPparser.class, false, false, false, false, false);
+		this(useXCSP, useTCP, useCentralMailer, useDelay, domClass, utilClass, null, (Class<? extends XCSPparser<V, U>>) new XCSPparser<V, U>().getClass(), false, false, false, false, false);
 	}
 	
 	/** Constructor
@@ -212,7 +212,7 @@ public class DPOPagentTest< V extends Addable<V>, U extends Addable<U> > extends
 	 */
 	@SuppressWarnings("unchecked")
 	public DPOPagentTest(boolean useXCSP, boolean swap, boolean minNCCCs, boolean countNCCCs, boolean ignoreHypercubeNCCCs) {
-		this(useXCSP, false, false, false, (Class<V>) AddableInteger.class, (Class<U>) AddableInteger.class, null, (Class<? extends XCSPparser<V, U>>) XCSPparser.class, swap, minNCCCs, countNCCCs, false, ignoreHypercubeNCCCs);
+		this(useXCSP, false, false, false, (Class<V>) AddableInteger.class, (Class<U>) AddableInteger.class, null, (Class<? extends XCSPparser<V, U>>) new XCSPparser<V, U>().getClass(), swap, minNCCCs, countNCCCs, false, ignoreHypercubeNCCCs);
 	}
 	
 	/** Constructor
@@ -247,7 +247,7 @@ public class DPOPagentTest< V extends Addable<V>, U extends Addable<U> > extends
 	 */
 	@SuppressWarnings("unchecked")
 	public DPOPagentTest(boolean useXCSP, boolean useTCP, boolean useCentralMailer, boolean useDelay, Class<V> domClass, Class<U> utilClass, MessageType startMsgType) {
-		this(useXCSP, useTCP, useCentralMailer, useDelay, domClass, utilClass, startMsgType, (Class<? extends XCSPparser<V, U>>) XCSPparser.class, false, false, false, false, false);
+		this(useXCSP, useTCP, useCentralMailer, useDelay, domClass, utilClass, startMsgType, (Class<? extends XCSPparser<V, U>>) new XCSPparser<V, U>().getClass(), false, false, false, false, false);
 	}
 	
 	/** Creates a JUnit test case corresponding to the input method
@@ -346,7 +346,7 @@ public class DPOPagentTest< V extends Addable<V>, U extends Addable<U> > extends
 		
 		tmp = new TestSuite ("Tests using QueueIOPipes with integer-valued utilities and the central mailer and measuring messages");
 		tmp.addTest(new RepeatedTest (new DPOPagentTest<AddableInteger, AddableInteger> (true, false, true, false, AddableInteger.class, AddableInteger.class, null, 
-				(Class<? extends XCSPparser<AddableInteger, AddableInteger>>) XCSPparser.class, false, false, false, true, false), 1000));
+				(Class<? extends XCSPparser<AddableInteger, AddableInteger>>) new XCSPparser<AddableInteger, AddableInteger>().getClass(), false, false, false, true, false), 1000));
 		suite.addTest(tmp);
 		
 		tmp = new TestSuite ("Tests using TCP pipes with integer-valued utilities");
@@ -598,7 +598,7 @@ public class DPOPagentTest< V extends Addable<V>, U extends Addable<U> > extends
 		assertEquals (solver.solve(problem).getUtility(), optUtil);		
 	}
 
-	/** @see frodo2.communication.IncomingMsgPolicyInterface#getMsgTypes() */
+	/** @see IncomingMsgPolicyInterface#getMsgTypes() */
 	public Collection<MessageType> getMsgTypes() {
 		ArrayList<MessageType> types = new ArrayList<MessageType> (4);
 		types.add(AgentInterface.LOCAL_AGENT_REPORTING);
@@ -684,7 +684,7 @@ public class DPOPagentTest< V extends Addable<V>, U extends Addable<U> > extends
 	}
 
 	/** Does nothing
-	 * @see frodo2.communication.IncomingMsgPolicyInterface#setQueue(frodo2.communication.Queue)
+	 * @see IncomingMsgPolicyInterface#setQueue(Queue)
 	 */
 	public void setQueue(Queue queue) { }
 	

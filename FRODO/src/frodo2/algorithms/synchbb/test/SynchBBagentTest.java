@@ -161,7 +161,7 @@ public class SynchBBagentTest <V extends Addable<V>, U extends Addable<U> > exte
 	@SuppressWarnings("unchecked")
 	public SynchBBagentTest (String agentFile, boolean useXCSP, boolean useTCP, boolean useCentralMailer, boolean countNCCCs, Class<V> domClass, Class<U> utilClass, boolean maximize, int sign) {
 		super (useXCSP, useTCP, useCentralMailer, false, domClass, utilClass, null, 
-				(Class<? extends XCSPparser<V, U>>) XCSPparser.class, false, false, countNCCCs, false, false);
+				(Class<? extends XCSPparser<V, U>>) new XCSPparser<V, U>().getClass(), false, false, countNCCCs, false, false);
 		
 		super.maximize = maximize;
 		this.sign = sign;

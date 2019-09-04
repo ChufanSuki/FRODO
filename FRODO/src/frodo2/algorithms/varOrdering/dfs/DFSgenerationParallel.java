@@ -44,7 +44,6 @@ import frodo2.algorithms.varOrdering.dfs.DFSgenerationWithOrder.DFSorderOutputMe
 import frodo2.algorithms.varOrdering.election.LeaderElectionMaxID.MessageLEoutput;
 import frodo2.communication.IncomingMsgPolicyInterface;
 import frodo2.communication.Message;
-import frodo2.communication.MessageListener;
 import frodo2.communication.MessageType;
 import frodo2.communication.MessageWrapper;
 import frodo2.communication.OutgoingMsgPolicyInterface;
@@ -312,7 +311,7 @@ public class DFSgenerationParallel < S extends Comparable <S> & Serializable > i
 	 * @throws IllegalArgumentException 	should never happen
 	 * @throws ClassNotFoundException 		if the class for the the root election heuristic or for the underlying DFS generation module is not found
 	 */
-	@SuppressWarnings("unchecked")
+	@SuppressWarnings({ "unchecked", "rawtypes" })
 	public DFSgenerationParallel (DCOPProblemInterface<?, ?> problem, Element params) 
 	throws IllegalArgumentException, InstantiationException, IllegalAccessException, InvocationTargetException, NoSuchMethodException, ClassNotFoundException {
 		this.problem = problem;
@@ -329,7 +328,7 @@ public class DFSgenerationParallel < S extends Comparable <S> & Serializable > i
 		this.dfsGenerationParams = params.getChild("dfsGeneration");
 		if (this.dfsGenerationParams != null) {
 			String className = this.dfsGenerationParams.getAttributeValue("className");
-			Class< MessageListener<MessageType> > moduleClass = (Class< MessageListener<MessageType> >) Class.forName(className);
+			Class< ? extends DFSgeneration<?, ?> > moduleClass = (Class< ? extends DFSgeneration<?, ?> >) Class.forName(className);
 			this.dfsGenerationConstructor = (Constructor< ? extends DFSgeneration<?, ?> >) moduleClass.getConstructor(DCOPProblemInterface.class, Element.class);
 			
 			// Override the message types if required
@@ -365,7 +364,7 @@ public class DFSgenerationParallel < S extends Comparable <S> & Serializable > i
 		} else {
 			this.dfsGenerationParams = new Element ("dfsGeneration");
 			this.dfsGenerationConstructor = (Constructor< ? extends DFSgeneration<?, ?> >) 
-					DFSgeneration.class.getConstructor(DCOPProblemInterface.class, Element.class);
+					new DFSgeneration ().getClass().getConstructor(DCOPProblemInterface.class, Element.class);
 		}
 		
 		// Instantiate the DFS heuristic if it needs to exchange messages

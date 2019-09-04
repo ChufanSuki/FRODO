@@ -179,7 +179,7 @@ public class DUCTagentTest extends TestCase implements IncomingMsgPolicyInterfac
 	 */
 	@SuppressWarnings("unchecked")
 	public DUCTagentTest(boolean useTCP, boolean useCentralMailer, boolean measureMsgs, String samplingMethodClass, String termination, String bound) {
-		this(useTCP, useCentralMailer, (Class<? extends XCSPparser<AddableInteger, AddableReal>>) XCSPparser.class, measureMsgs, samplingMethodClass, termination, bound);
+		this(useTCP, useCentralMailer, (Class<? extends XCSPparser<AddableInteger, AddableReal>>) new XCSPparser<AddableInteger, AddableReal>().getClass(), measureMsgs, samplingMethodClass, termination, bound);
 	}
 	
 	/** Creates a JUnit test case corresponding to the input method
@@ -727,7 +727,7 @@ public class DUCTagentTest extends TestCase implements IncomingMsgPolicyInterfac
 		
 	}
 
-	/** @see frodo2.communication.IncomingMsgPolicyInterface#getMsgTypes() */
+	/** @see IncomingMsgPolicyInterface#getMsgTypes() */
 	public Collection<MessageType> getMsgTypes() {
 		ArrayList<MessageType> types = new ArrayList<MessageType> (4);
 		types.add(AgentInterface.LOCAL_AGENT_REPORTING);
@@ -804,7 +804,7 @@ public class DUCTagentTest extends TestCase implements IncomingMsgPolicyInterfac
 	}
 
 	/** Does nothing
-	 * @see frodo2.communication.IncomingMsgPolicyInterface#setQueue(frodo2.communication.Queue)
+	 * @see IncomingMsgPolicyInterface#setQueue(Queue)
 	 */
 	public void setQueue(Queue queue) { }
 	

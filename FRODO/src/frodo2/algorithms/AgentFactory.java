@@ -664,7 +664,7 @@ public class AgentFactory < V extends Addable<V>, U extends Addable<U> > impleme
 
 					// Read the problem description class name from the agent description, the standard value is DCOPProblemInterface
 					Element parserDesc = agentDesc.getRootElement().getChild("parser");
-					Class<? extends ProblemInterface<V, U>> probDescClass = (Class<? extends ProblemInterface<V, U>>)DCOPProblemInterface.class;
+					Class<? extends ProblemInterface<V, U>> probDescClass = (Class<? extends ProblemInterface<V, U>>) Class.forName(DCOPProblemInterface.class.getName());
 					if(parserDesc != null) {
 						String probDescClassName = parserDesc.getAttributeValue("probDescClass");
 						if(probDescClassName != null)
@@ -884,7 +884,7 @@ public class AgentFactory < V extends Addable<V>, U extends Addable<U> > impleme
 		this.subProbs = null;
 	}
 
-	/** @see frodo2.communication.IncomingMsgPolicyInterface#getMsgTypes() */
+	/** @see IncomingMsgPolicyInterface#getMsgTypes() */
 	public Collection<MessageType> getMsgTypes() {
 		ArrayList<MessageType> types = new ArrayList<MessageType> (7);
 		types.add(AgentInterface.LOCAL_AGENT_REPORTING);

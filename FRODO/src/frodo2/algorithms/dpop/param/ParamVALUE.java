@@ -110,6 +110,11 @@ extends VALUEpropagation<Val> implements StatsReporter {
 		}
 	}
 	
+	/** Default constructor */
+	public ParamVALUE () {
+		super();
+	}
+	
 	/** Manual constructor that does not use XML elements
 	 * @param problem 		the problem
 	 * @param swap 			if \c true, conditional optimal assignments are swapped until the VALUE message is received
@@ -140,7 +145,7 @@ extends VALUEpropagation<Val> implements StatsReporter {
 		valueMessages = new HashMap< String, VALUEmsg<Val> > ();
 	}
 	
-	/** @see frodo2.algorithms.dpop.VALUEpropagation#getMsgTypes() */
+	/** @see VALUEpropagation#getMsgTypes() */
 	@Override
 	public Collection <MessageType> getMsgTypes() {
 		ArrayList<MessageType> types = new ArrayList<MessageType> (6);

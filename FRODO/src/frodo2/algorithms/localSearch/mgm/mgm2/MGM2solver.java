@@ -56,7 +56,7 @@ public class MGM2solver < V extends Addable<V>, U extends Addable<U> > extends A
 	 * Constructor
 	 */
 	public MGM2solver () {
-		super ("/frodo2/algorithms/localSearch/mgm/MGM2agent.xml");
+		super ("/frodo2/algorithms/localSearch/mgm/mgm2/MGM2agent.xml");
 	}
 	
 	/** Constructor
@@ -64,7 +64,7 @@ public class MGM2solver < V extends Addable<V>, U extends Addable<U> > extends A
 	 * @warning Using TCP pipes automatically disables simulated time. 
 	 */
 	public MGM2solver (boolean useTCP) {
-		super ("/frodo2/algorithms/localSearch/mgm/MGM2agent.xml", useTCP);
+		super ("/frodo2/algorithms/localSearch/mgm/mgm2/MGM2agent.xml", useTCP);
 	}
 	
 	/** Constructor 
