@@ -198,7 +198,10 @@ public class VALUEpropagationTest < U extends Addable<U> > extends TestCase {
 	@SuppressWarnings("unchecked")
 	protected Listener newListenerInstance(boolean useTCP, boolean useXML) 
 	throws Exception {
-		return new Listener (useTCP, useXML, UTILpropagation.class, (Class<? extends IncomingMsgPolicyInterface<MessageType>>) VALUEpropagation.class, false);
+		return new Listener (useTCP, useXML,
+				(Class<? extends IncomingMsgPolicyInterface<MessageType>>) new UTILpropagation<AddableInteger, U>().getClass(),
+				(Class<? extends IncomingMsgPolicyInterface<MessageType>>) new VALUEpropagation<AddableInteger>().getClass(),
+				false);
 	}
 
 	/** Tests the UTIL and VALUE propagation protocols on a random graph
@@ -384,7 +387,7 @@ public class VALUEpropagationTest < U extends Addable<U> > extends TestCase {
 		}
 		
 		/** Listens to the outputs of the UTIL and VALUE propagation protocols 
-		 * @see frodo2.communication.IncomingMsgPolicyInterface#getMsgTypes()
+		 * @see IncomingMsgPolicyInterface#getMsgTypes()
 		 */
 		public Collection<MessageType> getMsgTypes() {
 			ArrayList<MessageType> types = new ArrayList<MessageType> (2);
@@ -426,7 +429,7 @@ public class VALUEpropagationTest < U extends Addable<U> > extends TestCase {
 		}
 
 		/** Does nothing
-		 * @see frodo2.communication.IncomingMsgPolicyInterface#setQueue(frodo2.communication.Queue)
+		 * @see IncomingMsgPolicyInterface#setQueue(Queue)
 		 */
 		public void setQueue(Queue queue) { }
 

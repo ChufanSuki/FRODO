@@ -55,11 +55,10 @@ import frodo2.solutionSpaces.DCOPProblemInterface;
  * @author Thomas Leaute
  * 
  * @param <V> the type used for variable values
- * @param <U> the type used for utility values, in stats gatherer mode only (in normal mode, AddableInteger is used)
  * 
  * @todo Important performance improvement: before un-shuffling, check whether it is necessary by checking whether the S vector sums up to 1. 
  */
-public class MPC_DisWCSP4 < V extends Addable<V>, U extends Addable<U> > extends MPC_DisCSP4<V, U> {
+public class MPC_DisWCSP4 < V extends Addable<V> > extends MPC_DisCSP4<V> {
 	
 	/** The type of the start message */
 	public static MessageType START_MSG_TYPE = AgentInterface.START_AGENT;
@@ -77,7 +76,7 @@ public class MPC_DisWCSP4 < V extends Addable<V>, U extends Addable<U> > extends
 	 * @param problem 	the overall problem
 	 * @param params 	the parameters
 	 */
-	public MPC_DisWCSP4 (DCOPProblemInterface<V, U> problem, Element params) {
+	public MPC_DisWCSP4 (DCOPProblemInterface<V, AddableInteger> problem, Element params) {
 		super (problem, params, AddableInteger.PlusInfinity.PLUS_INF);
 		this.infiniteCost = new AddableInteger (Integer.parseInt(params.getAttributeValue("infiniteCost")));
 		this.maxCost = Integer.parseInt(params.getAttributeValue("maxTotalCost"));

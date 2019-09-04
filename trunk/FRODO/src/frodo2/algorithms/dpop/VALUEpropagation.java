@@ -119,7 +119,7 @@ implements IncomingMsgPolicyInterface<MessageType> {
 	private HashMap<String, String> owners = new HashMap<String, String> ();
 	
 	/** Default constructor */
-	protected VALUEpropagation () {
+	public VALUEpropagation () {
 		this.swap = false;
 	}
 	

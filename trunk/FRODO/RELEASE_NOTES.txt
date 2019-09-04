@@ -1,3 +1,12 @@
+CHANGES IN VERSION 2.17.1 SINCE VERSION 2.17
+
+Major changes: none  
+	
+Minor changes: 
+	- Fixed various compilation errors raised by IntelliJ IDEA (reported by Li Lin of Chongqing University). 
+	- Fixed a bug in the default agent configuration file used by the MGM2solver constructor. 
+
+
 CHANGES IN VERSION 2.17 SINCE VERSION 2.16.1
 
 Major changes: 

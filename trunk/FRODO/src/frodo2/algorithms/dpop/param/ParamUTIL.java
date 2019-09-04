@@ -50,6 +50,12 @@ extends UTILpropagation<Val, U> {
 	/** Optimal utility computed by the algorithm, depending on the values of the parameters */
 	private UtilitySolutionSpace<Val, U> optUtil;
 	
+	/** Default constructor */
+	public ParamUTIL () {
+		super();
+		super.withAnonymVars = true;
+	}
+	
 	/** Constructor
 	 * @see UTILpropagation#UTILpropagation (DCOPProblemInterface)
 	 */

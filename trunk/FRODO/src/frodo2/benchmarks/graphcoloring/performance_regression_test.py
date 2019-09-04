@@ -32,7 +32,7 @@ root = "../../../../"
 java = "java"
 javaParamsOld = [
 			"-Xmx2G", 
-			"-classpath", root + "frodo2.17.jar", # includes a (presumably older) version of FRODO from a JAR
+			"-classpath", root + "frodo2.17.1.jar", # includes a (presumably older) version of FRODO from a JAR
 			]
 javaParamsNew = [
 			"-Xmx2G", 

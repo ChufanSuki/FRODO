@@ -296,7 +296,7 @@ implements StatsReporter {
 			return this.getPayload3();
 		}
 		
-		/** @see frodo2.communication.MessageWith3Payloads#toString() */
+		/** @see MessageWith3Payloads#toString() */
 		public String toString(){
 			return "DECRYPTION OUTPUT:\n" +
 					"\tdestination: "+dest()+"\tmin1: "+this.getPayload1()+"\tmin2: "+this.getPayload2();
@@ -320,12 +320,12 @@ implements StatsReporter {
 		// Create the CryptoScheme
 		if (parameters == null) {
 			System.err.println("Warning! No CryptoScheme specified; using the FakeCryptoScheme that does not actually protect privacy.");
-			cryptoClass = (Class<? extends CryptoScheme<C, E, K>>) FakeCryptoScheme.class;
+			cryptoClass = (Class<? extends CryptoScheme<C, E, K>>) new FakeCryptoScheme(null).getClass();
 		}else {
 			Element cryptoParams = parameters.getChild("cryptoScheme");
 			if (cryptoParams == null) {
 				System.err.println("Warning! No CryptoScheme specified; using the FakeCryptoScheme that does not actually protect privacy.");
-				cryptoClass = (Class<? extends CryptoScheme<C, E, K>>) FakeCryptoScheme.class;
+				cryptoClass = (Class<? extends CryptoScheme<C, E, K>>) new FakeCryptoScheme(null).getClass();
 			} else {
 				cryptoClass = (Class<? extends CryptoScheme<C, E, K>>) Class.forName(cryptoParams.getAttributeValue("className"));
 				this.cryptoParameter = cryptoParams;
@@ -603,7 +603,7 @@ implements StatsReporter {
 		return total;
 	}
 
-	/** @see frodo2.algorithms.StatsReporter#getStatsFromQueue(frodo2.communication.Queue) */
+	/** @see StatsReporter#getStatsFromQueue(Queue) */
 	public void getStatsFromQueue(Queue queue) {		
 		ArrayList <MessageType> msgTypes = new ArrayList <MessageType> (1);
 		msgTypes.add(STAT_REQUEST_TYPE);

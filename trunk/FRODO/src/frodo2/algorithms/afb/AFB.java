@@ -296,14 +296,19 @@ public class AFB < V extends Addable<V>, U extends Addable<U> > implements Stats
 		/** For some clusters, a CPAmsg that was received before the var order message */
 		private HashMap< String, CPAmsg<V, U> > pendingCPAmsgs;
 		
+		/** Empty constructor */
+		public AFB () {
+			this.convergence = false;
+		}
+		
 		/** The constructor called in "statistics gatherer" mode
 		 * @param parameters 	the description of what statistics should be reported (currently unused)
 		 * @param problem 		the overall problem
 		 */
 		public AFB (Element parameters, DCOPProblemInterface<V, U> problem)  {
+			this();
 			this.problem = problem;
 			this.compInfos = new HashMap<Comparable<?>, ComponentInfo> ();
-			this.convergence = false;
 			this.assignmentHistoriesMap = new HashMap< String, ArrayList< CurrentAssignment<V> > > ();
 			this.solution = new HashMap<String, V> ();
 			this.pendingSolMsgs = new LinkedList< SolutionMsg<V, U> > ();

@@ -163,7 +163,10 @@ public class ParamVALUEtest < U extends Addable<U> > extends VALUEpropagationTes
 		public Listener (boolean useTCP, boolean useXML) 
 		throws IOException, NoSuchMethodException, IllegalArgumentException, 
 		InstantiationException, IllegalAccessException, InvocationTargetException {
-			super (useTCP, useXML, ParamUTIL.class, (Class<? extends IncomingMsgPolicyInterface<MessageType>>) ParamVALUE.class, true);
+			super (useTCP, useXML,
+					(Class<? extends IncomingMsgPolicyInterface<MessageType>>) new ParamUTIL<AddableInteger, U> ().getClass(),
+					(Class<? extends IncomingMsgPolicyInterface<MessageType>>) new ParamVALUE<AddableInteger> ().getClass(),
+					true);
 		}
 		
 		/** @see frodo2.algorithms.dpop.test.VALUEpropagationTest.Listener#checkOutput() */

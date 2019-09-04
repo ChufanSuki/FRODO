@@ -142,43 +142,43 @@ public class VariableElectionTest < S extends Comparable<S> & Serializable > ext
 		TestSuite testSuite = new TestSuite ("Tests for VariableElection");
 		
 		TestSuite testTmp = new TestSuite ("Tests for VariableElection using shared memory pipes");
-		testTmp.addTest(new RepeatedTest (new VariableElectionTest< ScorePair<?, ?> > (false, false, VarNameHeuristic.class, null), 1000));
+		testTmp.addTest(new RepeatedTest (new VariableElectionTest< ScorePair<String, String> > (false, false, VarNameHeuristic.class, null), 1000));
 		testSuite.addTest(testTmp);
 		
 		testTmp = new TestSuite ("Tests for VariableElection using TCP pipes");
-		testTmp.addTest(new RepeatedTest (new VariableElectionTest< ScorePair<?, ?> > (true, false, VarNameHeuristic.class, null), 50));
+		testTmp.addTest(new RepeatedTest (new VariableElectionTest< ScorePair<String, String> > (true, false, VarNameHeuristic.class, null), 50));
 		testSuite.addTest(testTmp);
 		
 		testTmp = new TestSuite ("Tests for VariableElection using TCP pipes and the Most Connected heuristic");
-		testTmp.addTest(new RepeatedTest (new VariableElectionTest< ScorePair<?, ?> > (true, false, MostConnectedHeuristic.class, null), 50));
+		testTmp.addTest(new RepeatedTest (new VariableElectionTest< ScorePair<Short, String> > (true, false, MostConnectedHeuristic.class, null), 50));
 		testSuite.addTest(testTmp);
 		
 		testTmp = new TestSuite ("Tests for VariableElection using TCP pipes and the Most Connected heuristic, breaking ties on domain sizes");
-		testTmp.addTest(new RepeatedTest (new VariableElectionTest< ScorePair<?, ?> > (true, false, MostConnectedHeuristic.class, SmallestDomainHeuristic.class), 50));
+		testTmp.addTest(new RepeatedTest (new VariableElectionTest< ScorePair<Short, Short> > (true, false, MostConnectedHeuristic.class, SmallestDomainHeuristic.class), 50));
 		testSuite.addTest(testTmp);
 		
 		testTmp = new TestSuite ("Tests for VariableElection using TCP pipes and the Least Connected heuristic");
-		testTmp.addTest(new RepeatedTest (new VariableElectionTest< ScorePair<?, ?> > (true, false, LeastConnectedHeuristic.class, null), 50));
+		testTmp.addTest(new RepeatedTest (new VariableElectionTest< ScorePair<Short, String> > (true, false, LeastConnectedHeuristic.class, null), 50));
 		testSuite.addTest(testTmp);
 		
 		testTmp = new TestSuite ("Tests for VariableElection using TCP pipes and the Least Connected heuristic, breaking ties on domain sizes");
-		testTmp.addTest(new RepeatedTest (new VariableElectionTest< ScorePair<?, ?> > (true, false, LeastConnectedHeuristic.class, SmallestDomainHeuristic.class), 50));
+		testTmp.addTest(new RepeatedTest (new VariableElectionTest< ScorePair<Short, Short> > (true, false, LeastConnectedHeuristic.class, SmallestDomainHeuristic.class), 50));
 		testSuite.addTest(testTmp);
 		
 		testTmp = new TestSuite ("Tests for VariableElection using TCP pipes and the Smallest Domain heuristic");
-		testTmp.addTest(new RepeatedTest (new VariableElectionTest< ScorePair<?, ?> > (true, false, SmallestDomainHeuristic.class, null), 50));
+		testTmp.addTest(new RepeatedTest (new VariableElectionTest< ScorePair<Short, String> > (true, false, SmallestDomainHeuristic.class, null), 50));
 		testSuite.addTest(testTmp);
 		
 		testTmp = new TestSuite ("Tests for VariableElection using TCP pipes and the Smallest Domain heuristic, breaking ties using MostConnectedHeuristic");
-		testTmp.addTest(new RepeatedTest (new VariableElectionTest< ScorePair<?, ?> > (true, false, SmallestDomainHeuristic.class, MostConnectedHeuristic.class), 50));
+		testTmp.addTest(new RepeatedTest (new VariableElectionTest< ScorePair<Short, Short> > (true, false, SmallestDomainHeuristic.class, MostConnectedHeuristic.class), 50));
 		testSuite.addTest(testTmp);
 		
 		testTmp = new TestSuite ("Tests for VariableElection using shared memory pipes with XML");
-		testTmp.addTest(new RepeatedTest (new VariableElectionTest< ScorePair<?, ?> > (false, true, VarNameHeuristic.class, null), 500));
+		testTmp.addTest(new RepeatedTest (new VariableElectionTest< ScorePair<String, String> > (false, true, VarNameHeuristic.class, null), 500));
 		testSuite.addTest(testTmp);
 		
 		testTmp = new TestSuite ("Tests for VariableElection using TCP pipes with XML");
-		testTmp.addTest(new RepeatedTest (new VariableElectionTest< ScorePair<?, ?> > (true, true, VarNameHeuristic.class, null), 50));
+		testTmp.addTest(new RepeatedTest (new VariableElectionTest< ScorePair<String, String> > (true, true, VarNameHeuristic.class, null), 50));
 		testSuite.addTest(testTmp);
 		
 		return testSuite;
@@ -297,7 +297,7 @@ public class VariableElectionTest < S extends Comparable<S> & Serializable > ext
 					for (String var : entry.getValue()) {
 						allScores.put(var, (S) new ScorePair (Short.valueOf((short) graph.neighborhoods.get(var).size()), tiebreakingScores.get(var)));
 					}
-					queue.addIncomingMessagePolicy(new VariableElection < ScorePair<Short, ?> > (subProb, 
+					queue.addIncomingMessagePolicy(new VariableElection (subProb, 
 							new ScoringHeuristicWithTiebreaker (new MostConnectedHeuristic (subProb, null), tiebreaker), 
 							diameter - 1));
 				
@@ -305,7 +305,7 @@ public class VariableElectionTest < S extends Comparable<S> & Serializable > ext
 					for (String var : entry.getValue()) {
 						allScores.put(var, (S) new ScorePair (Short.valueOf((short) - graph.neighborhoods.get(var).size()), tiebreakingScores.get(var)));
 					}
-					queue.addIncomingMessagePolicy(new VariableElection < ScorePair<Short, ?> > (subProb, 
+					queue.addIncomingMessagePolicy(new VariableElection (subProb, 
 							new ScoringHeuristicWithTiebreaker (new LeastConnectedHeuristic (subProb, null), tiebreaker), 
 							diameter - 1));
 				
@@ -313,7 +313,7 @@ public class VariableElectionTest < S extends Comparable<S> & Serializable > ext
 					for (String var : entry.getValue()) {
 						allScores.put(var, (S) new ScorePair (Short.valueOf((short) - parser.getDomainSize(var)), tiebreakingScores.get(var)));
 					}
-					queue.addIncomingMessagePolicy(new VariableElection < ScorePair<Short, ?> > (subProb, 
+					queue.addIncomingMessagePolicy(new VariableElection (subProb, 
 							new ScoringHeuristicWithTiebreaker (new SmallestDomainHeuristic (subProb, null), tiebreaker), 
 							diameter - 1));
 
@@ -453,7 +453,7 @@ public class VariableElectionTest < S extends Comparable<S> & Serializable > ext
 	
 
 	/**
-	 * @see frodo2.communication.IncomingMsgPolicyInterface#getMsgTypes()
+	 * @see IncomingMsgPolicyInterface#getMsgTypes()
 	 * 
 	 * It listens to the output of the leader election protocol. 
 	 */

@@ -63,15 +63,14 @@ import frodo2.solutionSpaces.hypercube.ScalarHypercube;
  * @author Thomas Leaute
  * 
  * @param <V> the type used for variable values
- * @param <U> the type used for utility values, in stats gatherer mode only (in normal mode, AddableInteger is used)
  */
-public class MPC_DisCSP4 < V extends Addable<V>, U extends Addable<U> > implements IncomingMsgPolicyInterface<MessageType> {
+public class MPC_DisCSP4 < V extends Addable<V> > implements IncomingMsgPolicyInterface<MessageType> {
 	
 	/** The queue used to exchange messages */
 	protected Queue queue;
 	
 	/** The problem */
-	protected DCOPProblemInterface<V, U> problem;
+	protected DCOPProblemInterface<V, AddableInteger> problem;
 	
 	/** Whether the algorithm has been started */
 	protected boolean started = false;
@@ -205,7 +204,7 @@ public class MPC_DisCSP4 < V extends Addable<V>, U extends Addable<U> > implemen
 	 * @param problem 	the overall problem
 	 * @param params 	the parameters
 	 */
-	public MPC_DisCSP4 (DCOPProblemInterface<V, U> problem, Element params) {
+	public MPC_DisCSP4 (DCOPProblemInterface<V, AddableInteger> problem, Element params) {
 		this(problem, params, new AddableInteger (1));
 	}
 
@@ -214,10 +213,9 @@ public class MPC_DisCSP4 < V extends Addable<V>, U extends Addable<U> > implemen
 	 * @param params 	the parameters
 	 * @param plusinf 	The infinite cost value
 	 */
-	@SuppressWarnings("unchecked")
-	protected MPC_DisCSP4 (DCOPProblemInterface<V, U> problem, Element params, AddableInteger plusinf) {
+	protected MPC_DisCSP4 (DCOPProblemInterface<V, AddableInteger> problem, Element params, AddableInteger plusinf) {
 		this.problem = problem;
-		this.problem.setUtilClass((Class<U>) AddableInteger.class);
+		this.problem.setUtilClass(AddableInteger.class);
 		this.modulo = new BigInteger (params.getAttributeValue("costModulo"));
 		assert this.modulo.compareTo(BigInteger.valueOf(Integer.MAX_VALUE)) < 0 : "The modulo is too big";
 		this.cryptoScheme = new PaillierCryptoScheme (Integer.parseInt(params.getAttributeValue("nbrBits")));

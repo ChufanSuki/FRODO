@@ -201,55 +201,55 @@ public class JaCoPtests < U extends Addable<U> > extends TestCase {
 	public static TestSuite suite () {
 		TestSuite suite = new TestSuite ("Tests for the JaCoP spaces");
 		
-		suite.addTest(createSuite(Algorithm.DPOP, (Class<? extends AbstractDCOPsolver<AddableInteger, AddableInteger, ?>>) DPOPsolver.class, 
+		suite.addTest(createSuite(Algorithm.DPOP, (Class<? extends AbstractDCOPsolver<AddableInteger, AddableInteger, ?>>) new DPOPsolver<AddableInteger, AddableInteger> ().getClass(), 
 				AddableInteger.class, "src/frodo2/algorithms/dpop/DPOPagentJaCoP.xml"));
 		
-		suite.addTest(createSuite(Algorithm.P_DPOP, (Class<? extends AbstractDCOPsolver<AddableInteger, AddableBigInteger, ?>>) P_DPOPsolver.class, 
+		suite.addTest(createSuite(Algorithm.P_DPOP, (Class<? extends AbstractDCOPsolver<AddableInteger, AddableBigInteger, ?>>) new P_DPOPsolver<AddableInteger> ().getClass(), 
 				AddableBigInteger.class, "src/frodo2/algorithms/dpop/privacy/P-DPOPagentJaCoP.xml"));
 		
-		suite.addTest(createSuite(Algorithm.P3halves_DPOP, (Class<? extends AbstractDCOPsolver<AddableInteger, AddableBigInteger, ?>>) P3halves_DPOPsolver.class, 
+		suite.addTest(createSuite(Algorithm.P3halves_DPOP, (Class<? extends AbstractDCOPsolver<AddableInteger, AddableBigInteger, ?>>) new P3halves_DPOPsolver<AddableInteger> ().getClass(), 
 				AddableBigInteger.class, "src/frodo2/algorithms/dpop/privacy/P1.5-DPOPagentJaCoP.xml"));
 		
-		suite.addTest(createSuite(Algorithm.P2_DPOP, (Class<? extends AbstractDCOPsolver<AddableInteger, AddableInteger, ?>>) P2_DPOPsolver.class, 
+		suite.addTest(createSuite(Algorithm.P2_DPOP, (Class<? extends AbstractDCOPsolver<AddableInteger, AddableInteger, ?>>) new P2_DPOPsolver<AddableInteger, AddableInteger> ().getClass(), 
 				AddableInteger.class, "src/frodo2/algorithms/dpop/privacy/P2-DPOPagentJaCoP.xml"));
 		
-		suite.addTest(createSuite(Algorithm.ASODPOP,  (Class<? extends AbstractDCOPsolver<AddableInteger, AddableInteger, ?>>) ASODPOPsolver.class, 
+		suite.addTest(createSuite(Algorithm.ASODPOP,  (Class<? extends AbstractDCOPsolver<AddableInteger, AddableInteger, ?>>) new ASODPOPsolver<AddableInteger, AddableInteger> ().getClass(), 
 				AddableInteger.class, "src/frodo2/algorithms/asodpop/ASODPOPagentJaCoP.xml"));
 		
-		suite.addTest(createSuite(Algorithm.ODPOP,  (Class<? extends AbstractDCOPsolver<AddableInteger, AddableInteger, ?>>) ODPOPsolver.class, 
+		suite.addTest(createSuite(Algorithm.ODPOP,  (Class<? extends AbstractDCOPsolver<AddableInteger, AddableInteger, ?>>) new ODPOPsolver<AddableInteger, AddableInteger> ().getClass(), 
 				AddableInteger.class, "src/frodo2/algorithms/odpop/ODPOPagentJaCoP.xml"));
 		
-		suite.addTest(createSuite(Algorithm.SYNCHBB,  (Class<? extends AbstractDCOPsolver<AddableInteger, AddableInteger, ?>>) SynchBBsolver.class, 
+		suite.addTest(createSuite(Algorithm.SYNCHBB,  (Class<? extends AbstractDCOPsolver<AddableInteger, AddableInteger, ?>>) new SynchBBsolver<AddableInteger, AddableInteger> ().getClass(), 
 				AddableInteger.class, "src/frodo2/algorithms/synchbb/SynchBBagentJaCoP.xml"));
 		
-		suite.addTest(createSuite(Algorithm.ADOPT,  (Class<? extends AbstractDCOPsolver<AddableInteger, AddableInteger, ?>>) ADOPTsolver.class, 
+		suite.addTest(createSuite(Algorithm.ADOPT,  (Class<? extends AbstractDCOPsolver<AddableInteger, AddableInteger, ?>>) new ADOPTsolver<AddableInteger, AddableInteger> ().getClass(), 
 				AddableInteger.class, "src/frodo2/algorithms/adopt/ADOPTagentJaCoP.xml"));
 		
-		suite.addTest(createSuite(Algorithm.DSA,  (Class<? extends AbstractDCOPsolver<AddableInteger, AddableInteger, ?>>)DSAsolver.class, 
+		suite.addTest(createSuite(Algorithm.DSA,  (Class<? extends AbstractDCOPsolver<AddableInteger, AddableInteger, ?>>) new DSAsolver<AddableInteger, AddableInteger> ().getClass(), 
 				AddableInteger.class, "src/frodo2/algorithms/localSearch/dsa/DSAagentJaCoP.xml"));
 		
-		suite.addTest(createSuite(Algorithm.MGM,  (Class<? extends AbstractDCOPsolver<AddableInteger, AddableInteger, ?>>)MGMsolver.class, 
+		suite.addTest(createSuite(Algorithm.MGM,  (Class<? extends AbstractDCOPsolver<AddableInteger, AddableInteger, ?>>) new MGMsolver<AddableInteger, AddableInteger> ().getClass(), 
 				AddableInteger.class, "src/frodo2/algorithms/localSearch/mgm/MGMagentJaCoP.xml"));
 		
-		suite.addTest(createSuite(Algorithm.MGM2,  (Class<? extends AbstractDCOPsolver<AddableInteger, AddableInteger, ?>>)MGM2solver.class, 
+		suite.addTest(createSuite(Algorithm.MGM2,  (Class<? extends AbstractDCOPsolver<AddableInteger, AddableInteger, ?>>) new MGM2solver<AddableInteger, AddableInteger> ().getClass(), 
 				AddableInteger.class, "src/frodo2/algorithms/localSearch/mgm/mgm2/MGM2agentJaCoP.xml"));
 
-		suite.addTest(createSuite(Algorithm.MPC_DisCSP4,  (Class<? extends AbstractDCOPsolver<AddableInteger, AddableInteger, ?>>)MPC_DisWCSP4solver.class, 
+		suite.addTest(createSuite(Algorithm.MPC_DisCSP4,  (Class<? extends AbstractDCOPsolver<AddableInteger, AddableInteger, ?>>) new MPC_DisWCSP4solver<AddableInteger, AddableInteger> ().getClass(), 
 				AddableInteger.class, "src/frodo2/algorithms/mpc_discsp/MPC-DisCSP4_JaCoP.xml"));
 		
-		suite.addTest(createSuite(Algorithm.MPC_DisWCSP4,  (Class<? extends AbstractDCOPsolver<AddableInteger, AddableInteger, ?>>)MPC_DisWCSP4solver.class, 
+		suite.addTest(createSuite(Algorithm.MPC_DisWCSP4,  (Class<? extends AbstractDCOPsolver<AddableInteger, AddableInteger, ?>>) new MPC_DisWCSP4solver<AddableInteger, AddableInteger> ().getClass(), 
 				AddableInteger.class, "src/frodo2/algorithms/mpc_discsp/MPC-DisWCSP4_JaCoP.xml"));
 
-		suite.addTest(createSuite(Algorithm.MAXSUM,  (Class<? extends AbstractDCOPsolver<AddableInteger, AddableInteger, ?>>)MaxSumSolver.class, 
+		suite.addTest(createSuite(Algorithm.MAXSUM,  (Class<? extends AbstractDCOPsolver<AddableInteger, AddableInteger, ?>>) new MaxSumSolver<AddableInteger, AddableInteger> ().getClass(), 
 				AddableInteger.class, "src/frodo2/algorithms/maxsum/MaxSumAgentJaCoP.xml"));
 		
-		suite.addTest(createSuite(Algorithm.MAXSUM,  (Class<? extends AbstractDCOPsolver<AddableInteger, AddableInteger, ?>>)MaxSumSolver.class, 
+		suite.addTest(createSuite(Algorithm.MAXSUM,  (Class<? extends AbstractDCOPsolver<AddableInteger, AddableInteger, ?>>) new MaxSumSolver<AddableInteger, AddableInteger> ().getClass(), 
 				AddableInteger.class, "src/frodo2/algorithms/maxsum/MaxSumAgentPerturbedJaCoP.xml"));
 		
-		suite.addTest(createSuite(Algorithm.MB_DPOP, (Class<? extends AbstractDCOPsolver<AddableInteger, AddableInteger, ?>>) DPOPsolver.class, 
+		suite.addTest(createSuite(Algorithm.MB_DPOP, (Class<? extends AbstractDCOPsolver<AddableInteger, AddableInteger, ?>>) new DPOPsolver<AddableInteger, AddableInteger> ().getClass(), 
 				AddableInteger.class, "src/frodo2/algorithms/dpop/memory/MB-DPOPagentJaCoP.xml"));
 		
-		suite.addTest(createSuite(Algorithm.AFB, (Class<? extends AbstractDCOPsolver<AddableInteger, AddableInteger, ?>>) AFBsolver.class, 
+		suite.addTest(createSuite(Algorithm.AFB, (Class<? extends AbstractDCOPsolver<AddableInteger, AddableInteger, ?>>) new AFBsolver<AddableInteger, AddableInteger> ().getClass(), 
 				AddableInteger.class, "src/frodo2/algorithms/afb/AFBagentJaCoP.xml"));
 
 		return suite;

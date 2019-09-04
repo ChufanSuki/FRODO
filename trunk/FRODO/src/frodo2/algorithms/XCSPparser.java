@@ -345,16 +345,23 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 	
 	/** The NCCC count */
 	private long ncccCount;
+	
+	/** Empty constructor */
+	public XCSPparser () {
+		this.extendedRandNeighborhoods = false;
+		this.publicAgents = false;
+		this.mpc = false;
+		this.countNCCCs = false;
+	}
 
 	/** Constructor from a JDOM root Element in XCSP format
 	 * @param root 	the JDOM root Element in XCSP format
 	 */
 	public XCSPparser (Element root) {
+		this();
+		
+		assert root != null;
 		this.root = root;
-		this.extendedRandNeighborhoods = false;
-		this.publicAgents = false;
-		this.mpc = false;
-		this.countNCCCs = false;
 		this.spacesToIgnoreNcccs = new HashSet<String>();
 		
 		assert this.checkUniqueConstraintNames() : "Non-unique constraint names";
@@ -2275,7 +2282,7 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 	}
 
 	/** 
-	 * @see frodo2.solutionSpaces.DCOPProblemInterface#getUtility(java.util.Map) 
+	 * @see DCOPProblemInterface#getUtility(java.util.Map) 
 	 * @todo Test this method with incomplete assignments. 
 	 */
 	public UtilitySolutionSpace<V, U> getUtility (Map<String, V> assignments) {
@@ -2581,7 +2588,7 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 	}
 
 	/** 
-	 * @see frodo2.solutionSpaces.ProblemInterface#multipleTypes()
+	 * @see DCOPProblemInterface#multipleTypes()
 	 */
 	public boolean multipleTypes() {
 		return false;

@@ -135,7 +135,7 @@ public class SingleQueueAgent < Val extends Addable<Val> > implements AgentInter
 		
 		// Read the problem description class name from the agent description, the standard value is DCOPProblemInterface
 		Element parserDesc = agentDesc.getRootElement().getChild("parser");
-		Class<? extends ProblemInterface<Val, ?>> probDescClass = (Class<? extends ProblemInterface<Val, ?>>)DCOPProblemInterface.class;
+		Class<? extends ProblemInterface<Val, ?>> probDescClass = (Class<? extends ProblemInterface<Val, ?>>) Class.forName(DCOPProblemInterface.class.getName());
 		if(parserDesc != null) {
 			String probDescClassName = parserDesc.getAttributeValue("probDescClass");
 			if(probDescClassName != null)

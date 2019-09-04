@@ -132,7 +132,7 @@ public abstract class AbstractSolver < P extends ProblemInterface<V, U>, V exten
 				e.printStackTrace();
 			}
 		} else {
-			this.parserClass = (Class<? extends XCSPparser<V, U>>) XCSPparser.class;
+			this.parserClass = (Class<? extends XCSPparser<V, U>>) new XCSPparser<V, U>().getClass();
 			parserElmt = new Element ("parser");
 			agentDesc.getRootElement().addContent(parserElmt);
 			parserElmt.setAttribute("className", this.parserClass.getName());

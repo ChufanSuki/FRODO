@@ -289,7 +289,7 @@ public class ODPOPagentTest < V extends Addable<V>, U extends Addable<U> > exten
 	 */
 	@SuppressWarnings("unchecked")
 	public void testRandomSharedMemory () throws Exception {
-		testRandom(false, (Class<? extends XCSPparser<V, U>>) XCSPparser.class);
+		testRandom(false, (Class<? extends XCSPparser<V, U>>) new XCSPparser<V, U>().getClass());
 	}
 
 	/** Tests the ODPOPagent on a random problem using TCP pipes for inter-agent communication
@@ -297,7 +297,7 @@ public class ODPOPagentTest < V extends Addable<V>, U extends Addable<U> > exten
 	 */
 	@SuppressWarnings("unchecked")
 	public void testRandomTCP () throws Exception {
-		testRandom(true, (Class<? extends XCSPparser<V, U>>) XCSPparser.class);
+		testRandom(true, (Class<? extends XCSPparser<V, U>>) new XCSPparser<V, U>().getClass());
 	}
 	
 	/** Tests the DPOPagent on a random problem 
@@ -400,7 +400,7 @@ public class ODPOPagentTest < V extends Addable<V>, U extends Addable<U> > exten
 		assertEquals (totalOptUtil, parser.getUtility(optAssignments).getUtility(0));
 	}
 
-	/** @see frodo2.communication.IncomingMsgPolicyInterface#getMsgTypes() */
+	/** @see IncomingMsgPolicyInterface#getMsgTypes() */
 	public Collection<MessageType> getMsgTypes() {
 		ArrayList<MessageType> types = new ArrayList<MessageType> (4);
 		types.add(AgentInterface.LOCAL_AGENT_REPORTING);
@@ -469,7 +469,7 @@ public class ODPOPagentTest < V extends Addable<V>, U extends Addable<U> > exten
 	}
 
 	/** Does nothing
-	 * @see frodo2.communication.IncomingMsgPolicyInterface#setQueue(frodo2.communication.Queue)
+	 * @see IncomingMsgPolicyInterface#setQueue(Queue)
 	 */
 	public void setQueue(Queue queue) { }
 

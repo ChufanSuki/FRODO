@@ -93,19 +93,27 @@ public class SamplingPhaseTest extends LowestCommonAncestorsTest {
 		TestSuite testSuite = new TestSuite ("Random tests for SamplingPhase");
 		
 		TestSuite tmp = new TestSuite ("Random tests for SamplingPhase.AtLCAs with projection at lcas");
-		tmp.addTest(new RepeatedTest (new SamplingPhaseTest (SamplingPhase.AtLCAs.class, "lcas"), 500));
+		tmp.addTest(new RepeatedTest (new SamplingPhaseTest (
+				(Class<? extends IncomingMsgPolicyInterface<MessageType>>) new SamplingPhase.AtLCAs<AddableInteger, AddableReal>().getClass(), 
+				"lcas"), 500));
 		testSuite.addTest(tmp);
 		
 		tmp = new TestSuite ("Random tests for SamplingPhase.AtLCAs with projection at leaves");
-		tmp.addTest(new RepeatedTest (new SamplingPhaseTest (SamplingPhase.AtLCAs.class, "leaves"), 100));
+		tmp.addTest(new RepeatedTest (new SamplingPhaseTest (
+				(Class<? extends IncomingMsgPolicyInterface<MessageType>>) new SamplingPhase.AtLCAs<AddableInteger, AddableReal>().getClass(), 
+				"leaves"), 100));
 		testSuite.addTest(tmp);
 		
 		tmp = new TestSuite ("Random tests for SamplingPhase.AtRoots");
-		tmp.addTest(new RepeatedTest (new SamplingPhaseTest (SamplingPhase.AtRoots.class, "roots"), 500));
+		tmp.addTest(new RepeatedTest (new SamplingPhaseTest (
+				(Class<? extends IncomingMsgPolicyInterface<MessageType>>) new SamplingPhase.AtRoots<AddableInteger, AddableReal>().getClass(), 
+				"roots"), 500));
 		testSuite.addTest(tmp);
 		
 		tmp = new TestSuite ("Random tests for SamplingPhase.AtLeaves");
-		tmp.addTest(new RepeatedTest (new SamplingPhaseTest (SamplingPhase.AtLeaves.class, "leaves"), 100));
+		tmp.addTest(new RepeatedTest (new SamplingPhaseTest (
+				(Class<? extends IncomingMsgPolicyInterface<MessageType>>) new SamplingPhase.AtLeaves<AddableInteger, AddableReal>().getClass(), 
+				"leaves"), 100));
 		testSuite.addTest(tmp);
 		
 		return testSuite;
@@ -178,7 +186,7 @@ public class SamplingPhaseTest extends LowestCommonAncestorsTest {
 				assertTrue (entry.getValue().containsAll(super.allFlags.get(entry.getKey())));
 		}
 		
-		if (this.versionClass == SamplingPhase.AtLeaves.class) {
+		if (this.versionClass == new SamplingPhase.AtLeaves<AddableInteger, AddableReal>().getClass()) {
 			
 			// Check that each agent has sampled all its neighboring random variables
 			for (DCOPProblemInterface<AddableInteger, AddableReal> subProblem : subProblems.values()) 
