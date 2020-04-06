@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -256,6 +256,9 @@ public class AddableReal implements Addable<AddableReal> {
 	 * @return whether the two AddableReals are equal within the given error margin
 	 */
 	public boolean equals(final AddableReal that, double error) {
+		
+		if (this.equals(that)) 
+			return true;
 		
 		if (that == PlusInfinity.PLUS_INF || that == MinInfinity.MIN_INF || that == null)
 			return false;

@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -76,8 +76,8 @@ public class JaCoPutilSpaceIter < U extends Addable<U> > extends HypercubeIter<A
 		for (int i = 0; i < nbrVars; i++) {
 			int domSize = domains[i].length;
 			steps[i] = new int [domSize];
-			assert Math.log((double) nbrSolLeft) + Math.log((double) domSize) < Math.log(Long.MAX_VALUE) : 
-				"Too many solutions to fit in a long";
+			if (Math.log((double) nbrSolLeft) + Math.log((double) domSize) >= Math.log(Long.MAX_VALUE)) 
+				throw new OutOfMemoryError ("Too many solutions to fit in a long");
 			nbrSolLeft *= domSize;
 		}
 		this.nbrSols = this.nbrSolLeft;
@@ -164,7 +164,7 @@ public class JaCoPutilSpaceIter < U extends Addable<U> > extends HypercubeIter<A
 			}
 		}
 		
-		this.utility = space.getUtility(myUtilIndex);
+		this.utility = space.getUtility(myUtilIndex); /// @todo Why go through the utility index? Can't this be improved?
 		this.nbrSolLeft--;
 		
 		return this.utilIndex = myUtilIndex;

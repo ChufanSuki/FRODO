@@ -1,6 +1,6 @@
 """
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -24,14 +24,14 @@ How to contact the authors:
 
 # Add the FRODO benchmarks folder to the Python path and import the frodo2 module
 import sys
-sys.path.append("../frodo2.17.1.jar/frodo2/benchmarks")
+sys.path.append("../frodo2.18.jar/frodo2/benchmarks")
 import frodo2
 
 # The command to call java and the JVM parameters
 java = "java"
 javaParams = [
 			"-Xmx2G", # sets the Java heap space to 2 GB
-			"-classpath", "../frodo2.17.1.jar", # sets the Java classpath to include FRODO
+			"-classpath", "../frodo2.18.jar", # sets the Java classpath to include FRODO
 			]
 
 # Define the path to the folder containing the problem instances
@@ -55,6 +55,8 @@ algos = [
  
 		["DSA", "frodo2.algorithms.localSearch.dsa.DSAsolver", "../agents/DSA/DSAagent.xml"], 
  
+		["DUCT", "frodo2.algorithms.duct.DUCTsolver", "../agents/DUCT/DUCTagent.xml"], 
+
 		["MaxSum", "frodo2.algorithms.maxsum.MaxSumSolver", "../agents/MaxSum/MaxSumAgentPerturbed.xml"], 
  
 		["MGM", "frodo2.algorithms.localSearch.mgm.MGMsolver", "../agents/MGM/MGMagent.xml"], 

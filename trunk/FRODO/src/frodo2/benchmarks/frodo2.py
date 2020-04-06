@@ -1,6 +1,6 @@
 """
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -43,7 +43,7 @@ output = ""
 outFile = None
 javaProcess = None
 
-print("""FRODO  Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+print("""FRODO  Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 This program comes with ABSOLUTELY NO WARRANTY.
 This is free software, and you are welcome to redistribute it
 under certain conditions.\n""");
@@ -53,6 +53,7 @@ try:
     import matplotlib
     import matplotlib.pyplot as plt
     drawGraphs = True
+    plt.rc("figure", max_open_warning = 0)
 except ImportError: 
     sys.stderr.write("Could not find the matplotlib module; no graphs will be drawn\n")
     
@@ -311,7 +312,7 @@ def runFromRepo (java_i, javaParams_i, repoPath, nbrRuns, algos_i, timeout_i, ou
 
 
 def run (java_i, javaParams_i, generator_i, genParams, nbrProblems, algos_i, timeout_i, output_i, saveProblems = False):
-    """Starts the experiment
+    """Starts the experiment. Returns whether the run has been interrupted. 
     @param java_i             the command line to call Java
     @param javaParams_i        the list of parameters to be passed to the JVM. Example: ["-Xmx2G", "-classpath", "my/path"]
     @param generator_i         the class name for the random problem generator
@@ -346,21 +347,25 @@ def run (java_i, javaParams_i, generator_i, genParams, nbrProblems, algos_i, tim
     for run in range(1, nbrProblems+1): 
         
         if interrupted: 
-            return;
+            return True
 
         print("Run " + str(run) + "/" + str(nbrProblems))
         runAtDepth(0, "\t", genParams, saveProblems)
         
+    return False
+        
 
-def plotScatter (resultsFile, xAlgo, yAlgo, metricsCol, timeouts = True, block = True, loglog = True):
+def plotScatter (resultsFile, xAlgo, yAlgo, metricsCol, inputCol = None, timeouts = True, block = True, loglog = True, annotate = False):
     """ Plots one algorithm against another in a log-log scatter plot
     @param resultsFile   the CSV file containing the experimental results
     @param xAlgo         the algorithm to be put on the x axis
     @param yAlgo         the algorithm to be put on the y axis
-    @param metricsCol    the index of he column in the CSV file containing the comparison metrics
-    @param timeouts      if True, displays the timeouts; otherwise they are ignored (which might produce more readable graphs)
+    @param metricsCol    the index of the column in the CSV file containing the comparison metrics
+    @param inputCol      the index of the column in the CSV file containing the variable control parameter (default = None)
+    @param timeouts      if True (default), displays the timeouts; otherwise they are ignored (which might produce more readable graphs)
     @param block         whether to block for the matplotlib window to be closed to continue (default = True)
     @parma loglog        whether to plot the results using log/log scales (default = True)
+    @param annotate      whether to annotate each data point with the name of its problem instance (default = False; useful for debugging)
     """
     
     global drawGraphs
@@ -372,9 +377,13 @@ def plotScatter (resultsFile, xAlgo, yAlgo, metricsCol, timeouts = True, block =
     # Read the column names
     headers = file.readline().split(';')
     metricsName = headers[metricsCol]
+    inputName = ""
+    if not inputCol == None:
+        inputName = headers[inputCol]
     
-    # results = { instance1 : [xAlgo, yAlgo], ..., instanceN : [xAlgo, yAlgo] }
+    # results = { instance1 : [input, xAlgo, yAlgo], ..., instanceN : [input, xAlgo, yAlgo] }
     results = dict()
+    inputs = set()
     
     # Read the file line by line
     while True:
@@ -392,9 +401,9 @@ def plotScatter (resultsFile, xAlgo, yAlgo, metricsCol, timeouts = True, block =
         # Parse the algorithm name
         algoName = lineSplit[0]
         if algoName == xAlgo:
-            algoIndex = 0
-        elif algoName == yAlgo:
             algoIndex = 1
+        elif algoName == yAlgo:
+            algoIndex = 2
         else:
             continue    # skip algorithms that are not xAlgo nor yAlgo
         
@@ -404,21 +413,30 @@ def plotScatter (resultsFile, xAlgo, yAlgo, metricsCol, timeouts = True, block =
         try: 
             metricsVal = float(metricsStr)
         except: 
-            print("Invalid metrics value on column " + str(metricsCol) + " for algorithm '" + algoName + "' on instance '" + instanceName + "': " + metricsStr)
+            print("Invalid metrics value in column " + str(metricsCol) + " for algorithm '" + algoName + "' on instance '" + instanceName + "': " + metricsStr)
             metricsVal = float("NaN")
+            continue
+        
+        # Parse the input parameter value, if used
+        inputStr = ""
+        if not inputCol == None:
+            inputStr = lineSplit[inputCol]
+        inputs.add(inputStr)
         
         # Record the result
         if instanceName in results:
             coord = results[instanceName]
+            if not coord[0] == inputStr: 
+                print("Inconsistent input values " + coord[0] + " and " + inputStr + " in column " + str(inputCol) + " for instance " + instanceName)
         else:
-            coord = [float("NaN"), float("NaN")]
+            coord = [inputStr, float("NaN"), float("NaN")]
             results[instanceName] = coord
         coord[algoIndex] = metricsVal
     
     if drawGraphs:
-        plotDataScatter(results, xAlgo, yAlgo, metricsName, block, loglog)
+        plotDataScatter(results, inputs, xAlgo, yAlgo, metricsName, inputName, block, loglog, annotate)
     else:
-        saveDataScatter(resultsFile, results, xAlgo, yAlgo, metricsName)
+        saveDataScatter(resultsFile, results, xAlgo, yAlgo, metricsName, inputName)
     
     
 def plot (resultsFile, xCol, yCol, block = True, ylog = True):
@@ -515,10 +533,18 @@ def plot (resultsFile, xCol, yCol, block = True, ylog = True):
         saveData(resultsFile, results, xName, yName)
     
     
-def plotDataScatter (results, xAlgo, yAlgo, metricsName, block, loglog):
+def plotDataScatter (results, inputs, xAlgo, yAlgo, metricsName, inputName, block, loglog, annotate):
     """
-    @param results         { instance1 : [xAlgo, yAlgo], ..., instanceN : [xAlgo, yAlgo] }
+    @param results         { instance1 : [input, xAlgo, yAlgo], ..., instanceN : [input, xAlgo, yAlgo] }
     """
+    
+    # Choose one marker for each input
+    markers = [ "+", "x", ".", "1", "2", "3", "4", "|", "_", "o", "v", "^", "<", ">", "s", "*", "D" ]
+    inputMarkers = dict()
+    i = 0
+    for inputStr in sorted(inputs):
+        inputMarkers[inputStr] = markers[ i % len(markers) ]
+        i = i + 1
     
     fig = plt.figure()
     
@@ -527,29 +553,49 @@ def plotDataScatter (results, xAlgo, yAlgo, metricsName, block, loglog):
     else:
         axes = fig.add_subplot(111)
     
-    # Collect the x and y values
-    xValues = []
-    yValues = []
+    # Collect the x and y values, per input value
+    values = dict()
     xyMin = float("infinity")
     xyMax = float("-infinity")
-    for xValue, yValue in results.values():
-        if not math.isnan(xValue) and not math.isnan(yValue) and (not loglog or (xValue > 0 and yValue > 0)):
-            xValues += [xValue]
-            yValues += [yValue]
+    for instance, coords in results.items():
+        inputStr = coords[0]
+        xValue = coords[1]
+        yValue = coords[2]
+        if not math.isnan(xValue) and not math.isnan(yValue) and not math.isinf(xValue) and not math.isinf(yValue) and (not loglog or (xValue > 0 and yValue > 0)):
+
+            # Look up the list of data points for this input value
+            if inputStr in values:
+                xys = values[inputStr]
+                xys[0] += [xValue]
+                xys[1] += [yValue]
+            else:
+                xys = [[xValue], [yValue]]
+                values[inputStr] = xys
+        
             xyMin = min(xyMin, xValue, yValue)
             xyMax = max(xyMax, xValue, yValue)
+            
+            if annotate:
+                plt.annotate(instance, xy = (xValue, yValue))
 
-    if not len(xValues) == 0: 
-        plt.scatter(xValues, yValues, marker = "+")
+    for inputStr in sorted(values.keys()):
+        xys = values[inputStr]
+        xValues = xys[0]
+        yValues = xys[1]
+
+        if not len(xValues) == 0: 
+            plt.scatter(xValues, yValues, marker = inputMarkers[inputStr], label = inputStr)
     
-        # Set the limits of the axes to make sure everything is visible and the axes are square
-        if loglog:
-            xyMin = math.pow(10, math.floor(math.log10(xyMin)))
-            xyMax = math.pow(10, math.ceil(math.log10(xyMax)))
-        else: 
-            margin = abs(xyMax - xyMin) * 0.1
-            xyMin = xyMin - margin;
-            xyMax = xyMax + margin
+            # Set the limits of the axes to make sure everything is visible and the axes are square
+            if loglog:
+                xyMin = math.pow(10, math.floor(math.log10(xyMin)))
+                xyMax = math.pow(10, math.ceil(math.log10(xyMax)))
+            else: 
+                margin = abs(xyMax - xyMin) * 0.1
+                xyMin = xyMin - margin;
+                xyMax = xyMax + margin
+    
+    if xyMin < xyMax:
         axes.set_xlim(xyMin, xyMax)
         axes.set_ylim(xyMin, xyMax)
     
@@ -560,6 +606,8 @@ def plotDataScatter (results, xAlgo, yAlgo, metricsName, block, loglog):
     plt.xlabel(xAlgo)
     plt.ylabel(yAlgo)
     plt.title(metricsName)
+    if len(values) > 1:
+        plt.legend(loc = "best")
 
     plt.show(block = block)
 
@@ -621,22 +669,22 @@ def plotData (results, xMin, xMax, xName, yName, block, ylog = True):
     plt.show(block = block)
     
     
-def saveDataScatter (resultsFile, results, xAlgo, yAlgo, metricsName):
+def saveDataScatter (resultsFile, results, xAlgo, yAlgo, metricsName, inputName):
     """
-    @param results         { instance1 : [xAlgo, yAlgo], ..., instanceN : [xAlgo, yAlgo] }
+    @param results         { instance1 : [input, xAlgo, yAlgo], ..., instanceN : [input, xAlgo, yAlgo] }
     """
     
     # Open the output file
-    outFilePath = "figure_data_scatter" + resultsFile;
+    outFilePath = "figure_data_scatter_" + resultsFile;
     outFile = open(outFilePath, 'w')
     
     # Write the metrics name and the algorithm names
-    outFile.write(metricsName + "\n")
-    outFile.write(xAlgo + ";" + yAlgo + "\n")
+    outFile.write(metricsName + ";;\n")
+    outFile.write(inputName + ";" + xAlgo + ";" + yAlgo + "\n")
     
     # Write the data
-    for x, y in results.values():
-        outFile.write(str(x) + ";" + str(y) + "\n")
+    for inputStr, x, y in results.values():
+        outFile.write(inputStr + ";" + str(x) + ";" + str(y) + "\n")
     
     print("(Over)wrote " + outFilePath)
     outFile.close()

@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -52,7 +52,6 @@ import frodo2.communication.MessageWithPayload;
 import frodo2.communication.MessageWrapper;
 import frodo2.communication.Queue;
 import frodo2.controller.userIO.UserIO;
-import frodo2.controller.WhitePages;
 import frodo2.solutionSpaces.DCOPProblemInterface;
 import frodo2.solutionSpaces.ProblemInterface;
 
@@ -651,6 +650,7 @@ public class ConfigurationManager implements IncomingMsgPolicyInterface <Message
 				parser = constructor.newInstance(problemDoc, parserElmt);
 			} else 
 				parser = new XCSPparser (problemDoc);
+			DCOPProblemInterface problem = parser.parse();
 			
 			// see if the agents will send stats. If yes, add the appropriate listeners to the queue
 			Element modsElmt = this.agentDescriptionDoc.getRootElement().getChild("modules");
@@ -666,14 +666,14 @@ public class ConfigurationManager implements IncomingMsgPolicyInterface <Message
 					// Instantiate the listener by calling its constructor in "statistics gatherer" mode
 					Class<?> listenerClass = Class.forName(statsListener.getAttributeValue("className"));
 					Constructor<?> constructor = listenerClass.getConstructor(Element.class, DCOPProblemInterface.class);
-					StatsReporter listener = (StatsReporter) constructor.newInstance(statsListener, parser);
+					StatsReporter listener = (StatsReporter) constructor.newInstance(statsListener, problem);
 
 					this.statsReporters.add(listener);
 					listener.getStatsFromQueue(this.queue);
 				}
 			}
 			
-			this.distributeAgents(parser);
+			this.distributeAgents(problem);
 			
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -681,13 +681,13 @@ public class ConfigurationManager implements IncomingMsgPolicyInterface <Message
 	}
 	
 	/** Distributes the agents among the daemons
-	 * @param parser 		the problem instance
+	 * @param problem 		the problem instance
 	 * @throws Exception 	if an error occurs
 	 */
-	protected void distributeAgents (XCSPparser<?, ?> parser) throws Exception {
+	protected void distributeAgents (DCOPProblemInterface<?, ?> problem) throws Exception {
 
 		// Get the list of agents in the problem
-		ArrayList<String> agents = new ArrayList<String> (parser.getAgents());			
+		ArrayList<String> agents = new ArrayList<String> (problem.getAgents());			
 		numberOfAgents = agents.size();
 		numberOfAgentsFinished = 0;
 		numberOfAgentsReported = 0;
@@ -703,10 +703,10 @@ public class ConfigurationManager implements IncomingMsgPolicyInterface <Message
 		for(int agent = 0; agent < numberOfAgents; agent++) {
 
 			// Get the problem description
-			ProblemInterface<?, ?> problem = parser.getSubProblem(agents.get(agent));
+			ProblemInterface<?, ?> subProb = problem.getSubProblem(agents.get(agent));
 
 			MessageWith3Payloads <ProblemInterface<?, ?>, Document, Boolean> msg = 
-					new MessageWith3Payloads <ProblemInterface<?, ?>, Document, Boolean> (AGENT_CONFIGURATION_MESSAGE, problem, this.agentDescriptionDoc, true);
+					new MessageWith3Payloads <ProblemInterface<?, ?>, Document, Boolean> (AGENT_CONFIGURATION_MESSAGE, subProb, this.agentDescriptionDoc, true);
 			if(local) {
 				queue.sendMessageToSelf(msg);
 			} else {

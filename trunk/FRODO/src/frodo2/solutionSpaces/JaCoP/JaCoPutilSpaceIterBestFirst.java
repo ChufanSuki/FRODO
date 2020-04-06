@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -24,7 +24,8 @@ package frodo2.solutionSpaces.JaCoP;
 
 import org.jacop.core.IntDomain;
 import org.jacop.core.IntVar;
-import org.jacop.core.Store;
+import org.jacop.core.IntVarCloneable;
+import org.jacop.core.StoreCloneable;
 import org.jacop.search.DepthFirstSearch;
 import org.jacop.search.IndomainMin;
 import org.jacop.search.MostConstrainedDynamic;
@@ -45,7 +46,7 @@ import frodo2.solutionSpaces.UtilitySolutionSpace.IteratorBestFirst;
 public class JaCoPutilSpaceIterBestFirst < U extends Addable<U> > implements IteratorBestFirst<AddableInteger, U>{
 
 	/** The JaCoP Store */
-	private Store store;
+	private StoreCloneable store;
 
 	/** the order or the iteration */
 	private boolean maximize;
@@ -92,26 +93,18 @@ public class JaCoPutilSpaceIterBestFirst < U extends Addable<U> > implements Ite
 		this.nbrSols = 0;
 		this.nbrSolLeft = this.nbrSols;
 
-		boolean isConsistent = true;
 		this.store = space.getStore();
-		if(this.store == null) {
-			this.store = space.createStore();
-			isConsistent = store.consistency();
-		}
 
-		if(isConsistent){
+		this.solListenerIndex = 1;
 
-			this.solListenerIndex = 1;
+		this.utility = searchBestUtility(null);
 
-			this.utility = searchBestUtility(null);
+		this.solution = new AddableInteger[space.getNumberOfVariables()];
 
-			this.solution = new AddableInteger[space.getNumberOfVariables()];
-
-			if(!utility.equals(this.space.infeasibleUtil)){
-				this.nbrSols = getNumberOfFeasibleSolutions();
-				this.nbrSolLeft = this.nbrSols;
-				this.solListener = searchAllSolutions(utility);
-			}
+		if(!utility.equals(this.space.infeasibleUtil)){
+			this.nbrSols = getNumberOfFeasibleSolutions();
+			this.nbrSolLeft = this.nbrSols;
+			this.solListener = searchAllSolutions(utility);
 		}
 	}
 
@@ -148,7 +141,6 @@ public class JaCoPutilSpaceIterBestFirst < U extends Addable<U> > implements Ite
 	 * @return the best utility below the given bound
 	 * @warning the domain of the utility variable in the store is pruned in a persistent way.
 	 */
-	@SuppressWarnings("unchecked")
 	private U searchBestUtility(U bound){
 		IntVar[] allVars = new IntVar[space.getNumberOfVariables() + space.getProjectedVars().length];
 
@@ -159,14 +151,18 @@ public class JaCoPutilSpaceIterBestFirst < U extends Addable<U> > implements Ite
 			n++;
 		}
 
-		for(String var: space.getProjectedVars()){
-			allVars[n] = (IntVar) store.findVariable(var);
+		for(IntVarCloneable var: space.getProjectedVars()){
+			allVars[n] = (IntVar) store.findVariable(var.id());
 			assert var != null: "Variable " + var + " not found in the store!";
 			n++;
 		}
 
+		// If the constraints haven't been imposed yet, do it now (to create the utility variable)
+		if (this.space.isConsistent == null) 
+			this.space.imposeConstraints();
+		
 		IntVar utilVar = (IntVar) store.findVariable("util_total"); /// @bug Name clash in case the user defined a variable with this name
-		assert utilVar != null: "Variable " + "util_total" + " not found in the store!";
+		assert utilVar != null: "Variable " + "util_total" + " not found in the store: \n" + this.store;
 
 		if(bound != null){
 			bound = bound.subtract(this.space.defaultUtil);
@@ -208,12 +204,7 @@ public class JaCoPutilSpaceIterBestFirst < U extends Addable<U> > implements Ite
 			cost = cost * -1;
 		}
 
-		try {
-			return (U) this.space.defaultUtil.getClass().getConstructor(int.class).newInstance(cost).add(this.space.defaultUtil);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-		return null; // should never be reached
+		return (U) this.space.defaultUtil.fromInt(cost).add(this.space.defaultUtil);
 	}
 
 	/**	Search the number of feasible solutions in this space
@@ -229,8 +220,8 @@ public class JaCoPutilSpaceIterBestFirst < U extends Addable<U> > implements Ite
 			n++;
 		}
 
-		for(String var: space.getProjectedVars()){
-			allVars[n] = (IntVar) store.findVariable(var);
+		for(IntVarCloneable var: space.getProjectedVars()){
+			allVars[n] = (IntVar) store.findVariable(var.id());
 			assert var != null: "Variable " + var + " not found in the store!";
 			n++;
 		}
@@ -270,8 +261,8 @@ public class JaCoPutilSpaceIterBestFirst < U extends Addable<U> > implements Ite
 			n++;
 		}
 
-		for(String var: space.getProjectedVars()){
-			allVars[n] = (IntVar) store.findVariable(var);
+		for(IntVarCloneable var: space.getProjectedVars()){
+			allVars[n] = (IntVar) store.findVariable(var.id());
 			assert var != null: "Variable " + var + " not found in the store!";
 			n++;
 		}

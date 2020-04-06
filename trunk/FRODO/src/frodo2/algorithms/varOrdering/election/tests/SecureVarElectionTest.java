@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -35,6 +35,7 @@ import frodo2.algorithms.heuristics.VarNameHeuristic;
 import frodo2.algorithms.varOrdering.election.SecureVarElection;
 import frodo2.communication.Queue;
 import frodo2.solutionSpaces.AddableInteger;
+import frodo2.solutionSpaces.AddableReal;
 import frodo2.solutionSpaces.DCOPProblemInterface;
 import junit.extensions.RepeatedTest;
 import junit.framework.TestSuite;
@@ -67,7 +68,7 @@ public class SecureVarElectionTest extends VariableElectionTest<Integer> {
 	
 	/** @see VariableElectionTest#initiateParamAndListener(XCSPparser, Class, Class, int) */
 	@Override
-	protected void initiateParamAndListener(XCSPparser<AddableInteger, AddableInteger> parser, 
+	protected void initiateParamAndListener(XCSPparser<AddableInteger, AddableReal> parser, 
 			Class< ? extends ScoringHeuristic<?> > heuristic, Class< ? extends ScoringHeuristic<?> > tiebreaking, int diameter)
 	throws NoSuchMethodException, IllegalArgumentException, InstantiationException, IllegalAccessException, InvocationTargetException {
 		
@@ -78,7 +79,7 @@ public class SecureVarElectionTest extends VariableElectionTest<Integer> {
 		for (String agent : parser.getAgents()) {
 			Queue queue = queues.get(agent);
 			
-			XCSPparser<AddableInteger, AddableInteger> subProb = parser.getSubProblem(agent);
+			DCOPProblemInterface<AddableInteger, AddableReal> subProb = parser.getSubProblem(agent).parse();
 			queue.setProblem(subProb);
 
 			// Instantiate the listener using reflection

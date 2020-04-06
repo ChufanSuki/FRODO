@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -36,6 +36,14 @@ import java.io.Serializable;
 
 public interface SolutionSpace<V extends Addable<V> > extends Serializable, Cloneable {
 	
+	/** Sets the problem that should be notified of constraint checks
+	 * @param problem 	the problem
+	 */
+	public void setProblem (ProblemInterface<V, ?> problem);
+	
+	/** @return whether this space counts constraint checks */
+	public boolean countsCCs ();
+	
 	/** @return the name of this space, if any */
 	public String getName ();
 	
@@ -52,7 +60,7 @@ public interface SolutionSpace<V extends Addable<V> > extends Serializable, Clon
 	 */
 	public void setRelationName (String name);
 	
-	/** @return the agent that owns this space, or "PUBLIC" if it is public, or \c null if the space is owns by all agents involved */
+	/** @return the agent that owns this space, or "PUBLIC" if it is public, or \c null if the space is owned by all agents involved */
 	public String getOwner ();
 	
 	/** Sets the owner

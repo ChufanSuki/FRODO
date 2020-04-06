@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -23,9 +23,9 @@ How to contact the authors:
 package frodo2.solutionSpaces.JaCoP;
 
 import org.jacop.core.IntDomain;
-import org.jacop.core.IntVar;
+import org.jacop.core.IntVarCloneable;
 import org.jacop.core.IntervalDomain;
-import org.jacop.core.Store;
+import org.jacop.core.StoreCloneable;
 
 import frodo2.solutionSpaces.Addable;
 import frodo2.solutionSpaces.AddableInteger;
@@ -73,10 +73,10 @@ public class JaCoPutilSpaceIter2 < U extends Addable<U> > implements SparseItera
 	protected AddableInteger[][] domains;
 
 	/** The JaCoP Store */
-	private Store store;
+	private StoreCloneable store;
 
 	/** The JaCoPSearch object that wraps the JaCoP search*/
-	private JaCoPiterSearch search;
+	private JaCoPiterSearch<U> search;
 
 	/** The thread that carries out the JaCoP search */
 	private Thread searchThread;
@@ -96,6 +96,9 @@ public class JaCoPutilSpaceIter2 < U extends Addable<U> > implements SparseItera
 	/** The condition used to signal this thread that a new solution has been found and has been delivered */
 	private final Condition nextDelivered = lock.newCondition(); /// @todo One condition should actually be enough. 
 
+	/** The infeasible utility */
+	private final U infeasibleUtil;
+
 	/** Constructor
 	 * @param space 		the space over which to iterate
 	 * @param variables 	the variable order for the iteration
@@ -109,6 +112,7 @@ public class JaCoPutilSpaceIter2 < U extends Addable<U> > implements SparseItera
 		this.searchInitiated = false;
 		this.minimize = !space.maximize();
 		this.bound = space.infeasibleUtil;
+		this.infeasibleUtil = space.infeasibleUtil;
 	}
 	
 	/** @see SparseIterator#getCurrentUtility() */
@@ -226,7 +230,6 @@ public class JaCoPutilSpaceIter2 < U extends Addable<U> > implements SparseItera
 	 * 
 	 * @param first 	whether the search thread must be created and started
 	 */
-	@SuppressWarnings("unchecked")
 	private void getNextFromSearch(final boolean first){
 
 		assert searchInitiated;
@@ -246,7 +249,7 @@ public class JaCoPutilSpaceIter2 < U extends Addable<U> > implements SparseItera
 			nextDelivered.await(); /// @bug handle spurious wakeups
 
 			int[] nextSol = search.getSolution();
-			int nextUtil = search.getUtility();
+			U nextUtil = search.getUtility();
 
 			// No more solutions
 			if(nextSol == null){
@@ -256,15 +259,11 @@ public class JaCoPutilSpaceIter2 < U extends Addable<U> > implements SparseItera
 				
 			// The search has not terminated yet
 			}else{
-
-				try{
-					this.utility = (U) this.space.defaultUtil.getClass().getConstructor(int.class).newInstance(nextUtil);
-					if (!this.minimize) 
-						this.utility = this.utility.flipSign();
-					this.utility = this.utility.add(this.space.defaultUtil);
-				}catch (Exception e){
-					e.printStackTrace();
-				}
+				
+				this.utility = nextUtil;
+				if (!this.minimize) 
+					this.utility = this.utility.flipSign();
+				this.utility = this.utility.add(this.space.defaultUtil);
 
 				// Update the fields
 				assert solution != null;
@@ -307,16 +306,19 @@ public class JaCoPutilSpaceIter2 < U extends Addable<U> > implements SparseItera
 		
 		// Get the JaCoP store
 		this.store = this.space.getStore();
-		if (store == null) {
-			store = this.space.createStore();
-			if (! store.consistency()){ // no feasible solution exists
-				this.searchTerminated = true;
-				return;
-			}
+		
+		// If the constraints haven't been imposed yet, impose them now
+		if (this.space.isConsistent == null) 
+			this.space.imposeConstraints();
+		
+		if(! this.space.isConsistent) { // no feasible solution exists
+			this.searchTerminated = true;
+			return;
 		}
 		
-		IntVar[] normalVars = new IntVar[nbrVars];
-		IntVar[] projectedVars = new IntVar[space.getProjectedVars().length];
+		IntVarCloneable[] slicedVars = space.getSlicedVars();
+		IntVarCloneable[] normalVars = new IntVarCloneable[nbrVars + slicedVars.length];
+		IntVarCloneable[] projectedVars = new IntVarCloneable[space.getProjectedVars().length];
 		
 		// Find all normal variables
 		String[] orderedVars = this.variables;
@@ -330,12 +332,12 @@ public class JaCoPutilSpaceIter2 < U extends Addable<U> > implements SparseItera
 				jacopDom.addDom(new IntervalDomain (val.intValue(), val.intValue()));
 			}
 			
-			normalVars[i] = (IntVar) store.findVariable(orderedVars[i]);
+			normalVars[i] = (IntVarCloneable) store.findVariable(orderedVars[i]);
 			
 			// This variable does not exist in the space, we need to create it in the store
 			if(normalVars[i] == null){
 				// Construct the JaCoP variable
-				normalVars[i] = new IntVar (store, orderedVars[i], jacopDom);
+				normalVars[i] = new IntVarCloneable (store, orderedVars[i], jacopDom);
 				
 			}else{
 				// We update the domain of the variable
@@ -351,17 +353,26 @@ public class JaCoPutilSpaceIter2 < U extends Addable<U> > implements SparseItera
 			}
 		}
 		
+		// Add all sliced vars
+		for (IntVarCloneable slicedVar : slicedVars) {
+			if (slicedVar.dom().isEmpty()) {
+				this.searchTerminated = true;
+				return;
+			}
+		}
+		System.arraycopy(slicedVars, 0, normalVars, nbrVars, slicedVars.length);
+				
 		// Find all projected variables
 		int n = 0;
-		for(String var: space.getProjectedVars()){
-			projectedVars[n] = (IntVar) store.findVariable(var);
+		for(IntVarCloneable var: space.getProjectedVars()){
+			projectedVars[n] = (IntVarCloneable) store.findVariable(var.id());
 			assert var != null: "Variable " + var + " not found in the store!";
 			n++;
 		}
 		
 		// Find the utility variable
-		IntVar utilVar = (IntVar) store.findVariable("util_total"); /// @bug Potential name clash with a user-specified variable name
-		assert utilVar != null: "Variable " + "util_total" + " not found in the store!";
+		IntVarCloneable utilVar = (IntVarCloneable) store.findVariable("util_total"); /// @bug Potential name clash with a user-specified variable name
+		assert utilVar != null: "Variable " + "util_total" + " not found in the store of the following space:\n" + this.space;
 		
 		// We update the utility variable's domain according to the initial bound
 		if(bound != null){
@@ -381,7 +392,7 @@ public class JaCoPutilSpaceIter2 < U extends Addable<U> > implements SparseItera
 		}
 		
 		this.bound = bound;		
-		this.search = new JaCoPiterSearch(store, normalVars, projectedVars, utilVar, lock, nextAsked, nextDelivered);
+		this.search = new JaCoPiterSearch<U> (store, normalVars, projectedVars, utilVar, lock, nextAsked, nextDelivered, this.infeasibleUtil);
 		this.solution = new AddableInteger[nbrVars];
 		this.searchInitiated = true;
 		this.getNextFromSearch(true);

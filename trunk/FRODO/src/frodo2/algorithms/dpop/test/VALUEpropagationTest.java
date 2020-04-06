@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -279,10 +279,11 @@ public class VALUEpropagationTest < U extends Addable<U> > extends TestCase {
 			QueueIOPipe myPipe = new QueueIOPipe (myQueue);
 			for (Queue queue : queues.values()) 
 				queue.addOutputPipe(AgentInterface.STATS_MONITOR, myPipe);
-			parser = new XCSPparser<AddableInteger, U> (AllTests.generateProblem(graph, (withAnonymVars ? graph.nodes.size() : 0), maximize));
+			parser = new XCSPparser<AddableInteger, U> (AllTests.generateProblem(graph, (withAnonymVars ? graph.nodes.size() : 0), maximize, utilClass));
 			parser.setUtilClass(utilClass);
-			dfs = UTILpropagationTest.computeDFS(graph, parser, withAnonymVars);
-			solCollector = new SolutionCollector<AddableInteger, U> (null, parser);
+			DCOPProblemInterface<AddableInteger, U> problem = parser.parse();
+			dfs = UTILpropagationTest.computeDFS(graph, problem, withAnonymVars);
+			solCollector = new SolutionCollector<AddableInteger, U> (null, problem);
 			solCollector.setSilent(true);
 			solCollector.getStatsFromQueue(myQueue);
 			
@@ -292,7 +293,7 @@ public class VALUEpropagationTest < U extends Addable<U> > extends TestCase {
 				for (String agent : parser.getAgents()) {
 					Queue queue = queues.get(agent);
 
-					XCSPparser<AddableInteger, U> subproblem = parser.getSubProblem(agent);
+					DCOPProblemInterface<AddableInteger, U> subproblem = problem.getSubProblem(agent);
 					subproblem.setUtilClass(utilClass);
 					queue.setProblem(subproblem);
 
@@ -311,7 +312,7 @@ public class VALUEpropagationTest < U extends Addable<U> > extends TestCase {
 				for (String agent : parser.getAgents()) {
 					Queue queue = queues.get(agent);
 					
-					DCOPProblemInterface<AddableInteger, U> subproblem = parser.getSubProblem(agent);
+					DCOPProblemInterface<AddableInteger, U> subproblem = problem.getSubProblem(agent);
 					subproblem.setUtilClass(utilClass);
 
 					// Instantiate the UTIL propagation module

@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -127,7 +127,7 @@ public abstract class CentralLinearOrdering < V extends Addable<V>, U extends Ad
 		myID = this.problem.getAgent();
 		if (myID.equals(this.dictator)) {
 			this.countdown = allAgents.size();
-			this.allAgents = allAgents;
+			this.allAgents = new HashSet<String> (allAgents);
 		}
 		
 		// Initialize the owners map with my variables
@@ -362,17 +362,16 @@ public abstract class CentralLinearOrdering < V extends Addable<V>, U extends Ad
 		}
 		
 		/** @see CentralLinearOrdering#reportVars() */
-		@SuppressWarnings("unchecked")
 		@Override
 		protected void reportVars() {
 			
-			HashMap<String, Collection<String>> neighborhoods = (HashMap<String, Collection<String>>) this.problem.getNeighborhoods();
+			HashMap<String, Set<String>> neighborhoods = (HashMap<String, Set<String>>) this.problem.getNeighborhoods();
 			HashMap<String, Integer> domSizes = new HashMap<String, Integer> ();
 			for (String var : this.problem.getMyVars()) 
 				domSizes.put(var, this.problem.getDomainSize(var));
 
 			this.queue.sendMessage(this.dictator, 
-					new MessageWith3Payloads< String, HashMap< String, Collection<String> >, HashMap<String, Integer> > (REPORT_MSG_TYPE, this.myID, neighborhoods, domSizes));
+					new MessageWith3Payloads< String, HashMap< String, Set<String> >, HashMap<String, Integer> > (REPORT_MSG_TYPE, this.myID, neighborhoods, domSizes));
 		}
 		
 		/** @see CentralLinearOrdering#notifyIn(Message) */

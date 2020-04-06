@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -1093,7 +1093,7 @@ extends GoodsTree<Val, U, L> {
 	 * @param real			\c true when we are on a real path, and false otherwise
 	 * @param g				the received good
 	 * @param sender 		the sender of the good
-	 * @return a new InnerNode<U>
+	 * @return a new InnerNode
 	 */
 	protected InnerNode<U, L> createPathNoUB(int depth, IntArrayWrapper currentPath, int[] partialPath, boolean real, Good<Val, U> g, int sender) {
 		int nextDepth = depth + 1;
@@ -1158,7 +1158,7 @@ extends GoodsTree<Val, U, L> {
 	 * @param real			\c true when we are on a real path, and false otherwise
 	 * @param g				the received good
 	 * @param sender 		the sender of the good
-	 * @return a new InnerNode<U>
+	 * @return a new InnerNode
 	 */
 	private InnerNode<U, L> createPathWithUB(int depth, IntArrayWrapper currentPath, int[] partialPath, boolean real, Good<Val, U> g, int sender) {
 		int nextDepth = depth + 1;

@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -393,11 +393,6 @@ extends UtilitySolutionSpaceLimited<V, U, U> {
 	 * @note The multiplication is performed after the addition. 
 	 */
 	public UtilitySolutionSpace<V, U> rescale(U add, U multiply);
-	
-	/** Sets the problem that should be notified of constraint checks
-	 * @param problem 	the problem
-	 */
-	public void setProblem (ProblemInterface<V, U> problem);
 	
 	/**
 	 *  @param maximize \c true when the order is from high to low utility, and \c false when the order is from low to high cost

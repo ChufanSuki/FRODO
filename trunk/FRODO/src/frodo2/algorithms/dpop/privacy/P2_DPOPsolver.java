@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -117,6 +117,28 @@ public class P2_DPOPsolver< V extends Addable<V>, U extends Addable<U> > extends
 	
 	/**
 	 * Constructor
+	 * @param agentDesc 	the agent description file
+	 * @param useTCP 			whether to use TCP pipes
+	 * @warning Using TCP pipes automatically disables simulated time. 
+	 */
+	public P2_DPOPsolver(String agentDesc, boolean useTCP) {
+		super(agentDesc, useTCP);
+	}
+	
+	/** Constructor from a specific agent configuration file 
+	 * @param filename 	the agent configuration file
+	 * @param useTCP 	Whether to use TCP pipes or shared memory pipes
+	 * @param shift 	The shift parameter for the ProblemRescaler (if used)
+	 * @warning Using TCP pipes automatically disables simulated time. 
+	 */
+	public P2_DPOPsolver (String filename, boolean useTCP, int shift) {
+		super (filename, useTCP);
+		
+		this.setProblemRescalerShift(shift);
+	}
+	
+	/**
+	 * Constructor
 	 * @param agentDesc the agent description
 	 */
 	public P2_DPOPsolver(Document agentDesc) {
@@ -228,7 +250,14 @@ public class P2_DPOPsolver< V extends Addable<V>, U extends Addable<U> > extends
 		encryptModule.setSilent(true);
 		solGatherers.add(encryptModule);
 		
-		collabDecrypt = new CollaborativeDecryption(null, problem);
+		Element params = null;
+		for (Element modElmt : this.agentDesc.getRootElement().getChild("modules").getChildren("module")) {
+			if (CollaborativeDecryption.class.getName().equals(modElmt.getAttributeValue("className"))) {
+				params = modElmt;
+				break;
+			}
+		}
+		collabDecrypt = new CollaborativeDecryption(params, problem);
 		collabDecrypt.setSilent(true);
 		solGatherers.add(collabDecrypt);
 		
@@ -301,8 +330,8 @@ public class P2_DPOPsolver< V extends Addable<V>, U extends Addable<U> > extends
 	/** Sets the value of infinity used by the CryptoScheme
 	 * @param infinity 	costs greater than or equal to this value will be considered infinite
 	 */
-	private void setInfinity (int infinity) {
-		
+	public void setInfinity (int infinity) {
+				
 		for (Element module : (List<Element>) this.agentDesc.getRootElement().getChild("modules").getChildren()) {
 			if (module.getAttributeValue("className").endsWith("CollaborativeDecryption")) {
 				Element scheme = module.getChild("cryptoScheme");

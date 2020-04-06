@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -419,6 +419,9 @@ public class CompoundSpace < U extends Addable<U> > implements UtilitySolutionSp
 
 	/** The infeasible utility */
 	private U infeasibleUtil;
+
+	/** The problem that gets notified of constraint checks */
+	private ProblemInterface<AddableInteger, ?> problem;
 	
 	static {
 		knownSpaces = new HashSet< Class<?> > ();
@@ -893,11 +896,18 @@ public class CompoundSpace < U extends Addable<U> > implements UtilitySolutionSp
 	}
 
 	/** @see UtilitySolutionSpace#setProblem(ProblemInterface) */
-	public void setProblem(ProblemInterface<AddableInteger, U> problem) {
+	public void setProblem(ProblemInterface<AddableInteger, ?> problem) {
+		this.problem = problem;
 		for (UtilitySolutionSpace<AddableInteger, U> space : this.inputs) 
 			space.setProblem(problem);
 		if (this.vrpSpace != null) 
 			this.vrpSpace.setProblem(problem);
+	}
+
+	/** @see UtilitySolutionSpace#countsCCs() */
+	@Override
+	public boolean countsCCs () {
+		return this.problem != null;
 	}
 
 	/** 

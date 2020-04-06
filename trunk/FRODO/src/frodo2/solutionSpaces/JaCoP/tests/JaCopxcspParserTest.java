@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -27,8 +27,8 @@ import java.util.regex.Pattern;
 
 import org.jdom2.Element;
 
-import org.jacop.core.IntVar;
-import org.jacop.core.Store;
+import org.jacop.core.IntVarCloneable;
+import org.jacop.core.StoreCloneable;
 import org.jacop.search.DepthFirstSearch;
 import org.jacop.search.IndomainMin;
 import org.jacop.search.SelectChoicePoint;
@@ -47,10 +47,10 @@ import junit.framework.TestSuite;
 public class JaCopxcspParserTest extends TestCase {
 	
 	/** The store */
-	private Store store;
+	private StoreCloneable store;
 	
 	/** All the variables created in the store */
-	private IntVar[] allVars;
+	private IntVarCloneable[] allVars;
 	
 	/** The name of the constraint */
 	private String constraintName;
@@ -1137,15 +1137,15 @@ public class JaCopxcspParserTest extends TestCase {
 		
 	}
 
-	/** Test method for parseGlobalConstraint(Element constraint, Store store) on allDifferent constraint */
+	/** Test method for imposeGlobalConstraint(Element constraint, Store store) on allDifferent constraint */
 	public void testGlobalConstraintAllDifferentParser() {
-		Store store = new Store();
-		ArrayList<IntVar> vars = new ArrayList<IntVar>();
-		IntVar v1 = new IntVar(store, "v1", 0, 0);
+		StoreCloneable store = new StoreCloneable ();
+		ArrayList<IntVarCloneable> vars = new ArrayList<IntVarCloneable>();
+		IntVarCloneable v1 = new IntVarCloneable(store, "v1", 0, 0);
 		vars.add(v1);
-		IntVar v2 = new IntVar(store, "v2", 0, 1);
+		IntVarCloneable v2 = new IntVarCloneable(store, "v2", 0, 1);
 		vars.add(v2);
-		IntVar v3 = new IntVar(store, "v3", 1, 2);
+		IntVarCloneable v3 = new IntVarCloneable(store, "v3", 1, 2);
 		vars.add(v3);
 
 		Element cons = new Element("constraint");
@@ -1157,13 +1157,13 @@ public class JaCopxcspParserTest extends TestCase {
 		cons.addContent(params);
 		params.setText("\n [\n v1 \n v2 v3 ] \n");
 
-		JaCoPxcspParser.parseGlobalConstraint(cons, store);
+		JaCoPxcspParser.imposeGlobalConstraint(cons, store);
 
-		SelectChoicePoint<IntVar> select = new SimpleSelect<IntVar>(vars.toArray(new IntVar[3]),
-				new SmallestDomain<IntVar>(),
-				new IndomainMin<IntVar>());
+		SelectChoicePoint<IntVarCloneable> select = new SimpleSelect<IntVarCloneable>(vars.toArray(new IntVarCloneable[3]),
+				new SmallestDomain<IntVarCloneable>(),
+				new IndomainMin<IntVarCloneable>());
 
-		DepthFirstSearch<IntVar> search = new DepthFirstSearch<IntVar>();
+		DepthFirstSearch<IntVarCloneable> search = new DepthFirstSearch<IntVarCloneable>();
 		search.getSolutionListener().recordSolutions(true);
 		search.setPrintInfo(false);
 
@@ -1177,13 +1177,13 @@ public class JaCopxcspParserTest extends TestCase {
 			assertEquals(i, search.getSolution()[i].valueEnumeration().nextElement());
 		}
 
-		store = new Store();
-		vars = new ArrayList<IntVar>();
-		v1 = new IntVar(store, "v1", 1, 1);
+		store = new StoreCloneable ();
+		vars = new ArrayList<IntVarCloneable>();
+		v1 = new IntVarCloneable(store, "v1", 1, 1);
 		vars.add(v1);
-		v2 = new IntVar(store, "v2", 1, 2);
+		v2 = new IntVarCloneable(store, "v2", 1, 2);
 		vars.add(v2);
-		v3 = new IntVar(store, "v3", 2, 2);
+		v3 = new IntVarCloneable(store, "v3", 2, 2);
 		vars.add(v3);
 
 		cons = new Element("constraint");
@@ -1195,13 +1195,13 @@ public class JaCopxcspParserTest extends TestCase {
 		cons.addContent(params);
 		params.setText(" [ v1 v2 v3 ] ");
 
-		JaCoPxcspParser.parseGlobalConstraint(cons, store);
+		JaCoPxcspParser.imposeGlobalConstraint(cons, store);
 
-		select = new SimpleSelect<IntVar>(vars.toArray(new IntVar[3]),
-				new SmallestDomain<IntVar>(),
-				new IndomainMin<IntVar>());
+		select = new SimpleSelect<IntVarCloneable>(vars.toArray(new IntVarCloneable[3]),
+				new SmallestDomain<IntVarCloneable>(),
+				new IndomainMin<IntVarCloneable>());
 
-		search = new DepthFirstSearch<IntVar>();
+		search = new DepthFirstSearch<IntVarCloneable>();
 		search.getSolutionListener().recordSolutions(true);
 		search.setPrintInfo(false);
 
@@ -1220,7 +1220,7 @@ public class JaCopxcspParserTest extends TestCase {
 		cons.addContent(params);
 		params.setText(" [ v1 v2 v3 0 ] ");
 
-		JaCoPxcspParser.parseGlobalConstraint(cons, this.store);
+		JaCoPxcspParser.imposeGlobalConstraint(cons, this.store);
 
 		assertTrue(getSolution());	
 		
@@ -1235,7 +1235,7 @@ public class JaCopxcspParserTest extends TestCase {
 		cons.addContent(params);
 		params.setText(" [ 1 v1 v2 v3 ] ");
 
-		JaCoPxcspParser.parseGlobalConstraint(cons, this.store);
+		JaCoPxcspParser.imposeGlobalConstraint(cons, this.store);
 		
 		assertFalse(getSolution());
 
@@ -1255,7 +1255,7 @@ public class JaCopxcspParserTest extends TestCase {
 		param.addContent("\n [ \n {\n 1 \n v4 3 \n} \n {v2 6 v5} \n] ").addContent(new Element ("le")).addContent(" 7");
 		cons.addContent(param);
 		
-		JaCoPxcspParser.parseGlobalConstraint(cons, store);
+		JaCoPxcspParser.imposeGlobalConstraint(cons, store);
 		
 		assertFalse(getSolution());
 		
@@ -1271,7 +1271,7 @@ public class JaCopxcspParserTest extends TestCase {
 		param.addContent("[ {1 v4 3} {v2 6 v5} ] ").addContent(new Element ("eq")).addContent(" 7");
 		cons.addContent(param);
 		
-		JaCoPxcspParser.parseGlobalConstraint(cons, store);
+		JaCoPxcspParser.imposeGlobalConstraint(cons, store);
 		
 		assertFalse(getSolution());
 		
@@ -1287,7 +1287,7 @@ public class JaCopxcspParserTest extends TestCase {
 		param.addContent("[ {v1 4 v3} {2 v6 5} ] ").addContent(new Element ("le")).addContent(" v8");
 		cons.addContent(param);
 		
-		JaCoPxcspParser.parseGlobalConstraint(cons, store);
+		JaCoPxcspParser.imposeGlobalConstraint(cons, store);
 		
 		assertTrue(getSolution());
 
@@ -1303,7 +1303,7 @@ public class JaCopxcspParserTest extends TestCase {
 		param.addContent("[ {v1 4 v3} {2 v6 5} ] ").addContent(new Element ("eq")).addContent(" v8");
 		cons.addContent(param);
 		
-		JaCoPxcspParser.parseGlobalConstraint(cons, store);
+		JaCoPxcspParser.imposeGlobalConstraint(cons, store);
 		
 		assertTrue(getSolution());
 
@@ -1319,7 +1319,7 @@ public class JaCopxcspParserTest extends TestCase {
 		param.addContent("[ {v1 4 v3} {2 v6 5} ] ").addContent(new Element ("eq")).addContent(" 9");
 		cons.addContent(param);
 		
-		JaCoPxcspParser.parseGlobalConstraint(cons, store);
+		JaCoPxcspParser.imposeGlobalConstraint(cons, store);
 		
 		assertFalse(getSolution());
 
@@ -1335,12 +1335,12 @@ public class JaCopxcspParserTest extends TestCase {
 		param.addContent("[ {v1 4 v3} {2 v6 5} ] ").addContent(new Element ("le")).addContent(" 9");
 		cons.addContent(param);
 		
-		JaCoPxcspParser.parseGlobalConstraint(cons, store);
+		JaCoPxcspParser.imposeGlobalConstraint(cons, store);
 		
 		assertTrue(getSolution());
 	}
 
-	/** Test method for parseGlobalConstraint(Element constraint, Store store) on WeightedSum constraint with eq atom*/
+	/** Test method for imposeGlobalConstraint(Element constraint, Store store) on WeightedSum constraint with eq atom*/
 	public void testGlobalConstraintWeightedSumEqParser() {
 		
 		resetStore();
@@ -1355,7 +1355,7 @@ public class JaCopxcspParserTest extends TestCase {
 		param.addContent(new Element("eq"));
 		cons.addContent(param);
 
-		JaCoPxcspParser.parseGlobalConstraint(cons, store);
+		JaCoPxcspParser.imposeGlobalConstraint(cons, store);
 
 		assertTrue(getSolution());
 		
@@ -1371,7 +1371,7 @@ public class JaCopxcspParserTest extends TestCase {
 		param.addContent(new Element("eq"));
 		cons.addContent(param);
 
-		JaCoPxcspParser.parseGlobalConstraint(cons, store);
+		JaCoPxcspParser.imposeGlobalConstraint(cons, store);
 
 		assertTrue(getSolution());
 		
@@ -1387,7 +1387,7 @@ public class JaCopxcspParserTest extends TestCase {
 		param.addContent(new Element("eq"));
 		cons.addContent(param);
 
-		JaCoPxcspParser.parseGlobalConstraint(cons, store);
+		JaCoPxcspParser.imposeGlobalConstraint(cons, store);
 
 		assertFalse(getSolution());
 		
@@ -1403,7 +1403,7 @@ public class JaCopxcspParserTest extends TestCase {
 		param.addContent(new Element("eq"));
 		cons.addContent(param);
 
-		JaCoPxcspParser.parseGlobalConstraint(cons, store);
+		JaCoPxcspParser.imposeGlobalConstraint(cons, store);
 
 		assertTrue(getSolution());
 		
@@ -1419,22 +1419,23 @@ public class JaCopxcspParserTest extends TestCase {
 		param.addContent(new Element("eq"));
 		cons.addContent(param);
 
-		JaCoPxcspParser.parseGlobalConstraint(cons, store);
+		JaCoPxcspParser.imposeGlobalConstraint(cons, store);
 
 		assertFalse(getSolution());
 	}
 
-	/** Test method for parseGlobalConstraint(Element constraint, Store store) on WeightedSum constraint with ne atom*/
+	/** Test method for imposeGlobalConstraint(Element constraint, Store store) on WeightedSum constraint with ne atom*/
 	public void testGlobalConstraintWeightedSumNeParser() {
-		Store store = new Store();
-		ArrayList<IntVar> vars = new ArrayList<IntVar>();
-		IntVar v1 = new IntVar(store, "v1", 1, 1);
+		
+		StoreCloneable store = new StoreCloneable ();
+		ArrayList<IntVarCloneable> vars = new ArrayList<IntVarCloneable>();
+		IntVarCloneable v1 = new IntVarCloneable(store, "v1", 1, 1);
 		vars.add(v1);
-		IntVar v2 = new IntVar(store, "v2", 1, 1);
+		IntVarCloneable v2 = new IntVarCloneable(store, "v2", 1, 1);
 		vars.add(v2);
-		IntVar v3 = new IntVar(store, "v3", 1, 1);
+		IntVarCloneable v3 = new IntVarCloneable(store, "v3", 1, 1);
 		vars.add(v3);
-		IntVar v4 = new IntVar(store, "v4", 1, 2);
+		IntVarCloneable v4 = new IntVarCloneable(store, "v4", 1, 2);
 		vars.add(v4);
 
 		Element cons = new Element("constraint");
@@ -1447,13 +1448,13 @@ public class JaCopxcspParserTest extends TestCase {
 		param.addContent(new Element("ne"));
 		cons.addContent(param);
 
-		JaCoPxcspParser.parseGlobalConstraint(cons, store);
+		JaCoPxcspParser.imposeGlobalConstraint(cons, store);
 
-		SelectChoicePoint<IntVar> select = new SimpleSelect<IntVar>(vars.toArray(new IntVar[4]),
-				new SmallestDomain<IntVar>(),
-				new IndomainMin<IntVar>());
+		SelectChoicePoint<IntVarCloneable> select = new SimpleSelect<IntVarCloneable>(vars.toArray(new IntVarCloneable[4]),
+				new SmallestDomain<IntVarCloneable>(),
+				new IndomainMin<IntVarCloneable>());
 
-		DepthFirstSearch<IntVar> search = new DepthFirstSearch<IntVar>();
+		DepthFirstSearch<IntVarCloneable> search = new DepthFirstSearch<IntVarCloneable>();
 		search.getSolutionListener().recordSolutions(true);
 		search.setPrintInfo(false);
 
@@ -1472,17 +1473,18 @@ public class JaCopxcspParserTest extends TestCase {
 		assertEquals(2, search.getSolution()[3].valueEnumeration().nextElement());
 	}
 
-	/** Test method for parseGlobalConstraint(Element constraint, Store store) on WeightedSum constraint with ge atom*/
+	/** Test method for imposeGlobalConstraint(Element constraint, Store store) on WeightedSum constraint with ge atom*/
 	public void testGlobalConstraintWeightedSumGeParser() {
-		Store store = new Store();
-		ArrayList<IntVar> vars = new ArrayList<IntVar>();
-		IntVar v1 = new IntVar(store, "v1", 3, 3);
+		
+		StoreCloneable store = new StoreCloneable ();
+		ArrayList<IntVarCloneable> vars = new ArrayList<IntVarCloneable>();
+		IntVarCloneable v1 = new IntVarCloneable(store, "v1", 3, 3);
 		vars.add(v1);
-		IntVar v2 = new IntVar(store, "v2", 3, 3);
+		IntVarCloneable v2 = new IntVarCloneable(store, "v2", 3, 3);
 		vars.add(v2);
-		IntVar v3 = new IntVar(store, "v3", 3, 3);
+		IntVarCloneable v3 = new IntVarCloneable(store, "v3", 3, 3);
 		vars.add(v3);
-		IntVar v4 = new IntVar(store, "v4", 1, 2);
+		IntVarCloneable v4 = new IntVarCloneable(store, "v4", 1, 2);
 		vars.add(v4);
 
 		Element cons = new Element("constraint");
@@ -1495,13 +1497,13 @@ public class JaCopxcspParserTest extends TestCase {
 		param.addContent(new Element("ge"));
 		cons.addContent(param);
 
-		JaCoPxcspParser.parseGlobalConstraint(cons, store);
+		JaCoPxcspParser.imposeGlobalConstraint(cons, store);
 
-		SelectChoicePoint<IntVar> select = new SimpleSelect<IntVar>(vars.toArray(new IntVar[4]),
-				new SmallestDomain<IntVar>(),
-				new IndomainMin<IntVar>());
+		SelectChoicePoint<IntVarCloneable> select = new SimpleSelect<IntVarCloneable>(vars.toArray(new IntVarCloneable[4]),
+				new SmallestDomain<IntVarCloneable>(),
+				new IndomainMin<IntVarCloneable>());
 
-		DepthFirstSearch<IntVar> search = new DepthFirstSearch<IntVar>();
+		DepthFirstSearch<IntVarCloneable> search = new DepthFirstSearch<IntVarCloneable>();
 		search.getSolutionListener().recordSolutions(true);
 		search.setPrintInfo(false);
 
@@ -1520,17 +1522,18 @@ public class JaCopxcspParserTest extends TestCase {
 		assertEquals(2, search.getSolution()[3].valueEnumeration().nextElement());
 	}
 
-	/** Test method for parseGlobalConstraint(Element constraint, Store store) on WeightedSum constraint with gt atom*/
+	/** Test method for imposeGlobalConstraint(Element constraint, Store store) on WeightedSum constraint with gt atom*/
 	public void testGlobalConstraintWeightedSumGtParser() {
-		Store store = new Store();
-		ArrayList<IntVar> vars = new ArrayList<IntVar>();
-		IntVar v1 = new IntVar(store, "v1", 3, 3);
+		
+		StoreCloneable store = new StoreCloneable ();
+		ArrayList<IntVarCloneable> vars = new ArrayList<IntVarCloneable>();
+		IntVarCloneable v1 = new IntVarCloneable(store, "v1", 3, 3);
 		vars.add(v1);
-		IntVar v2 = new IntVar(store, "v2", 3, 3);
+		IntVarCloneable v2 = new IntVarCloneable(store, "v2", 3, 3);
 		vars.add(v2);
-		IntVar v3 = new IntVar(store, "v3", 3, 3);
+		IntVarCloneable v3 = new IntVarCloneable(store, "v3", 3, 3);
 		vars.add(v3);
-		IntVar v4 = new IntVar(store, "v4", 1, 2);
+		IntVarCloneable v4 = new IntVarCloneable(store, "v4", 1, 2);
 		vars.add(v4);
 
 		Element cons = new Element("constraint");
@@ -1543,13 +1546,13 @@ public class JaCopxcspParserTest extends TestCase {
 		param.addContent(new Element("gt"));
 		cons.addContent(param);
 
-		JaCoPxcspParser.parseGlobalConstraint(cons, store);
+		JaCoPxcspParser.imposeGlobalConstraint(cons, store);
 
-		SelectChoicePoint<IntVar> select = new SimpleSelect<IntVar>(vars.toArray(new IntVar[4]),
-				new SmallestDomain<IntVar>(),
-				new IndomainMin<IntVar>());
+		SelectChoicePoint<IntVarCloneable> select = new SimpleSelect<IntVarCloneable>(vars.toArray(new IntVarCloneable[4]),
+				new SmallestDomain<IntVarCloneable>(),
+				new IndomainMin<IntVarCloneable>());
 
-		DepthFirstSearch<IntVar> search = new DepthFirstSearch<IntVar>();
+		DepthFirstSearch<IntVarCloneable> search = new DepthFirstSearch<IntVarCloneable>();
 		search.getSolutionListener().recordSolutions(true);
 		search.setPrintInfo(false);
 
@@ -1557,15 +1560,15 @@ public class JaCopxcspParserTest extends TestCase {
 
 		assertFalse(result);
 
-		store = new Store();
-		vars = new ArrayList<IntVar>();
-		IntVar v5 = new IntVar(store, "v5", 3, 3);
+		store = new StoreCloneable ();
+		vars = new ArrayList<IntVarCloneable>();
+		IntVarCloneable v5 = new IntVarCloneable(store, "v5", 3, 3);
 		vars.add(v5);
-		IntVar v6 = new IntVar(store, "v6", 3, 3);
+		IntVarCloneable v6 = new IntVarCloneable(store, "v6", 3, 3);
 		vars.add(v6);
-		IntVar v7 = new IntVar(store, "v7", 3, 3);
+		IntVarCloneable v7 = new IntVarCloneable(store, "v7", 3, 3);
 		vars.add(v7);
-		IntVar v8 = new IntVar(store, "v8", 1, 2);
+		IntVarCloneable v8 = new IntVarCloneable(store, "v8", 1, 2);
 		vars.add(v8);
 
 		cons = new Element("constraint");
@@ -1578,13 +1581,13 @@ public class JaCopxcspParserTest extends TestCase {
 		param.addContent(new Element("gt"));
 		cons.addContent(param);
 
-		JaCoPxcspParser.parseGlobalConstraint(cons, store);
+		JaCoPxcspParser.imposeGlobalConstraint(cons, store);
 
-		select = new SimpleSelect<IntVar>(vars.toArray(new IntVar[4]),
-				new SmallestDomain<IntVar>(),
-				new IndomainMin<IntVar>());
+		select = new SimpleSelect<IntVarCloneable>(vars.toArray(new IntVarCloneable[4]),
+				new SmallestDomain<IntVarCloneable>(),
+				new IndomainMin<IntVarCloneable>());
 
-		search = new DepthFirstSearch<IntVar>();
+		search = new DepthFirstSearch<IntVarCloneable>();
 		search.getSolutionListener().recordSolutions(true);
 		search.setPrintInfo(false);
 
@@ -1603,17 +1606,18 @@ public class JaCopxcspParserTest extends TestCase {
 		assertEquals(2, search.getSolution()[3].valueEnumeration().nextElement());
 	}
 
-	/** Test method for parseGlobalConstraint(Element constraint, Store store) on WeightedSum constraint with le atom*/
+	/** Test method for imposeGlobalConstraint(Element constraint, Store store) on WeightedSum constraint with le atom*/
 	public void testGlobalConstraintWeightedSumLeParser() {
-		Store store = new Store();
-		ArrayList<IntVar> vars = new ArrayList<IntVar>();
-		IntVar v1 = new IntVar(store, "v1", 2, 3);
+		
+		StoreCloneable store = new StoreCloneable ();
+		ArrayList<IntVarCloneable> vars = new ArrayList<IntVarCloneable>();
+		IntVarCloneable v1 = new IntVarCloneable(store, "v1", 2, 3);
 		vars.add(v1);
-		IntVar v2 = new IntVar(store, "v2", 2, 3);
+		IntVarCloneable v2 = new IntVarCloneable(store, "v2", 2, 3);
 		vars.add(v2);
-		IntVar v3 = new IntVar(store, "v3", 2, 3);
+		IntVarCloneable v3 = new IntVarCloneable(store, "v3", 2, 3);
 		vars.add(v3);
-		IntVar v4 = new IntVar(store, "v4", 1, 1);
+		IntVarCloneable v4 = new IntVarCloneable(store, "v4", 1, 1);
 		vars.add(v4);
 
 		Element cons = new Element("constraint");
@@ -1626,13 +1630,13 @@ public class JaCopxcspParserTest extends TestCase {
 		param.addContent(new Element("le"));
 		cons.addContent(param);
 
-		JaCoPxcspParser.parseGlobalConstraint(cons, store);
+		JaCoPxcspParser.imposeGlobalConstraint(cons, store);
 
-		SelectChoicePoint<IntVar> select = new SimpleSelect<IntVar>(vars.toArray(new IntVar[4]),
-				new SmallestDomain<IntVar>(),
-				new IndomainMin<IntVar>());
+		SelectChoicePoint<IntVarCloneable> select = new SimpleSelect<IntVarCloneable>(vars.toArray(new IntVarCloneable[4]),
+				new SmallestDomain<IntVarCloneable>(),
+				new IndomainMin<IntVarCloneable>());
 
-		DepthFirstSearch<IntVar> search = new DepthFirstSearch<IntVar>();
+		DepthFirstSearch<IntVarCloneable> search = new DepthFirstSearch<IntVarCloneable>();
 		search.getSolutionListener().recordSolutions(true);
 		search.setPrintInfo(false);
 
@@ -1651,17 +1655,18 @@ public class JaCopxcspParserTest extends TestCase {
 		assertEquals(1, search.getSolution()[3].valueEnumeration().nextElement());
 	}
 
-	/** Test method for parseGlobalConstraint(Element constraint, Store store) on WeightedSum constraint with lt atom*/
+	/** Test method for imposeGlobalConstraint(Element constraint, Store store) on WeightedSum constraint with lt atom*/
 	public void testGlobalConstraintWeightedSumLtParser() {
-		Store store = new Store();
-		ArrayList<IntVar> vars = new ArrayList<IntVar>();
-		IntVar v1 = new IntVar(store, "v1", 2, 3);
+		
+		StoreCloneable store = new StoreCloneable ();
+		ArrayList<IntVarCloneable> vars = new ArrayList<IntVarCloneable>();
+		IntVarCloneable v1 = new IntVarCloneable(store, "v1", 2, 3);
 		vars.add(v1);
-		IntVar v2 = new IntVar(store, "v2", 2, 3);
+		IntVarCloneable v2 = new IntVarCloneable(store, "v2", 2, 3);
 		vars.add(v2);
-		IntVar v3 = new IntVar(store, "v3", 2, 3);
+		IntVarCloneable v3 = new IntVarCloneable(store, "v3", 2, 3);
 		vars.add(v3);
-		IntVar v4 = new IntVar(store, "v4", 1, 1);
+		IntVarCloneable v4 = new IntVarCloneable(store, "v4", 1, 1);
 		vars.add(v4);
 
 		Element cons = new Element("constraint");
@@ -1674,13 +1679,13 @@ public class JaCopxcspParserTest extends TestCase {
 		param.addContent(new Element("lt"));
 		cons.addContent(param);
 
-		JaCoPxcspParser.parseGlobalConstraint(cons, store);
+		JaCoPxcspParser.imposeGlobalConstraint(cons, store);
 
-		SelectChoicePoint<IntVar> select = new SimpleSelect<IntVar>(vars.toArray(new IntVar[4]),
-				new SmallestDomain<IntVar>(),
-				new IndomainMin<IntVar>());
+		SelectChoicePoint<IntVarCloneable> select = new SimpleSelect<IntVarCloneable>(vars.toArray(new IntVarCloneable[4]),
+				new SmallestDomain<IntVarCloneable>(),
+				new IndomainMin<IntVarCloneable>());
 
-		DepthFirstSearch<IntVar> search = new DepthFirstSearch<IntVar>();
+		DepthFirstSearch<IntVarCloneable> search = new DepthFirstSearch<IntVarCloneable>();
 		search.getSolutionListener().recordSolutions(true);
 		search.setPrintInfo(false);
 
@@ -1688,15 +1693,15 @@ public class JaCopxcspParserTest extends TestCase {
 
 		assertFalse(result);
 
-		store = new Store();
-		vars = new ArrayList<IntVar>();
-		IntVar v5 = new IntVar(store, "v5", 2, 3);
+		store = new StoreCloneable ();
+		vars = new ArrayList<IntVarCloneable>();
+		IntVarCloneable v5 = new IntVarCloneable(store, "v5", 2, 3);
 		vars.add(v5);
-		IntVar v6 = new IntVar(store, "v6", 2, 3);
+		IntVarCloneable v6 = new IntVarCloneable(store, "v6", 2, 3);
 		vars.add(v6);
-		IntVar v7 = new IntVar(store, "v7", 2, 3);
+		IntVarCloneable v7 = new IntVarCloneable(store, "v7", 2, 3);
 		vars.add(v7);
-		IntVar v8 = new IntVar(store, "v8", 1, 1);
+		IntVarCloneable v8 = new IntVarCloneable(store, "v8", 1, 1);
 		vars.add(v8);
 
 		cons = new Element("constraint");
@@ -1709,13 +1714,13 @@ public class JaCopxcspParserTest extends TestCase {
 		param.addContent(new Element("lt"));
 		cons.addContent(param);
 
-		JaCoPxcspParser.parseGlobalConstraint(cons, store);
+		JaCoPxcspParser.imposeGlobalConstraint(cons, store);
 
-		select = new SimpleSelect<IntVar>(vars.toArray(new IntVar[4]),
-				new SmallestDomain<IntVar>(),
-				new IndomainMin<IntVar>());
+		select = new SimpleSelect<IntVarCloneable>(vars.toArray(new IntVarCloneable[4]),
+				new SmallestDomain<IntVarCloneable>(),
+				new IndomainMin<IntVarCloneable>());
 
-		search = new DepthFirstSearch<IntVar>();
+		search = new DepthFirstSearch<IntVarCloneable>();
 		search.getSolutionListener().recordSolutions(true);
 		search.setPrintInfo(false);
 
@@ -1738,15 +1743,15 @@ public class JaCopxcspParserTest extends TestCase {
 	/** Test for the Element constraint */
 	public void testGlobalConstraintElementParser () {
 		
-		Store store = new Store();
-		ArrayList<IntVar> vars = new ArrayList<IntVar>();
-		IntVar i = new IntVar(store, "i", 0, 3);
+		StoreCloneable store = new StoreCloneable ();
+		ArrayList<IntVarCloneable> vars = new ArrayList<IntVarCloneable>();
+		IntVarCloneable i = new IntVarCloneable(store, "i", 0, 3);
 		vars.add(i);
-		IntVar x0 = new IntVar(store, "x0", 0, 3);
+		IntVarCloneable x0 = new IntVarCloneable(store, "x0", 0, 3);
 		vars.add(x0);
-		IntVar x1 = new IntVar(store, "x1", 0, 3);
+		IntVarCloneable x1 = new IntVarCloneable(store, "x1", 0, 3);
 		vars.add(x1);
-		IntVar v = new IntVar(store, "v", 0, 3);
+		IntVarCloneable v = new IntVarCloneable(store, "v", 0, 3);
 		vars.add(v);
 
 		// Test with v as a variable
@@ -1759,13 +1764,13 @@ public class JaCopxcspParserTest extends TestCase {
 		param.setText("\n i \n [\n -1 \n x0 -2..-1 x1 \n] \n v \n");
 		cons.addContent(param);
 
-		JaCoPxcspParser.parseGlobalConstraint(cons, store);
+		JaCoPxcspParser.imposeGlobalConstraint(cons, store);
 
-		SelectChoicePoint<IntVar> select = new SimpleSelect<IntVar>(vars.toArray(new IntVar[4]),
-				new SmallestDomain<IntVar>(),
-				new IndomainMin<IntVar>());
+		SelectChoicePoint<IntVarCloneable> select = new SimpleSelect<IntVarCloneable>(vars.toArray(new IntVarCloneable[4]),
+				new SmallestDomain<IntVarCloneable>(),
+				new IndomainMin<IntVarCloneable>());
 
-		DepthFirstSearch<IntVar> search = new DepthFirstSearch<IntVar>();
+		DepthFirstSearch<IntVarCloneable> search = new DepthFirstSearch<IntVarCloneable>();
 		search.getSolutionListener().recordSolutions(true);
 		search.setPrintInfo(false);
 
@@ -1784,13 +1789,13 @@ public class JaCopxcspParserTest extends TestCase {
 		param.setText("i [1 x0 1..2 x1] -1");
 		cons.addContent(param);
 
-		JaCoPxcspParser.parseGlobalConstraint(cons, store);
+		JaCoPxcspParser.imposeGlobalConstraint(cons, store);
 
-		select = new SimpleSelect<IntVar>(vars.toArray(new IntVar[4]),
-				new SmallestDomain<IntVar>(),
-				new IndomainMin<IntVar>());
+		select = new SimpleSelect<IntVarCloneable>(vars.toArray(new IntVarCloneable[4]),
+				new SmallestDomain<IntVarCloneable>(),
+				new IndomainMin<IntVarCloneable>());
 
-		search = new DepthFirstSearch<IntVar>();
+		search = new DepthFirstSearch<IntVarCloneable>();
 		search.getSolutionListener().recordSolutions(true);
 		search.setPrintInfo(false);
 
@@ -1799,7 +1804,7 @@ public class JaCopxcspParserTest extends TestCase {
 		assertFalse(result);
 	}
 
-	/** This method creates a contraint and a predicate in XCSP standard and pass them to the parser
+	/** This method creates a constraint and a predicate in XCSP standard and passes them to the parser
 	 * that will create the corresponding constraints in the store
 	 * @param scope			the scope of the constraint
 	 * @param parameters	the parameters of the constraint
@@ -1837,7 +1842,7 @@ public class JaCopxcspParserTest extends TestCase {
 		functional.setText(predicate);
 		expression.addContent(functional);
 		
-		JaCoPxcspParser.parsePredicate(cons, pred, store, new ArrayList<IntVar> ());
+		JaCoPxcspParser.imposePredicate(cons, pred, store, new ArrayList<IntVarCloneable> ());
 	}
 	
 	
@@ -1849,11 +1854,11 @@ public class JaCopxcspParserTest extends TestCase {
 		if(!store.consistency())
 			return false;
 		
-		SelectChoicePoint<IntVar> select = new SimpleSelect<IntVar>(allVars,
-				new SmallestDomain<IntVar>(),
-				new IndomainMin<IntVar>());
+		SelectChoicePoint<IntVarCloneable> select = new SimpleSelect<IntVarCloneable>(allVars,
+				new SmallestDomain<IntVarCloneable>(),
+				new IndomainMin<IntVarCloneable>());
 
-		DepthFirstSearch<IntVar> search = new DepthFirstSearch<IntVar>();
+		DepthFirstSearch<IntVarCloneable> search = new DepthFirstSearch<IntVarCloneable>();
 		search.getSolutionListener().recordSolutions(true);
 		search.setPrintInfo(false);
 
@@ -1868,15 +1873,15 @@ public class JaCopxcspParserTest extends TestCase {
 	 * 25 variables with negative values: vm0::0, vm1::-1, vm2::-2, ..., vm24::-24
 	 */
 	private void resetStore(){
-		this.store = new Store();
-		this.allVars= new IntVar[50];
+		this.store = new StoreCloneable ();
+		this.allVars= new IntVarCloneable[50];
 		
 		for(int i = 0; i < 25; i++){
-			allVars[i] = new IntVar(store, "vm"+i, i*-1, i*-1);
+			allVars[i] = new IntVarCloneable(store, "vm"+i, i*-1, i*-1);
 		}
 		
 		for(int i = 0; i < 25; i++){
-			allVars[i+25] = new IntVar(store, "v"+i, i, i);
+			allVars[i+25] = new IntVarCloneable(store, "v"+i, i, i);
 		}
 	}
 }

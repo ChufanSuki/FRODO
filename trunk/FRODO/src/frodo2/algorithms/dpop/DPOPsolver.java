@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -219,8 +219,6 @@ public class DPOPsolver< V extends Addable<V>, U extends Addable<U> > extends Ab
 	public Solution<V, U> buildSolution() {
 
 		U optUtil = utilModule.getOptUtil();
-		if (optUtil == null) 
-			optUtil = super.problem.getZeroUtility();
 		
 		Map<String, V>  solution = this.solCollector.getSolution();
 		int nbrMsgs = factory.getNbrMsgs();
@@ -239,6 +237,8 @@ public class DPOPsolver< V extends Addable<V>, U extends Addable<U> > extends Ab
 		timesNeeded.put(utilModule.getClass().getName(), utilModule.getFinalTime());
 		timesNeeded.put(this.solCollector.getClass().toString(), this.solCollector.getFinalTime());
 		long totalTime = factory.getTime();
+		
+		assert this.solCollector.getUtility().equals(this.problem.getUtility(solution).getUtility(0));
 		
 		return new Solution<V, U> (nbrVariables, optUtil, this.solCollector.getUtility(), solution, 
 				nbrMsgs, msgNbrs, this.factory.getMsgNbrsSentPerAgent(), this.factory.getMsgNbrsReceivedPerAgent(), 

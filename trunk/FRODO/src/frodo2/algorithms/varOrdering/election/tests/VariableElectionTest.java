@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -63,6 +63,7 @@ import frodo2.communication.MessageType;
 import frodo2.communication.Queue;
 import frodo2.communication.QueueOutputPipeInterface;
 import frodo2.solutionSpaces.AddableInteger;
+import frodo2.solutionSpaces.AddableReal;
 import frodo2.solutionSpaces.DCOPProblemInterface;
 import frodo2.solutionSpaces.UtilitySolutionSpace;
 
@@ -240,7 +241,8 @@ public class VariableElectionTest < S extends Comparable<S> & Serializable > ext
 			
 			// Create a random problem and go through its list of agents
 			Document problem = AllTests.generateProblem(graph, graph.nodes.size(), true);
-			XCSPparser<AddableInteger, AddableInteger> parser = new XCSPparser<AddableInteger, AddableInteger> (problem);
+			XCSPparser<AddableInteger, AddableReal> parser = new XCSPparser<AddableInteger, AddableReal> (problem);
+			parser.setUtilClass(AddableReal.class);
 			
 			//Initiate description of parameters and listener
 			this.initiateParamAndListener(parser, heuristic, this.tiebreaking, diameter);
@@ -253,7 +255,10 @@ public class VariableElectionTest < S extends Comparable<S> & Serializable > ext
 		} else { // use the constructor that does not take in an XML description of the problem
 			
 			// Create a random problem and go through its list of agents
-			XCSPparser<AddableInteger, AddableInteger> parser = new XCSPparser<AddableInteger, AddableInteger> (AllTests.generateProblem(graph, graph.nodes.size(), true));
+			XCSPparser<AddableInteger, AddableReal> parser = 
+					new XCSPparser<AddableInteger, AddableReal> (AllTests.generateProblem(graph, graph.nodes.size(), true));
+			parser.setUtilClass(AddableReal.class);
+			DCOPProblemInterface<AddableInteger, AddableReal> problem = parser.parse();
 
 			for (Map.Entry<String, List<String>> entry : graph.clusters.entrySet()) {
 				String agent = entry.getKey();
@@ -266,16 +271,18 @@ public class VariableElectionTest < S extends Comparable<S> & Serializable > ext
 				
 				// Create the map containing the domains
 				HashMap<String, AddableInteger[]> domains = new HashMap<String, AddableInteger[]> ();
-				for (String var : parser.getVariables()) 
-					domains.put(var, parser.getDomain(var));
+				for (String var : problem.getVariables()) 
+					domains.put(var, problem.getDomain(var));
 				
 				// Extract the list of spaces from the problem
-				XCSPparser<AddableInteger, AddableInteger> subproblem = parser.getSubProblem(agent);
+				DCOPProblemInterface<AddableInteger, AddableReal> subproblem = problem.getSubProblem(agent);
 				queue.setProblem(subproblem);
-				List< ? extends UtilitySolutionSpace<AddableInteger, AddableInteger> > spaces = subproblem.getSolutionSpaces(false);
+				List< ? extends UtilitySolutionSpace<AddableInteger, AddableReal> > spaces = subproblem.getSolutionSpaces(false);
 				
 				// Create the subproblem
-				Problem<AddableInteger, AddableInteger> subProb = new Problem<AddableInteger, AddableInteger> (agent, owners, domains, spaces);
+				Problem<AddableInteger, AddableReal> subProb = new Problem<AddableInteger, AddableReal> (agent, subproblem.getAgents(), owners, domains, 
+						subproblem.getRandVars(), spaces, subproblem.getProbabilitySpacePerRandVar(), subproblem.getVarScopes(), 
+						subproblem.getDomClass(), subproblem.getUtilClass());
 				
 				// Set up the tie-breaking heuristic
 				ScoringHeuristic<?> tiebreaker;
@@ -311,7 +318,7 @@ public class VariableElectionTest < S extends Comparable<S> & Serializable > ext
 				
 				} else if (heuristic == SmallestDomainHeuristic.class) { // Smallest Domain heuristic 
 					for (String var : entry.getValue()) {
-						allScores.put(var, (S) new ScorePair (Short.valueOf((short) - parser.getDomainSize(var)), tiebreakingScores.get(var)));
+						allScores.put(var, (S) new ScorePair (Short.valueOf((short) - problem.getDomainSize(var)), tiebreakingScores.get(var)));
 					}
 					queue.addIncomingMessagePolicy(new VariableElection (subProb, 
 							new ScoringHeuristicWithTiebreaker (new SmallestDomainHeuristic (subProb, null), tiebreaker), 
@@ -394,7 +401,7 @@ public class VariableElectionTest < S extends Comparable<S> & Serializable > ext
 	 * @throws InstantiationException would be thrown if VariableElection were abstract
 	 * @throws IllegalArgumentException if the VariableElection constructor does not take the proper arguments
 	 */
-	protected void initiateParamAndListener(XCSPparser<AddableInteger, AddableInteger> parser, 
+	protected void initiateParamAndListener(XCSPparser<AddableInteger, AddableReal> parser, 
 			Class< ? extends ScoringHeuristic<?> > heuristic, Class< ? extends ScoringHeuristic<?> > tiebreaking, int diameter)
 	throws NoSuchMethodException, IllegalArgumentException, InstantiationException, IllegalAccessException, InvocationTargetException {
 		
@@ -420,7 +427,7 @@ public class VariableElectionTest < S extends Comparable<S> & Serializable > ext
 		for (String agent : parser.getAgents()) {
 			Queue queue = queues.get(agent);
 			
-			XCSPparser<AddableInteger, AddableInteger> subProb = parser.getSubProblem(agent);
+			DCOPProblemInterface<AddableInteger, AddableReal> subProb = parser.getSubProblem(agent).parse();
 			queue.setProblem(subProb);
 
 			// Instantiate the listener using reflection

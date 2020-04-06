@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -42,7 +42,7 @@ public class ElGamalScheme implements CryptoScheme<AddableInteger, ElGamalBigInt
 	public static void main (String[] args) {
 		
 		// The GNU GPL copyright notice
-		System.out.println("FRODO  Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek");
+		System.out.println("FRODO  Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek");
 		System.out.println("This program comes with ABSOLUTELY NO WARRANTY.");
 		System.out.println("This is free software, and you are welcome to redistribute it");
 		System.out.println("under certain conditions. Use the option -license to display the license.\n");
@@ -52,7 +52,7 @@ public class ElGamalScheme implements CryptoScheme<AddableInteger, ElGamalBigInt
 			try{
 				minBitLength = Integer.valueOf(args[0]);
 			} catch (NumberFormatException e){
-				System.err.println("Argument error. Minimum bit lenght must be a number higher than 64\n" +
+				System.err.println("Argument error. Minimum bit length must be a number higher than 64\n" +
 								   "MinBitLength put to 512");
 				minBitLength = 512;
 			}
@@ -131,6 +131,9 @@ public class ElGamalScheme implements CryptoScheme<AddableInteger, ElGamalBigInt
 	/** Random generator */
 	private final SecureRandom rand;
 	
+	/** If true, does not actually perform encryption/decryption */
+	final private boolean debug;
+	
 	/** Constructor
 	 * @param params 	the publicly known parameters
 	 */
@@ -149,6 +152,9 @@ public class ElGamalScheme implements CryptoScheme<AddableInteger, ElGamalBigInt
 		// this will change after the first call to newPublicKeyShare(). 
 		this.x = BigInteger.ZERO;
 		this.y = BigInteger.ONE;
+		
+		String debugStr = params.getAttributeValue("debug");
+		this.debug = (debugStr == null ? false : Boolean.parseBoolean(debugStr));
 	}
 	
 	/**
@@ -174,11 +180,17 @@ public class ElGamalScheme implements CryptoScheme<AddableInteger, ElGamalBigInt
 			for(int i =0; i<inputSize;i++){
 				BigInteger[] initPair = initVector[i];
 				
-				BigInteger newBi = initPair[1].modPow(x, p);
-				BigInteger decrypted = initPair[0].multiply(newBi.modInverse(p)).mod(p);
+				BigInteger decrypted;
+				if (debug) 
+					decrypted = initPair[0];
+				
+				else {
+					BigInteger newBi = initPair[1].modPow(x, p);
+					decrypted = initPair[0].multiply(newBi.modInverse(p)).mod(p);
+				}
 				
 				if (! decrypted.equals(BigInteger.ONE)) {
-					assert this.isPowerOf2(decrypted) : decrypted.toString() + " is not a power of 2";
+					assert this.isPowerOf2(decrypted) : decrypted.toString() + " is not a power of 2; Check that the modulus is large enough";
 					return new AddableInteger (i);
 				}
 			}
@@ -190,11 +202,17 @@ public class ElGamalScheme implements CryptoScheme<AddableInteger, ElGamalBigInt
 				BigInteger[] partialPair = partialVector[i];
 				BigInteger initialBi = initVector[i][1];
 				
-				BigInteger newBi = partialPair[1].multiply(initialBi.modPow(x, p)).mod(p);
-				BigInteger decrypted = partialPair[0].multiply(newBi.modInverse(p)).mod(p);
+				BigInteger decrypted;
+				if (debug) 
+					decrypted = partialPair[0];
+				
+				else {
+					BigInteger newBi = partialPair[1].multiply(initialBi.modPow(x, p)).mod(p);
+					decrypted = partialPair[0].multiply(newBi.modInverse(p)).mod(p);
+				}
 				
 				if (! decrypted.equals(BigInteger.ONE)) {
-					assert this.isPowerOf2(decrypted) : decrypted.toString() + " is not a power of 2";
+					assert this.isPowerOf2(decrypted) : decrypted.toString() + " is not a power of 2; Check that the modulus is large enough";
 					return new AddableInteger (i);
 				}
 			}
@@ -250,8 +268,12 @@ public class ElGamalScheme implements CryptoScheme<AddableInteger, ElGamalBigInt
 		for(int i=0; i<inputSize;i++){
 			BigInteger[] pair = inVector[i];		
 			
-			encrypted[i] = new BigInteger[] { pair[0].multiply(y.modPow(r, p)).mod(p), 
-											  pair[1].multiply(g.modPow(r, p)).mod(p) };
+			if (debug) {
+				encrypted[i] = pair;
+				assert pair[0].compareTo(this.p) < 0 : "Cleartext to be encrypted is larger than the ElGamal modulo: " + pair[0] + " >= " + this.p;
+			} else 
+				encrypted[i] = new BigInteger[] { 	pair[0].multiply(y.modPow(r, p)).mod(p), 
+													pair[1].multiply(g.modPow(r, p)).mod(p) };
 		}
 		
 		return new ElGamalBigInteger(encrypted);
@@ -268,7 +290,7 @@ public class ElGamalScheme implements CryptoScheme<AddableInteger, ElGamalBigInt
 			for(int i =0; i<inputSize;i++){
 				
 				BigInteger[] initPair = initVector[i];
-				decrypted[i] = new BigInteger[] { initPair[0], initPair[1].modPow(x, p) };
+				decrypted[i] = new BigInteger[] { initPair[0], debug ? initPair[1] : initPair[1].modPow(x, p) };
 			}
 			
 		} else {
@@ -279,7 +301,7 @@ public class ElGamalScheme implements CryptoScheme<AddableInteger, ElGamalBigInt
 				
 				BigInteger[] partialPair = partialVector[i];
 				BigInteger initialBi = initVector[i][1];
-				decrypted[i] = new BigInteger[] { partialPair[0], partialPair[1].multiply(initialBi.modPow(x, p)).mod(p) };
+				decrypted[i] = new BigInteger[] { partialPair[0], debug ? partialPair[1] : partialPair[1].multiply(initialBi.modPow(x, p)).mod(p) };
 			}
 		}
 		

@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -232,7 +232,8 @@ public class VariableObfuscationTest < V extends Addable<V> > extends TestCase i
 		QueueIOPipe myPipe = new QueueIOPipe (myQueue);
 		for (Queue queue : this.queues.values()) 
 			queue.addOutputPipe(AgentInterface.STATS_MONITOR, myPipe);
-		DFSgeneration dfsModule = new DFSgeneration (null, this.parser);
+		DCOPProblemInterface<V, AddableBigInteger> problem = this.parser.parse();
+		DFSgeneration dfsModule = new DFSgeneration (null, problem);
 		dfsModule.setSilent(true); // set to false to see the DFS
 		dfsModule.getStatsFromQueue(myQueue);
 
@@ -244,7 +245,7 @@ public class VariableObfuscationTest < V extends Addable<V> > extends TestCase i
 			queue.addIncomingMessagePolicy(this);
 			
 			// Extract the subproblem for that agent
-			XCSPparser<V, AddableBigInteger> subProb = this.parser.getSubProblem(agent);
+			DCOPProblemInterface<V, AddableBigInteger> subProb = problem.getSubProblem(agent);
 			queue.setProblem(subProb);
 			
 			// Instantiate SecureVarElection

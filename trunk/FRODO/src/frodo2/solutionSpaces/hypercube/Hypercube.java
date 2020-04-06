@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -128,8 +128,8 @@ extends HypercubeLimited<V, U, U> implements UtilitySolutionSpace<V, U> {
 		//compute the number of utility values in the hypercube
 		int number_of_utility_values = 1;
 		for(V[] domain:domains) {
-			assert Math.log((double) number_of_utility_values) + Math.log((double) domain.length) < Math.log(Integer.MAX_VALUE) : 
-				"Size of utility array too big for an int";
+			if (Math.log((double) number_of_utility_values) + Math.log((double) domain.length) >= Math.log(Integer.MAX_VALUE)) 
+				throw new OutOfMemoryError ("Size of utility array too big for an int");
 			number_of_utility_values *= domain.length;
 		}
 		this.number_of_utility_values = number_of_utility_values;
@@ -181,7 +181,7 @@ extends HypercubeLimited<V, U, U> implements UtilitySolutionSpace<V, U> {
 		setStepsHashmaps();
 	}
 	
-	/**Construct a new Hypercube with provided variables names, the domains of these variables and the utility values
+	/** Construct a new Hypercube with provided variables names, the domains of these variables and the utility values
 	 * @param variables_order 		the array containing the variables names ordered according to their order in the hypercube
 	 * @param variables_domains 	the domains of the variables contained in the variables_order array and ordered in the same order.
 	 * @param utility_values 		the utility values contained in a one-dimensional array. there should be a utility value for each 
@@ -195,7 +195,23 @@ extends HypercubeLimited<V, U, U> implements UtilitySolutionSpace<V, U> {
 		super(variables_order, variables_domains, utility_values, infeasibleUtil);
 	}
 	
-	/**Construct a new Hypercube with provided variables names, the domains of these variables and the utility values
+	/** Construct a new Hypercube with provided variables names, the domains of these variables and the utility values
+	 * @param name 					the name of the Hypercube
+	 * @param variables_order 		the array containing the variables names ordered according to their order in the hypercube
+	 * @param variables_domains 	the domains of the variables contained in the variables_order array and ordered in the same order.
+	 * @param utility_values 		the utility values contained in a one-dimensional array. there should be a utility value for each 
+	 * 								possible combination of values that the variables may take.
+	 * @param infeasibleUtil 		-INF if we are maximizing, +INF if we are minimizing
+	 * @warning variables_domains parameter needs to be sorted in ascending order.
+	 * @warning utility_values needs to be properly ordered, the first utility corresponds to the 
+	 * assignment in which each variable is assigned its first value.
+	 */
+	public Hypercube( String name, String[] variables_order, V[][] variables_domains, U[] utility_values, U infeasibleUtil ) {
+		super(variables_order, variables_domains, utility_values, infeasibleUtil);
+		super.name = name;
+	}
+	
+	/** Construct a new Hypercube with provided variables names, the domains of these variables and the utility values
 	 * @param variables_order 		the array containing the variables names ordered according to their order in the hypercube
 	 * @param variables_domains 	the domains of the variables contained in the variables_order array and ordered in the same order.
 	 * @param utility_values 		the utility values contained in a one-dimensional array. there should be a utility value for each 
@@ -268,8 +284,8 @@ extends HypercubeLimited<V, U, U> implements UtilitySolutionSpace<V, U> {
 	    	  for( int j = 0; j < domain_size; j++) {
 	    		  domains[i][j] = (V) valFromString.invoke(valInstance, domain.nextToken());
 	    	  }
-			  assert Math.log((double) number_utility_values) + Math.log((double) domain_size) < Math.log(Integer.MAX_VALUE) : 
-					"Size of utility array too big for an int";
+			  if (Math.log((double) number_utility_values) + Math.log((double) domain_size) >= Math.log(Integer.MAX_VALUE)) 
+					throw new OutOfMemoryError ("Size of utility array too big for an int");
 	    	  number_utility_values *= domain_size;
 	      }
 	      
@@ -330,11 +346,6 @@ extends HypercubeLimited<V, U, U> implements UtilitySolutionSpace<V, U> {
 	    catch (Exception e) {
 			System.err.println(e.getMessage());
 		} 
-	}
-	
-	/** @see UtilitySolutionSpace#setProblem(ProblemInterface) */
-	public void setProblem(ProblemInterface<V, U> problem) {
-		super.problem = problem;
 	}
 	
 	/** Creates an XML file from the hypercube
@@ -553,7 +564,8 @@ extends HypercubeLimited<V, U, U> implements UtilitySolutionSpace<V, U> {
 			
 			outputDomains[i] = dom.clone();
 
-			assert Math.log(nbrOutputUtils) + Math.log(dom.length) < Math.log(Long.MAX_VALUE) : "Too many solutions in a space";
+			if (Math.log(nbrOutputUtils) + Math.log(dom.length) >= Math.log(Long.MAX_VALUE)) 
+				throw new OutOfMemoryError ("Number of solutions in a space too large for a long");
 			nbrOutputUtils *= dom.length;
 		}
 		
@@ -562,7 +574,7 @@ extends HypercubeLimited<V, U, U> implements UtilitySolutionSpace<V, U> {
 			// Create the output hypercube, with an initially empty array of utilities
 			assert nbrOutputUtils < Integer.MAX_VALUE : "A Hypercube cannot contain more than 2^31-1 solutions";
 			U[] outputUtils = (U[]) Array.newInstance(this.values.getClass().getComponentType(), (int) nbrOutputUtils);
-			Hypercube<V, U> out = this.newInstance((String[]) outputVars.clone(), outputDomains, outputUtils, this.infeasibleUtil );
+			Hypercube<V, U> out = this.newInstance(this.name + "_joined", (String[]) outputVars.clone(), outputDomains, outputUtils, this.infeasibleUtil );
 			
 			// Initialize the output utilities with the caller hypercube's utilities
 			UtilitySolutionSpace.Iterator<V, U> outIter = out.iterator(this.variables, this.domains);
@@ -729,17 +741,18 @@ extends HypercubeLimited<V, U, U> implements UtilitySolutionSpace<V, U> {
 			outVars[nbrVars] = entry.getKey();
 			V[] dom = entry.getValue();
 			outDoms[nbrVars++] = dom;
-			assert Math.log(nbrUtils) + Math.log(dom.length) < Math.log(Long.MAX_VALUE) : 
-				"Number of solutions in a space too large for a long";
+			if (Math.log(nbrUtils) + Math.log(dom.length) >= Math.log(Long.MAX_VALUE)) 
+				throw new OutOfMemoryError ("Number of solutions in a space too large for a long");
 			nbrUtils *= dom.length;
 		}
 		
 		if (minNCCCs) { // minimize the NCCC count, at the expense of runtime
 			
 			// Create the output hypercube, with an initially empty array of utilities
-			assert Math.log(nbrUtils) < Math.log(Integer.MAX_VALUE) : "Number of solutions in a hypercube too large for an int: " + nbrUtils + " > " + Integer.MAX_VALUE;
+			if (Math.log(nbrUtils) >= Math.log(Integer.MAX_VALUE)) 
+				throw new OutOfMemoryError ("Number of solutions in a hypercube too large for an int: " + nbrUtils + " > " + Integer.MAX_VALUE);
 			U[] outUtils = (U[]) Array.newInstance(this.values.getClass().getComponentType(), (int)nbrUtils);
-			Hypercube<V, U> out = this.newInstance(outVars, outDoms, outUtils, this.infeasibleUtil);
+			Hypercube<V, U> out = this.newInstance(this.name + "_joined", outVars, outDoms, outUtils, this.infeasibleUtil);
 
 			// Initialize the output utilities with the caller hypercube's utilities
 			UtilitySolutionSpace.Iterator<V, U> outIter = out.iterator(this.variables, this.domains);
@@ -842,7 +855,6 @@ extends HypercubeLimited<V, U, U> implements UtilitySolutionSpace<V, U> {
 	 * @param space           the hypercube to join this one with
 	 * @param total_variables the list of variables of the two hypercubes
 	 * @return the join of the two hypercubes
-	 * @todo Count NCCCS
 	 */
 	@SuppressWarnings("unchecked")
 	public UtilitySolutionSpace< V, U > applyJoin( UtilitySolutionSpace< V, U > space, String[] total_variables) {
@@ -1008,6 +1020,7 @@ extends HypercubeLimited<V, U, U> implements UtilitySolutionSpace<V, U> {
 			//update the utility value by adding the corresponding utility in the second hypercube
 			utility_value = hypercube.getUtilityValueSameOrder( new_variables2, variables_values2 );
 			current_hypercube.values[i] = (U) utility_value.add(current_hypercube.values[i]);
+			current_hypercube.incrNCCCs(1);
 
 		}
 		return current_hypercube;
@@ -1372,8 +1385,8 @@ extends HypercubeLimited<V, U, U> implements UtilitySolutionSpace<V, U> {
 				V[] dom = this.domains[j];
 				domsKept[i] = dom;
 				varOrder[i++] = var;
-				assert Math.log((double) nbrUtilsKept) + Math.log((double) dom.length) < Math.log(Integer.MAX_VALUE) : 
-					"Size of utility array too big for an int";
+				if (Math.log((double) nbrUtilsKept) + Math.log((double) dom.length) >= Math.log(Integer.MAX_VALUE)) 
+					throw new OutOfMemoryError ("Size of utility array too big for an int");
 				nbrUtilsKept *= dom.length;
 			}
 		}
@@ -1661,7 +1674,6 @@ extends HypercubeLimited<V, U, U> implements UtilitySolutionSpace<V, U> {
 	 * @param variables_names the variables that should be removed from this hypercube
 	 * @param maximum         boolean object indicating whether to use the maximum or the minumum
 	 * @return a ProjOutput object with the modifies hypercube
-	 * @todo Count NCCCS	 
 	 */
 	@SuppressWarnings("unchecked")
 	public UtilitySolutionSpace.ProjOutput< V, U > applyProject( String[] variables_names, final boolean maximum ) {
@@ -1691,6 +1703,7 @@ extends HypercubeLimited<V, U, U> implements UtilitySolutionSpace<V, U> {
 					optIndex = i;
 				}
 			}
+			this.incrNCCCs(this.number_of_utility_values);
 			
 			// Find the corresponding optimal assignments
 			ArrayList<V> optValues = new ArrayList<V> (variables.length);
@@ -1817,10 +1830,12 @@ extends HypercubeLimited<V, U, U> implements UtilitySolutionSpace<V, U> {
 				kept_variables_values[j] = variables_values[varKeptIndexes[j]];
 			
 			new_utility = values[i];
+			this.incrNCCCs(1);
 			values[i] = null;
 			
 			int indexOfUtility = this.getIndexOfUtilityValue(kept_variables_values);
 			new_utility_tmp = values[indexOfUtility];
+			this.incrNCCCs(1);
 			
 			if ( new_utility_tmp == null ||
 			     (maximum && ( new_utility.compareTo(new_utility_tmp) > 0 )) ||
@@ -2124,7 +2139,7 @@ extends HypercubeLimited<V, U, U> implements UtilitySolutionSpace<V, U> {
 			V[][] varsKeptDoms = (V[][]) Array.newInstance(domClass, nbrVarsKept);
 			System.arraycopy(iterOrderDoms, 0, varsKeptDoms, 0, nbrVarsKept);
 			
-			return new ProjOutput<V, U> (this.newInstance(varsKept, varsKeptDoms, optUtils, infeasibleUtil), 
+			return new ProjOutput<V, U> (this.newInstance(this.name + "_projExpectMonotone", varsKept, varsKeptDoms, optUtils, infeasibleUtil), 
 					new String[] { varOut }, 
 					new BasicHypercube< V, ArrayList<V> > (varsKept, varsKeptDoms, optSols, null));
 			
@@ -2152,6 +2167,7 @@ extends HypercubeLimited<V, U, U> implements UtilitySolutionSpace<V, U> {
 				if (prob > 0) 
 					out.put(dom[i], prob);
 			}
+			this.incrNCCCs(this.number_of_utility_values);
 			return out;
 		}
 		
@@ -2162,6 +2178,7 @@ extends HypercubeLimited<V, U, U> implements UtilitySolutionSpace<V, U> {
 			sum = sum.add(this.values[i]);
 			cumul[i] = sum;
 		}
+		this.incrNCCCs(this.number_of_utility_values);
 		
 		// Generate all samples
 		for (int i = 0; i < nbrSamples; i++) {
@@ -2381,15 +2398,15 @@ extends HypercubeLimited<V, U, U> implements UtilitySolutionSpace<V, U> {
 		return new ScalarHypercube<V, U> (utility, this.infeasibleUtil, (Class<? extends V[]>) this.assignment.getClass());
 	}
 
-	/** @see BasicHypercube#newInstance(java.lang.String[], V[][], Serializable[], Serializable) */
+	/** @see BasicHypercube#newInstance(String, java.lang.String[], V[][], Serializable[], Serializable) */
 	@SuppressWarnings("unchecked")
 	@Override
-	protected Hypercube<V, U> newInstance(String[] new_variables, V[][] new_domains, U[] new_values, U infeasibleUtil) {
+	protected Hypercube<V, U> newInstance(String name, String[] new_variables, V[][] new_domains, U[] new_values, U infeasibleUtil) {
 		
 		if (new_variables.length == 0) 
-			return new ScalarHypercube<V, U> (new_values[0], infeasibleUtil, (Class<? extends V[]>) this.assignment.getClass());
+			return new ScalarHypercube<V, U> (name, new_values[0], infeasibleUtil, (Class<? extends V[]>) this.assignment.getClass());
 		
-		return new Hypercube<V, U> ( new_variables, new_domains, new_values, infeasibleUtil );
+		return new Hypercube<V, U> ( name, new_variables, new_domains, new_values, infeasibleUtil );
 	}
 		
 	/** @see BasicHypercube#compose(java.lang.String[], BasicUtilitySolutionSpace) */
@@ -2477,7 +2494,9 @@ extends HypercubeLimited<V, U, U> implements UtilitySolutionSpace<V, U> {
 		public static final NullHypercube NULL = new NullHypercube();
 		
 		/** Constructor only used internally for externalization. Use the singleton NullHypercube.NULL if needed. */
-		public NullHypercube() { }
+		public NullHypercube() {
+			this.name = "NullHypercube";
+		}
 		
 		/** Does nothing
 		 * @see BasicHypercube#setStepsHashmaps()
@@ -2692,9 +2711,9 @@ extends HypercubeLimited<V, U, U> implements UtilitySolutionSpace<V, U> {
 		
 		
 		/** Always returns \a NULL 
-		 * @see Hypercube#newInstance(java.lang.String[], V[][], U[], Addable) 
+		 * @see Hypercube#newInstance(String, java.lang.String[], V[][], U[], Addable) 
 		 */
-		protected NullHypercube<V, U> newInstance(String[] new_variables, V[][] new_domains, U[] new_values, U infeasibleUtil) {
+		protected NullHypercube<V, U> newInstance(String name, String[] new_variables, V[][] new_domains, U[] new_values, U infeasibleUtil) {
 			return NULL;
 		}
 		

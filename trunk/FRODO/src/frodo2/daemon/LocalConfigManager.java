@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -25,11 +25,11 @@ package frodo2.daemon;
 import org.jdom2.Document;
 
 import frodo2.algorithms.AgentInterface;
-import frodo2.algorithms.XCSPparser;
 import frodo2.communication.Message;
 import frodo2.communication.MessageWith3Payloads;
 import frodo2.controller.ConfigurationManager;
 import frodo2.controller.userIO.UserIO;
+import frodo2.solutionSpaces.DCOPProblemInterface;
 import frodo2.solutionSpaces.ProblemInterface;
 
 /** A local configuration manager that parses configuration files passed to the daemon
@@ -85,15 +85,15 @@ public class LocalConfigManager extends ConfigurationManager {
 			this.queue.sendMessage(LocalWhitePages.CONTROLLER_ID, msg);
 	}
 
-	/** @see ConfigurationManager#distributeAgents(XCSPparser) */
+	/** @see ConfigurationManager#distributeAgents(DCOPProblemInterface) */
 	@Override
-	protected void distributeAgents (XCSPparser<?, ?> parser) throws Exception {
+	protected void distributeAgents (DCOPProblemInterface<?, ?> problem) throws Exception {
 		
 		super.numberOfAgents = 1;
 		super.numberOfAgentsFinished = 0;
 		
 		MessageWith3Payloads <ProblemInterface<?, ?>, Document, Boolean> configMsg = 
-				new MessageWith3Payloads <ProblemInterface<?, ?>, Document, Boolean> (AGENT_CONFIGURATION_MESSAGE, parser, this.agentDescriptionDoc, false);
+				new MessageWith3Payloads <ProblemInterface<?, ?>, Document, Boolean> (AGENT_CONFIGURATION_MESSAGE, problem, this.agentDescriptionDoc, false);
 		super.queue.sendMessageToSelf(configMsg);
 	}
 

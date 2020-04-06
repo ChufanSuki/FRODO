@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -149,7 +149,7 @@ public class UTILpropagationTest < U extends Addable<U> > extends TestCase {
 		TestSuite testSuite = new TestSuite ("Tests for UTILpropagation");
 		
 		TestSuite testTmp = new TestSuite ("Tests for the method computeDFS");
-		testTmp.addTest(new RepeatedTest (new UTILpropagationTest<AddableInteger> ("testComputeDFS"), 1000));
+		testTmp.addTest(new RepeatedTest (new UTILpropagationTest<AddableReal> ("testComputeDFS"), 1000));
 		testSuite.addTest(testTmp);
 		
 		testTmp = new TestSuite ("Tests for the UTIL propagation protocol using shared memory pipes and integer utilities");
@@ -219,9 +219,11 @@ public class UTILpropagationTest < U extends Addable<U> > extends TestCase {
 	}
 	
 	/** A test method that tests the test helper method \a computeDFS() */
+	@SuppressWarnings("unchecked")
 	public void testComputeDFS () {
 		XCSPparser<AddableInteger, U> parser = new XCSPparser<AddableInteger, U> (AllTests.generateProblem(graph, graph.nodes.size(), maximize, sign));
-		dfs = computeDFS(graph, parser);
+		parser.setUtilClass((Class<U>) AddableReal.class);
+		dfs = computeDFS(graph, parser.parse());
 		DFSgenerationTest.checkDFS(dfs, graph.neighborhoods, null);
 	}
 	
@@ -487,7 +489,8 @@ public class UTILpropagationTest < U extends Addable<U> > extends TestCase {
 			// Create the parser
 			parser = new XCSPparser<AddableInteger, U> (AllTests.generateProblem(graph, (withAnonymVars ? graph.nodes.size() : 0), maximize, sign));
 			parser.setUtilClass((Class<U>) utilClass);
-			dfs = computeDFS(graph, parser, withAnonymVars);
+			DCOPProblemInterface<AddableInteger, U> problem = parser.parse();
+			dfs = computeDFS(graph, problem, withAnonymVars);
 
 			// Listen for statistics messages
 			myQueue = new Queue (false);
@@ -495,7 +498,7 @@ public class UTILpropagationTest < U extends Addable<U> > extends TestCase {
 			QueueIOPipe myPipe = new QueueIOPipe (myQueue);
 			for (Queue queue : queues.values()) 
 				queue.addOutputPipe(AgentInterface.STATS_MONITOR, myPipe);
-			statsGatherer = new UTILpropagation<AddableInteger, U> (null, parser);
+			statsGatherer = new UTILpropagation<AddableInteger, U> (null, problem);
 			statsGatherer.setSilent(true);
 			statsGatherer.getStatsFromQueue(myQueue);
 			
@@ -505,7 +508,7 @@ public class UTILpropagationTest < U extends Addable<U> > extends TestCase {
 				for (String agent : parser.getAgents()) {
 					Queue queue = queues.get(agent);
 					
-					XCSPparser<AddableInteger, U> subProblem = parser.getSubProblem(agent);
+					DCOPProblemInterface<AddableInteger, U> subProblem = problem.getSubProblem(agent);
 					queue.setProblem(subProblem);
 					
 					// Set up the DomainsSharing module
@@ -531,14 +534,16 @@ public class UTILpropagationTest < U extends Addable<U> > extends TestCase {
 					Queue queue = queues.get(agent);
 					
 					// Generate the information about the subproblem
-					DCOPProblemInterface<AddableInteger, U> subproblem = parser.getSubProblem(agent);
+					DCOPProblemInterface<AddableInteger, U> subproblem = problem.getSubProblem(agent);
 					List< ? extends UtilitySolutionSpace<AddableInteger, U> > spaces = subproblem.getSolutionSpaces(withAnonymVars);
 					Map<String, AddableInteger[]> domains = new HashMap<String, AddableInteger[]> ();
 					for (String var : subproblem.getAllVars()) 
 						domains.put(var, subproblem.getDomain(var));
 					
 					Constructor<?> constructor = listenerClass.getConstructor(DCOPProblemInterface.class);
-					Problem<AddableInteger, U> newSubProb = new Problem<AddableInteger, U> (agent, subproblem.getOwners(), domains, spaces, parser.maximize());
+					Problem<AddableInteger, U> newSubProb = new Problem<AddableInteger, U> (agent, subproblem.getAgents(), subproblem.getOwners(), domains, 
+							subproblem.getRandVars(), spaces, subproblem.getProbabilitySpacePerRandVar(), subproblem.getVarScopes(), subproblem.getDomClass(), 
+							subproblem.getUtilClass(), parser.maximize());
 					newSubProb.setUtilClass((Class<U>) utilClass);
 					queue.addIncomingMessagePolicy((StatsReporter) constructor.newInstance(newSubProb));
 					

@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -479,11 +479,13 @@ public class MaxSum < V extends Addable<V>, U extends Addable<U> > implements St
 			VarInfo varInfo = this.varInfos.get(var);
 			assert varInfo.optVal != null : "Received a message for a variable node I do not control";
 			String functionNode = msgCast.getFunctionNode();
+			assert functionNode.length() > 0 : "Nameless function node in " + msg;
 			
 			// Check whether I should respond 
 			if (varInfo.doIrespond(functionNode, marginalUtil)) {
 				
-				assert varInfo.lastMsgsIn.size() == varInfo.nbrNeighbors : "Insufficient number of messages received";
+				assert varInfo.lastMsgsIn.size() == varInfo.nbrNeighbors : 
+					"Received " + varInfo.lastMsgsIn.size() + " message(s) but was expecting " + varInfo.nbrNeighbors;
 
 				// Compute the new optimal assignment to the destination variable, as the argmax of the join of the marginal utilities received from all function nodes
 				int newOptIndex = 0;
@@ -580,6 +582,7 @@ public class MaxSum < V extends Addable<V>, U extends Addable<U> > implements St
 			}
 			
 			FunctionInfo functionInfo = this.functionInfos.get(functionName);
+			assert functionInfo != null : "No FunctionInfo for " + functionName + " in " + this.functionInfos;
 			UtilitySolutionSpace<V, U> marginalUtil = msgCast.getMarginalUtil();
 			assert marginalUtil.getNumberOfVariables() == 1 : "Multi-variable marginal utility: " + marginalUtil;
 			String senderVar = marginalUtil.getVariable(0);

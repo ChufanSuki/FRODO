@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -60,6 +60,12 @@ public class SecureCircularRouting implements StatsReporter {
 	
 	/** The type of the output messages containing a message to be delivered to a given variable */
 	public static MessageType DELIVERY_MSG_TYPE = new MessageType ("P3/2-DPOP", "SecureCircularRouting", "Delivery");
+	
+	/** The type of the messages containing the DFS */
+	public static MessageType DFS_WITH_ORDER_OUTPUT_MSG_TYPE = DFSgenerationWithOrder.OUTPUT_MSG_TYPE;
+	
+	/** The type of the messages containing the DFS */
+	public static MessageType DFS_OUTPUT_MSG_TYPE = DFSgeneration.OUTPUT_MSG_TYPE;
 	
 	/** The type of the wrapper message containing a payload message 
 	 * that must be forwarded to the last leaf in the sub-tree rooted at the destination variable 
@@ -153,8 +159,8 @@ public class SecureCircularRouting implements StatsReporter {
 	public Collection<MessageType> getMsgTypes() {
 		ArrayList<MessageType> types = new ArrayList<MessageType> (7);
 		types.add(AgentInterface.START_AGENT);
-		types.add(DFSgeneration.OUTPUT_MSG_TYPE);
-		types.add(DFSgenerationWithOrder.OUTPUT_MSG_TYPE);
+		types.add(DFS_WITH_ORDER_OUTPUT_MSG_TYPE);
+		types.add(DFS_OUTPUT_MSG_TYPE);
 		types.add(NEXT_MSG_TYPE);
 		types.add(PREVIOUS_MSG_TYPE);
 		types.add(TO_LAST_LEAF_MSG_TYPE);
@@ -275,7 +281,7 @@ public class SecureCircularRouting implements StatsReporter {
 		if (msgType.equals(AgentInterface.START_AGENT)) 
 			return;
 		
-		else if (msgType.equals(DFSgeneration.OUTPUT_MSG_TYPE) || msgType.equals(DFSgenerationWithOrder.OUTPUT_MSG_TYPE)) { 
+		else if (msgType.equals(DFS_OUTPUT_MSG_TYPE) || msgType.equals(DFS_WITH_ORDER_OUTPUT_MSG_TYPE)) { 
 			// a message containing information about a variable's neighbors in the DFS
 
 			// Parse the information in the message

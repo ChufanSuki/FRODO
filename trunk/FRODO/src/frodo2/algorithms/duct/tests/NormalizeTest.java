@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -138,7 +138,7 @@ public class NormalizeTest extends TestCase implements IncomingMsgPolicyInterfac
 		parser.setDomClass(AddableInteger.class);
 		this.parser.setUtilClass(AddableReal.class);
 		
-		dfs = frodo2.algorithms.dpop.test.UTILpropagationTest.computeDFS(graph, parser);
+		dfs = frodo2.algorithms.dpop.test.UTILpropagationTest.computeDFS(graph, parser.parse());
 		
 		this.parameters = new Element ("module");
 		this.parameters.setAttribute("reportStats", "true");
@@ -208,12 +208,13 @@ public class NormalizeTest extends TestCase implements IncomingMsgPolicyInterfac
 		XCSPparser<AddableInteger, AddableReal> parser = new XCSPparser<AddableInteger, AddableReal> (problem);
 		parser.setDomClass(AddableInteger.class);
 		parser.setUtilClass(AddableReal.class);
+		DCOPProblemInterface<AddableInteger, AddableReal> prob = parser.parse();
 
 		for (String agent : parser.getAgents()) {
 			Queue queue = queues.get(agent);
 
 			// Instantiate the listener using reflection
-			XCSPparser<AddableInteger, AddableReal> subprob = parser.getSubProblem(agent);
+			DCOPProblemInterface<AddableInteger, AddableReal> subprob = prob.getSubProblem(agent);
 			queue.setProblem(subprob);
 			Class<?> parTypes[] = new Class[3];
 			parTypes = new Class[3];

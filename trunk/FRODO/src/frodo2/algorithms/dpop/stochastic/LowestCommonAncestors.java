@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -127,8 +127,8 @@ public class LowestCommonAncestors implements IncomingMsgPolicyInterface<Message
 	/** Adds flags
 	 * @param flags 	for each node, a set of flags
 	 */
-	protected void setFlags (Map< String, HashSet<String> > flags) {
-		for (Map.Entry< String, HashSet<String> > entry : flags.entrySet()) 
+	protected void setFlags (Map< String, ? extends Set<String> > flags) {
+		for (Map.Entry< String, ? extends Set<String> > entry : flags.entrySet()) 
 			this.infos.put(entry.getKey(), new NodeInfo (entry.getValue()));
 	}
 	

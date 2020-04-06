@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -72,6 +72,15 @@ public class MaxSumSolver < V extends Addable<V>, U extends Addable<U> > extends
 	 */
 	public MaxSumSolver (String agentDescFile) {
 		super (agentDescFile);
+	}
+	
+	/** Constructor from an agent configuration file
+	 * @param agentDescFile 	the agent configuration file
+	 * @param useTCP 			Whether to use TCP pipes or shared memory pipes
+	 * @warning Using TCP pipes automatically disables simulated time. 
+	 */
+	public MaxSumSolver (String agentDescFile, boolean useTCP) {
+		super (agentDescFile, useTCP);
 	}
 	
 	/** @see AbstractSolver#getSolGatherers() */

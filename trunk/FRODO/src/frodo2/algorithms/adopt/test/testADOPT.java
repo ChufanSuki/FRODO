@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -148,7 +148,7 @@ public class testADOPT extends TestCase implements IncomingMsgPolicyInterface<Me
 		graph = RandGraphFactory.getRandGraph(maxNbrVars, maxNbrEdges, maxNbrAgents);
 		this.parser = new XCSPparser<AddableInteger, AddableInteger> (AllTests.generateProblem(graph, false, +1));
 		parser.setUtilClass((Class<AddableInteger>) this.utilClass);		
-		dfs = UTILpropagationTest.computeDFS(graph, this.parser);
+		dfs = UTILpropagationTest.computeDFS(graph, this.parser.parse());
 		
 //		System.out.println(graph);
 //		System.out.println(DFSgeneration.dfsToString(dfs));
@@ -211,7 +211,8 @@ public class testADOPT extends TestCase implements IncomingMsgPolicyInterface<Me
 		QueueIOPipe myPipe = new QueueIOPipe (myQueue);
 		for (Queue queue : queues.values()) 
 			queue.addOutputPipe(AgentInterface.STATS_MONITOR, myPipe);
-		SolutionCollector<AddableInteger, AddableInteger> solCollector = new SolutionCollector<AddableInteger, AddableInteger> (null, parser);
+		DCOPProblemInterface<AddableInteger, AddableInteger> problem = this.parser.parse();
+		SolutionCollector<AddableInteger, AddableInteger> solCollector = new SolutionCollector<AddableInteger, AddableInteger> (null, problem);
 		solCollector.setSilent(true);
 		solCollector.getStatsFromQueue(myQueue);
 		myQueue.addIncomingMessagePolicy(this);
@@ -228,7 +229,7 @@ public class testADOPT extends TestCase implements IncomingMsgPolicyInterface<Me
 				parameters.setAttribute("reportStats", "true");
 				
 				// Create the preprocessing module
-				XCSPparser<AddableInteger, AddableInteger> subprob = parser.getSubProblem(agent);
+				DCOPProblemInterface<AddableInteger, AddableInteger> subprob = problem.getSubProblem(agent);
 				queue.setProblem(subprob);
 				Class<?> parTypes[] = new Class[2];
 				parTypes[0] = DCOPProblemInterface.class;
@@ -257,12 +258,14 @@ public class testADOPT extends TestCase implements IncomingMsgPolicyInterface<Me
 			} else { // use the alternative constructor 
 				
 				// Create the subproblem
-				DCOPProblemInterface<AddableInteger, AddableInteger> subprobTmp = (DCOPProblemInterface<AddableInteger, AddableInteger>)parser.getSubProblem(agent);
+				DCOPProblemInterface<AddableInteger, AddableInteger> subprobTmp = problem.getSubProblem(agent);
 				Map<String, AddableInteger[]> domains = new HashMap<String, AddableInteger[]> ();
 				for (String var : subprobTmp.getVariables()) 
 					domains.put(var, subprobTmp.getDomain(var));
 				List< ? extends UtilitySolutionSpace<AddableInteger, AddableInteger> > spaces = subprobTmp.getSolutionSpaces();
-				Problem<AddableInteger, AddableInteger> subprob = new Problem<AddableInteger, AddableInteger> (agent, subprobTmp.getOwners(), domains, spaces);
+				Problem<AddableInteger, AddableInteger> subprob = new Problem<AddableInteger, AddableInteger> (agent, subprobTmp.getAgents(), 
+						subprobTmp.getOwners(), domains, subprobTmp.getRandVars(), spaces, subprobTmp.getProbabilitySpacePerRandVar(), subprobTmp.getVarScopes(), 
+						subprobTmp.getDomClass(), subprobTmp.getUtilClass());
 
 				// Create the preprocessing module
 				queue.addIncomingMessagePolicy(new Preprocessing<AddableInteger, AddableInteger> (subprob, Preprocessing.SimpleHeuristic.class.getName()));

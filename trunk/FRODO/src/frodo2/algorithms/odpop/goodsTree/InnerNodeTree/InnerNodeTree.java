@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -1372,7 +1372,7 @@ public class InnerNodeTree < Val extends Addable<Val>, U extends Addable<U>, L e
 	 * @param real \c true when still in the real part of the tree
 	 * @param g				the received good
 	 * @param sender 		the sender of the good
-	 * @return a new InnerNode<U>
+	 * @return a new InnerNode
 	 */
 	@Override
 	protected frodo2.algorithms.odpop.goodsTree.InnerNodeTreeFullDomain.InnerNode<U, L> createPathNoUB(int depth, frodo2.algorithms.odpop.goodsTree.InnerNodeTreeFullDomain.InnerNodeTree.IntArrayWrapper currentPathUncast, int[] partialPath, boolean real, Good<Val, U> g, int sender) {
@@ -1444,7 +1444,7 @@ public class InnerNodeTree < Val extends Addable<Val>, U extends Addable<U>, L e
 	 * @param real 			\c true if the parent is a real node
 	 * @param g				the received good
 	 * @param sender 		the sender of the good
-	 * @return a new InnerNode<U>
+	 * @return a new InnerNode
 	 */
 	private InnerNode<U, L> createPathWithUB(int depth, frodo2.algorithms.odpop.goodsTree.InnerNodeTreeFullDomain.InnerNodeTree.IntArrayWrapper currentPathUncast, int[] partialPath, boolean real, Good<Val, U> g, int sender) {
 		IntArrayWrapper currentPath = (IntArrayWrapper)currentPathUncast;

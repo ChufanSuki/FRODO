@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -26,24 +26,31 @@ import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 
+import org.jacop.constraints.ConstraintCloneableInterface;
 import org.jacop.constraints.Constraint;
+import org.jacop.core.FailException;
 import org.jacop.core.IntDomain;
-import org.jacop.core.IntVar;
+import org.jacop.core.IntVarCloneable;
 import org.jacop.core.Store;
+import org.jacop.core.StoreCloneable;
 import org.jacop.core.ValueEnumeration;
 import org.jacop.core.Var;
 
 /** A JaCoP extensional constraint encoded by a hypercube for faster lookups
  * @author Thomas Leaute
  */
-public class ExtensionalSupportHypercube extends Constraint {
+public class ExtensionalSupportHypercube extends Constraint implements ConstraintCloneableInterface<ExtensionalSupportHypercube> {
+	
+	/** The ID assigned to the last instantiated object of this class */
+	private static int lastID = -1;
 	
 	/** The JaCoP store */
-	private Store store;
+	private StoreCloneable store;
 	
 	/** The variables */
-	private IntVar[] vars;
+	private IntVarCloneable[] vars;
 	
 	/** this.vars.length - 2 */
 	private final int nbrVarsMin2;
@@ -54,50 +61,105 @@ public class ExtensionalSupportHypercube extends Constraint {
 	/** For each variable (except the utility variable), for each value in its domain, the index of this value in the domain */
 	private ArrayList< HashMap<Integer, Integer> > indexes;
 
+	/** Private constructor that does not initialize the hypercube
+	 * @param store 		the store
+	 * @param vars 			the list of variables, the last being the utility variable
+	 * @param indexes 		ror each variable (except the utility variable), for each value in its domain, the index of this value in the domain
+	 */
+	private ExtensionalSupportHypercube (StoreCloneable store, IntVarCloneable[] vars, ArrayList< HashMap<Integer, Integer> > indexes) {
+
+		super.numberId = ++lastID;
+		this.nbrVarsMin2 = vars.length - 2;
+		this.store = store;
+		
+		// Look up the variables from the store
+		this.vars = new IntVarCloneable [vars.length];
+		for (int i = vars.length - 1; i >= 0; i--) 
+			this.vars[i] = store.findOrCloneInto(vars[i]);
+		
+		// Create the variable value indexes
+		if (indexes != null) 
+			this.indexes = indexes;
+		else {
+			final int nbrVars = vars.length;
+			this.indexes = new ArrayList< HashMap<Integer, Integer> > (nbrVars - 1); // skipping the last variable, which is the utility variable
+			for (int i = 0; i <= this.nbrVarsMin2; i++) {
+
+				HashMap<Integer, Integer> map = new HashMap<Integer, Integer> ();
+				this.indexes.add(map);
+
+				int j = 0;
+				for (ValueEnumeration iter = vars[i].dom().valueEnumeration(); iter.hasMoreElements(); ) 
+					map.put(iter.nextElement(), j++);
+			}
+		}
+	}
+
 	/** Constructor
+	 * @param store 	the store
 	 * @param vars 		the list of variables, the last being the utility variable
 	 * @param tuples 	the list of allowed tuples
 	 */
-	public ExtensionalSupportHypercube(IntVar[] vars, ArrayList<int[]> tuples) {
-		
-		this.vars = vars;
-		this.nbrVarsMin2 = vars.length - 2;
-		
-		// Create the variable value indexes
-		final int nbrVars = vars.length;
-		this.indexes = new ArrayList< HashMap<Integer, Integer> > (nbrVars - 1); // skipping the last variable, which is the utility variable
-		for (int i = 0; i < nbrVars - 1; i++) {
-			HashMap<Integer, Integer> map = new HashMap<Integer, Integer> ();
-			this.indexes.add(map);
-			
-			int j = 0;
-			for (ValueEnumeration iter = vars[i].dom().valueEnumeration(); iter.hasMoreElements(); ) 
-				map.put(iter.nextElement(), j++);
-		}
+	public ExtensionalSupportHypercube(StoreCloneable store, IntVarCloneable[] vars, int[][] tuples) {
+		this(store, vars, (ArrayList< HashMap<Integer, Integer> >) null);
 		
 		// Create the hypercube
-		int[] dimensions = new int [nbrVars - 1]; // skipping the last variable, which is the utility variable
-		for (int i = vars.length - 2; i >= 0; i--) 
+		final int nbrVarsMin1 = vars.length - 1;
+		int[] dimensions = new int [nbrVarsMin1]; // skipping the last variable, which is the utility variable
+		for (int i = this.nbrVarsMin2; i >= 0; i--) 
 			dimensions[i] = vars[i].dom().getSize();
+		assert dimensions.length > 0;
 		this.hypercube = Array.newInstance(Integer.class, dimensions);
 		
 		// Populate the hypercube
-		for (int[] tuple : tuples) {
+		tuplesLoop: for (int[] tuple : tuples) {
 			
-			// Slide the hypercube following all non-utility variables but the last
+			// Slice the hypercube following all non-utility variables but the last
 			Object slice = this.hypercube;
-			for (int i = 0; i < nbrVarsMin2; i++) 
+			for (int i = 0; i < nbrVarsMin2; i++) {
+				
+				if (this.indexes.get(i).get(tuple[i]) == null) // the tuple value is not found in the variable's domain
+					continue tuplesLoop;
+				
 				slice = Array.get(slice, this.indexes.get(i).get(tuple[i]));
+			}
 			
 			// Record the utility of the tuple
-			Array.set(slice, this.indexes.get(nbrVarsMin2).get(tuple[nbrVarsMin2]), tuple[nbrVars - 1]);
+			Array.set(slice, this.indexes.get(nbrVarsMin2).get(tuple[nbrVarsMin2]), tuple[nbrVarsMin1]);
 		}
+		
+		assert this.checkIndexesVsHypercube();
 	}
 
 	/** @see org.jacop.constraints.Constraint#arguments() */
 	@Override
-	public ArrayList<Var> arguments() {
-		return new ArrayList<Var> (Arrays.asList(this.vars));
+	public HashSet<Var> arguments() {
+		return new HashSet<Var> (Arrays.asList(this.vars));
+	}
+	
+	/** Method used as an assert
+	 * @return whether the indexes are consistent with the hypercube
+	 */
+	private boolean checkIndexesVsHypercube () {
+		
+		Object slice = this.hypercube;
+		
+		// For each variable
+		for (int i = 0; i <= this.nbrVarsMin2; i++) {
+			
+			// Check the hypercube's dimension against this variable's number of indexes
+			if (Array.getLength(slice) < this.indexes.get(i).size()) {
+				System.err.println("hypercube.dimension(" + i + ") = " + Array.getLength(slice) + " < " + this.indexes.get(i).size());
+				System.err.println("vars = " + Arrays.toString(this.vars));
+				System.err.println("hypercube = " + Arrays.deepToString((Object[]) this.hypercube));
+				System.err.println("indexes = " + this.indexes);
+				return false; 
+			}
+			
+			slice = Array.get(slice, 0);
+		}
+		
+		return true;
 	}
 
 	/** @see org.jacop.constraints.Constraint#consistency(org.jacop.core.Store) */
@@ -108,7 +170,7 @@ public class ExtensionalSupportHypercube extends Constraint {
 		
 		// Try to look up the value of the utility variable
 		Object slice = this.hypercube;
-		IntVar var = null;
+		IntVarCloneable var = null;
 		for (int i = 0; i < this.nbrVarsMin2; i++) { // for each non-utility variable except the last
 			
 			// Fail to check consistency if the variable's domain is not a singleton
@@ -148,11 +210,18 @@ public class ExtensionalSupportHypercube extends Constraint {
 		return IntDomain.GROUND;
 	}
 
+	/** @see org.jacop.constraints.Constraint#getDefaultConsistencyPruningEvent() */
+	@Override
+	public int getDefaultConsistencyPruningEvent() {
+		return IntDomain.GROUND;
+	}
+
 	/** @see org.jacop.constraints.Constraint#impose(org.jacop.core.Store) */
 	@Override
 	public void impose(Store store) {
-		this.store = store;
-		for (IntVar var : this.vars) 
+		assert store == this.store : "Constraint being imposed into a different store";
+		
+		for (IntVarCloneable var : this.vars) 
 			var.putModelConstraint(this, this.getConsistencyPruningEvent(var));
 		store.addChanged(this);
 		store.countConstraint();
@@ -161,23 +230,15 @@ public class ExtensionalSupportHypercube extends Constraint {
 	/** @see org.jacop.constraints.Constraint#increaseWeight() */
 	@Override
 	public void increaseWeight() {
-		for (IntVar var : this.vars)
+		for (IntVarCloneable var : this.vars)
 			var.weight++;
 	}
 
 	/** @see org.jacop.constraints.Constraint#removeConstraint() */
 	@Override
 	public void removeConstraint() {
-		for (IntVar var : this.vars)
+		for (IntVarCloneable var : this.vars)
 			var.removeConstraint(this);
-	}
-
-	/** @see org.jacop.constraints.Constraint#satisfied() */
-	@Override
-	public boolean satisfied() {
-		/// @todo Auto-generated method stub
-		assert false : "Not yet implemented";
-		return false;
 	}
 
 	/** @see org.jacop.constraints.Constraint#toString() */
@@ -194,6 +255,25 @@ public class ExtensionalSupportHypercube extends Constraint {
 		out.append(")");
 		
 		return out.toString();
+	}
+
+	/** @see org.jacop.constraints.ConstraintCloneableInterface#cloneInto(StoreCloneable) */
+	@Override
+	public ExtensionalSupportHypercube cloneInto(StoreCloneable targetStore) 
+	throws FailException {
+		
+		ExtensionalSupportHypercube out = new ExtensionalSupportHypercube (targetStore, this.vars, this.indexes);
+		
+		// Clone the variables
+		for (int i = this.vars.length - 1; i >= 0; i--) 
+			if ((out.vars[i] = targetStore.findOrCloneInto((IntVarCloneable) this.vars[i])).dom().isEmpty()) 
+				throw StoreCloneable.failException;
+		
+		out.hypercube = this.hypercube; // no need to make a copy: the hypercube will never be changed
+		
+		assert out.checkIndexesVsHypercube();
+		
+		return out;
 	}
 
 }

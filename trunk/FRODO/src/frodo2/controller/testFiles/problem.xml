@@ -1,6 +1,6 @@
 <!-- 
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -20,26 +20,26 @@ How to contact the authors:
 <https://frodo-ai.tech>
 -->
 
-<instance>
+<instance xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../algorithms/XCSPschema.xsd">
 	<presentation maximize="true" />
 
 	<agents nbAgents="1">
 		<agent name="agent1" />
 	</agents>
 
-	<domains>
-		<domain name="D" />
+	<domains nbDomains="1">
+		<domain name="D" nbValues="1"> 1 </domain>
 	</domains>
 	
-	<variables>
-		<variable name="V" domain="D" agent="agent1" />
+	<variables nbVariables="1">
+		<variable name="V1" domain="D" agent="agent1" />
 	</variables>
 	
-	<relations>
-		<relation name="R" arity="2" />
+	<relations nbRelations="1">
+		<relation name="R" arity="2" nbTuples="1" semantics="soft"> 0:1 </relation>
 	</relations>
 	
-	<constraints>
-		<constraint scope="V" reference="R" />
+	<constraints nbConstraints="1">
+		<constraint scope="V1" reference="R" arity="1" name="C1" />
 	</constraints>
 </instance>

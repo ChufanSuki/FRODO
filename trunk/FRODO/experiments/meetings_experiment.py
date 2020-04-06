@@ -1,6 +1,6 @@
 """
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -28,14 +28,14 @@ Journal of Artificial Intelligence Research (JAIR), 47:649-695, August 2013.
 
 # Add the FRODO benchmarks folder to the Python path and import the frodo2 module
 import sys
-sys.path.append("../frodo2.17.1.jar/frodo2/benchmarks")
+sys.path.append("../frodo2.18.jar/frodo2/benchmarks")
 import frodo2
 
 # The command to call java and the JVM parameters
 java = "java"
 javaParams = [
 			"-Xmx2G", # sets the Java heap space to 2 GB
-			"-classpath", "../frodo2.17.1.jar", # sets the Java classpath to include FRODO
+			"-classpath", "../frodo2.18.jar", # sets the Java classpath to include FRODO
 			]
 
 # Define the random problems to be generated
@@ -59,30 +59,30 @@ nbrProblems = 101 # for each combination of generator options, the number of pro
 # Define the algorithms to run
 # Each algorithm is a list [algoName, solverClassName, agentConfigFilePath, inputProblemFilePath]
 algos = [
-#		 ["ADOPT", "frodo2.algorithms.adopt.ADOPTsolver", "../agents/ADOPT/ADOPTagentJaCoP.xml", problemFilePEAV], 
+#         ["ADOPT", "frodo2.algorithms.adopt.ADOPTsolver", "../agents/ADOPT/ADOPTagentJaCoP.xml", problemFilePEAV], 
 # 
-#		 ["AFB", "frodo2.algorithms.afb.AFBsolver", "../agents/AFB/AFBagentJaCoP.xml", problemFilePEAV], 
+#         ["AFB", "frodo2.algorithms.afb.AFBsolver", "../agents/AFB/AFBagentJaCoP.xml", problemFilePEAV], 
 # 
-		["DPOP", "frodo2.algorithms.dpop.DPOPsolver", "../agents/DPOP/DPOPagentJaCoP.xml", problemFilePEAV], 
-#		 ["ASO-DPOP", "frodo2.algorithms.asodpop.ASODPOPsolver", "../agents/DPOP/ASO-DPOP/ASO-DPOPagentJaCoP.xml", problemFilePEAV], 
-#		 ["MB-DPOP", "frodo2.algorithms.dpop.DPOPsolver", "../agents/DPOP/MB-DPOP/MB-DPOPagentJaCoP.xml", problemFilePEAV], 
-#		  ["O-DPOP", "frodo2.algorithms.odpop.ODPOPsolver", "../agents/DPOP/O-DPOP/O-DPOPagentJaCoP.xml", problemFilePEAV], 
-		["P-DPOP", "frodo2.algorithms.dpop.privacy.P_DPOPsolver", "../agents/DPOP/P-DPOP/P-DPOPagentJaCoP.xml", problemFilePEAV], 
-#		  ["P3/2-DPOP", "frodo2.algorithms.dpop.privacy.P3halves_DPOPsolver", "../agents/DPOP/P-DPOP/P1.5-DPOPagentJaCoP.xml", problemFilePEAV], 
-		["P2-DPOP", "frodo2.algorithms.dpop.privacy.P2_DPOPsolver", "../agents/DPOP/P-DPOP/P2-DPOPagentJaCoP_DisCSP.xml", problemFilePEAV], 
-#		 ["P2-DPOP", "frodo2.algorithms.dpop.privacy.P2_DPOPsolver", "../agents/DPOP/P-DPOP/P2-DPOPagentJaCoP.xml", problemFilePEAV], # to be used with -maxCost
+        ["DPOP", "frodo2.algorithms.dpop.DPOPsolver", "../agents/DPOP/DPOPagentJaCoP.xml", problemFilePEAV], 
+#         ["ASO-DPOP", "frodo2.algorithms.asodpop.ASODPOPsolver", "../agents/DPOP/ASO-DPOP/ASO-DPOPagentJaCoP.xml", problemFilePEAV], 
+#         ["MB-DPOP", "frodo2.algorithms.dpop.DPOPsolver", "../agents/DPOP/MB-DPOP/MB-DPOPagentJaCoP.xml", problemFilePEAV], 
+#          ["O-DPOP", "frodo2.algorithms.odpop.ODPOPsolver", "../agents/DPOP/O-DPOP/O-DPOPagentJaCoP.xml", problemFilePEAV], 
+        ["P-DPOP", "frodo2.algorithms.dpop.privacy.P_DPOPsolver", "../agents/DPOP/P-DPOP/P-DPOPagentJaCoP.xml", problemFilePEAV], 
+#          ["P3/2-DPOP", "frodo2.algorithms.dpop.privacy.P3halves_DPOPsolver", "../agents/DPOP/P-DPOP/P1.5-DPOPagentJaCoP.xml", problemFilePEAV], 
+        ["P2-DPOP", "frodo2.algorithms.dpop.privacy.P2_DPOPsolver", "../agents/DPOP/P-DPOP/P2-DPOPagentJaCoP_DisCSP.xml", problemFilePEAV], 
+#         ["P2-DPOP", "frodo2.algorithms.dpop.privacy.P2_DPOPsolver", "../agents/DPOP/P-DPOP/P2-DPOPagentJaCoP.xml", problemFilePEAV], # to be used with -maxCost
 # 
-#		 ["DSA", "frodo2.algorithms.localSearch.dsa.DSAsolver", "../agents/DSA/DSAagentJaCoP.xml", problemFilePEAV], 
+#         ["DSA", "frodo2.algorithms.localSearch.dsa.DSAsolver", "../agents/DSA/DSAagentJaCoP.xml", problemFilePEAV], 
 # 
-#		 ["MaxSum", "frodo2.algorithms.maxsum.MaxSumSolver", "../agents/MaxSum/MaxSumAgentPerturbedJaCoP.xml", problemFilePEAV], 
+#         ["MaxSum", "frodo2.algorithms.maxsum.MaxSumSolver", "../agents/MaxSum/MaxSumAgentPerturbedJaCoP.xml", problemFilePEAV], 
 # 
-#		 ["MGM", "frodo2.algorithms.localSearch.mgm.MGMsolver", "../agents/MGM/MGMagentJaCoP.xml", problemFilePEAV], 
-#		 ["MGM2", "frodo2.algorithms.localSearch.mgm.mgm2.MGM2solver", "../agents/MGM/MGM2agentJaCoP.xml", problemFilePEAV], 
+#         ["MGM", "frodo2.algorithms.localSearch.mgm.MGMsolver", "../agents/MGM/MGMagentJaCoP.xml", problemFilePEAV], 
+#         ["MGM2", "frodo2.algorithms.localSearch.mgm.mgm2.MGM2solver", "../agents/MGM/MGM2agentJaCoP.xml", problemFilePEAV], 
 # 
-		["MPC-DisCSP4", "frodo2.algorithms.mpc_discsp.MPC_DisWCSP4solver", "../agents/MPC/MPC-DisCSP4_JaCoP.xml", problemFileEAV], 
-#		 ["MPC-DisWCSP4", "frodo2.algorithms.mpc_discsp.MPC_DisWCSP4solver", "../agents/MPC/MPC-DisWCSP4_JaCoP.xml", problemFileEAV], # to be used with -maxCost
+        ["MPC-DisCSP4", "frodo2.algorithms.mpc_discsp.MPC_DisWCSP4solver", "../agents/MPC/MPC-DisCSP4_JaCoP.xml", problemFileEAV], 
+#         ["MPC-DisWCSP4", "frodo2.algorithms.mpc_discsp.MPC_DisWCSP4solver", "../agents/MPC/MPC-DisWCSP4_JaCoP.xml", problemFileEAV], # to be used with -maxCost
 # 
-#		 ["SynchBB", "frodo2.algorithms.synchbb.SynchBBsolver", "../agents/SynchBB/SynchBBagentJaCoP.xml", problemFilePEAV], 
+#         ["SynchBB", "frodo2.algorithms.synchbb.SynchBBsolver", "../agents/SynchBB/SynchBBagentJaCoP.xml", problemFilePEAV], 
 		]
 timeout = 600 # in seconds
 

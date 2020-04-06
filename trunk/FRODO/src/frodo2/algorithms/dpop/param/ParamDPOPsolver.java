@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -183,11 +183,13 @@ public class ParamDPOPsolver< V extends Addable<V>, U extends Addable<U> > exten
 	 */
 	public ParamSolution<V, U> solveParam (Document problem) {
 
+		this.overrideMsgTypes();
+
 		// Instantiate the parser
 		Element parserElmt = this.agentDesc.getRootElement().getChild("parser");
 		parserElmt.setAttribute("displayGraph", "false");
 		try {
-			return this.solveParam ((DCOPProblemInterface<V, U>) this.parserClass.getConstructor(Document.class, Element.class).newInstance(problem, parserElmt));
+			return this.solveParam (this.parserClass.getConstructor(Document.class, Element.class).newInstance(problem, parserElmt).parse());
 		} catch (InstantiationException e) {
 			System.err.println("The parser class " + this.parserClass + " is abstract");
 			e.printStackTrace();
@@ -211,6 +213,8 @@ public class ParamDPOPsolver< V extends Addable<V>, U extends Addable<U> > exten
 	 */
 	public ParamSolution<V, U> solveParam (DCOPProblemInterface<V, U> problem) {
 		
+		this.overrideMsgTypes();
+
 		this.problem = problem;
 		
 		// Instantiate the modules that listen for the solution

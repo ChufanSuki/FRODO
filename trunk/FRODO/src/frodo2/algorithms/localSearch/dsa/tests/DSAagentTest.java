@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -404,9 +404,11 @@ public class DSAagentTest < V extends Addable<V>, U extends Addable<U> > extends
 		// Create the problem and agent descriptions
 		boolean maximize = (Math.random() < .5);
 		Document problemDoc = AllTests.createRandProblem(maxNbrVars, maxNbrEdges, maxNbrAgents, maximize);
-		problem = new XCSPparser<V, U> (problemDoc, countNCCCs);
-		problem.setDomClass(domClass);
-		problem.setUtilClass(this.utilClass);
+		XCSPparser<V, U> parser = new XCSPparser<V, U> (problemDoc, countNCCCs);
+		parser.setDomClass(domClass);
+		parser.setUtilClass(this.utilClass);
+		problem = parser.parse();
+		
 		if (! this.useXCSP) {
 			Problem<V, U> prob = new Problem<V, U> (maximize);
 			prob.reset(this.problem);
@@ -541,7 +543,7 @@ public class DSAagentTest < V extends Addable<V>, U extends Addable<U> > extends
 					return;
 				
 				MessageWrapper msgWrap = queue.getCurrentMessageWrapper();
-				assertTrue (msgWrap.getNCCCs() > 0);
+				assertTrue ("NCCCs = " + msgWrap.getNCCCs(), msgWrap.getNCCCs() > 0);
 			}
 		}
 		

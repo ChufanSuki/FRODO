@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -47,6 +47,7 @@ public class AllTests {
 		suite.addTest(QueueInputPipeTCPTest.suite());
 		suite.addTest(QueueOutputPipeTCPTest.suite());
 		suite.addTest(testCentralMailer.suite());
+		suite.addTest(MsgSizeMonitorTest.suite());
 		//$JUnit-END$
 		return suite;
 	}

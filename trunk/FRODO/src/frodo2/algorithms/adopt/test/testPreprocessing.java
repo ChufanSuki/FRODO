@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -55,6 +55,7 @@ import frodo2.communication.MessageType;
 import frodo2.communication.Queue;
 import frodo2.communication.sharedMemory.QueueIOPipe;
 import frodo2.solutionSpaces.AddableInteger;
+import frodo2.solutionSpaces.DCOPProblemInterface;
 import frodo2.solutionSpaces.UtilitySolutionSpace;
 import frodo2.solutionSpaces.hypercube.Hypercube;
 
@@ -142,7 +143,7 @@ public class testPreprocessing extends TestCase {
 		
 		graph = RandGraphFactory.getRandGraph(maxNbrVars, maxNbrEdges, maxNbrAgents);
 		parser = new XCSPparser<AddableInteger, AddableInteger>(AllTests.generateProblem(graph, false));
-		dfs = frodo2.algorithms.dpop.test.UTILpropagationTest.computeDFS(graph, parser);
+		dfs = frodo2.algorithms.dpop.test.UTILpropagationTest.computeDFS(graph, parser.parse());
 		
 //		System.out.println(parser.toDOT());
 		variables = new ArrayList<String>(parser.getVariables());
@@ -241,10 +242,11 @@ public class testPreprocessing extends TestCase {
 		Element params = new Element ("module");
 		params.setAttribute("heuristic", heuristic);
 		
+		DCOPProblemInterface<AddableInteger, AddableInteger> problem = this.parser.parse();
 		for(String a: parser.getAgents()) {
 			Queue queue = queues.get(a);
 
-			XCSPparser<AddableInteger, AddableInteger> subProb = parser.getSubProblem(a);
+			DCOPProblemInterface<AddableInteger, AddableInteger> subProb = problem.getSubProblem(a);
 			queue.setProblem(subProb);
 			Preprocessing<AddableInteger, AddableInteger> pre = new Preprocessing<AddableInteger, AddableInteger>(subProb, params);
 			forwardHeuristicsMessage forwarder = new forwardHeuristicsMessage();

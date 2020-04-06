@@ -1,6 +1,6 @@
 <!-- 
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -143,12 +143,17 @@ How to contact the authors:
 		<!-- MB-DPOP's memory-bounded UTIL propagation phase -->
 		<module className = "frodo2.algorithms.dpop.memory.MemoryBoundedUTIL" 
 				reportStats = "true" >
+			<messages>
 				<message myFieldName = "START_MSG_TYPE" 
 						 targetFieldName = "START_AGENT" 
 						 targetClass = "frodo2.algorithms.AgentInterface" />
 				<message myFieldName = "DFS_MSG_TYPE" 
 						 targetFieldName = "OUTPUT_MSG_TYPE" 
 						 targetClass = "frodo2.algorithms.varOrdering.dfs.DFSgeneration" />
+ 				<message myFieldName = "FINISH_MSG_TYPE" 
+						 targetFieldName = "AGENT_FINISHED" 
+						 targetClass = "frodo2.algorithms.AgentInterface" />
+			</messages>
 		</module>
 		
 		<!-- Propagates the optimal value assignments top down following the DFS -->
@@ -166,6 +171,9 @@ How to contact the authors:
 				<message myFieldName = "SEPARATOR_MSG_TYPE" 
 						 targetFieldName = "SEPARATOR_MSG_TYPE" 
 						 targetClass = "frodo2.algorithms.dpop.UTILpropagation" />
+ 				<message myFieldName = "FINISH_MSG_TYPE" 
+						 targetFieldName = "AGENT_FINISHED" 
+						 targetClass = "frodo2.algorithms.AgentInterface" />
 			</messages>
 		</module>
 		

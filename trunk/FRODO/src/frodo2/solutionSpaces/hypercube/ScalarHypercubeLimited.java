@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -196,14 +196,6 @@ public class ScalarHypercubeLimited < V extends Addable<V>, U extends Addable<U>
 		/// @todo Auto-generated method stub
 		assert false : "Not yet implemented";
 		return false;
-	}
-
-	/** @see HypercubeLimited#iterator() */
-	@Override
-	public BasicHypercube.Iterator<V, UL> iterator() {
-		/// @todo Auto-generated method stub
-		assert false : "Not yet implemented";
-		return null;
 	}
 
 	/** @see HypercubeLimited#iterator(String[], V[][]) */
@@ -403,9 +395,7 @@ public class ScalarHypercubeLimited < V extends Addable<V>, U extends Addable<U>
 	/** @see HypercubeLimited#getVariables() */
 	@Override
 	public String[] getVariables() {
-		/// @todo Auto-generated method stub
-		assert false : "Not yet implemented";
-		return null;
+		return new String [0];
 	}
 
 	/** @see HypercubeLimited#iterator(String[]) */

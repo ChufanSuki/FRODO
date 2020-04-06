@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -45,10 +45,30 @@ public class AFBsolver< V extends Addable<V>, U extends Addable<U> > extends Abs
 	/** The solution collector module */
 	private SolutionCollector<V, U> solCollector;
 
-	/** Default constructor 
-	 * @param filename the name of the file containing the description of the algorithm*/
+	/** Constructor 
+	 * @param filename the name of the file containing the description of the algorithm
+	 */
 	public AFBsolver (String filename) {
 		super (filename);
+	}
+	
+	/** Constructor 
+	 * @param filename 	the name of the file containing the description of the algorithm
+	 * @param useTCP 	whether to use TCP pipes or shared memory pipes
+	 * @warning Using TCP pipes automatically disables simulated time. 
+	 */
+	public AFBsolver (String filename, boolean useTCP) {
+		super (filename, useTCP);
+	}
+	
+	/** Constructor from a specific agent configuration file 
+	 * @param filename 	the agent configuration file
+	 * @param useTCP 	Whether to use TCP pipes or shared memory pipes
+	 * @param shift 	The shift parameter for the ProblemRescaler (if used)
+	 * @warning Using TCP pipes automatically disables simulated time. 
+	 */
+	public AFBsolver (String filename, boolean useTCP, int shift) {
+		super (filename, useTCP, shift);
 	}
 	
 	/** Constructor 
@@ -58,6 +78,19 @@ public class AFBsolver< V extends Addable<V>, U extends Addable<U> > extends Abs
 	 */
 	public AFBsolver (String agentDescFile, Class<V> domClass, Class<U> utilClass) {
 		this (agentDescFile);
+		this.setDomClass(domClass);
+		this.setUtilClass(utilClass);
+	}
+	
+	/** Constructor 
+	 * @param agentDescFile description of the agent to be used
+	 * @param domClass 		the class to be used for variable values
+	 * @param utilClass 	the class to be used for utility values
+	 * @param useTCP 			Whether to use TCP pipes or shared memory pipes
+	 * @warning Using TCP pipes automatically disables simulated time. 
+	 */
+	public AFBsolver (String agentDescFile, Class<V> domClass, Class<U> utilClass, boolean useTCP) {
+		super (agentDescFile, useTCP);
 		this.setDomClass(domClass);
 		this.setUtilClass(utilClass);
 	}

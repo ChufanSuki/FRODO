@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -67,7 +67,7 @@ public class SamplingPhaseTest extends LowestCommonAncestorsTest {
 	private XCSPparser<AddableInteger, AddableReal> parser;
 	
 	/** Each agent's subproblem */
-	private HashMap< String, XCSPparser<AddableInteger, AddableReal> > subProblems;
+	private HashMap< String, DCOPProblemInterface<AddableInteger, AddableReal> > subProblems;
 
 	/** For each variable, the random variables 1) that one of its ancestors must project out and 2) that one of its descendants is a neighbor of */
 	private HashMap< String, Collection<String> > allHigherRelevantRandVars;
@@ -124,14 +124,15 @@ public class SamplingPhaseTest extends LowestCommonAncestorsTest {
 	protected void setUp () {
 		super.setUp();
 		
-		subProblems = new HashMap< String, XCSPparser<AddableInteger, AddableReal> > ();
+		subProblems = new HashMap< String, DCOPProblemInterface<AddableInteger, AddableReal> > ();
 		allHigherRelevantRandVars = new HashMap< String, Collection<String> > ();
 		this.problem = AllTests.generateProblem(this.graph, maxNbrRandVars, false);
 		
 		// Recompute allFlags. 
 		super.allFlags.clear();
 		XCSPparser<AddableInteger, AddableReal> parser2 = new XCSPparser<AddableInteger, AddableReal> (this.problem);
-		this.dfs = UTILpropagationTest.computeDFS(graph, parser2, true);
+		parser2.setUtilClass(AddableReal.class);
+		this.dfs = UTILpropagationTest.computeDFS(graph, parser2.parse(), true);
 		for (String var : parser2.getVariables()) 
 			allFlags.put(var, new HashSet<String> ());
 		for (String randVar : parser2.getVariables(null)) 
@@ -203,7 +204,7 @@ public class SamplingPhaseTest extends LowestCommonAncestorsTest {
 			}
 			
 			// Go through the list of subproblems
-			for (XCSPparser<AddableInteger, AddableReal> subProblem : subProblems.values()) {
+			for (DCOPProblemInterface<AddableInteger, AddableReal> subProblem : subProblems.values()) {
 				
 				// Go through the list of internal variables
 				for (String var : subProblem.getMyVars()) {
@@ -256,7 +257,7 @@ public class SamplingPhaseTest extends LowestCommonAncestorsTest {
 
 			// Create the SamplingPhase module
 			Constructor< ? extends IncomingMsgPolicyInterface<MessageType> > constructor = this.versionClass.getConstructor(DCOPProblemInterface.class, Element.class);
-			XCSPparser<AddableInteger, AddableReal> subProblem = parser.getSubProblem(agent);
+			DCOPProblemInterface<AddableInteger, AddableReal> subProblem = parser.getSubProblem(agent).parse();
 			queue.setProblem(subProblem);
 			this.subProblems.put(agent, subProblem);
 			queue.addIncomingMessagePolicy(constructor.newInstance(subProblem, parameters));

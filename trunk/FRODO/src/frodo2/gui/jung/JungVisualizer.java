@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -42,6 +42,7 @@ import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
+import javax.swing.SwingUtilities;
 import javax.swing.ToolTipManager;
 
 import com.google.common.base.Function;
@@ -64,6 +65,7 @@ import edu.uci.ics.jung.algorithms.layout.SpringLayout2;
 import edu.uci.ics.jung.graph.Graph;
 import edu.uci.ics.jung.graph.SparseGraph;
 import edu.uci.ics.jung.graph.util.EdgeType;
+import edu.uci.ics.jung.graph.util.Graphs;
 import edu.uci.ics.jung.visualization.GraphZoomScrollPane;
 import edu.uci.ics.jung.visualization.Layer;
 import edu.uci.ics.jung.visualization.VisualizationViewer;
@@ -81,7 +83,7 @@ import edu.uci.ics.jung.visualization.renderers.Renderer;
 public class JungVisualizer extends Visualizer implements ActionListener {
 	
 	/** The JUNG graph */
-	private Graph<String, String> graph = new SparseGraph<String, String>();
+	private Graph<String, String> graph = Graphs.synchronizedGraph(new SparseGraph<String, String>());
 	
 	/** The JUNG visualization viewer */
 	private VisualizationViewer<String,String> vv;
@@ -299,8 +301,10 @@ public class JungVisualizer extends Visualizer implements ActionListener {
 	private void drawEdges() {
 		
 		// Remove all existing edges
-		for (String e : this.graph.getEdges()) 
-			this.graph.removeEdge(e);
+		try {
+			for (String e : this.graph.getEdges())
+				SwingUtilities.invokeAndWait(() -> this.graph.removeEdge(e));
+		} catch (InvocationTargetException | InterruptedException e1) { }
 		
 		if (this.compiled) { // draw edges between agents
 			
@@ -351,15 +355,17 @@ public class JungVisualizer extends Visualizer implements ActionListener {
 		// Replace the undirected edge with a directed edge
 		String htmlEdge = toHTML("Sending message:\n\n" + msg.toString());
 		this.graph.addEdge(htmlEdge, from, to, EdgeType.DIRECTED);
-		if (from.compareTo(to) < 0) 
-			this.graph.removeEdge(from + "-" + to);
-		else if (from.compareTo(to) > 0) 
-			this.graph.removeEdge(to + "-" + from);
+		try {
+			if (from.compareTo(to) < 0)
+				SwingUtilities.invokeAndWait(() -> this.graph.removeEdge(from + "-" + to));
+			else if (from.compareTo(to) > 0) 
+				SwingUtilities.invokeAndWait(() -> this.graph.removeEdge(to + "-" + from));
+		} catch (InvocationTargetException | InterruptedException e) { }
 		
 		/// @todo Set the edge label to a message image 
 		
 		// Refresh
-		this.vv.repaint(10); /// @bug Should be called from the event dispatching thread to avoid NullPointerExceptions 
+		this.vv.repaint(10);
 
 		// Wait while the message is displayed
 		this.wait(viz);
@@ -369,11 +375,13 @@ public class JungVisualizer extends Visualizer implements ActionListener {
 			this.graph.addEdge(from + "-" + to, from, to);
 		else if (from.compareTo(to) > 0) 
 			this.graph.addEdge(to + "-" + from, to, from);
-		this.graph.removeEdge(htmlEdge);
+		try {
+			SwingUtilities.invokeAndWait(() -> this.graph.removeEdge(htmlEdge));
+		} catch (InvocationTargetException | InterruptedException e) { }
 		this.vv.getPickedVertexState().pick(from, false);
 
 		// Refresh
-		this.vv.repaint(10); /// @bug Should be called from the event dispatching thread to avoid NullPointerExceptions 
+		this.vv.repaint(10);
 	}
 	
 	/** Converts an input string to HTML
@@ -397,7 +405,7 @@ public class JungVisualizer extends Visualizer implements ActionListener {
 		this.inMsgs.put(to, msg); // looked up by the vertex tooltip function
 
 		// Refresh
-		this.vv.repaint(10); /// @bug Should be called from the event dispatching thread to avoid NullPointerExceptions 
+		this.vv.repaint(10);
 
 		// Wait while the message is displayed
 		this.wait(viz);
@@ -408,7 +416,7 @@ public class JungVisualizer extends Visualizer implements ActionListener {
 		this.inMsgs.remove(to);
 
 		// Refresh
-		this.vv.repaint(10); /// @bug Should be called from the event dispatching thread to avoid NullPointerExceptions 
+		this.vv.repaint(10);
 	}
 
 	/** @see java.awt.event.ActionListener#actionPerformed(java.awt.event.ActionEvent) */

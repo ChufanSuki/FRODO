@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <jardesc>
-    <jar path="FRODO_release/frodo2.17.1.jar"/>
+    <jar path="FRODO_release/frodo2.18.jar"/>
     <options buildIfNeeded="true" compress="false" descriptionLocation="/FRODO_release/frodo.jardesc" exportErrors="true" exportWarnings="true" includeDirectoryEntries="true" overwrite="false" saveDescription="true" storeRefactorings="false" useSourceFolders="false"/>
     <storedRefactorings deprecationInfo="true" structuralOnly="false"/>
     <selectedProjects/>
@@ -13,12 +13,15 @@
     <selectedElements exportClassFiles="true" exportJavaFiles="true" exportOutputFolder="false">
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.dpop.stochastic"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.solutionSpaces.JaCoP"/>
+        <javaElement handleIdentifier="=FRODO_release/src&lt;org.jacop.util.fsm"/>
+        <javaElement handleIdentifier="=FRODO_release/src&lt;org.jacop.constraints"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.adopt.test"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.localSearch.mgm"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.varOrdering.election.tests"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.odpop.goodsTree.InnerNodeTreeBinaryDomains"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.benchmarks.auctions.xcsp"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.solutionSpaces.hypercube.tests"/>
+        <javaElement handleIdentifier="=FRODO_release/src&lt;org.jacop.constraints.geost"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.asodpop.goodsTree.innerNodeTree"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.localSearch.dsa.tests"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.reformulation"/>
@@ -56,6 +59,9 @@
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.dpop.count"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.odpop.goodsTree.InnerNodeTree"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.solutionSpaces.JaCoP.tests.Instances.Glb"/>
+        <javaElement handleIdentifier="=FRODO_release/src&lt;org.jacop.constraints.table"/>
+        <javaElement handleIdentifier="=FRODO_release/src&lt;org.jacop.core"/>
+        <javaElement handleIdentifier="=FRODO_release/src&lt;org.jacop.util"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.benchmarks{FileCopier.java"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.solutionSpaces.hypercube"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.solutionSpaces.JaCoP.tests.Instances.Int"/>
@@ -63,6 +69,7 @@
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.localSearch.dsa"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.varOrdering.dfs.tests"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.dpop.restart"/>
+        <javaElement handleIdentifier="=FRODO_release/src&lt;org.jacop.constraints.knapsack"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.localSearch.mgm.tests"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.odpop.goodsTree.InnerNodeTreeFullDomain"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.controller"/>
@@ -70,6 +77,7 @@
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.benchmarks.kidneys"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.solutionSpaces.vehiclerouting"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.localSearch.mgm.mgm2.tests"/>
+        <javaElement handleIdentifier="=FRODO_release/src&lt;org.jacop.constraints.regular"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.maxsum"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.varOrdering.election"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.asodpop.tests"/>
@@ -87,11 +95,13 @@
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.dpop.test"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.solutionSpaces.tests"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.benchmarks.meetings{MeetingScheduling.java"/>
+        <javaElement handleIdentifier="=FRODO_release/src&lt;org.jacop.constraints.netflow"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.communication"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.mpc_discsp.tests"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.dpop.restart.test"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.controller.messages"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.odpop"/>
+        <javaElement handleIdentifier="=FRODO_release/src&lt;org.jacop.constraints.diffn"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.odpop.tests"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.dpop.count.test"/>
         <file path="/FRODO_release/src/frodo2/benchmarks/meetings/performance_regression_test.py"/>
@@ -99,6 +109,7 @@
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.afb"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.mpc_discsp"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.afb.test"/>
+        <javaElement handleIdentifier="=FRODO_release/src&lt;org.jacop.constraints.binpacking"/>
         <file path="/FRODO_release/LICENSE.txt"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.duct"/>
         <javaElement handleIdentifier="=FRODO_release/src&lt;frodo2.algorithms.dpop.param.test"/>

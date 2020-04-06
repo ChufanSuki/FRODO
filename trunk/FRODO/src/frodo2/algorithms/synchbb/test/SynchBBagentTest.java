@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -174,11 +174,12 @@ public class SynchBBagentTest <V extends Addable<V>, U extends Addable<U> > exte
 		super.setUp();
 
 		problemDoc = AllTests.generateProblem(graph, this.maximize, this.sign);
-		problem = new XCSPparser<V, U> (problemDoc, this.countNCCCs, false, true);
-		problem.setDomClass(super.domClass);
-		problem.setUtilClass(utilClass);
+		XCSPparser<V, U> parser = new XCSPparser<V, U> (problemDoc, this.countNCCCs, false, true);
+		parser.setDomClass(super.domClass);
+		parser.setUtilClass(utilClass);
+		problem = parser.parse();
 		if (! super.useXCSP) {
-			Problem<V, U> prob = new Problem<V, U> (this.maximize, true);
+			Problem<V, U> prob = new Problem<V, U> (this.maximize, true, false, false); // publicAgents = true
 			prob.reset(this.problem);
 			this.problem = prob;
 			problem.setDomClass(super.domClass);
@@ -240,8 +241,9 @@ public class SynchBBagentTest <V extends Addable<V>, U extends Addable<U> > exte
 
 			// Check that each variable has an assignment history
 			HashMap< String, ArrayList< CurrentAssignment<V> > > histories = this.synchBBmodule.getAssignmentHistories();
+			assertTrue ("SynchBB did not collect any assignment histories", histories != null);
 			for (String var : super.problem.getVariables()) 
-				assertFalse ("Variable " + var + " has no assignment history:\n" + histories, histories.get(var).isEmpty());
+				assertTrue ("Variable " + var + " has no assignment history:\n" + histories, histories.get(var) != null && ! histories.get(var).isEmpty()); /// @bug Very rarely fails
 		}
 	}
 	

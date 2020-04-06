@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -38,6 +38,7 @@ import frodo2.solutionSpaces.Addable;
 import frodo2.solutionSpaces.AddableBigDecimal;
 import frodo2.solutionSpaces.AddableInteger;
 import frodo2.solutionSpaces.AddableReal;
+import frodo2.solutionSpaces.DCOPProblemInterface;
 import frodo2.solutionSpaces.UtilitySolutionSpace;
 import frodo2.solutionSpaces.vehiclerouting.Customer;
 import frodo2.solutionSpaces.vehiclerouting.VehicleRoutingSpace;
@@ -48,9 +49,6 @@ import frodo2.solutionSpaces.vehiclerouting.VehicleRoutingSpace;
  */
 public class XCSPparserVRP < U extends Addable<U> > extends XCSPparser<AddableInteger, U> {
 
-	/** Used for serialization */
-	private static final long serialVersionUID = -3510401322787049569L;
-	
 	/** Constructor from a JDOM Document in XCSP format
 	 * @param doc 	the JDOM Document in XCSP format
 	 */
@@ -119,17 +117,18 @@ public class XCSPparserVRP < U extends Addable<U> > extends XCSPparser<AddableIn
 			super.foundUndefinedRelations(relationNames);
 	}
 
-	/** @see XCSPparser#parseConstraint(ArrayList, Element, HashMap, HashMap, Set, boolean, boolean, Addable, Set) */
+	/** @see XCSPparser#parseConstraint(ArrayList, Element, HashMap, HashMap, Set, boolean, boolean, Addable, Set, DCOPProblemInterface) */
 	@Override
 	protected void parseConstraint(ArrayList< UtilitySolutionSpace<AddableInteger, U> > spaces, Element constraint, 
 			HashMap<String, AddableInteger[]> variablesHashMap, HashMap< String, Relation<AddableInteger, U> > relationInfos, 
-			Set<String> vars, final boolean getProbs, final boolean withAnonymVars, U infeasibleUtil, Set<String> forbiddenVars) {
+			Set<String> vars, final boolean getProbs, final boolean withAnonymVars, U infeasibleUtil, Set<String> forbiddenVars, 
+			DCOPProblemInterface<AddableInteger, U> problem) {
 		
 		String reference = constraint.getAttributeValue("reference");
 		
 		// Call the superclass if the constraint isn't of type "global:vehicle_routing"
 		if (! reference.equals("global:vehicle_routing")) {
-			super.parseConstraint(spaces, constraint, variablesHashMap, relationInfos, vars, getProbs, withAnonymVars, infeasibleUtil, forbiddenVars);
+			super.parseConstraint(spaces, constraint, variablesHashMap, relationInfos, vars, getProbs, withAnonymVars, infeasibleUtil, forbiddenVars, problem);
 			return;
 		}
 		
@@ -190,7 +189,7 @@ public class XCSPparserVRP < U extends Addable<U> > extends XCSPparser<AddableIn
 		
 		spaces.add(new VehicleRoutingSpace<U> (nbrVehicles, maxDist, maxLoad, depotX, depotY, consVars, new HashMap<String, AddableInteger[]> (), 
 											customers, selectedCustomers, uncertainties, 
-											name, owner, super.getPlusInfUtility(), minSplit, (this.countNCCCs && !this.ignore(VehicleRoutingSpace.class.getName()) ? this : null)));
+											name, owner, super.getPlusInfUtility(), minSplit, (this.countNCCCs && !this.ignore(VehicleRoutingSpace.class.getName()) ? problem : null)));
 	}
 	
 	/** @see XCSPparser#rescale(Addable, Addable) */

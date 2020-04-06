@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -328,12 +328,13 @@ public class ODPOPagentTestFullDomain < V extends Addable<V>, U extends Addable<
 		XCSPparser<V, U> parser = constructor.newInstance(problem);
 		parser.setDomClass(domClass);
 		parser.setUtilClass(utilClass);
+		DCOPProblemInterface<V, U> prob = parser.parse();
 		
-		statsGathererDFS = new DFSgeneration<V, U> ((Element)null, parser);
+		statsGathererDFS = new DFSgeneration<V, U> ((Element)null, prob);
 		statsGathererDFS.setSilent(true);
 		statsGathererDFS.getStatsFromQueue(queue);
 
-		solCollector = new SolutionCollector<V, U> ((Element) null, parser);
+		solCollector = new SolutionCollector<V, U> ((Element) null, prob);
 		solCollector.setSilent(true);
 		solCollector.getStatsFromQueue(queue);
 
@@ -355,12 +356,12 @@ public class ODPOPagentTestFullDomain < V extends Addable<V>, U extends Addable<
 			if (useTCP) { // use TCP pipes
 				int port = 5500;
 				for (String agent : agentNames) {
-					DCOPProblemInterface<V, U> agentElmt = parser.getSubProblem(agent);
+					DCOPProblemInterface<V, U> agentElmt = prob.getSubProblem(agent);
 					agents.put(agentElmt.getAgent(), AgentFactory.createAgent(pipe, pipe, agentElmt, agentDesc, port++));
 				}
 			} else { // use QueueIOPipes
 				for (String agent : agentNames) {
-					DCOPProblemInterface<V, U> agentElmt = parser.getSubProblem(agent);
+					DCOPProblemInterface<V, U> agentElmt = prob.getSubProblem(agent);
 					agents.put(agentElmt.getAgent(), AgentFactory.createAgent(pipe, agentElmt, agentDesc, mailman));
 				}
 			}

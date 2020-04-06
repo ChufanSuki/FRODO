@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -395,9 +395,10 @@ public class E_DPOPagentTest < V extends Addable<V> > extends DPOPagentTest<V, A
 		} else 
 			graph = RandGraphFactory.getRandGraph(maxNbrVars, maxNbrEdges, maxNbrAgents);
 		problemDoc = AllTests.generateProblem(graph, maxNbrVars, true, (this.method.equals("expectationMonotone") ? -1 : 0));
-		problem = new XCSPparser<V, AddableReal> (problemDoc);
-		problem.setDomClass(super.domClass);
-		problem.setUtilClass(AddableReal.class);
+		XCSPparser<V, AddableReal> parser = new XCSPparser<V, AddableReal> (problemDoc);
+		parser.setDomClass(super.domClass);
+		parser.setUtilClass(AddableReal.class);
+		problem = parser.parse();
 		utilModule = new ExpectedUTIL<V, AddableReal> (null, problem);
 		utilModule.setSilent(true);
 		utilModule.getStatsFromQueue(queue);

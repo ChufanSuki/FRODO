@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -25,8 +25,11 @@ package frodo2.algorithms.test;
 
 import java.io.FileWriter;
 import java.io.IOException;
+import java.lang.reflect.Array;
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -69,6 +72,7 @@ import frodo2.communication.Queue;
 import frodo2.communication.QueueOutputPipeInterface;
 import frodo2.communication.sharedMemory.QueueIOPipe;
 import frodo2.controller.Controller;
+import frodo2.solutionSpaces.Addable;
 import frodo2.solutionSpaces.AddableInteger;
 import frodo2.solutionSpaces.AddableReal;
 import frodo2.solutionSpaces.hypercube.Hypercube;
@@ -122,6 +126,25 @@ public class AllTests {
 		
 		suite.addTest(AllTestsDUCT.suite());
 		//$JUnit-END$
+		return suite;
+	}
+	
+	/** Returns the same suite, but in reverse order
+	 * @param suite 	the suite to be inverted
+	 * @return a new suite with the same tests as the input suite, but in reverse order
+	 */
+	public static TestSuite reverse (TestSuite suite) {
+		
+		// Iterate through the tests in the input suite
+		LinkedList<Test> list = new LinkedList<Test> ();
+		for (Enumeration<Test> iter = suite.tests(); iter.hasMoreElements(); )
+			list.add(iter.nextElement());
+		
+		// Fill in the reverse suite by iterating in reverse order
+		suite = new TestSuite (suite.getName());
+		for (java.util.Iterator<Test> iter = list.descendingIterator(); iter.hasNext(); ) 
+			suite.addTest(iter.next());
+		
 		return suite;
 	}
 	
@@ -334,8 +357,24 @@ public class AllTests {
 	 * @return 					a problem description based on the input graph
 	 * @see AllTests#createRandProblem(int, int, int, int, boolean)
 	 */
-	public static Document generateProblem (Graph graph, int maxNbrRandVars, boolean maximize) {
-		return generateProblem(graph, maxNbrRandVars, new ArrayList< Hypercube<AddableInteger, AddableInteger> > (), new ArrayList< Hypercube<AddableInteger, AddableReal> > (), maximize);
+	@SuppressWarnings("unchecked")
+	public static < U extends Addable<U> > Document generateProblem (Graph graph, int maxNbrRandVars, boolean maximize) {
+		return generateProblem(graph, maxNbrRandVars, new ArrayList< Hypercube<AddableInteger, U> > (), 
+				new ArrayList< Hypercube<AddableInteger, AddableReal> > (), maximize, (Class<U>) AddableInteger.class);
+	}
+	
+	/** Creates a problem description based on the input constraint graph
+	 * @param <U> 				the class of utilities
+	 * @param graph 			a constraint graph
+	 * @param maxNbrRandVars 	maximum number of random variables to be added to the graph
+	 * @param maximize 			when true generate a maximization problem, when false a minimization problem
+	 * @param classOfU 			the class of utilities
+	 * @return 					a problem description based on the input graph
+	 * @see AllTests#createRandProblem(int, int, int, int, boolean)
+	 */
+	public static < U extends Addable<U> > Document generateProblem (Graph graph, int maxNbrRandVars, boolean maximize, Class<U> classOfU) {
+		return generateProblem(graph, maxNbrRandVars, new ArrayList< Hypercube<AddableInteger, U> > (), 
+				new ArrayList< Hypercube<AddableInteger, AddableReal> > (), maximize, classOfU);
 	}
 	
 	/** Creates a problem description based on the input constraint graph
@@ -346,8 +385,8 @@ public class AllTests {
 	 * @return 					a problem description based on the input graph
 	 * @see AllTests#createRandProblem(int, int, int, int, boolean)
 	 */
-	public static Document generateProblem (Graph graph, int maxNbrRandVars, boolean maximize, int sign) {
-		return generateProblem(graph, maxNbrRandVars, new ArrayList< Hypercube<AddableInteger, AddableInteger> > (), new ArrayList< Hypercube<AddableInteger, AddableReal> > (), maximize, sign);
+	public static < U extends Addable<U> > Document generateProblem (Graph graph, int maxNbrRandVars, boolean maximize, int sign) {
+		return generateProblem(graph, maxNbrRandVars, new ArrayList< Hypercube<AddableInteger, U> > (), new ArrayList< Hypercube<AddableInteger, AddableReal> > (), maximize, sign);
 	}
 	
 	/** Creates a problem description based on the input constraint graph
@@ -357,8 +396,8 @@ public class AllTests {
 	 * @return 				a problem description based on the input graph
 	 * @see AllTests#createRandProblem(int, int, int, int, boolean)
 	 */
-	public static Document generateSizedProblem (Graph graph, int nbrRandVars, boolean maximize) {
-		return generateSizedProblem(graph, nbrRandVars, new ArrayList< Hypercube<AddableInteger, AddableInteger> > (), new ArrayList< Hypercube<AddableInteger, AddableReal> > (), maximize);
+	public static < U extends Addable<U> > Document generateSizedProblem (Graph graph, int nbrRandVars, boolean maximize) {
+		return generateSizedProblem(graph, nbrRandVars, new ArrayList< Hypercube<AddableInteger, U> > (), new ArrayList< Hypercube<AddableInteger, AddableReal> > (), maximize);
 	}
 	
 	/** Creates a problem description based on the input constraint graph
@@ -370,9 +409,26 @@ public class AllTests {
 	 * @return a problem description based on the input graph
 	 * @see AllTests#createRandProblem(int, int, int, int, boolean)
 	 */
-	public static Document generateProblem (Graph graph, int maxNbrRandVars, 
-			List< Hypercube<AddableInteger, AddableInteger> > solutionSpaces, List< Hypercube<AddableInteger, AddableReal> > probSpaces, boolean maximize) {
-		return generateProblem (graph, maxNbrRandVars, solutionSpaces, probSpaces, maximize, 0);
+	@SuppressWarnings("unchecked")
+	public static < U extends Addable<U> > Document generateProblem (Graph graph, int maxNbrRandVars, 
+			List< Hypercube<AddableInteger, U> > solutionSpaces, List< Hypercube<AddableInteger, AddableReal> > probSpaces, boolean maximize) {
+		return generateProblem (graph, maxNbrRandVars, solutionSpaces, probSpaces, maximize, (Class<U>) AddableReal.class);
+	}
+	
+	/** Creates a problem description based on the input constraint graph
+	 * @param <U> 				the class for utilities
+	 * @param graph 			a constraint graph
+	 * @param maxNbrRandVars 	maximum number of random variables to be added to the graph
+	 * @param solutionSpaces 	the list to which the randomly generated solution spaces will be added
+	 * @param probSpaces 		the list to which the randomly generated probability spaces will be added
+	 * @param maximize 			when true generate a maximization problem, when false a minimization problem
+	 * @param classOfU 			the class for utilities
+	 * @return a problem description based on the input graph
+	 * @see AllTests#createRandProblem(int, int, int, int, boolean)
+	 */
+	public static < U extends Addable<U> > Document generateProblem (Graph graph, int maxNbrRandVars, 
+			List< Hypercube<AddableInteger, U> > solutionSpaces, List< Hypercube<AddableInteger, AddableReal> > probSpaces, boolean maximize, Class<U> classOfU) {
+		return generateProblem (graph, maxNbrRandVars, solutionSpaces, probSpaces, maximize, 0, classOfU);
 	}
 	
 	/** Creates a problem description based on the input constraint graph
@@ -385,13 +441,31 @@ public class AllTests {
 	 * @return a problem description based on the input graph
 	 * @see AllTests#createRandProblem(int, int, int, int, boolean)
 	 */
-	public static Document generateProblem (Graph graph, int maxNbrRandVars, 
-			List< Hypercube<AddableInteger, AddableInteger> > solutionSpaces, List< Hypercube<AddableInteger, AddableReal> > probSpaces, boolean maximize, int sign) {
+	@SuppressWarnings("unchecked")
+	public static < U extends Addable<U> > Document generateProblem (Graph graph, int maxNbrRandVars, 
+			List< Hypercube<AddableInteger, U> > solutionSpaces, List< Hypercube<AddableInteger, AddableReal> > probSpaces, boolean maximize, int sign) {
+		return generateProblem (graph, maxNbrRandVars, solutionSpaces, probSpaces, maximize, sign, (Class<U>) AddableInteger.class);
+	}
+	
+	/** Creates a problem description based on the input constraint graph
+	 * @param <U> 				the class used for utilities
+	 * @param graph 			a constraint graph
+	 * @param maxNbrRandVars 	maximum number of random variables to be added to the graph
+	 * @param solutionSpaces 	the list to which the randomly generated solution spaces will be added
+	 * @param probSpaces 		the list to which the randomly generated probability spaces will be added
+	 * @param maximize 			when true generate a maximization problem, when false a minimization problem
+	 * @param sign 				the desired sign for the utilities (if 0, utilities can be either sign)
+	 * @param classOfU 			the class used for utilities
+	 * @return a problem description based on the input graph
+	 * @see AllTests#createRandProblem(int, int, int, int, boolean)
+	 */
+	public static < U extends Addable<U> > Document generateProblem (Graph graph, int maxNbrRandVars, List< Hypercube<AddableInteger, U> > solutionSpaces, 
+			List< Hypercube<AddableInteger, AddableReal> > probSpaces, boolean maximize, int sign, Class<U> classOfU) {
 
 		// Choose the number of random variables
 		int nbrRandVars = (int) (Math.random() * (maxNbrRandVars+1));
 		
-		return generateSizedProblem (graph, nbrRandVars, solutionSpaces, probSpaces, maximize, sign);
+		return generateSizedProblem (graph, nbrRandVars, solutionSpaces, probSpaces, maximize, sign, classOfU);
 	}
 	
 	/** Creates a problem description based on the input constraint graph
@@ -403,8 +477,8 @@ public class AllTests {
 	 * @return a problem description based on the input graph
 	 * @see AllTests#createRandProblem(int, int, int, int, boolean)
 	 */
-	public static Document generateSizedProblem (Graph graph, int nbrRandVars, 
-			List< Hypercube<AddableInteger, AddableInteger> > solutionSpaces, List< Hypercube<AddableInteger, AddableReal> > probSpaces, boolean maximize) {
+	public static < U extends Addable<U> > Document generateSizedProblem (Graph graph, int nbrRandVars, 
+			List< Hypercube<AddableInteger, U> > solutionSpaces, List< Hypercube<AddableInteger, AddableReal> > probSpaces, boolean maximize) {
 		return generateSizedProblem (graph, nbrRandVars, solutionSpaces, probSpaces, maximize, 0);
 	}
 	
@@ -418,10 +492,28 @@ public class AllTests {
 	 * @return a problem description based on the input graph
 	 * @see AllTests#createRandProblem(int, int, int, int, boolean)
 	 */
-	public static Document generateSizedProblem (Graph graph, int nbrRandVars, 
-			List< Hypercube<AddableInteger, AddableInteger> > solutionSpaces, List< Hypercube<AddableInteger, AddableReal> > probSpaces, boolean maximize, int sign) {
+	@SuppressWarnings("unchecked")
+	public static < U extends Addable<U> > Document generateSizedProblem (Graph graph, int nbrRandVars, 
+			List< Hypercube<AddableInteger, U> > solutionSpaces, List< Hypercube<AddableInteger, AddableReal> > probSpaces, boolean maximize, int sign) {
+		return generateSizedProblem(graph, nbrRandVars, solutionSpaces, probSpaces, maximize, sign, (Class<U>) AddableInteger.class);
+	}
+	
+	/** Creates a problem description based on the input constraint graph
+	 * @param <U> 				the class used for utilities
+	 * @param graph 			a constraint graph
+	 * @param nbrRandVars	 	number of random variables to be added to the graph
+	 * @param solutionSpaces 	the list to which the randomly generated solution spaces will be added
+	 * @param probSpaces 		the list to which the randomly generated probability spaces will be added
+	 * @param maximize 			when true generate a maximization problem, when false a minimization problem
+	 * @param sign 				the desired sign for the utilities (if 0, utilities can be either sign)
+	 * @param classOfU 			the class used for utilities
+	 * @return a problem description based on the input graph
+	 * @see AllTests#createRandProblem(int, int, int, int, boolean)
+	 */
+	public static < U extends Addable<U> > Document generateSizedProblem (Graph graph, int nbrRandVars, 
+			List< Hypercube<AddableInteger, U> > solutionSpaces, List< Hypercube<AddableInteger, AddableReal> > probSpaces, boolean maximize, int sign, Class<U> classOfU) {
 		
-		Document problem = generateProblem(graph, solutionSpaces, maximize, sign);
+		Document problem = generateProblem(graph, solutionSpaces, maximize, sign, classOfU);
 		
 		if (nbrRandVars == 0) 
 			return problem;
@@ -481,7 +573,7 @@ public class AllTests {
 					scope.add("r" + (i-1));
 
 				// Create a random constraint
-				Hypercube<AddableInteger, AddableInteger> constraint = randHypercube(scope, maximize, sign);
+				Hypercube<AddableInteger, U> constraint = randHypercube(scope, maximize, sign, classOfU);
 				constraint.setName("c_" + varName + "_" + "r_" + relID);
 				solutionSpaces.add(constraint);
 
@@ -582,8 +674,23 @@ public class AllTests {
 	 * @return a problem description based on the input graph
 	 * @see AllTests#createRandProblem(int, int, int, boolean)
 	 */
-	public static Document generateProblem (Graph graph, List< Hypercube<AddableInteger, AddableInteger> > solutionSpaces, boolean maximize, int sign) {
-		return generateProblem (graph, solutionSpaces, maximize, sign, false, 100, DEFAULT_P2);
+	@SuppressWarnings("unchecked")
+	public static < U extends Addable<U> > Document generateProblem (Graph graph, List< Hypercube<AddableInteger, U> > solutionSpaces, boolean maximize, int sign) {
+		return generateProblem (graph, solutionSpaces, maximize, sign, (Class<U>) AddableInteger.class);
+	}
+	
+	/** Creates a problem description based on the input constraint graph
+	 * @param <U> 				the class used for utilities
+	 * @param graph 			a constraint graph
+	 * @param solutionSpaces 	list to which the randomly generated hypercubes will be added
+	 * @param maximize 			when true generate a maximization problem, when false a minimization problem
+	 * @param sign 				the desired sign for the utilities (if 0, utilities can be either sign)
+	 * @param classOfU 			the class used for utilities
+	 * @return a problem description based on the input graph
+	 * @see AllTests#createRandProblem(int, int, int, boolean)
+	 */
+	public static < U extends Addable<U> > Document generateProblem (Graph graph, List< Hypercube<AddableInteger, U> > solutionSpaces, boolean maximize, int sign, Class<U> classOfU) {
+		return generateProblem (graph, solutionSpaces, maximize, sign, false, 100, DEFAULT_P2, classOfU);
 	}
 	
 	/** Creates a problem description based on the input constraint graph
@@ -594,7 +701,7 @@ public class AllTests {
 	 * @return a problem description based on the input graph
 	 * @see AllTests#createRandProblem(int, int, int, boolean)
 	 */
-	public static Document generateProblem (Graph graph, List< Hypercube<AddableInteger, AddableInteger> > solutionSpaces, boolean maximize, boolean binary) {
+	public static < U extends Addable<U> > Document generateProblem (Graph graph, List< Hypercube<AddableInteger, U> > solutionSpaces, boolean maximize, boolean binary) {
 		return generateProblem (graph, solutionSpaces, maximize, 0, binary, 100, DEFAULT_P2);
 	}
 	
@@ -609,7 +716,27 @@ public class AllTests {
 	 * @return a problem description based on the input graph
 	 * @see AllTests#createRandProblem(int, int, int, boolean)
 	 */
-	public static Document generateProblem (Graph graph, List< Hypercube<AddableInteger, AddableInteger> > solutionSpaces, boolean maximize, int sign, boolean binary, int amplitude, double p2) {
+	@SuppressWarnings("unchecked")
+	public static < U extends Addable<U> > Document generateProblem (Graph graph, List< Hypercube<AddableInteger, U> > solutionSpaces, 
+			boolean maximize, int sign, boolean binary, int amplitude, double p2) {
+		return generateProblem (graph, solutionSpaces, maximize, sign, binary, amplitude, p2, (Class<U>) AddableInteger.class);
+	}
+	
+	/** Creates a problem description based on the input constraint graph
+	 * @param <U> 				the class used for utilities
+	 * @param graph 			a constraint graph
+	 * @param solutionSpaces 	list to which the randomly generated hypercubes will be added
+	 * @param maximize 			when true generate a maximization problem, when false a minimization problem
+	 * @param sign 				the desired sign for the utilities (if 0, utilities can be either sign)
+	 * @param binary			when \c true, the generated problem should have variables with binary domains
+	 * @param amplitude 		the amplitude of the utility values
+	 * @param p2 				the constraint tightness (i.e. probability of infeasibility)
+	 * @param classOfU 			the class used for utilities
+	 * @return a problem description based on the input graph
+	 * @see AllTests#createRandProblem(int, int, int, boolean)
+	 */
+	public static < U extends Addable<U> > Document generateProblem (Graph graph, List< Hypercube<AddableInteger, U> > solutionSpaces, 
+			boolean maximize, int sign, boolean binary, int amplitude, double p2, Class<U> classOfU) {
 		
 		// Create the root element
 		Element probElement = new Element ("instance");
@@ -685,7 +812,7 @@ public class AllTests {
 			// Generate a random hypercube
 			ArrayList<String> vars = new ArrayList<String> (1);
 			vars.add(varID);
-			Hypercube<AddableInteger, AddableInteger> hypercube = randHypercube(vars, maximize, sign, binary, amplitude, p2);
+			Hypercube<AddableInteger, U> hypercube = randHypercube(vars, maximize, sign, binary, amplitude, p2, classOfU);
 			hypercube.setName("c_" + Integer.toString(constraintID));
 			solutionSpaces.add(hypercube);
 			
@@ -741,7 +868,7 @@ public class AllTests {
 			}
 
 			// Generate random hypercube
-			Hypercube< AddableInteger, AddableInteger > hypercube = randHypercube(vars, maximize, sign, binary, amplitude, p2);
+			Hypercube< AddableInteger, U > hypercube = randHypercube(vars, maximize, sign, binary, amplitude, p2, classOfU);
 			hypercube.setName("c_" + Integer.toString(constraintID));
 			solutionSpaces.add(hypercube);
 
@@ -796,7 +923,27 @@ public class AllTests {
 	 * @return a random hypercube
 	 */
 	public static Hypercube<AddableInteger, AddableInteger> randHypercube (List<String> variables, boolean maximize, final int sign) {
-		return randHypercube (variables, maximize, sign, false, 100, DEFAULT_P2);
+		return randHypercube (variables, maximize, sign, AddableInteger.class);
+	}
+	
+	/** Generates a random hypercube
+	 * 
+	 * All domains are {1, 2, 3} and utility values are random integers 
+	 * 	- between -50 and +50, if \a sign == 0
+	 * 	- between -100 and 0 if \a sign < 0
+	 * 	- between 0 and +100 if \a sign > 0
+	 * with some probability of being infinite. 
+	 * 
+	 * @param <U> 			the class used for utilities
+	 * 
+	 * @param variables 	list of variables
+	 * @param maximize 		if \c true, return a maximization problem
+	 * @param sign 			the desired sign for utilities (if 0, utilities can take both signs)
+	 * @param classOfU 		the class used for utilities
+	 * @return a random hypercube
+	 */
+	public static < U extends Addable<U> > Hypercube<AddableInteger, U> randHypercube (List<String> variables, boolean maximize, final int sign, Class<U> classOfU) {
+		return (Hypercube<AddableInteger, U>) randHypercube (variables, maximize, sign, false, 100, DEFAULT_P2, classOfU);
 	}
 	
 	/** Generates a random hypercube
@@ -825,6 +972,28 @@ public class AllTests {
 	 * 	- between 0 and +amplitude if \a sign > 0
 	 * with some probability of being infinite. 
 	 * 
+	 * @param <U> 			the class to be used for utility values
+	 * 
+	 * @param variables 	list of variables
+	 * @param maximize 		if \c true, return a maximization problem
+	 * @param sign 			the desired sign for utilities (if 0, utilities can take both signs)
+	 * @param amplitude 	the amplitude of the utility values
+	 * @param classOfU 		the class to be used for utility values
+	 * @return a random hypercube
+	 */
+	public static < U extends Addable<U> > Hypercube<AddableInteger, U> randHypercube (
+			List<String> variables, boolean maximize, final int sign, int amplitude, Class<U> classOfU) {
+		return randHypercube (variables, maximize, sign, false, amplitude, DEFAULT_P2, classOfU);
+	}
+	
+	/** Generates a random hypercube
+	 * 
+	 * All domains are {1, 2, 3} and utility values are random integers 
+	 * 	- between -amplitude/2 and +amplitude/2, if \a sign == 0
+	 * 	- between -amplitude and 0 if \a sign < 0
+	 * 	- between 0 and +amplitude if \a sign > 0
+	 * with some probability of being infinite. 
+	 * 
 	 * @param variables 	list of variables
 	 * @param maximize 		if \c true, return a maximization problem
 	 * @param sign 			the desired sign for utilities (if 0, utilities can take both signs)
@@ -834,6 +1003,30 @@ public class AllTests {
 	 * @return a random hypercube
 	 */
 	public static Hypercube<AddableInteger, AddableInteger> randHypercube (List<String> variables, boolean maximize, final int sign, boolean binary, int amplitude, double p2) {
+		return randHypercube(variables, maximize, sign, binary, amplitude, p2, AddableInteger.class);
+	}
+	
+	/** Generates a random hypercube
+	 * 
+	 * All domains are {1, 2, 3} and utility values are random integers 
+	 * 	- between -amplitude/2 and +amplitude/2, if \a sign == 0
+	 * 	- between -amplitude and 0 if \a sign < 0
+	 * 	- between 0 and +amplitude if \a sign > 0
+	 * with some probability of being infinite. 
+	 * 
+	 * @param <U> 			the class used for utilities
+	 * 
+	 * @param variables 	list of variables
+	 * @param maximize 		if \c true, return a maximization problem
+	 * @param sign 			the desired sign for utilities (if 0, utilities can take both signs)
+	 * @param binary		when \c true, the generated problem should have variables with binary domains
+	 * @param amplitude 	the amplitude of the utility values
+	 * @param p2 			tightness (i.e. probability of infeasibility)
+	 * @param classOfU 		the class used for utilities
+	 * @return a random hypercube
+	 */
+	public static < U extends Addable<U> > Hypercube<AddableInteger, U> randHypercube (
+			List<String> variables, boolean maximize, final int sign, boolean binary, int amplitude, double p2, Class<U> classOfU) {
 		
 		amplitude = Math.abs(amplitude);
 		
@@ -847,15 +1040,22 @@ public class AllTests {
 			domain[2] = new AddableInteger (3);
 		Arrays.fill(domains, domain);
 		
-		AddableInteger infeasibleUtil;
+		U infeasibleUtil = null;
+		try {
+			infeasibleUtil = classOfU.getConstructor().newInstance();
+		} catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException
+				| NoSuchMethodException | SecurityException e) {
+			e.printStackTrace();
+		}
 		if (maximize) 
-			infeasibleUtil = AddableInteger.MinInfinity.MIN_INF;
+			infeasibleUtil = infeasibleUtil.getMinInfinity();
 		else 
-			infeasibleUtil = AddableInteger.PlusInfinity.PLUS_INF;
+			infeasibleUtil = infeasibleUtil.getPlusInfinity();
 		
 		// Create the random utilities
 		int nbrUtil =  binary ? (int) Math.pow(2.0, (double)variables.size()) : (int) Math.pow(3.0, (double)variables.size());
-		AddableInteger[] utilities = new AddableInteger[nbrUtil];
+		@SuppressWarnings("unchecked")
+		U[] utilities = (U[]) Array.newInstance(classOfU, nbrUtil);
 		for (int i = 0; i < nbrUtil; i++) {
 			if (Math.random() < p2) {
 				utilities[i] = infeasibleUtil;
@@ -863,11 +1063,11 @@ public class AllTests {
 				int rand = (int) (amplitude*Math.random()); 	// between 0 and amplitude
 				if (sign == 0) 	rand -= amplitude/2;			// between -amplitude/2 and +amplitude/2
 				if (sign < 0) 	rand -= amplitude;				// between -amplitude and 0
-				utilities[i] = new AddableInteger(rand);
+				utilities[i] = infeasibleUtil.fromInt(rand);
 			}
 		}
 		
-		return new Hypercube<AddableInteger, AddableInteger> (variables.toArray(new String[0]), domains, utilities, infeasibleUtil);
+		return new Hypercube<AddableInteger, U> (variables.toArray(new String[0]), domains, utilities, infeasibleUtil);
 	}
 	
 	/** Generates a random probability space

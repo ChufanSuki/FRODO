@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -27,13 +27,14 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.io.Serializable;
 import java.util.HashSet;
+import java.util.Set;
 
 
 /** A CHILD token containing a set of random variables */
 public class CHILDrandMsg extends CHILDmsg {
 	
 	/** A set of random variables */
-	private HashSet<String> randVars;
+	private Set<String> randVars;
 	
 	/** Empty constructor used for externalization */
 	public CHILDrandMsg () { }
@@ -44,7 +45,7 @@ public class CHILDrandMsg extends CHILDmsg {
 	 * @param rootID 	the root ID
 	 * @param randVars 	a set of random variables
 	 */
-	public CHILDrandMsg(String sender, String dest, Serializable rootID, HashSet<String> randVars) {
+	public CHILDrandMsg(String sender, String dest, Serializable rootID, Set<String> randVars) {
 		super(sender, dest, rootID);
 		this.randVars = randVars;
 	}
@@ -72,7 +73,7 @@ public class CHILDrandMsg extends CHILDmsg {
 	}
 
 	/** @return the set of random variables */
-	public HashSet<String> getRandVars () {
+	public Set<String> getRandVars () {
 		return this.randVars;
 	}
 }

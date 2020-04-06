@@ -1,6 +1,6 @@
 <!-- 
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -62,10 +62,6 @@ How to contact the authors:
 	 -->
 	<modules>
 		
-		<!-- Collects and reports the solution found -->
-		<module className = "frodo2.algorithms.SolutionCollector" 
-				reportStats = "true" />
-		
 		<!-- Rescales the problem into the only form that P2-DPOP supports: a minimization problem with non-negative costs
 			- maximize [required]: whether the problem should be made a maximization problem
 			- shift [optional, default = 0]: how much should be added to each cost/utility in each constraint to make them all of the desired sign
@@ -108,6 +104,15 @@ How to contact the authors:
 			<dfsHeuristic className = "frodo2.algorithms.varOrdering.dfs.DFSgeneration$BlindScoringHeuristic" >
 				<scoringHeuristic className = "frodo2.algorithms.heuristics.RandScoringHeuristic" />
 			</dfsHeuristic>
+			
+			<messages>
+				<message myFieldName = "START_MSG_TYPE" 
+						 targetFieldName = "DONE" 
+						 targetClass = "frodo2.algorithms.reformulation.ProblemRescaler" />
+				<message myFieldName = "ROOT_VAR_MSG_TYPE" 
+						 targetFieldName = "OUTPUT_MSG_TYPE" 
+						 targetClass = "frodo2.algorithms.varOrdering.election.LeaderElectionMaxID" />
+			</messages>
 		</module>
 		
 		<!--  Requests the rerooting of the DFS after each root has found its optimal value -->
@@ -121,7 +126,13 @@ How to contact the authors:
 		-->
 		<module className = "frodo2.algorithms.dpop.privacy.SecureCircularRouting" 
 				reportStats = "true"
-				DOTrenderer = ""/>
+				DOTrenderer = "" >
+			<messages>
+				<message myFieldName = "DFS_OUTPUT_MSG_TYPE" 
+						 targetFieldName = "OUTPUT_MSG_TYPE" 
+						 targetClass = "frodo2.algorithms.varOrdering.dfs.DFSgeneration" />
+			</messages>
+		</module>
 		
 		<!-- Aggregates the agents' utilities bottom up along a linear ordering of the variables in a privacy-preserving fashion 
 			- minNCCCs (default = false): whether to optimize runtime and memory (false) or NCCC count (true). One is at the expense of the other. 
@@ -159,31 +170,38 @@ How to contact the authors:
 			
 			<!-- Overriding the input message type so that DFSgeneration listens to the output of SecureRerooting, not of VariableElection -->
 			<messages>
+				<message myFieldName = "START_MSG_TYPE" 
+						 targetFieldName = "DONE" 
+						 targetClass = "frodo2.algorithms.reformulation.ProblemRescaler" />
 				<message myFieldName = "ROOT_VAR_MSG_TYPE" 
 						 targetFieldName = "OUTPUT" 
 						 targetClass = "frodo2.algorithms.dpop.privacy.SecureRerooting" />
 			</messages>
 		</module>
 		
-		<!-- Passes information through the variables for them to collaboratively decrypt it -->
+		<!-- Passes information through the variables for them to collaboratively decrypt it 
+			- checkModulusForP2DPOP: if true (default is false) and asserts are enabled, checks that the CryptoScheme modulus is large enough for P2-DPOP
+		-->
 		<module className = "frodo2.algorithms.dpop.privacy.CollaborativeDecryption" 
+				checkModulusForP2DPOP = "true" 
 				reportStats = "true" >
 			
 			<!-- The cryptographic scheme used. Possible schemes are: 
 				- frodo2.solutionSpaces.crypto.ElGamalScheme, which takes the following parameters:
-					- modulus: must be a safe prime whose number of bits is greater than n * (D - n), 
-						where n is the number of variables in the DCOP, and D is the sum of all domain sizes
+					- modulus: must be a safe prime whose number of bits must be greater than the product of all variable domain sizes
 					- generator: must be such that the powers of the generator cover all the numbers in [1, modulus - 1]
 						(Use ElGamalScheme.main() to create the modulus and the generator)
 					- infinity: the algorithm will ignore solutions whose cost is >= this value. The complexity (both in memory and runtime)
 						is linear in this parameter, so you want to set it to a tight upper bound on the cost of the optimal solution (if any). 
 						For pure satisfaction problems, you should choose infinity = 1. 
+					- debug: if true (default is false), does not actually perform the encryption/decryption; used only for debugging purposes
 				- frodo2.algorithms.dpop.privacy.test.FakeCryptoScheme, insecure, and used only for debugging purposes
 			-->
 			<cryptoScheme className = "frodo2.solutionSpaces.crypto.ElGamalScheme" 
 						  modulus = "29943207855436367407612837276286965993351959448989623660314348101880565473518597533295375157211097010902816881470671724126036289553986947199494369410918547" 
 						  generator = "18261908958389154944274774667360451019974769453596444320512779869257372024106020602167056988140345164076916290105290743415373998274884678869342638514256724" 
-						  infinity = "1" />
+						  infinity = "1" 
+						  debug = "false" />
 		</module>
 		
 		<!-- Displays the messages exchanged

@@ -1,6 +1,6 @@
 <!-- 
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -102,11 +102,11 @@ How to contact the authors:
 		
 		<!-- Intercepts UTIL and VALUE messages and obfuscates variable names and variable values
 			- mergeBack: (default is false) if true, merges back-edges by using the same codenames for each variable's (pseudo-)children to improve performance (at the expense of topology privacy)
-			- numBits: The size in bits of the obfuscation keys used to obfuscate utilities. This parameter should be at least 128 to ensure decent utility obfuscation
+			- numBits: The size in bits of the obfuscation keys used to obfuscate utilities. This parameter must be small enough to fit in JaCoP's [-50000000, 50000000] integer variable domain. 
 		-->
 		<module className = "frodo2.algorithms.dpop.privacy.VariableObfuscation" 
 				mergeBack = "false"
-				numBits = "128" >
+				numBits = "20" >
 		</module>
 		
 		<!-- Aggregates the agents' utilities bottom up following the DFS
@@ -122,6 +122,9 @@ How to contact the authors:
 				<message myFieldName = "DFS_MSG_TYPE" 
 						 targetFieldName = "OUTPUT_MSG_TYPE" 
 						 targetClass = "frodo2.algorithms.varOrdering.dfs.DFSgeneration" />
+ 				<message myFieldName = "FINISH_MSG_TYPE" 
+						 targetFieldName = "AGENT_FINISHED" 
+						 targetClass = "frodo2.algorithms.AgentInterface" />
 			</messages>
 		</module>
 		
@@ -143,6 +146,9 @@ How to contact the authors:
 				<message myFieldName = "SEPARATOR_MSG_TYPE" 
 						 targetFieldName = "SEPARATOR_MSG_TYPE" 
 						 targetClass = "frodo2.algorithms.dpop.UTILpropagation" />
+ 				<message myFieldName = "FINISH_MSG_TYPE" 
+						 targetFieldName = "AGENT_FINISHED" 
+						 targetClass = "frodo2.algorithms.AgentInterface" />
 			</messages>
 		</module>
 		

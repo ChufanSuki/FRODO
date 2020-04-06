@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -36,6 +36,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
+import java.util.Set;
 
 import org.jdom2.Element;
 
@@ -579,7 +580,7 @@ public class DFSgeneration < V extends Addable<V>, U extends Addable<U> > implem
 		private boolean started = false;
 
 		/** For each variable owned by this agent, the set of agents that own a variable connected to this variable */
-		private Map< String, Collection<String> > neighborAgents;
+		private Map< String, Set<String> > neighborAgents;
 
 		/** For each neighboring agent, the set of my variables it knows */
 		private HashMap< String, HashSet<String> > knownVars = new HashMap< String, HashSet<String> > ();
@@ -604,7 +605,7 @@ public class DFSgeneration < V extends Addable<V>, U extends Addable<U> > implem
 		 * @param heuristic 	The ScoringHeuristic used
 		 * @param neighborAgents	for each variable owned by this agent, the set of agents that own a variable connected to this variable
 		 */
-		public ScoreBroadcastingHeuristic (ScoringHeuristic<S> heuristic, Map< String, Collection<String> > neighborAgents) {
+		public ScoreBroadcastingHeuristic (ScoringHeuristic<S> heuristic, Map< String, Set<String> > neighborAgents) {
 			super (heuristic);
 			this.neighborAgents = neighborAgents;
 			this.buildKnownVars(neighborAgents);
@@ -622,10 +623,10 @@ public class DFSgeneration < V extends Addable<V>, U extends Addable<U> > implem
 		/** Builds the knownVars map
 		 * @param neighborAgents 	for each internal variable, its collection of neighboring agents
 		 */
-		private void buildKnownVars (Map< String, Collection<String> > neighborAgents) {
+		private void buildKnownVars (Map< String, Set<String> > neighborAgents) {
 
 			// Loop over my variables
-			for (Map.Entry< String, Collection<String> > entry : neighborAgents.entrySet()) {
+			for (Map.Entry< String, Set<String> > entry : neighborAgents.entrySet()) {
 				String myVar = entry.getKey();
 
 				// Loop over the neighboring agents

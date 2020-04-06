@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -72,6 +72,15 @@ public class MPC_DisWCSP4solver < V extends Addable<V>, U extends Addable<U> > e
 	 */
 	public MPC_DisWCSP4solver (String agentDescFile) {
 		super (agentDescFile);
+	}
+	
+	/** Constructor from an agent configuration file
+	 * @param agentDescFile 	the agent configuration file (either for MPC-DisCSP4 or MPC-DisWCSP4)
+	 * @param useTCP 			whether to use TCP pipes or shared memory pipes
+	 * @warning Using TCP pipes automatically disables simulated time. 
+	 */
+	public MPC_DisWCSP4solver (String agentDescFile, boolean useTCP) {
+		super (agentDescFile, useTCP);
 	}
 	
 	/** Constructor
