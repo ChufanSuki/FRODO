@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -74,6 +74,7 @@ import frodo2.solutionSpaces.AddableInteger;
 import frodo2.solutionSpaces.AddableReal;
 import frodo2.solutionSpaces.DCOPProblemInterface;
 import frodo2.solutionSpaces.UtilitySolutionSpace;
+import frodo2.solutionSpaces.hypercube.Hypercube;
 
 /** JUnit test for DPOPagent
  * @author Thomas Leaute
@@ -448,28 +449,29 @@ public class DPOPagentTest< V extends Addable<V>, U extends Addable<U> > extends
 		// Instantiate the parser/subsolver
 		Constructor< ? extends XCSPparser<V, U> > constructor = this.parserClass.getConstructor(Document.class, Boolean.class);
 		XCSPparser<V, U> parser = constructor.newInstance(problemDoc, this.countNCCCs);
-		this.problem = parser;
 		parser.setDomClass(domClass);
 		parser.setUtilClass(utilClass);
+
+		if(this.ignoreHypercubeNCCCs)
+			parser.addSpaceToIgnore(Hypercube.class.getName());
+		
+		this.problem = parser.parse();
 		if (! this.useXCSP) {
 			this.problem = new Problem<V, U> (this.maximize);
-			this.problem.reset(parser);
+			this.problem.reset(parser.parse());
 			this.problem.setDomClass(domClass);
 			this.problem.setUtilClass(utilClass);
 		}
 		
-		if(this.ignoreHypercubeNCCCs)
-			parser.addSpaceToIgnore("frodo2.solutionSpaces.hypercube.Hypercube");
-		
-		utilModule = new UTILpropagation<V, U> (null, parser);
+		utilModule = new UTILpropagation<V, U> (null, problem);
 		utilModule.setSilent(true);
 		utilModule.getStatsFromQueue(queue);
 
-		solCollector = new SolutionCollector<V, U> (null, parser);
+		solCollector = new SolutionCollector<V, U> (null, problem);
 		solCollector.setSilent(true);
 		solCollector.getStatsFromQueue(queue);
 		
-		DFSgeneration<V, U> module = new DFSgeneration<V, U> (null, parser);
+		DFSgeneration<V, U> module = new DFSgeneration<V, U> (null, problem);
 		module.setSilent(true);
 		module.getStatsFromQueue(queue);
 	}

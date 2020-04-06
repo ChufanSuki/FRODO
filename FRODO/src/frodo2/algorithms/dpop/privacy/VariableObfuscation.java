@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -317,12 +317,12 @@ implements OutgoingMsgPolicyInterface<MessageType>, IncomingMsgPolicyInterface<M
 		
 		for( int i =0; i<size;i++){
 			
-			int obfucatedVal;
+			int obfuscatedVal;
 			do{
-				obfucatedVal = rand.nextInt();
-			} while (! tempVal.add(obfucatedVal)); // loop as long as adding obfuscatedVal to tempVal does not change tempVal
+				obfuscatedVal = rand.nextInt();
+			} while (! tempVal.add(obfuscatedVal)); // loop as long as adding obfuscatedVal to tempVal does not change tempVal
 			
-			values[i] = valInstance.fromInt(obfucatedVal);
+			values[i] = valInstance.fromInt(obfuscatedVal);
 		}
 		return values;
 	}

@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -33,6 +33,7 @@ import java.util.TreeSet;
 import org.jdom2.Document;
 import org.jdom2.Element;
 
+import frodo2.algorithms.reformulation.ProblemRescaler;
 import frodo2.algorithms.varOrdering.election.VariableElection;
 import frodo2.communication.MessageListener;
 import frodo2.communication.MessageType;
@@ -197,7 +198,6 @@ public abstract class AbstractDCOPsolver < V extends Addable<V>, U extends Addab
 	 */
 	protected AbstractDCOPsolver() {
 		super();
-		this.overrideMsgTypes();
 	}
 	
 	/** Constructor from an agent configuration file
@@ -205,7 +205,6 @@ public abstract class AbstractDCOPsolver < V extends Addable<V>, U extends Addab
 	 */
 	protected AbstractDCOPsolver (String agentDescFile) {
 		super (agentDescFile);
-		this.overrideMsgTypes();
 	}
 	
 	/** Constructor from an agent configuration file
@@ -215,7 +214,18 @@ public abstract class AbstractDCOPsolver < V extends Addable<V>, U extends Addab
 	 */
 	protected AbstractDCOPsolver (String agentDescFile, boolean useTCP) {
 		super (agentDescFile, useTCP);
-		this.overrideMsgTypes();
+	}
+	
+	/** Constructor from an agent configuration file
+	 * @param agentDescFile 	the agent configuration file
+	 * @param useTCP 			Whether to use TCP pipes or shared memory pipes
+	 * @param shift 			The shift parameter for the ProblemRescaler (if used)
+	 * @warning Using TCP pipes automatically disables simulated time. 
+	 */
+	protected AbstractDCOPsolver (String agentDescFile, boolean useTCP, int shift) {
+		super (agentDescFile, useTCP);
+		
+		this.setProblemRescalerShift(shift);
 	}
 	
 	/** Constructor
@@ -223,7 +233,6 @@ public abstract class AbstractDCOPsolver < V extends Addable<V>, U extends Addab
 	 */
 	protected AbstractDCOPsolver (Document agentDesc) {
 		super(agentDesc);
-		this.overrideMsgTypes();
 	}
 	
 	/** Constructor
@@ -233,7 +242,6 @@ public abstract class AbstractDCOPsolver < V extends Addable<V>, U extends Addab
 	 */
 	protected AbstractDCOPsolver (Document agentDesc, boolean useTCP) {
 		super (agentDesc, useTCP);
-		this.overrideMsgTypes();
 	}
 	
 	/** Constructor
@@ -242,7 +250,6 @@ public abstract class AbstractDCOPsolver < V extends Addable<V>, U extends Addab
 	 */
 	protected AbstractDCOPsolver (Document agentDesc, Class< ? extends XCSPparser<V, U> > parserClass) {
 		super(agentDesc, parserClass);
-		this.overrideMsgTypes();
 	}
 	
 	/** Constructor
@@ -253,13 +260,14 @@ public abstract class AbstractDCOPsolver < V extends Addable<V>, U extends Addab
 	 */
 	protected AbstractDCOPsolver (Document agentDesc, Class< ? extends XCSPparser<V, U> > parserClass, boolean useTCP) {
 		super(agentDesc, parserClass, useTCP);
-		this.overrideMsgTypes();
 	}
 	
 	/** @see AbstractSolver#solve(org.jdom2.Document, int, boolean, java.lang.Long, boolean) */
 	@Override
 	public S solve (Document problem, int nbrElectionRounds, boolean measureMsgs, Long timeout, boolean cleanAfterwards) {
 		
+		this.overrideMsgTypes();
+
 		agentDesc.getRootElement().setAttribute("measureMsgs", Boolean.toString(measureMsgs));
 		this.setNbrElectionRounds(nbrElectionRounds);
 		return this.solve(problem, cleanAfterwards, timeout);
@@ -269,6 +277,8 @@ public abstract class AbstractDCOPsolver < V extends Addable<V>, U extends Addab
 	@Override
 	public S solve (DCOPProblemInterface<V, U> problem, int nbrElectionRounds, boolean measureMsgs, Long timeout, boolean cleanAfterwards) {
 		
+		this.overrideMsgTypes();
+
 		agentDesc.getRootElement().setAttribute("measureMsgs", Boolean.toString(measureMsgs));
 		this.setNbrElectionRounds(nbrElectionRounds);
 		return this.solve(problem, cleanAfterwards, timeout);
@@ -283,9 +293,18 @@ public abstract class AbstractDCOPsolver < V extends Addable<V>, U extends Addab
 				module.setAttribute("nbrSteps", Integer.toString(nbrElectionRounds));
 	}
 	
+	/** Sets the shift parameter of the ProblemRescaler module (if used)
+	 * @param shift 	the shift
+	 */
+	protected void setProblemRescalerShift (int shift) {
+		for (Element module : agentDesc.getRootElement().getChild("modules").getChildren()) 
+			if (module.getAttributeValue("className").equals(ProblemRescaler.class.getName()))  
+				module.setAttribute("shift", Integer.toString(shift));
+	}
+	
 	/** Overrides message types if necessary */
 	@SuppressWarnings("unchecked")
-	private void overrideMsgTypes() {
+	protected void overrideMsgTypes() {
 
 		Element modsElmt = agentDesc.getRootElement().getChild("modules");
 		
@@ -328,5 +347,117 @@ public abstract class AbstractDCOPsolver < V extends Addable<V>, U extends Addab
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+	}
+
+	/** @see AbstractSolver#solve(org.jdom2.Document) */
+	@Override
+	public S solve(Document problem) {
+		this.overrideMsgTypes();
+		return super.solve(problem);
+	}
+
+	/** @see AbstractSolver#solve(frodo2.solutionSpaces.ProblemInterface) */
+	@Override
+	public S solve(DCOPProblemInterface<V, U> problem) {
+		this.overrideMsgTypes();
+		return super.solve(problem);
+	}
+
+	/** @see AbstractSolver#solve(org.jdom2.Document, java.lang.Long) */
+	@Override
+	public S solve(Document problem, Long timeout) {
+		this.overrideMsgTypes();
+		return super.solve(problem, timeout);
+	}
+
+	/** @see AbstractSolver#solve(frodo2.solutionSpaces.ProblemInterface, java.lang.Long) */
+	@Override
+	public S solve(DCOPProblemInterface<V, U> problem, Long timeout) {
+		this.overrideMsgTypes();
+		return super.solve(problem, timeout);
+	}
+
+	/** @see AbstractSolver#solve(org.jdom2.Document, boolean) */
+	@Override
+	public S solve(Document problem, boolean cleanAfterwards) {
+		this.overrideMsgTypes();
+		return super.solve(problem, cleanAfterwards);
+	}
+
+	/** @see AbstractSolver#solve(frodo2.solutionSpaces.ProblemInterface, boolean) */
+	@Override
+	public S solve(DCOPProblemInterface<V, U> problem, boolean cleanAfterwards) {
+		this.overrideMsgTypes();
+		return super.solve(problem, cleanAfterwards);
+	}
+
+	/** @see AbstractSolver#solve(org.jdom2.Document, int) */
+	@Override
+	public S solve(Document problem, int nbrElectionRounds) {
+		this.overrideMsgTypes();
+		return super.solve(problem, nbrElectionRounds);
+	}
+
+	/** @see AbstractSolver#solve(frodo2.solutionSpaces.ProblemInterface, int) */
+	@Override
+	public S solve(DCOPProblemInterface<V, U> problem, int nbrElectionRounds) {
+		this.overrideMsgTypes();
+		return super.solve(problem, nbrElectionRounds);
+	}
+
+	/** @see AbstractSolver#solve(org.jdom2.Document, int, boolean) */
+	@Override
+	public S solve(Document problem, int nbrElectionRounds, boolean measureMsgs) {
+		this.overrideMsgTypes();
+		return super.solve(problem, nbrElectionRounds, measureMsgs);
+	}
+
+	/** @see AbstractSolver#solve(frodo2.solutionSpaces.ProblemInterface, int, boolean) */
+	@Override
+	public S solve(DCOPProblemInterface<V, U> problem, int nbrElectionRounds, boolean measureMsgs) {
+		this.overrideMsgTypes();
+		return super.solve(problem, nbrElectionRounds, measureMsgs);
+	}
+
+	/** @see AbstractSolver#solve(org.jdom2.Document, int, boolean, java.lang.Long) */
+	@Override
+	public S solve(Document problem, int nbrElectionRounds, boolean measureMsgs, Long timeout) {
+		this.overrideMsgTypes();
+		return super.solve(problem, nbrElectionRounds, measureMsgs, timeout);
+	}
+
+	/** @see AbstractSolver#solve(frodo2.solutionSpaces.ProblemInterface, int, boolean, java.lang.Long) */
+	@Override
+	public S solve(DCOPProblemInterface<V, U> problem, int nbrElectionRounds, boolean measureMsgs, Long timeout) {
+		this.overrideMsgTypes();
+		return super.solve(problem, nbrElectionRounds, measureMsgs, timeout);
+	}
+
+	/** @see AbstractSolver#solve(org.jdom2.Document, int, java.lang.Long) */
+	@Override
+	public S solve(Document problem, int nbrElectionRounds, Long timeout) {
+		this.overrideMsgTypes();
+		return super.solve(problem, nbrElectionRounds, timeout);
+	}
+
+	/** @see AbstractSolver#solve(frodo2.solutionSpaces.ProblemInterface, int, java.lang.Long) */
+	@Override
+	public S solve(DCOPProblemInterface<V, U> problem, int nbrElectionRounds, Long timeout) {
+		this.overrideMsgTypes();
+		return super.solve(problem, nbrElectionRounds, timeout);
+	}
+
+	/** @see AbstractSolver#solve(org.jdom2.Document, boolean, java.lang.Long) */
+	@Override
+	public S solve(Document problem, boolean cleanAfterwards, Long timeout) {
+		this.overrideMsgTypes();
+		return super.solve(problem, cleanAfterwards, timeout);
+	}
+
+	/** @see AbstractSolver#solve(frodo2.solutionSpaces.ProblemInterface, boolean, java.lang.Long) */
+	@Override
+	public S solve(DCOPProblemInterface<V, U> problem, boolean cleanAfterwards, Long timeout) throws OutOfMemoryError {
+		this.overrideMsgTypes();
+		return super.solve(problem, cleanAfterwards, timeout);
 	}
 }

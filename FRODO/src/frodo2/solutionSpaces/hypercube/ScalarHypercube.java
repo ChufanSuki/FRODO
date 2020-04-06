@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -68,6 +68,17 @@ extends Hypercube <V, U> {
 		values[0] = utility;
 		steps_hashmaps = null;
 		this.infeasibleUtil = infeasibleUtil;
+	}
+	
+	/** Constructor 
+	 * @param name 				the name of this ScalarHypercube
+	 * @param utility 			the single utility value of this hypercube
+	 * @param infeasibleUtil 	-INF if we are maximizing, +INF if we are minimizing
+	 * @param classOfDom 		the class of V[]
+	 */
+	public ScalarHypercube (String name, U utility, U infeasibleUtil, Class<? extends V[]> classOfDom) {
+		this(utility, infeasibleUtil, classOfDom);
+		this.name = name;
 	}
 	
 	/** @see Hypercube#scalarHypercube(Addable) */
@@ -395,7 +406,7 @@ extends Hypercube <V, U> {
 		U[] utilities = (U[]) Array.newInstance(this.values.getClass().getComponentType(), substCast.values.length);
 		Arrays.fill(utilities, this.values[0]);
 		this.incrNCCCs(1);
-		return this.newInstance(substCast.variables.clone(), substCast.domains.clone(), utilities, this.infeasibleUtil);
+		return this.newInstance(this.name + "_composed", substCast.variables.clone(), substCast.domains.clone(), utilities, this.infeasibleUtil);
 	}
 	
 	/** Returns a clone of this SclararHypercube if its utility is higher that the threshold; \c null otherwise
@@ -437,6 +448,7 @@ extends Hypercube <V, U> {
 	@SuppressWarnings("unchecked")
 	@Override
 	public ScalarHypercube< V, U > clone () {
+		this.incrNCCCs(1);
 		return new ScalarHypercube< V, U > (values[0], this.infeasibleUtil, (Class<V[]>) this.domains.getClass().getComponentType());
 	}
 	

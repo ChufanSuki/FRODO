@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -312,9 +312,10 @@ public class ASODPOPagentTest < V extends Addable<V>, U extends Addable<U> > ext
 		Constructor< ? extends XCSPparser<V, U> > constructor = null;
 		DCOPProblemInterface<V, U> problem = null;
 		constructor = parserClass.getConstructor(Document.class);
-		problem = constructor.newInstance(problemDoc);
-		problem.setDomClass(domClass);
-		problem.setUtilClass(utilClass);
+		XCSPparser<V, U> parser = constructor.newInstance(problemDoc);
+		parser.setDomClass(domClass);
+		parser.setUtilClass(utilClass);
+		problem = parser.parse();
 		if (!this.useXCSP) {
 			Problem<V, U> prob = new Problem<V, U> (this.maximize);
 			prob.reset(problem);

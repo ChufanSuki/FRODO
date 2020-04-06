@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -61,6 +61,16 @@ public class SynchBBsolver< V extends Addable<V>, U extends Addable<U> > extends
 	 */
 	public SynchBBsolver (String filename, boolean useTCP) {
 		super (filename, useTCP);
+	}
+	
+	/** Constructor from a specific agent configuration file 
+	 * @param filename 	the agent configuration file
+	 * @param useTCP 	Whether to use TCP pipes or shared memory pipes
+	 * @param shift 	The shift parameter for the ProblemRescaler (if used)
+	 * @warning Using TCP pipes automatically disables simulated time. 
+	 */
+	public SynchBBsolver (String filename, boolean useTCP, int shift) {
+		super (filename, useTCP, shift);
 	}
 	
 	/** Constructor 

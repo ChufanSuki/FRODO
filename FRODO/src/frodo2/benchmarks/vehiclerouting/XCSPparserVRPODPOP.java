@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -44,9 +44,6 @@ import frodo2.solutionSpaces.vehiclerouting.CompoundSpace;
  * 
  */
 public class XCSPparserVRPODPOP <U extends Addable<U>> extends XCSPparserVRP<U> {
-
-	/** Used for serialization */
-	private static final long serialVersionUID = 8667005740460947817L;
 
 	/** Constructor from a JDOM Document in XCSP format
 	 * @param doc 	the JDOM Document in XCSP format

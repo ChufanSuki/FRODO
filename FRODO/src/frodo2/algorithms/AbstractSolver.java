@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -374,7 +374,7 @@ public abstract class AbstractSolver < P extends ProblemInterface<V, U>, V exten
 		Element parserElmt = this.agentDesc.getRootElement().getChild("parser");
 		parserElmt.setAttribute("displayGraph", "false");
 		try {
-			return solve ((P) this.parserClass.getConstructor(Document.class, Element.class).newInstance(problem, parserElmt), cleanAfterwards, timeout);
+			return solve ((P) this.parserClass.getConstructor(Document.class, Element.class).newInstance(problem, parserElmt).parse(), cleanAfterwards, timeout);
 		} catch (InstantiationException e) {
 			System.err.println("The parser class " + this.parserClass + " is abstract");
 			e.printStackTrace();

@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -55,6 +55,7 @@ public class VariableMsg < V extends Addable<V>, U extends Addable<U> > extends 
 	 */
 	public VariableMsg(String functionName, UtilitySolutionSpace<V, U> marginalUtil) {
 		super(VARIABLE_MSG_TYPE, functionName, marginalUtil);
+		assert functionName.length() > 0 : "Nameless function";
 	}
 	
 	/** @see MessageWithPayload#fakeSerialize() */

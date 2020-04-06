@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -36,6 +36,7 @@ import frodo2.algorithms.StatsReporter;
 import frodo2.algorithms.XCSPparser;
 import frodo2.solutionSpaces.Addable;
 import frodo2.solutionSpaces.AddableInteger;
+import frodo2.solutionSpaces.DCOPProblemInterface;
 
 /** Counts the number of optimal solutions in a DCOP
  * @author Brammert Ottens
@@ -95,10 +96,11 @@ public class SolutionCounter< V extends Addable<V>, U extends Addable<U> > {
 		// Instantiate the modules that listen for the solution
 		ArrayList<StatsReporter> solGatherers = new ArrayList<StatsReporter> (2);
 		XCSPparser<V, U> parser = new XCSPparser<V, U> (problem);
-		CountSolutionsUTIL<V, U> utilModule = new CountSolutionsUTIL<V, U> (null, parser);
+		DCOPProblemInterface<V, U> prob = parser.parse();
+		CountSolutionsUTIL<V, U> utilModule = new CountSolutionsUTIL<V, U> (null, prob);
 		utilModule.setSilent(true);
 		solGatherers.add(utilModule);
-		CountSolutionsVALUE<V, U> valueModule = new CountSolutionsVALUE<V, U> (null, parser);
+		CountSolutionsVALUE<V, U> valueModule = new CountSolutionsVALUE<V, U> (null, prob);
 		valueModule.setSilent(true);
 		solGatherers.add(valueModule);
 		

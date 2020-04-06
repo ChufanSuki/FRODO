@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -26,6 +26,7 @@ package frodo2.solutionSpaces.hypercube;
 import frodo2.solutionSpaces.Addable;
 import frodo2.solutionSpaces.ProblemInterface;
 import frodo2.solutionSpaces.SolutionSpace;
+import frodo2.solutionSpaces.UtilitySolutionSpace;
 import frodo2.solutionSpaces.BasicUtilitySolutionSpace;
 
 import java.io.Externalizable;
@@ -55,6 +56,9 @@ import java.util.Map;
 
 public class BasicHypercube < V extends Addable<V>, U extends Serializable > 
 implements BasicUtilitySolutionSpace<V, U>, Externalizable {
+	
+	/** The last ID used to instantiate a BasicHypercube */
+	static private int lastID = -1;
 
 	/** The names of the variables of the hypercube ordered according to their order in the hypercube */
 	protected String[] variables;
@@ -111,7 +115,7 @@ implements BasicUtilitySolutionSpace<V, U>, Externalizable {
 	/** -INF if we are maximizing, +INF if we are minimizing */
 	protected U infeasibleUtil;
 	
-	/**Construct a new BasicHypercube with provided variables names, the domains of these variables and the utility values
+	/** Construct a new BasicHypercube with provided variables names, the domains of these variables and the utility values
 	 * @param variables_order 		the array containing the variables names ordered according to their order in the hypercube
 	 * @param variables_domains 	the domains of the variables contained in the variables_order array and ordered in the same order.
 	 * @param utility_values 		the utility values contained in a one-dimensional array. there should be a utility value for each 
@@ -125,7 +129,23 @@ implements BasicUtilitySolutionSpace<V, U>, Externalizable {
 		this(variables_order, variables_domains, utility_values, infeasibleUtil, null);
 	}
 	
-	/**Construct a new BasicHypercube with provided variables names, the domains of these variables and the utility values
+	/** Construct a new BasicHypercube with provided variables names, the domains of these variables and the utility values
+	 * @param name 					the name of the BasicHypercube
+	 * @param variables_order 		the array containing the variables names ordered according to their order in the hypercube
+	 * @param variables_domains 	the domains of the variables contained in the variables_order array and ordered in the same order.
+	 * @param utility_values 		the utility values contained in a one-dimensional array. there should be a utility value for each 
+	 * 								possible combination of values that the variables may take.
+	 * @param infeasibleUtil 		-INF if we are maximizing, +INF if we are minimizing
+	 * @warning variables_domains parameter needs to be sorted in ascending order.
+	 * @warning utility_values needs to be properly ordered, the first utility corresponds to the 
+	 * assignment in which each variable is assigned its smallest value.
+	 */
+	public BasicHypercube ( String name, String[] variables_order, V[][] variables_domains, U[] utility_values, U infeasibleUtil ) {
+		this(variables_order, variables_domains, utility_values, infeasibleUtil, null);
+		this.name = name;
+	}
+	
+	/** Construct a new BasicHypercube with provided variables names, the domains of these variables and the utility values
 	 * @param variables_order 		the array containing the variables names ordered according to their order in the hypercube
 	 * @param variables_domains 	the domains of the variables contained in the variables_order array and ordered in the same order.
 	 * @param utility_values 		the utility values contained in a one-dimensional array. there should be a utility value for each 
@@ -143,6 +163,7 @@ implements BasicUtilitySolutionSpace<V, U>, Externalizable {
 		
 		assert variables_order.length == variables_domains.length : "A hypercube must specify a domain for each of its variables";
 		
+		this.name = this.getClass().getSimpleName() + "_" + (++lastID);
 		this.variables = variables_order;
 		this.domains = variables_domains;
 		this.values = utility_values;
@@ -335,6 +356,17 @@ implements BasicUtilitySolutionSpace<V, U>, Externalizable {
 		this.values = (U[]) Array.newInstance((Class<U>) in.readObject(), this.number_of_utility_values);
 		for (int i = 0; i < this.number_of_utility_values; i++) 
 			this.values[i] = (U) in.readObject();
+	}
+
+	/** @see SolutionSpace#setProblem(ProblemInterface) */
+	public void setProblem(ProblemInterface<V, ?> problem) {
+		this.problem = problem;
+	}
+	
+	/** @see UtilitySolutionSpace#countsCCs() */
+	@Override
+	public boolean countsCCs () {
+		return this.problem != null;
 	}
 
 	/** Returns the number of utility values in the hypercube
@@ -590,7 +622,9 @@ implements BasicUtilitySolutionSpace<V, U>, Externalizable {
 	/** @see SolutionSpace#renameAllVars(java.lang.String[]) */
 	public BasicHypercube<V, U> renameAllVars(String[] newVarNames) {
 		assert newVarNames.length == this.variables.length : "Incorrect number of variables in input array";
-		return this.newInstance(newVarNames, domains, values, infeasibleUtil);
+		BasicHypercube<V, U> out = this.newInstance(this.name + "_named_vars", newVarNames, domains, values, infeasibleUtil);
+		out.setProblem(this.problem); // keep counting constraint checks
+		return out;
 	}
 
 	/** Return the index of the input variable in this hypercube
@@ -677,23 +711,25 @@ implements BasicUtilitySolutionSpace<V, U>, Externalizable {
 
 	/** @see java.lang.Object#toString() */
 	public String toString() {
-		StringBuilder hypercube = new StringBuilder();
+		StringBuilder hypercube = new StringBuilder("- ");
 		
-		hypercube.append("- " + this.getClass().getSimpleName());
+		hypercube.append(this.getClass().getSimpleName());
 		
 		// Display the name of the hypercube
 		if (this.name != null) 
 			hypercube.append(" (" + this.name + ")");
 		
-		hypercube.append(":\n");
-		
-		int length = variables.length;
-		
-		for( int i=0; i < length; i++) {
-			hypercube.append( variables[ i ] );
-			hypercube.append( " : " );
-			hypercube.append((domains == null || domains[i] == null ? null : Arrays.asList(domains[i])));
-			hypercube.append( "\n" );
+		if (this.variables != null) {
+			hypercube.append(":\n");
+
+			final int length = variables.length;
+
+			for( int i=0; i < length; i++) {
+				hypercube.append( variables[ i ] );
+				hypercube.append( " : " );
+				hypercube.append((domains == null || domains[i] == null ? null : Arrays.asList(domains[i])));
+				hypercube.append( "\n" );
+			}
 		}
 		
 //		hypercube.append("steps_hashmaps: " + Arrays.toString(this.steps_hashmaps) + "\n");
@@ -884,7 +920,7 @@ implements BasicUtilitySolutionSpace<V, U>, Externalizable {
 			new_values[ i ] = getUtilityNoNCCCs( this.assignment ); // re-ordering the variables in a space should not require constraint checks; it is syntactic sugar
 		}
 		
-		BasicHypercube< V, U > out = this.newInstance( variables_order, new_domains, new_values, this.infeasibleUtil );
+		BasicHypercube< V, U > out = this.newInstance( this.name + "_reordered_vars", variables_order, new_domains, new_values, this.infeasibleUtil );
 		out.problem = this.problem; // the output should still count constraint checks if I do
 		
 		return out;
@@ -1010,13 +1046,13 @@ implements BasicUtilitySolutionSpace<V, U>, Externalizable {
 		int augmentation_factor = 1;
 		
 		for (int i = 0 ; i < number_of_new_variables ; i++) {
-			assert Math.log((double) augmentation_factor) + Math.log((double) new_domains[i].length) < Math.log(Integer.MAX_VALUE) : 
-				"Size of utility array too big for an int";
+			if (Math.log((double) augmentation_factor) + Math.log((double) new_domains[i].length) >= Math.log(Integer.MAX_VALUE)) 
+				throw new OutOfMemoryError ("Size of utility array too big for an int");
 			augmentation_factor *= new_domains[i].length;
 		}
 		
-		assert Math.log((double) augmentation_factor) + Math.log((double) number_of_utility_values) < Math.log(Integer.MAX_VALUE) : 
-			"Size of utility array too big for an int";
+		if (Math.log((double) augmentation_factor) + Math.log((double) number_of_utility_values) >= Math.log(Integer.MAX_VALUE)) 
+			throw new OutOfMemoryError ("Size of utility array too big for an int");
 		int augmented_number_of_utility_values = augmentation_factor*number_of_utility_values;
 		
 		if(augmented_number_of_utility_values > values.length) {
@@ -1027,7 +1063,9 @@ implements BasicUtilitySolutionSpace<V, U>, Externalizable {
 			for(int i = 0 ; i < augmentation_factor ; i++)
 				System.arraycopy(values, 0, new_values, i*number_of_utility_values, number_of_utility_values);
 			
-			return this.newInstance(augmented_variables, augmented_domains, new_values, this.infeasibleUtil);
+			BasicHypercube<V, U> out = this.newInstance(this.name + "_augmented", augmented_variables, augmented_domains, new_values, this.infeasibleUtil);
+			out.setProblem(this.problem); // to continue counting constraint checks
+			return out;
 		}
 		else {
 			//there is enough space in the utility array, so we can reuse this hypercube
@@ -1357,8 +1395,8 @@ implements BasicUtilitySolutionSpace<V, U>, Externalizable {
 		for (int i = 0; i < nbrRemainingUtils; i++) 
 			newUtils[i] = iter.nextUtility();
 		
-		BasicHypercube<V, U> out = this.newInstance(remainingVars, remainingDoms, newUtils, this.infeasibleUtil);
-//		out.problem = this.problem; /// @bug Keep counting NCCCs if I do
+		BasicHypercube<V, U> out = this.newInstance(this.name + "_sliced", remainingVars, remainingDoms, newUtils, this.infeasibleUtil);
+		out.problem = this.problem;
 		
 		return out;
 	}	
@@ -1576,7 +1614,11 @@ implements BasicUtilitySolutionSpace<V, U>, Externalizable {
 			domains2[i] = domains[i].clone();
 		}
 		
-		return this.newInstance(variables.clone(), domains2, values.clone(), this.infeasibleUtil);
+		BasicHypercube<V, U> out = this.newInstance(this.name, variables.clone(), domains2, values.clone(), this.infeasibleUtil);
+		out.owner = this.owner;
+		out.problem = this.problem; // keep counting constraint checks
+		
+		return out;
 	}
 	
 	/** @see BasicUtilitySolutionSpace#resolve() */
@@ -1598,14 +1640,15 @@ implements BasicUtilitySolutionSpace<V, U>, Externalizable {
 	}
 
 	/** Creates a new instance of a BasicHypercube
+	 * @param name 				the name of the new BasicHypercube
 	 * @param new_variables 	list of variables
 	 * @param new_domains		list of domains
 	 * @param new_values		array of utility values
 	 * @param infeasibleUtil 	-INF if we are maximizing, +INF if we are minimizing
 	 * @return a new BasicHypercube
 	 */
-	protected BasicHypercube<V, U> newInstance(String[] new_variables, V[][] new_domains, U[] new_values, U infeasibleUtil) {
-		return new BasicHypercube<V, U> ( new_variables, new_domains, new_values, infeasibleUtil );
+	protected BasicHypercube<V, U> newInstance(String name, String[] new_variables, V[][] new_domains, U[] new_values, U infeasibleUtil) {
+		return new BasicHypercube<V, U> ( name, new_variables, new_domains, new_values, infeasibleUtil );
 	}
 
 	/** Creates a new instance of a ScalarBasicHypercube
@@ -1721,7 +1764,10 @@ implements BasicUtilitySolutionSpace<V, U>, Externalizable {
 				}
 			}
 		}
-		return newInstance (new_variables, new_domains, new_values, this.infeasibleUtil);
+		
+		BasicHypercube<V, U> out = newInstance (this.name + "_sliced", new_variables, new_domains, new_values, this.infeasibleUtil);
+		out.setProblem(problem); // keep counting constraint checks
+		return out;
 	}
 
 	/** The composition operation
@@ -1787,7 +1833,7 @@ implements BasicUtilitySolutionSpace<V, U>, Externalizable {
 				utilsKept[i++] = this.getUtility(vars, vals);
 			}
 			
-			return this.newInstance(varsKept, domsKept, utilsKept, this.infeasibleUtil);
+			return this.newInstance(this.name + "_composed", varsKept, domsKept, utilsKept, this.infeasibleUtil);
 		}
 		
 		// Variable order for this.iterator(): 1) varsOut; 2) varsInSubst; 3) remaining variables in this space but not in varsOut
@@ -1845,7 +1891,7 @@ implements BasicUtilitySolutionSpace<V, U>, Externalizable {
 				utilsKept[i++] = myIter.nextUtility();
 		}
 		
-		return this.newInstance(varsKept, domsKept, utilsKept, this.infeasibleUtil);
+		return this.newInstance(this.name + "_composed", varsKept, domsKept, utilsKept, this.infeasibleUtil);
 	}
 	
 	/**Checks if this hypercube contains the provided variables
@@ -2011,6 +2057,7 @@ implements BasicUtilitySolutionSpace<V, U>, Externalizable {
 	/** @see SolutionSpace#setName(String) */
 	public void setName(String name) {
 		this.name = name;
+		assert name != null : "Nameless space";
 	}
 
 	/** @see SolutionSpace#getRelationName() */

@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -22,7 +22,6 @@ How to contact the authors:
 
 package frodo2.algorithms.dpop.privacy;
 
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -50,7 +49,6 @@ import frodo2.communication.Queue;
 import frodo2.solutionSpaces.Addable;
 import frodo2.solutionSpaces.BasicUtilitySolutionSpace;
 import frodo2.solutionSpaces.DCOPProblemInterface;
-import frodo2.solutionSpaces.hypercube.Hypercube;
 
 /** A module that waits for the root variable to compute its optimal value, and then calls for a rerooting
  * @author Thomas Leaute
@@ -105,7 +103,7 @@ public class RerootRequester < V extends Addable<V>, U extends Addable<U> > impl
 	/** Whether to report stats */
 	private boolean reportStats = true;
 
-	/** For each internal variable, the number of variables it its constraint graph component */
+	/** For each internal variable, the number of variables in its constraint graph component */
 	private HashMap<String, Integer> countdownsInit = new HashMap<String, Integer> ();
 
 	/** For each internal variable, the number of remaining UTIL propagations */
@@ -216,7 +214,7 @@ public class RerootRequester < V extends Addable<V>, U extends Addable<U> > impl
 			}
 		}
 		
-		else if (msgType.equals(DFSgenerationWithOrder.VARIABLE_COUNT_TYPE)) { // the number of variables in a DFS
+		else if (msgType.equals(DFSgenerationWithOrder.VARIABLE_COUNT_TYPE)) { // the number of variables in the DFS
 			
 			VarNbrMsg msgCast = (VarNbrMsg) msg;
 			String var = msgCast.getDest();
@@ -241,7 +239,10 @@ public class RerootRequester < V extends Addable<V>, U extends Addable<U> > impl
 			DFSview<V, U> relationships = msgCast.getNeighbors();
 			
 			// If the variable is isolated, no need to reroot
-			if (this.problem.getNbrNeighbors(var) > 0) {
+			if (this.problem.getNbrNeighbors(var) == 0) 
+				this.roots.put(var, true);
+			
+			else {
 				
 				// Record the list of children
 				this.children.put(var, relationships.getChildren());
@@ -289,7 +290,7 @@ public class RerootRequester < V extends Addable<V>, U extends Addable<U> > impl
 				this.countdownsInit.put(var, countdown);
 			
 			// Check if this is the root
-			if (assignment != null && assignment.getNumberOfVariables() == 0) {
+			if (assignment != null && this.roots.get(var)) {
 
 				V value = assignment.getUtility(0).get(0);
 
@@ -298,28 +299,7 @@ public class RerootRequester < V extends Addable<V>, U extends Addable<U> > impl
 					this.queue.sendMessage(AgentInterface.STATS_MONITOR, new RootValueMsg (var, value));
 
 				// Add constraint var = value
-
-				// Construct the domains
-				V[] dom = this.problem.getDomain(var);
-				V[][] doms = (V[][]) Array.newInstance(dom.getClass(), 1);
-				doms[0] = dom;
-
-				// Construct the utilities
-				U zero = this.problem.getZeroUtility();
-				U[] utils = (U[]) Array.newInstance(zero.getClass(), dom.length);
-				U inf = (this.problem.maximize() ? this.problem.getMinInfUtility() : this.problem.getPlusInfUtility());
-				Arrays.fill(utils, inf);
-				for (int i = dom.length - 1; i >= 0; i--) {
-					if (dom[i].equals(value)) {
-						utils[i] = zero;
-						break;
-					}
-				}
-
-				// Add the constraint
-				Hypercube<V, U> equality = new Hypercube<V, U> (new String[] {var}, doms, utils, inf);
-				equality.setName(var + "=" + value);
-				this.problem.addSolutionSpace(equality);
+				this.problem.ground(var, value);
 
 				// Request a reroot if not all variables have been root already
 				if (this.infeasible || countdown == 1) 

@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -103,7 +103,10 @@ public class DecryptRequest<C extends Addable<C>, E extends AddableLimited<C,E>>
 	/** @see frodo2.communication.MessageWith3Payloads#toString() */
 	public String toString(){
 		return "DECRYPTION REQUEST:\n" +
-				"\tdecryptFor: "+decryptFor()+"\n\tmin1: "+this.getPayload1()+"\tinitialMin1: "+this.initialMin1
-				+"\n\tmin2: "+this.getPayload2()+"\tinitialMin2: "+this.initialMin2;
+				"\tdecryptFor: "+decryptFor()
+				+"\n\tmin1       : "+this.getPayload1()
+				+"\n\tinitialMin1: "+this.initialMin1
+				+"\n\tmin2       : "+this.getPayload2()
+				+"\n\tinitialMin2: "+this.initialMin2;
 	}
 }

@@ -1,3 +1,41 @@
+CHANGES IN VERSION 2.18 SINCE VERSION 2.17.1
+
+Major changes: 
+	- Added API support for JaCoP's full constraint catalog via the new JaCoPproblem class, using cloneable subclasses. 
+	- Fixed a major memory leak in the JaCoP interface, which resulted in constraint checks having a complexity that was not constant, 
+	but rather linear in the number of past constraint checks. This bugfix has resulted in dramatic speedups on large problems: 
+		- On meeting scheduling problems: up to 100x for ADOPT, ASO-DPOP and O-DPOP; 20x for MGM2; 10x for Max-Sum; 3x for DSA and MGM; 
+		- On MaxDisCSPs: up to 100x for ADOPT and O-DPOP; 20x for ASO-DPOP and Max-Sum; 2x for SynchBB;
+		- On graph coloring: up to 20x for ASO-DPOP and O-DPOP, 2x for DSA, MGM and MGM2; 20% for SynchBB; 
+	- XCSP parsers no longer implement DCOPProblemInterfaces; instead their new parse() method returns one that uses more efficient datastructures than XCSP. 
+	This has also resulted in speedups on small problems, on which the parsing overhead used to be significant: 
+		- On meeting scheduling problems: up to 2.5x for DSA, MGM, DPOP and MB-DPOP; 2x for ADOPT, ASO-DPOP, O-DPOP and SynchBB; 1.5x for MGM2; 
+		- On MaxDisCSPs: up to 4x for Max-Sum; 2x for AFB and SynchBB; 
+		- On graph coloring: up to 2x for DPOP; 
+	- Fixed missing re-encryptions in P2-DPOP. This bugfix has resulted in slowdowns on small problems for P2-DPOP: 
+		- On meeting scheduling problems: up to 2x slowdown; 
+		- On graph coloring: up to 35% slowdown; 
+	- Fixed a conceptual bug in P3/2-DPOP, following which a DFS rerooting could be triggered while the DFS was still needed for SecureCircularRouting. 
+	This was fixed by having SecureCircularRouting keep using the initial DFS. No empirically measured performance impact. 
+	- Scatter plots can now display different markers for different problem size parameter values. 
+	- Fixed a bug in the XCSP parser when encountering infeasible constraints, which were incorrectly treated as feasible. 
+	- Fixed a bug following which the communication performance metrics were not correctly summed up by message type. 
+	- Fixed bugs in the counting of NCCCs (some constraint checks were skipped). 
+	
+Minor changes: 
+	- Fixed a bug in AbstractDCOPsolver, which used to override message types in the constructor rather than in the solve() method, 
+	resulting in interferences between solvers. Also added missing message type overrides that could result in interferences between solvers. 
+	- Fixed bugs following which the SingleQueueAgent and the CentralLinearOrdering module would incorrectly make changes to the list of agents in the problem. 
+	- Solved an inf-inf bug in MGM and MGM2. 
+	- Fixed a bug when attempting to plot infinite values. 
+	- Fixed a bug in the JaCoPutilSpace.iterator() methods, which could result in an "inf - inf" error on spaces with infeasible default utilities.	
+	- Fixed a synchronization bug in the visualizer control panel that could make message types appear multiple times. 
+	- Caught rare misleading "division by zero" exceptions that were due to integer overflows when attempting to create too large arrays. 
+	- Fixed the (benign) NullPointerExceptions that used to be thrown when showing message exchanges along edges. 
+	- Added constructors to the solvers that set the shift for the ProblemRescaler. 
+	- Scatter plots can now display different markers for different problem size parameter values, to help identify and investigate corner cases. 
+
+
 CHANGES IN VERSION 2.17.1 SINCE VERSION 2.17
 
 Major changes: none  

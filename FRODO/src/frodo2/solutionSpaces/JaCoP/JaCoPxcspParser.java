@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -38,17 +38,22 @@ import java.util.regex.Pattern;
 
 import org.jdom2.Document;
 import org.jdom2.Element;
-
-import org.jacop.constraints.Alldifferent;
-import org.jacop.constraints.Cumulative;
-import org.jacop.constraints.Diff2;
-import org.jacop.constraints.ExtensionalConflictVA;
-import org.jacop.constraints.ExtensionalSupportSTR;
-import org.jacop.constraints.LinearInt;
+import org.jacop.constraints.AlldifferentCloneable;
+import org.jacop.constraints.CumulativeCloneable;
+import org.jacop.constraints.Constraint;
+import org.jacop.constraints.DecomposedConstraint;
+import org.jacop.constraints.Diff2Cloneable;
+import org.jacop.constraints.ElementIntegerCloneable;
+import org.jacop.constraints.ElementVariableCloneable;
+import org.jacop.constraints.ExtensionalConflictVACloneable;
+import org.jacop.constraints.ExtensionalSupportSTRCloneable;
+import org.jacop.constraints.LinearIntCloneable;
+import org.jacop.core.FailException;
 import org.jacop.core.IntDomain;
-import org.jacop.core.IntVar;
+import org.jacop.core.IntVarCloneable;
 import org.jacop.core.IntervalDomain;
-import org.jacop.core.Store;
+import org.jacop.core.StoreCloneable;
+import org.jacop.core.Var;
 
 import frodo2.algorithms.XCSPparser;
 import frodo2.solutionSpaces.Addable;
@@ -66,7 +71,7 @@ import frodo2.solutionSpaces.hypercube.ScalarHypercube;
 public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<AddableInteger, U> {
 
 	/** Constraint type */
-	protected enum Constraint {
+	protected enum ConstraintType {
 		/** Extensional soft constraint described by a soft relation */
 		EXTENSIONAL, 
 		/** Intensional constraint described by a predicate or a function */
@@ -77,8 +82,8 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 		GLOBAL 
 	}
 
-	/** Used for serialization */
-	private static final long serialVersionUID = -7421948182797306824L;
+	/** The JaCoP store */
+	private StoreCloneable store;
 
 	/** Constructor
 	 * @param probDoc 	the problem Document in XCSP format
@@ -116,9 +121,10 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 		super.setUtilClass(utilClass);
 	}
 
-	/** @see XCSPparser#getSpaces(Set, boolean, boolean, Set) */
+	/** @see XCSPparser#getSpaces(Set, boolean, boolean, Set, DCOPProblemInterface) */
 	@Override
-	protected List< JaCoPutilSpace<U> > getSpaces (Set<String> vars, final boolean withAnonymVars, final boolean getProbs, Set<String> forbiddenVars) {
+	protected List< JaCoPutilSpace<U> > getSpaces (Set<String> vars, final boolean withAnonymVars, final boolean getProbs, Set<String> forbiddenVars, 
+			DCOPProblemInterface<AddableInteger, U> problem) {
 
 		U infeasibleUtil = (super.maximize() ? super.getMinInfUtility() : super.getPlusInfUtility());
 
@@ -246,7 +252,7 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 	 * @param forbiddenVars 		any space involving any of these variables will be ignored
 	 * @todo Reuse code. 
 	 */
-	protected void parseConstraint(ArrayList< JaCoPutilSpace<U> > spaces, Element constraint, 
+	public void parseConstraint(ArrayList< JaCoPutilSpace<U> > spaces, Element constraint, 
 			HashMap<String, AddableInteger[]> variablesHashMap, Element relation, 
 			Set<String> vars, final boolean getProbs, final boolean withAnonymVars, U infeasibleUtil, Set<String> forbiddenVars) {
 
@@ -267,31 +273,114 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 		// Skip this constraint if if involves any of the forbidden variables
 		if (forbiddenVars != null) 
 			for (String varName : varNames) 
-				if (forbiddenVars.contains(varName)) {
+				if (forbiddenVars.contains(varName)) 
 					return;
-				}
 
 		AddableInteger[][] variables_domain = (AddableInteger[][]) Array.newInstance(variablesHashMap.values().iterator().next().getClass(), varNames.length);
-
 		int no = -1;
-		boolean hasAnonymVar = false; // whether one variable in the scope has no specified owner
 		for (String n : varNames) {
-			hasAnonymVar = hasAnonymVar || (this.getOwner(n) == null);
+
+			// If required, ignore the constraint if its scope contains variables with unknown owners
+			if (!getProbs && !withAnonymVars && this.getOwner(n) == null) 
+				return;
+
 			no++;
 			variables_domain[no] = variablesHashMap.get(n);
 			assert variables_domain[no] != null : "Unknown domain for variable `" + n + "'";
 		}
+		
+		if (this.store == null) 
+			this.createStore();
 
-		// If required, ignore the constraint if its scope contains variables with unknown owners
-		if (!getProbs && !withAnonymVars && hasAnonymVar){
-			return;
+		// Parse the constraint
+		ArrayList<Constraint> constraints = new ArrayList<Constraint> ();
+		ArrayList< DecomposedConstraint<Constraint> > decompCons = new ArrayList< DecomposedConstraint<Constraint> > ();
+		ArrayList<IntVarCloneable> utilVars = new ArrayList<IntVarCloneable> ();
+		String relName;
+		if (constraint.getAttributeValue("reference").startsWith("global:")) // global constraint
+			JaCoPxcspParser.parseGlobalConstraint(constraint, this.store, constraints, decompCons, utilVars);
+		
+		else if ((relName = relation.getName()).equals("relation")) { // relation
+			assert (Integer.valueOf(constraint.getAttributeValue("arity")) 
+					== Integer.valueOf(relation.getAttributeValue("arity"))) : 
+						"The relation referenced by the constraint is not of the same arity!";
+			JaCoPxcspParser.parseRelation(constraint, relation, this.store, constraints, decompCons, utilVars);
+
+		} else if (relName.equals("predicate") || relName.equals("function")) // predicate or function
+			JaCoPxcspParser.parsePredicate(constraint, relation, this.store, constraints, decompCons, utilVars);
+
+		else 
+			assert false: "unknown XCSP contraint reference " + relName;
+		
+		// Look up the variables in the store
+		IntVarCloneable[] storeVars = new IntVarCloneable [varNames.length];
+		for (int i = varNames.length - 1; i >= 0; i--) {
+			storeVars[i] = (IntVarCloneable) store.findVariable(varNames[i]);
+			assert storeVars[i] != null : "Variable `" + varNames[i] + "' not found in the store";
 		}
 
-
-
-		JaCoPutilSpace<U> current = new JaCoPutilSpace<U> (name, owner, constraint, relation, varNames, variables_domain, super.maximize(),infeasibleUtil);
+		JaCoPutilSpace<U> current = 
+				new JaCoPutilSpace<U> (name, owner, constraints, decompCons, utilVars, storeVars, variables_domain, super.maximize(), infeasibleUtil);
 
 		spaces.add(current);
+	}
+
+	/** Initializes the JaCoP store with the variables */
+	private void createStore() {
+		
+		// Instantiate the store
+		this.store = new StoreCloneable ();
+		
+		// Parse the domains
+		HashMap<String, IntervalDomain> allIntDoms = new HashMap<String, IntervalDomain> ();
+		String values;
+		IntervalDomain dom;
+		for (Element domainElmt : this.root.getChild("domains").getChildren("domain")) {
+			
+			values = domainElmt.getText().trim();
+			
+			// Instantiate the domain (yet to be filled)
+			allIntDoms.put(domainElmt.getAttributeValue("name"), dom = new IntervalDomain ());
+
+			// Loop through the intervals
+			Pattern pattern = Pattern.compile("\\s+");
+			String[] intervals = pattern.split(values);
+			pattern = Pattern.compile("\\.\\.");
+			String[] parts;
+			int intVal;
+			for (String interval : intervals) {
+
+				// Skip whitespace separators
+				if (interval.equals(""))
+					continue;
+
+				// Check whether this is an interval or a singleton
+				parts = pattern.split(interval);
+				switch (parts.length) {
+				
+				case 1: // singleton
+					dom.addDom(new IntervalDomain (intVal = Integer.parseInt(parts[0].trim()), intVal));
+					break;
+					
+				case 2: // interval
+					dom.addDom(new IntervalDomain (Integer.parseInt(parts[0].trim()), Integer.parseInt(parts[1].trim())));
+					break;
+					
+				default: // should not happen
+					System.err.println("Syntax error while parsing the following domain: " + values);
+				}
+			}
+		}
+		
+		// Parse the variables
+		for (Element varElmt : this.root.getChild("variables").getChildren("variable")) {
+			
+			// Loop up the domain
+			dom = allIntDoms.get(varElmt.getAttributeValue("domain"));
+			assert dom != null : "Definition of domain `" + varElmt.getAttributeValue("domain") + "' not found";
+			
+			new IntVarCloneable (store, varElmt.getAttributeValue("name"), dom.clone());
+		}
 	}
 
 	/** @see XCSPparser#groundVars(String[], Addable[]) */
@@ -350,6 +439,7 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 			// Join the slice with the output
 			output = output.join(slice);
 		}
+		
 		return output;
 	}
 
@@ -358,9 +448,12 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 	 * @param constraint		the jdom element describing the constraint
 	 * @param relation			the jdom element describing the relation
 	 * @param store				the store where the variables exist and in which we want to impose the extensional soft constraints
+	 * @param constraints 		a list to which Constraints will be added
+	 * @param decompCons 		a list to which DecomposeConstraints will be added
 	 * @param utilVars			the list of utility variables to which we need to add the utility variable of this constraint
 	 */
-	public static void parseRelation(Element constraint, Element relation, Store store, ArrayList<IntVar> utilVars){
+	public static void parseRelation(Element constraint, Element relation, StoreCloneable store, 
+			List<Constraint> constraints, List< DecomposedConstraint<Constraint> > decompCons, ArrayList<IntVarCloneable> utilVars){
 
 		String semantics = relation.getAttributeValue("semantics");
 
@@ -388,11 +481,11 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 		if(semantics.equals("soft")){
 
 			// JaCoP Variables = variables of the hypercube + the utility variable
-			IntVar[] vars = new IntVar[varNames.length + 1];
+			IntVarCloneable[] vars = new IntVarCloneable[varNames.length + 1];
 
-			IntVar v;
+			IntVarCloneable v;
 			for(int i = 0; i < varNames.length; i++){
-				v = (IntVar)store.findVariable(varNames[i]);
+				v = (IntVarCloneable)store.findVariable(varNames[i]);
 
 				// All these variables must be in the store
 				assert v != null : "problem: variable " + varNames[i] + " not found in the store!";
@@ -585,28 +678,31 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 					}
 				}
 			}
+			
+			// Check if the utility variable for this space has already been created
+			IntVarCloneable currentUtilVar = (IntVarCloneable) store.findVariable("util_" + constraintName);
+			if (currentUtilVar == null) // variable not found; create it 
+				currentUtilVar = new IntVarCloneable (store, "util_" + constraintName, utilDom);
 
-			IntVar currentUtilVar = new IntVar (store, "util_" + constraintName, utilDom);
 			// If the relation can only have the infeasible utility, the utility variable has an empty domain
-			if(!utilDom.isEmpty()){
+			if(!utilDom.isEmpty()) 
 				utilVars.add(currentUtilVar);
-			}
+			
 			vars[arity] = currentUtilVar;
 
-			// Create and impose the constraint
 			if (relation.getAttribute("hypercube") != null) // use a hypercube-based constraint
-				store.impose(new ExtensionalSupportHypercube (vars, solutions));
+				constraints.add(new ExtensionalSupportHypercube (store, vars, solutions.toArray(new int [solutions.size()][arity+1])));
 			else 
-				store.impose(new ExtensionalSupportSTR(vars, solutions.toArray(new int[solutions.size()][arity+1])));
+				constraints.add(new ExtensionalSupportSTRCloneable(vars, solutions.toArray(new int[solutions.size()][arity+1])));
 
 		}else{ // hard constraint
 
 			// JaCoP Variables = variables of the hypercube + the utility variable
-			IntVar[] vars = new IntVar[varNames.length];
+			IntVarCloneable[] vars = new IntVarCloneable[varNames.length];
 
-			IntVar v;
+			IntVarCloneable v;
 			for(int i = 0; i < varNames.length; i++){
-				v = (IntVar)store.findVariable(varNames[i]);
+				v = (IntVarCloneable)store.findVariable(varNames[i]);
 
 				// All these variables must be in the store
 				assert v != null : "problem: variable " + varNames[i] + " not found in the store!";
@@ -641,23 +737,16 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 			}
 
 			// The relation indicates the supported tuples
-			if(semantics.equals("supports")){
-
-				ExtensionalSupportSTR ext = new ExtensionalSupportSTR(vars, solutions.toArray(new int[solutions.size()][arity]));
-				store.impose(ext);
+			if(semantics.equals("supports")) 
+				constraints.add(new ExtensionalSupportSTRCloneable(vars, solutions.toArray(new int[solutions.size()][arity])));
 
 			// The relation indicates the conflicting tuples
-			}else if(semantics.equals("conflicts")){
-
-				if(solutions.size() > 0){
-					ExtensionalConflictVA ext = new ExtensionalConflictVA(vars, solutions.toArray(new int[solutions.size()][arity]));
-					store.impose(ext);
-				}
+			else if(semantics.equals("conflicts") && solutions.size() > 0) 
+				constraints.add(new ExtensionalConflictVACloneable(vars, solutions.toArray(new int[solutions.size()][arity])));
 
 			// Unknown semantic
-			}else{
+			else 
 				System.out.println("The semantics of the relation " + name + " are not valid");
-			}
 		}
 	}
 
@@ -665,26 +754,76 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 	 * @param constraint	the jdom element describing the constraint
 	 * @param predicate		the jdom element describing the predicate or function
 	 * @param store			the store where the variables exist and in which we want to impose the intentional hard constraints
+	 * @param constraints 	a list to which Constraints will be added
+	 * @param decompCons 	a list to which DecomposeConstraints will be added
 	 * @param utilVars		the list of utility variables to which we need to add the utility variable of this constraint (if it is a soft constraint)
 	 * @todo test   
 	 */
-	public static void parsePredicate(Element constraint, Element predicate, Store store, ArrayList<IntVar> utilVars){
+	public static void parsePredicate(Element constraint, Element predicate, StoreCloneable store, 
+			List<Constraint> constraints, List< DecomposedConstraint<Constraint> > decompCons, ArrayList<IntVarCloneable> utilVars){
 		assert constraint.getChild("parameters") != null;
 		assert predicate.getChild("parameters") != null;
 		assert predicate.getChild("expression") != null;
 		assert predicate.getChild("expression").getChild("functional") != null;
+		
 		Predicate pred = new Predicate(constraint.getChildText("parameters"), predicate.getChildText("parameters"), predicate.getChild("expression").getChildText("functional"), store);
-		pred.imposeDecomposition(store);
+		decompCons.add(pred);
+
 		if (pred.utilVar != null) 
 			utilVars.add(pred.utilVar);
 	}
-
-	/**
-	 * @param constraint			the jdom element describing the global constraint
-	 * @param store					the store where the variables exist and in which we want to impose the intensional hard constraints
-	 * @todo test   
+	
+	/** Parses a constraint and imposes it
+	 * @param constraint	the jdom element describing the global constraint
+	 * @param store			the store where the variables exist
+	 * @throws FailException thrown constraint imposition resulted in infeasibility
 	 */
-	public static void parseGlobalConstraint(Element constraint, Store store){
+	public static void imposeGlobalConstraint (Element constraint, StoreCloneable store) 
+			throws FailException {
+		
+		ArrayList<Constraint> constraints = new ArrayList<Constraint> ();
+		ArrayList< DecomposedConstraint<Constraint> > decompCons = new ArrayList< DecomposedConstraint<Constraint> > ();
+		
+		/// @todo Add support for utility variables
+		parseGlobalConstraint(constraint, store, constraints, decompCons, null);
+		
+		for (Constraint cons : constraints) 
+			store.impose(cons);
+		for (DecomposedConstraint<Constraint> cons : decompCons) 
+			store.imposeDecomposition(cons);
+	}
+	
+	/** Parses a predicate and imposes it
+	 * @param constraint		the jdom element describing the constraint
+	 * @param predicate			the jdom element describing the predicate
+	 * @param store				the store where the variables exist and in which we want to impose the extensional soft constraints
+	 * @param utilVars			the list of utility variables to which we need to add the utility variable of this constraint
+	 * @throws FailException 	thrown constraint imposition resulted in infeasibility
+	 */
+	public static void imposePredicate (Element constraint, Element predicate, StoreCloneable store, ArrayList<IntVarCloneable> utilVars) 
+			throws FailException {
+		
+		ArrayList<Constraint> constraints = new ArrayList<Constraint> ();
+		ArrayList< DecomposedConstraint<Constraint> > decompCons = new ArrayList< DecomposedConstraint<Constraint> > ();
+		
+		/// @todo Add support for utility variables
+		parsePredicate(constraint, predicate, store, constraints, decompCons, utilVars);
+		
+		for (Constraint cons : constraints) 
+			store.impose(cons);
+		for (DecomposedConstraint<Constraint> cons : decompCons) 
+			store.imposeDecomposition(cons);
+	}
+
+	/** Parses a constraint without imposing it
+	 * @param constraint	the jdom element describing the global constraint
+	 * @param store			the store where the variables exist
+	 * @param constraints 	a list to which Constraints will be added
+	 * @param decompCons 	a list to which DecomposeConstraints will be added
+	 * @param utilVars 		a list to which utility variables will be added
+	 */
+	public static void parseGlobalConstraint(Element constraint, StoreCloneable store, 
+			List<Constraint> constraints, List< DecomposedConstraint<Constraint> > decompCons, List<IntVarCloneable> utilVars){
 
 		// Extract the variables in the constraint
 		String scope = constraint.getAttributeValue("scope");
@@ -700,7 +839,7 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 			pattern = Pattern.compile("\\[(.*)\\]\\s*(-?\\d+)");
 			Pattern pattern2 = Pattern.compile("\\{\\s*(-?\\d+)\\s+(\\S+)\\s*\\}");
 
-			ArrayList<IntVar> vars = new ArrayList<IntVar>();
+			ArrayList<IntVarCloneable> vars = new ArrayList<IntVarCloneable>();
 			ArrayList<Integer> weights = new ArrayList<Integer>();
 
 			Matcher m = pattern.matcher(parameters);
@@ -712,19 +851,19 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 			Pattern constantPat = Pattern.compile("-?\\d+");
 			
 			int i = 0;
-			IntVar v;
+			IntVarCloneable v;
 			for(; m.find(); i++){
 				
 				// constant parameter
 				if(constantPat.matcher(m.group(2)).matches()){
 					int val = parseInt(m.group(2));
-					v = new IntVar(store, val, val);
+					v = new IntVarCloneable (store, val, val);
 				// variable name
 				}else{
 					assert i < arity : "The weightedSum constraint `" + constraint.getAttributeValue("name") + "' contains more terms than its arity (" + constraint.getAttributeValue("arity") + ")";
 					assert Arrays.asList(varNames).contains(m.group(2)): "mismatch between the constraint scope and the variables in parameters!";
 
-					v = (IntVar) store.findVariable(m.group(2));
+					v = (IntVarCloneable) store.findVariable(m.group(2));
 					// All these variables must be in the store
 					assert v != null: "The variable " + m.group(2) + " cannot be found in the store!";
 				}
@@ -732,7 +871,7 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 				weights.add(parseInt(m.group(1)));
 			}
 
-			IntVar rightHandVar = new IntVar(store, "rhs_" + new Object().hashCode(), rightHandVal, rightHandVal);
+			IntVarCloneable rightHandVar = new IntVarCloneable (store, "rhs_" + new Object().hashCode(), rightHandVal, rightHandVal);
 			vars.add(rightHandVar);
 			weights.add(-1);
 
@@ -767,7 +906,7 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 				assert false: "atom " + atom + " not recognized!";
 			}
 
-			store.impose(new LinearInt(store, vars, weights, op, 0));
+			constraints.add(new LinearIntCloneable(vars, weights, op, 0));
 
 		}else if(refName.equals("global:allDifferent")){
 			
@@ -781,18 +920,18 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 			Pattern constantPat = Pattern.compile("-?\\d+");
 			
 			// find JaCoP variables
-			IntVar[] vars = new IntVar[paramVarNames.length];
+			IntVarCloneable[] vars = new IntVarCloneable[paramVarNames.length];
 
-			IntVar v;
+			IntVarCloneable v;
 			for(int i = 0; i < paramVarNames.length; i++){
 				// constant parameter
 				if(constantPat.matcher(paramVarNames[i]).matches()){
 					int val = parseInt(paramVarNames[i]);
-					v = new IntVar(store, val, val);
+					v = new IntVarCloneable(store, val, val);
 				// variable name
 				}else{	
 					assert Arrays.asList(varNames).contains(paramVarNames[i]): "mismatch between the constraint scope and the variables in parameters!";
-					v = (IntVar)store.findVariable(paramVarNames[i]);
+					v = (IntVarCloneable)store.findVariable(paramVarNames[i]);
 				
 					// All these variables must be in the store
 					assert v != null : "problem: variable " + paramVarNames[i] + " not found in the store! Note: constant parameters not supported in allDifferent";
@@ -800,7 +939,7 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 				vars[i] = v;
 			}
 
-			store.impose(new Alldifferent(vars));
+			constraints.add(new AlldifferentCloneable(vars));
 		
 		} else if (refName.equals("global:diff2")) {
 			
@@ -819,7 +958,7 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 			Pattern constPat = Pattern.compile("-?\\d+"); // a constant (vs. a variable)
 			
 			// Loop over the rectangles
-			ArrayList< ArrayList<IntVar> > rectangles = new ArrayList< ArrayList<IntVar> > ();
+			ArrayList< ArrayList<IntVarCloneable> > rectangles = new ArrayList< ArrayList<IntVarCloneable> > ();
 			while(matcher.find()) {
 				curlyMat = curlyPat.matcher(matcher.group(1));
 				curlyMat.find();
@@ -831,7 +970,7 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 					"Invalid XCSP description of a rectangle (inconsistent numbers of dimensions): " + matcher.group(1);
 				assert origins.length == 2: "Expected 2 dimensions, encountered " + origins.length;
 				
-				ArrayList<IntVar> rectVars = new ArrayList<IntVar> (2 * origins.length);
+				ArrayList<IntVarCloneable> rectVars = new ArrayList<IntVarCloneable> (2 * origins.length);
 				rectangles.add(rectVars);
 				for (String[] vars : allVars) {
 					for (String var : vars) {
@@ -840,16 +979,16 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 						/// @todo Reuse code by creating a method for this
 						if (constPat.matcher(var).matches()) {
 							int constant = parseInt(var);
-							rectVars.add(new IntVar (store, constant, constant));
+							rectVars.add(new IntVarCloneable (store, constant, constant));
 						} else {
 							assert store.findVariable(var) != null : "Unknown variable: " + var;
-							rectVars.add((IntVar) store.findVariable(var));
+							rectVars.add((IntVarCloneable) store.findVariable(var));
 						}
 					}
 				}
 			}
 			
-			store.impose(new Diff2 (rectangles));
+			constraints.add(new Diff2Cloneable (rectangles));
 			
 		} else if (refName.equals("global:cumulative")) {
 			
@@ -863,15 +1002,15 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 			String limit = m.group(2);
 			
 			// Get the variable for the limit
-			IntVar limitVar;
+			IntVarCloneable limitVar;
 			Pattern constPat = Pattern.compile("-?\\d+"); // a constant (vs. a variable)
 			/// @todo Reuse code by creating a method for this
 			if (constPat.matcher(limit).matches()) { // a constant
 				int constant = parseInt(limit);
-				limitVar = new IntVar (store, constant, constant);
+				limitVar = new IntVarCloneable (store, constant, constant);
 			} else {
 				assert store.findVariable(limit) != null : "Unknown variable: " + limit;
-				limitVar = (IntVar) store.findVariable(limit);
+				limitVar = (IntVarCloneable) store.findVariable(limit);
 			}
 			
 			
@@ -887,10 +1026,10 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 			parameters = parameters.substring(1, parameters.length() - 1); // remove the first and last curly brackets
 			String[] tasks = parameters.split("\\}\\s*\\{");
 			final int nbrTasks = tasks.length;
-			IntVar[] starts = new IntVar [nbrTasks];
-			IntVar[] durations = new IntVar [nbrTasks];
-			IntVar[] resources = new IntVar [nbrTasks];
-			IntVar[][] vars = new IntVar[][] { starts, durations, resources };
+			IntVarCloneable[] starts = new IntVarCloneable [nbrTasks];
+			IntVarCloneable[] durations = new IntVarCloneable [nbrTasks];
+			IntVarCloneable[] resources = new IntVarCloneable [nbrTasks];
+			IntVarCloneable[][] vars = new IntVarCloneable[][] { starts, durations, resources };
 			for (int i = nbrTasks - 1; i >= 0; i--) { // for each task
 				String[] task = tasks[i].trim().split("\\s+");
 				
@@ -900,15 +1039,15 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 					/// @todo Reuse code by creating a method for this
 					if (constPat.matcher(var).matches()) { // a constant
 						int constant = parseInt(var);
-						vars[j][i] = new IntVar (store, constant, constant);
+						vars[j][i] = new IntVarCloneable (store, constant, constant);
 					} else {
 						assert store.findVariable(var) != null : "Unknown variable: " + var;
-						vars[j][i] = (IntVar) store.findVariable(var);
+						vars[j][i] = (IntVarCloneable) store.findVariable(var);
 					}
 				}
 			}
 			
-			store.impose(new Cumulative (starts, durations, resources, limitVar, true, true, tight));
+			constraints.add(new CumulativeCloneable (starts, durations, resources, limitVar, true, true, tight));
 			
 		} else if (refName.equals("global:element")) {
 			
@@ -925,18 +1064,18 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 			
 			// Parse the index variable
 			assert store.findVariable(indexVarStr) != null : "Unknown variable: " + indexVarStr;
-			IntVar indexVar = (IntVar) store.findVariable(indexVarStr);
+			IntVarCloneable indexVar = (IntVarCloneable) store.findVariable(indexVarStr);
 			
 			// Parse the other variable
-			IntVar var;
+			IntVarCloneable var;
 			Pattern constPat = Pattern.compile("-?\\d+"); // a constant (vs. a variable)
 			/// @todo Reuse code by creating a method for this
 			if (constPat.matcher(varStr).matches()) { // a constant
 				int constant = parseInt(varStr);
-				var = new IntVar (store, constant, constant);
+				var = new IntVarCloneable (store, constant, constant);
 			} else {
 				assert store.findVariable(varStr) != null : "Unknown variable: " + varStr;
-				var = (IntVar) store.findVariable(varStr);
+				var = (IntVarCloneable) store.findVariable(varStr);
 			}
 			
 			// Parse the list
@@ -954,28 +1093,28 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 				for (int i = 0; i < listSize; i++) 
 					list.add(parseInt(strList[i]));
 				
-				store.impose(new org.jacop.constraints.ElementInteger(indexVar, list, var));
+				store.impose(new ElementIntegerCloneable(indexVar, list, var));
 				
 			} else { // use ElementVariable
 				
-				IntVar[] list = new IntVar [listSize];
+				IntVarCloneable[] list = new IntVarCloneable [listSize];
 				String elem;
 				Pattern intervPat = Pattern.compile("-?\\d+\\.\\.-?\\d+"); // a constant followed by two dots followed by a constant
 				for (int i = 0; i < listSize; i++) {
 					
 					if (constPat.matcher(elem = strList[i].trim()).matches()) { // a constant
 						int constant = parseInt(elem);
-						list[i] = new IntVar (store, constant, constant);
+						list[i] = new IntVarCloneable (store, constant, constant);
 					} else if (intervPat.matcher(elem).matches()) { // an interval 
 						String[] interval = elem.split("\\.\\.");
-						list[i] = new IntVar (store, parseInt(interval[0]), parseInt(interval[1]));
+						list[i] = new IntVarCloneable (store, parseInt(interval[0]), parseInt(interval[1]));
 					} else { // a variable
 						assert store.findVariable(elem) != null : "Unknown variable: " + elem;
-						list[i] = (IntVar) store.findVariable(elem);
+						list[i] = (IntVarCloneable) store.findVariable(elem);
 					}
 				}
 				
-				store.impose(new org.jacop.constraints.Element(indexVar, list, var));
+				store.impose(new ElementVariableCloneable (indexVar, list, var));
 			}
 			
 			//store.impose(new Cumulative (starts, durations, resources, limitVar, true, true, tight));
@@ -986,7 +1125,10 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 		}
 	}
 
-	/** @see DCOPProblemInterface#rescale(Addable, Addable) */
+	/** Rescales the problem
+	 * @param multiply 	multiplies all costs/utilities by \a multiply
+	 * @param add 		after multiplying all costs/utilities by \a multiply (if required), adds \a add
+	 */
 	public void rescale(U multiply, U add) {
 
 		Element relations = this.root.getChild("relations");
@@ -1109,19 +1251,19 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 
 				String refName = constraint.getAttributeValue("reference");
 
-				Constraint cons = Constraint.EXTENSIONAL;
+				ConstraintType cons = ConstraintType.EXTENSIONAL;
 
 				// Check the nature of the constraint
 
 				// Global constraint
 				if(constraint.getAttributeValue("reference").startsWith("global:")){
 
-					cons =  Constraint.GLOBAL;
+					cons =  ConstraintType.GLOBAL;
 
 					// Constraint in intension
 				}else if(constraint.getChild("parameters") != null){
 
-					cons = Constraint.INTENSIONAL;
+					cons = ConstraintType.INTENSIONAL;
 
 				}
 
@@ -1371,9 +1513,46 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 		try {
 			return Integer.parseInt(str);
 		} catch (NumberFormatException e) { // not an int; try to parse as a double and truncate
-			System.err.println("WARNING! Attempting to parse `" + str + "' as a double and truncate it to an int");
+			assert warnTruncation(str);
 			return (int) Double.parseDouble(str);
 		}
+	}
+
+	/** Warns for truncation
+	 * @param str 	the string
+	 * @return true
+	 */
+	static private boolean warnTruncation (String str) {
+		System.err.println("WARNING! Attempting to parse `" + str + "' as a double and truncate it to an int");
+		return true;
+	}
+	
+	/** @see XCSPparser#parse() */
+	@Override
+	public JaCoPproblem<U> parse() {
+		
+		JaCoPproblem<U> problem = new JaCoPproblem<U> (this.maximize(), this.publicAgents, this.mpc, this.extendedRandNeighborhoods);
+		problem.setUtilClass(this.utilClass);
+		
+		// Add the agents
+		problem.setAgent(this.getAgent());
+		for (String agent : this.getAgents()) 
+			problem.addAgent(agent);
+		
+		// Create the store and its variables
+		this.createStore();
+		
+		// Add the variables
+		for (Var var : this.store.vars) {
+			if (var == null) break;
+			problem.addVariable((IntVarCloneable) var, this.getOwner(var.id()));
+		}
+		
+		// Add the constraints
+		for (UtilitySolutionSpace<AddableInteger, U> space : this.getSolutionSpaces()) 
+			problem.addSolutionSpace(space);
+		
+		return problem;
 	}
 }
 

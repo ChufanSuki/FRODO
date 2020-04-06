@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -69,10 +69,7 @@ import frodo2.solutionSpaces.hypercube.ScalarHypercube;
  * @param <V> the type used for utility values
  */
 @SuppressWarnings("unchecked")
-public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implements DCOPProblemInterface<V, U> {
-
-	/** Used for serialization */
-	private static final long serialVersionUID = 6812231232965926953L;
+public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implements ParserInterface<V, U> {
 
 	/** Creates a JDOM Document out of the input XML file in XCSP format
 	 * @param file 				the XML file
@@ -171,7 +168,7 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 	public static void main (String[] args) throws Exception {
 
 		// The GNU GPL copyright notice
-		System.out.println("FRODO  Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek");
+		System.out.println("FRODO  Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek");
 		System.out.println("This program comes with ABSOLUTELY NO WARRANTY.");
 		System.out.println("This is free software, and you are welcome to redistribute it");
 		System.out.println("under certain conditions. Use the option -license to display the license.\n");
@@ -562,7 +559,9 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 		assert this.checkUniqueConstraintNames() : "Non-unique constraint names";
 	}
 
-	/** @see DCOPProblemInterface#setDomClass(java.lang.Class) */
+	/** Sets the class to be used for variable values
+	 * @param domClass 	the class for variable values
+	 */
 	public void setDomClass (Class<V> domClass) {
 		this.domClass = domClass;
 		try {
@@ -573,8 +572,7 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 		}
 	}
 
-	/** @see ProblemInterface#getDomClass() */
-	@Override
+	/** @return the class used for domain values */
 	public Class<V> getDomClass() {
 		return this.domClass;
 	}
@@ -589,17 +587,19 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 		this.spacesToIgnoreNcccs.add(spaceToIgnore);
 	}
 	
-	/** @see DCOPProblemInterface#setUtilClass(java.lang.Class) */
+	/** Sets the class to be used for utility values
+	 * @param utilClass 	the class for utility values
+	 */
 	public void setUtilClass (Class<U> utilClass) {
 		this.utilClass = utilClass;
 	}
 
-	/** @see DCOPProblemInterface#getAgent() */
+	/** @return the name of the agent corresponding to this subproblem */
 	public String getAgent () {
 		return this.root.getChild("agents").getAttributeValue("self");
 	}
 
-	/** @see DCOPProblemInterface#getZeroUtility() */
+	/** @return a utility of value 0 */
 	public U getZeroUtility () {
 		try {
 			return (U) utilClass.getConstructor().newInstance().getZero();
@@ -611,7 +611,7 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 		}
 	}
 
-	/** @see DCOPProblemInterface#getPlusInfUtility() */
+	/** @return the infinite positive utility value */
 	public U getPlusInfUtility () {
 		try {
 			return (U) utilClass.getConstructor().newInstance().getPlusInfinity();
@@ -623,7 +623,7 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 		}
 	}
 
-	/** @see DCOPProblemInterface#getMinInfUtility() */
+	/** @return the infinite negative utility value */
 	public U getMinInfUtility () {
 		try {
 			return (U) utilClass.getConstructor().newInstance().getMinInfinity();
@@ -639,7 +639,7 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 	 * @return 		a list of hypercubes, or \c null if some information is missing in the problem file
 	 */
 	public List< ? extends UtilitySolutionSpace<V, U> > getProbabilitySpaces () {
-		return this.getSpaces(null, true, true, null);
+		return this.getSpaces(null, true, true, null, null);
 	}
 
 	/** Extracts probability spaces involving the input variable from the constraints in the problem
@@ -649,12 +649,15 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 	public List< ? extends UtilitySolutionSpace<V, U> > getProbabilitySpaces (String var) {
 		HashSet<String> vars = new HashSet<String>();
 		vars.add(var);
-		return this.getSpaces(vars, true, true, null);
+		return this.getSpaces(vars, true, true, null, null);
 	}
 
-	/** @see DCOPProblemInterface#getSolutionSpaces() */
+	/** Returns the solution spaces in the problem
+	 * @return 			a list of spaces, or \c null if some information is missing
+	 * @warning Ignores variables with unknown owners. 
+	 */
 	public List< ? extends UtilitySolutionSpace<V, U> > getSolutionSpaces () {
-		return this.getSpaces(null, false, false, null);
+		return this.getSpaces(null, false, false, null, null);
 	}
 
 	/** Extracts solution spaces involving the input variable from the constraints in the problem
@@ -668,7 +671,7 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 			vars = new HashSet<String>();
 			vars.add(var);
 		}
-		return this.getSpaces(vars, false, false, null);
+		return this.getSpaces(vars, false, false, null, null);
 	}
 
 	/** Extracts solution spaces from the constraints in the problem
@@ -676,7 +679,16 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 	 * @param withAnonymVars 	whether hypercubes involving variables with unknown owners should be taken into account
 	 */
 	public List< ? extends UtilitySolutionSpace<V, U> > getSolutionSpaces (final boolean withAnonymVars) {
-		return this.getSpaces(null, withAnonymVars, false, null);
+		return this.getSolutionSpaces((DCOPProblemInterface<V, U>) null, withAnonymVars);
+	}
+
+	/** Extracts solution spaces from the constraints in the problem
+	 * @param problem 			the problem instance that should be notified of contraint checks
+	 * @param withAnonymVars 	whether hypercubes involving variables with unknown owners should be taken into account
+	 * @return 					a list of hypercubes, or \c null if some information is missing in the problem file
+	 */
+	public List< ? extends UtilitySolutionSpace<V, U> > getSolutionSpaces (DCOPProblemInterface<V, U> problem, final boolean withAnonymVars) {
+		return this.getSpaces(null, withAnonymVars, false, null, problem);
 	}
 
 	/** Extracts solution spaces involving the input variable from the constraints in the problem
@@ -690,32 +702,46 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 			vars = new HashSet<String>();
 			vars.add(var);
 		}
-		return this.getSpaces(vars, withAnonymVars, false, null);
+		return this.getSpaces(vars, withAnonymVars, false, null, null);
 	}
 
-	/** @see DCOPProblemInterface#getSolutionSpaces(java.lang.String, java.util.Set) */
+	/** Returns the solution spaces involving the input variable and none of the forbidden variables
+	 * @param var 				the variable of interest
+	 * @param forbiddenVars 	any space involving any of these variables will be ignored
+	 * @return 					a list of spaces, or \c null if some information is missing
+	 */
 	public List<? extends UtilitySolutionSpace<V, U>> getSolutionSpaces(String var, Set<String> forbiddenVars) {
 		HashSet<String> vars = null;
 		if (var != null) {
 			vars = new HashSet<String>();
 			vars.add(var);
 		}
-		return this.getSpaces(vars, false, false, forbiddenVars);
+		return this.getSpaces(vars, false, false, forbiddenVars, null);
 	}
 
-	/** @see DCOPProblemInterface#getSolutionSpaces(java.lang.String, boolean, java.util.Set) */
+	/** Extracts solution spaces involving the input variable from the constraints in the problem
+	 * @return 					a list of hypercubes, or \c null if some information is missing in the problem file
+	 * @param var 				the variable of interest
+	 * @param withAnonymVars 	whether hypercubes involving variables with unknown owners should be taken into account
+	 * @param forbiddenVars 	any space involving any of these variables will be ignored
+	 */
 	public List<? extends UtilitySolutionSpace<V, U>> getSolutionSpaces(String var, boolean withAnonymVars, Set<String> forbiddenVars) {
 		HashSet<String> vars = null;
 		if (var != null) {
 			vars = new HashSet<String>();
 			vars.add(var);
 		}
-		return this.getSpaces(vars, withAnonymVars, false, forbiddenVars);
+		return this.getSpaces(vars, withAnonymVars, false, forbiddenVars, null);
 	}
 	
-	/** @see DCOPProblemInterface#getSolutionSpaces(java.util.Set, boolean, java.util.Set) */
+	/** Extracts solution spaces involving the input variables from the constraints in the problem
+	 * @return 					a list of hypercubes, or \c null if some information is missing in the problem file
+	 * @param vars 				the variables of interest
+	 * @param withAnonymVars 	whether hypercubes involving variables with unknown owners should be taken into account
+	 * @param forbiddenVars 	any space involving any of these variables will be ignored
+	 */
 	public List<? extends UtilitySolutionSpace<V, U>> getSolutionSpaces(Set<String> vars, boolean withAnonymVars, Set<String> forbiddenVars) {
-		return this.getSpaces(vars, withAnonymVars, false, forbiddenVars);
+		return this.getSpaces(vars, withAnonymVars, false, forbiddenVars, null);
 	}
 	
 	/** @return whether this parser is counting NCCCs */
@@ -723,19 +749,23 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 		return this.countNCCCs;
 	}
 
-	/** @see DCOPProblemInterface#incrNCCCs(long) */
+	/** Increments the number of constraint checks
+	 * @param incr 	the increment
+	 */
 	public void incrNCCCs (long incr) {
 		if (this.countNCCCs)
 			this.ncccCount += incr;
 	}
 	
-	/** @see DCOPProblemInterface#setNCCCs(long) */
+	/** Sets the NCCC count
+	 * @param ncccs 	the NCCC count
+	 */
 	public void setNCCCs (long ncccs) {
 		if (this.countNCCCs)
 			this.ncccCount = ncccs;
 	}
 	
-	/** @see DCOPProblemInterface#getNCCCs() */
+	/** @return the number of constraint checks */
 	public long getNCCCs () {
 		return this.ncccCount;
 	}
@@ -777,10 +807,11 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 	 * @param withAnonymVars 	whether hypercubes involving variables with unknown owners should be taken into account
 	 * @param getProbs 			if \c true, returns the probability spaces (ignoring \a withAnonymVars); else, returns the solution spaces
 	 * @param forbiddenVars 	any space involving any of these variables will be ignored
+	 * @param problem 			the problem instance that should be notified of constraint checks
 	 * @todo The implementation can be improved so as to only parse things that are needed (wrt \a var). 
 	 */
 	protected List< ? extends UtilitySolutionSpace<V, U> > getSpaces (Set<String> vars, final boolean withAnonymVars, final boolean getProbs, 
-			Set<String> forbiddenVars) {
+			Set<String> forbiddenVars, DCOPProblemInterface<V, U> problem) {
 		
 		assert vars == null || !vars.isEmpty(): "The set of variables is empty";
 
@@ -938,7 +969,7 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 		U infeasibleUtil = this.getInfeasibleUtil();
 
 		for (org.jdom2.Element constraint : (List<org.jdom2.Element>) constraints.getChildren()) 
-			this.parseConstraint(result, constraint, variablesHashMap, relationInfos, vars, getProbs, withAnonymVars, infeasibleUtil, forbiddenVars);
+			this.parseConstraint(result, constraint, variablesHashMap, relationInfos, vars, getProbs, withAnonymVars, infeasibleUtil, forbiddenVars, problem);
 
 		return result;		
 	}
@@ -953,10 +984,12 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 	 * @param withAnonymVars 		whether constraints involving variables with unknown owners should be taken into account
 	 * @param infeasibleUtil 		the infeasible utility
 	 * @param forbiddenVars 		any space involving any of these variables will be ignored
+	 * @param problem 				the problem instance that should be notified of constraint checks
 	 */
 	protected void parseConstraint(ArrayList< UtilitySolutionSpace<V, U> > spaces, Element constraint, 
 			HashMap<String, V[]> variablesHashMap, HashMap< String, Relation<V, U> > relationInfos, 
-			Set<String> vars, final boolean getProbs, final boolean withAnonymVars, U infeasibleUtil, Set<String> forbiddenVars) {
+			Set<String> vars, final boolean getProbs, final boolean withAnonymVars, U infeasibleUtil, Set<String> forbiddenVars, 
+			DCOPProblemInterface<V, U> problem) {
 
 		String name = constraint.getAttributeValue("name");
 		String owner = constraint.getAttributeValue("agent");
@@ -991,8 +1024,10 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 				hasAnonymVar = hasAnonymVar || (this.getOwner(n) == null);
 				no++;
 				variables_domain[no] = variablesHashMap.get(n);
-				assert Math.log((double) size) + Math.log((double) variables_domain[no].length) < Math.log(Integer.MAX_VALUE) : 
-					"Size of utility array too big for an int";
+				
+				if (Math.log((double) size) + Math.log((double) variables_domain[no].length) >= Math.log(Integer.MAX_VALUE)) 
+					throw new OutOfMemoryError ("Size of utility array too big for an int");
+				
 				size *= variables_domain[no].length;
 			}
 
@@ -1002,7 +1037,8 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 
 			// All information to create a hypercube is available.
 			U[] utilArray = (U[]) Array.newInstance(utilClass, size);
-			Hypercube<V, U> current = new Hypercube<V, U> (varNames, variables_domain, utilArray, infeasibleUtil, (this.countNCCCs && !this.ignore(Hypercube.class.getName()) ? this : null));
+			Hypercube<V, U> current = new Hypercube<V, U> (varNames, variables_domain, utilArray, infeasibleUtil, 
+					(this.countNCCCs && !this.ignore(Hypercube.class.getName()) ? problem : null));
 			current.setName(name);
 			current.setRelationName(reference);
 			current.setOwner(owner);
@@ -1022,9 +1058,9 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 		}
 	}
 
-	/** 
-	 * @see DCOPProblemInterface#removeSpace(java.lang.String) 
-	 * @todo Test this method. 
+	/** Removes the space with the given name
+	 * @param name 	the name of the space
+	 * @return 		\c true if the space was present and had been removed
 	 */
 	public boolean removeSpace(String name) {
 		
@@ -1041,9 +1077,10 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 		return false;
 	}
 
-	/** 
-	 * @see DCOPProblemInterface#addSolutionSpace(UtilitySolutionSpace) 
-	 * @todo Test this method. 
+	/** Adds a solution space to the problem
+	 * @param space 	the solution space
+	 * @return \c true if the space was added, \c false if the space's name is null or is already taken
+	 * @note Ignores the relation name of this space, if any
 	 */
 	public boolean addSolutionSpace (UtilitySolutionSpace<V, U> space) {
 		
@@ -1081,7 +1118,7 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 		return true;
 	}
 
-	/** @see DCOPProblemInterface#getAgents() */
+	/** @return the set of all agents mentioned in the problem */
 	public Set<String> getAgents () {
 
 		HashSet<String> agents = new HashSet<String> ();
@@ -1092,7 +1129,10 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 		return agents;
 	}
 
-	/** @see DCOPProblemInterface#getOwner(java.lang.String) */
+	/** Returns the name of the agent owning the input variable
+	 * @param var 	the name of the variable
+	 * @return 		the owner of the input variable
+	 */
 	public String getOwner (String var) {
 
 		for (Element varElmt : (List<Element>) root.getChild("variables").getChildren()) 
@@ -1104,7 +1144,11 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 		return null;
 	}
 
-	/** @see DCOPProblemInterface#setOwner(java.lang.String, java.lang.String) */
+	/** Sets the owner agent for the input variable
+	 * @param var 		the variable
+	 * @param owner 	the owner
+	 * @return \c false if the owner was not changed because the variable does not exist 
+	 */
 	public boolean setOwner(String var, String owner) {
 		
 		for (Element varElmt : (List<Element>) root.getChild("variables").getChildren()) {
@@ -1118,7 +1162,7 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 		return false;
 	}
 
-	/** @see DCOPProblemInterface#getOwners() */
+	/** @return for each variable, the name of its owner agent */
 	public Map<String, String> getOwners () {
 
 		Map<String, String> out = new HashMap<String, String> (this.getNbrVars());
@@ -1153,7 +1197,7 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 		return nbrVars;
 	}
 
-	/** @see DCOPProblemInterface#getNbrIntVars() */
+	/** @return the number of internal variables */
 	public int getNbrIntVars () {
 		final String agentName = this.getAgent();
 		if (agentName != null) 
@@ -1161,14 +1205,14 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 		return -1;
 	}
 
-	/** @see DCOPProblemInterface#getAllVars() */
+	/** @return all variables, including the ones with no specified owner */
 	public Set<String> getAllVars() {
 		HashSet<String> out = new HashSet<String> (this.getVariables());
 		out.addAll(this.getAnonymVars());
 		return out;
 	}
 
-	/** @see DCOPProblemInterface#getVariables() */
+	/** @return all variables with a known owner */
 	public Set<String> getVariables () {
 
 		Set<String> out = new HashSet<String> ();
@@ -1180,7 +1224,10 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 		return out;
 	}
 
-	/** @see DCOPProblemInterface#getVariables(java.lang.String) */
+	/** Returns the set of variables owned by a given agent
+	 * @param owner 	the name of the agent; if \c null, returns all variables with no specified owner
+	 * @return 			a set of variables owned by \a owner
+	 */
 	public Set<String> getVariables (String owner) {
 
 		Set<String> out = new HashSet<String> ();
@@ -1198,7 +1245,7 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 		return out;
 	}
 
-	/** @see DCOPProblemInterface#getMyVars() */
+	/** @return the internal variables */
 	public Set<String> getMyVars () {
 		final String agentName = this.getAgent();
 		if (agentName == null) 
@@ -1207,7 +1254,7 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 			return this.getVariables(agentName);
 	}
 
-	/** @see DCOPProblemInterface#getExtVars() */
+	/** @return the variables that are owned by a different agent */
 	public Set<String> getExtVars () {
 
 		HashSet<String> out = new HashSet<String> ();
@@ -1225,14 +1272,16 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 		return out;
 	}
 
-	/** @see DCOPProblemInterface#getAnonymVars() */
+	/** @return the variables with no specified owner */
 	public Set<String> getAnonymVars () {
 		return this.getVariables(null);
 	}
 	
-	/** 
-	 * @see DCOPProblemInterface#addVariable(java.lang.String, java.lang.String, java.lang.String) 
-	 * @todo Test this method. 
+	/** Adds a new variable
+	 * @param name 		variable name
+	 * @param owner 	name of the variable's agent
+	 * @param domain 	reference to the variable's domain
+	 * @return 			\c true if the variable was added, \c false if a variable with the same name already exists or no domain with given name exists
 	 */
 	public boolean addVariable(String name, String owner, String domain) {
 		
@@ -1266,9 +1315,11 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 		return false;
 	}
 
-	/** 
-	 * @see DCOPProblemInterface#addVariable(java.lang.String, java.lang.String, V[]) 
-	 * @todo Test this method. 
+	/** Adds a new variable
+	 * @param name 		variable name
+	 * @param owner 	name of the variable's agent
+	 * @param domain 	variable domain
+	 * @return 			\c true if the variable was added, \c false if a variable with the same name already exists
 	 */
 	public boolean addVariable(String name, String owner, V[] domain) {
 		
@@ -1656,7 +1707,11 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 		return out;
 	}
 
-	/** @see DCOPProblemInterface#getNbrNeighbors(java.lang.String) */
+	/** Extracts the number of neighbors of an input variable
+	 * @param var 	the variable
+	 * @return 		the number of neighbor variables of \a var
+	 * @warning Ignores variables with no specified owner. 
+	 */
 	public int getNbrNeighbors (String var) {
 		return this.getNbrNeighbors(var, false);
 	}
@@ -1679,7 +1734,10 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 		return this.getNeighborhoods(agent, false, false);
 	}
 
-	/** @see DCOPProblemInterface#getNeighborhoods() */
+	/** Returns the neighborhood of each internal variable
+	 * @return for each of the agent's variables, its collection of neighbors 
+	 * @warning Ignores variables with no specified owner. 
+	 */
 	public Map< String, HashSet<String> > getNeighborhoods () {
 		return this.getNeighborhoods(this.getAgent());
 	}
@@ -1692,7 +1750,7 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 		return this.getNeighborhoods(agent, true, true);
 	}
 
-	/** @see DCOPProblemInterface#getAnonymNeighborhoods() */
+	/** @return for each internal variable, its collection of neighbors with no specified owner */
 	public Map< String, HashSet<String> > getAnonymNeighborhoods () {
 		return this.getAnonymNeighborhoods(this.getAgent());
 	}
@@ -1743,7 +1801,10 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 		return out;
 	}
 
-	/** @see DCOPProblemInterface#getNeighborhoodSizes() */
+	/** Returns the number of neighboring variables of all internal variables
+	 * @return for each internal variable, its number of neighboring variables
+	 * @warning Ignores variables with no specified owner. 
+	 */
 	public Map<String, Integer> getNeighborhoodSizes () {
 		return this.getNeighborhoodSizes(this.getAgent());
 	}
@@ -1824,7 +1885,10 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 		return null;
 	}
 
-	/** @see DCOPProblemInterface#getAgentNeighborhoods(java.lang.String) */
+	/** Gets the agent neighborhoods
+	 * @param agent 	the owner agent, or null if we want all variables
+	 * @return for each variable owned by the input agent (or for each variable if the input is null), the collection of neighboring agents 
+	 */
 	public Map< String, Collection<String> > getAgentNeighborhoods (String agent) {
 		
 		Set<String> vars = this.getVariables();
@@ -1838,7 +1902,7 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 		return out;
 	}
 
-	/** @see DCOPProblemInterface#getAgentNeighborhoods() */
+	/** @return for each internal variable, the collection of neighboring agents */
 	public Map< String, Collection<String> > getAgentNeighborhoods () {
 		return this.getAgentNeighborhoods(this.getAgent());
 	}
@@ -1990,9 +2054,10 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 		this.setDomain(var, domReduced, weights);
 	}
 
-	/** @see DCOPProblemInterface#setProbSpace(java.lang.String, java.util.Map) 
-	 * @warning This method assumes that the input variable is a random variable
-	 * @todo Test this method. */
+	/** Adds to the problem a probability space for the input random variable
+	 * @param var 	random variable
+	 * @param prob 	weighted samples 
+	 */
 	public void setProbSpace(String var, Map<V, Double> prob) {
 
 		// Extract the variable's domain while computing the sum of the weights
@@ -2281,17 +2346,28 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 		return elmt;
 	}
 
-	/** 
-	 * @see DCOPProblemInterface#getUtility(java.util.Map) 
-	 * @todo Test this method with incomplete assignments. 
+	/** Computes the total utility of the input assignment to variables, ignoring variables with no specified owner
+	 * 
+	 * This methods actually returns a UtilitySolutionSpace. If not all variables in the problem are assigned a value, 
+	 * the space will represent the utility of the assignment, conditioned on the free variables. 
+	 * If all variables are grounded, the method returns a scalar UtilitySolutionSpace. 
+	 * 
+	 * @param assignments 	values for variables
+	 * @return the optimal (possibly conditional) utility corresponding to the input assignment 
 	 */
 	public UtilitySolutionSpace<V, U> getUtility (Map<String, V> assignments) {
 		return this.getUtility(assignments, false);
 	}
 
-	/** 
-	 * @see DCOPProblemInterface#getUtility(Map, boolean) 
-	 * @todo Test this method 
+	/** Computes the total utility of the input assignment to variables
+	 * 
+	 * This methods actually returns a UtilitySolutionSpace. If not all variables in the problem are assigned a value, 
+	 * the space will represent the utility of the assignment, conditioned on the free variables. 
+	 * If all variables are grounded, the method returns a scalar UtilitySolutionSpace. 
+	 * 
+	 * @param assignments 		values for variables
+	 * @param withAnonymVars 	if \c false, ignores variable with no specified owner
+	 * @return the optimal (possibly conditional) utility corresponding to the input assignment 
 	 */
 	public UtilitySolutionSpace<V, U> getUtility (Map<String, V> assignments, final boolean withAnonymVars) {
 
@@ -2322,9 +2398,9 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 			new ScalarHypercube<V, U> (this.getZeroUtility(), this.getInfeasibleUtil(), (Class<V[]>) Array.newInstance(this.domClass, 0).getClass()));
 	}
 
-	/** 
-	 * @see DCOPProblemInterface#getExpectedUtility(Map) 
-	 * @todo Test this method.
+	/** Computes the expectation over the random variables of the utility for the input assignments
+	 * @param assignments 	values for variables
+	 * @return the expectation of the utility for the input assignments
 	 */
 	public UtilitySolutionSpace<V, U> getExpectedUtility (Map<String, V> assignments) {
 
@@ -2342,9 +2418,9 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 		return util;
 	}
 
-	/** 
-	 * @see DCOPProblemInterface#getParamUtility(java.util.Map) 
-	 * @todo Test this method.
+	/** Computes the total utility of the input assignment to variables, conditioned on the values of parameters
+	 * @param assignments 	values for variables
+	 * @return the optimal conditional utility corresponding to the input assignment 
 	 */
 	public UtilitySolutionSpace<V, U> getParamUtility (Map< String[], BasicUtilitySolutionSpace< V, ArrayList<V> > > assignments) {
 
@@ -2370,7 +2446,7 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 		return output;
 	}
 
-	/** @see DCOPProblemInterface#maximize() */
+	/** @return \c true if this is a maximization problem, \c false otherwise */
 	public boolean maximize() {
 		String maximize = this.root.getChild("presentation").getAttributeValue("maximize");
 		if (maximize == null) // by default, minimize
@@ -2378,12 +2454,17 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 		return Boolean.parseBoolean(maximize);
 	}
 
-	/** @see DCOPProblemInterface#setMaximize(boolean) */
+	/** Sets whether utility should be maximized, or cost minimized
+	 * @param maximize 	\c true iff this should be a maximization problem
+	 */
 	public void setMaximize(boolean maximize) {
 		this.root.getChild("presentation").setAttribute("maximize", Boolean.toString(maximize));
 	}
 
-	/** @see DCOPProblemInterface#rescale(Addable, Addable) */
+	/** Rescales the problem
+	 * @param multiply 	multiplies all costs/utilities by \a multiply
+	 * @param add 		after multiplying all costs/utilities by \a multiply (if required), adds \a add
+	 */
 	public void rescale(U multiply, U add) {
 		
 		// Modify each relation
@@ -2550,7 +2631,9 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 		return new Document(root);
 	}
 
-	/** @see DCOPProblemInterface#reset(ProblemInterface) */
+	/** Resets this problem to be the same as the input one
+	 * @param newProblem 	the problem 
+	 */
 	public void reset(ProblemInterface<V, U> newProblem) {
 
 		assert newProblem instanceof XCSPparser : "Cannot reset an XCSPparser based on a problem of class: " + newProblem.getClass();
@@ -2561,9 +2644,10 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 		this.valInstance = prob.valInstance;
 	}
 
-	/** 
-	 * @see DCOPProblemInterface#getNumberOfCoordinationConstraints()
-	 * @todo This implementation is very inefficient; it should not need to parse the spaces
+	/**
+	 * Returns the number of spaces that are shared between different agents
+	 * @author Brammert Ottens, 6 mrt 2010
+	 * @return	the number of spaces that are shared between different agents
 	 */
 	public int getNumberOfCoordinationConstraints() {
 		List<? extends UtilitySolutionSpace<V, U>> spaces = this.getSolutionSpaces();
@@ -2587,9 +2671,7 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 		return counter;
 	}
 
-	/** 
-	 * @see DCOPProblemInterface#multipleTypes()
-	 */
+	/** @return \c true when agents can be of different types, and \c false otherwise */
 	public boolean multipleTypes() {
 		return false;
 	}
@@ -2603,8 +2685,13 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 		return this.spacesToIgnoreNcccs.contains(spaceClass);
 	}
 
-	/** @see DCOPProblemInterface#addUnarySpace(String, String, Addable[], Addable[]) */
-	@Override
+	/** Add a unary solution space to the problem
+	 * @param name 		the name of the space
+	 * @param var 		the unique variable in the space's scope
+	 * @param dom 		the allowed variable values
+	 * @param utils 	the valuation for each variable value
+	 * @return the newly added space
+	 */
 	public UtilitySolutionSpace<V, U> addUnarySpace(String name, String var, V[] dom, U[] utils) {
 		
 		V[][] doms = (V[][]) Array.newInstance(dom.getClass(), 1);
@@ -2616,6 +2703,45 @@ public class XCSPparser < V extends Addable<V>, U extends Addable<U> > implement
 		this.addSolutionSpace(out);
 		
 		return out;
+	}
+	
+	/** @see ParserInterface#parse() */
+	@Override
+	public DCOPProblemInterface<V, U> parse () {
+		
+		Problem<V, U> prob = new Problem<V, U> (this.maximize(), this.publicAgents, this.mpc, this.extendedRandNeighborhoods);
+		prob.setDomClass(domClass);
+		prob.setUtilClass(this.utilClass);
+		
+		// Add the agents
+		prob.setAgent(this.getAgent());
+		for (String agent : this.getAgents()) 
+			prob.addAgent(agent);
+		
+		// Add the variables with a known owner
+		for (String var : this.getVariables()) 
+			prob.addVariable(var, this.getOwner(var), this.getDomain(var));
+		
+		// Add the anonymous and random variables
+		for (String var : this.getVariables(null)) {
+			if (this.isRandom(var)) 
+				prob.addRandomVar(var, this.getDomain(var));
+			else 
+				prob.addVariable(var, null, this.getDomain(var));
+		}
+		
+		// Add the constraints
+		for (UtilitySolutionSpace<V, U> space : this.getSolutionSpaces(prob, true)) 
+			prob.addSolutionSpace(space);
+		
+		// Add the probability spaces
+		for (UtilitySolutionSpace<V, U> probSpace : this.getProbabilitySpaces()) {
+			for (String var : probSpace.getVariables()) 
+				if (this.isRandom(var)) 
+					prob.addProbabilitySpace(var, probSpace);
+		}
+
+		return prob;
 	}
 
 }

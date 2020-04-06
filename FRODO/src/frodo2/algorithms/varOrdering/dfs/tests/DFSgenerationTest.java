@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -66,6 +66,7 @@ import frodo2.communication.Queue;
 import frodo2.communication.QueueOutputPipeInterface;
 import frodo2.communication.sharedMemory.QueueIOPipe;
 import frodo2.solutionSpaces.AddableInteger;
+import frodo2.solutionSpaces.AddableReal;
 import frodo2.solutionSpaces.DCOPProblemInterface;
 import frodo2.solutionSpaces.UtilitySolutionSpace;
 
@@ -104,13 +105,13 @@ public class DFSgenerationTest extends TestCase implements IncomingMsgPolicyInte
 	 * 
 	 * For each variable, stores its relationships with neighboring variables
 	 */
-	protected Map< String, DFSview<AddableInteger, AddableInteger> > dfs = new HashMap< String, DFSview<AddableInteger, AddableInteger> > (maxNbrVars);
+	protected Map< String, DFSview<AddableInteger, AddableReal> > dfs = new HashMap< String, DFSview<AddableInteger, AddableReal> > (maxNbrVars);
 
 	/** Random graph used to generate a constraint graph */
 	protected RandGraphFactory.Graph graph;
 	
 	/** Parser for the random XCSP problem */
-	private XCSPparser<AddableInteger, AddableInteger> parser;
+	private XCSPparser<AddableInteger, AddableReal> parser;
 
 	/** One output pipe used to send messages to each queue, indexed by the queue's agent name */
 	private Map<String, QueueOutputPipeInterface> pipes;
@@ -174,7 +175,8 @@ public class DFSgenerationTest extends TestCase implements IncomingMsgPolicyInte
 	/** @see junit.framework.TestCase#setUp() */
 	protected void setUp () {
 		graph = RandGraphFactory.getRandGraph(maxNbrVars, maxNbrEdges, maxNbrAgents);
-		parser = new XCSPparser<AddableInteger, AddableInteger> (AllTests.generateProblem(graph, graph.nodes.size(), true));
+		parser = new XCSPparser<AddableInteger, AddableReal> (AllTests.generateProblem(graph, graph.nodes.size(), true));
+		parser.setUtilClass(AddableReal.class);
 	}
 	
 	/** Ends all queues
@@ -226,7 +228,7 @@ public class DFSgenerationTest extends TestCase implements IncomingMsgPolicyInte
 		QueueIOPipe myPipe = new QueueIOPipe (myQueue);
 		for (Queue queue : this.queues.values()) 
 			queue.addOutputPipe(AgentInterface.STATS_MONITOR, myPipe);
-		DFSgeneration<AddableInteger, AddableInteger> statsGatherer = new DFSgeneration<AddableInteger, AddableInteger> (parser);
+		DFSgeneration<AddableInteger, AddableReal> statsGatherer = new DFSgeneration<AddableInteger, AddableReal> (parser.parse());
 		statsGatherer.setSilent(true);
 		statsGatherer.getStatsFromQueue(myQueue);
 		
@@ -250,7 +252,7 @@ public class DFSgenerationTest extends TestCase implements IncomingMsgPolicyInte
 			for (String agent : parser.getAgents()) {
 				Queue queue = queues.get(agent);
 				
-				XCSPparser<AddableInteger, AddableInteger> subProb = parser.getSubProblem(agent);
+				DCOPProblemInterface<AddableInteger, AddableReal> subProb = parser.getSubProblem(agent).parse();
 				queue.setProblem(subProb);
 				
 				// Instantiate the listener using reflection
@@ -281,15 +283,17 @@ public class DFSgenerationTest extends TestCase implements IncomingMsgPolicyInte
 				Queue queue = queues.get(agent);
 				
 				// Extract the subproblem
-				DCOPProblemInterface<AddableInteger, AddableInteger> subproblem = parser.getSubProblem(agent);
-				List< ? extends UtilitySolutionSpace<AddableInteger, AddableInteger> > spaces = subproblem.getSolutionSpaces(false);
-				Problem<AddableInteger, AddableInteger> subProb = new Problem<AddableInteger, AddableInteger> (agent, owners, domains, spaces);
+				DCOPProblemInterface<AddableInteger, AddableReal> subproblem = parser.getSubProblem(agent).parse();
+				List< ? extends UtilitySolutionSpace<AddableInteger, AddableReal> > spaces = subproblem.getSolutionSpaces(false);
+				Problem<AddableInteger, AddableReal> subProb = new Problem<AddableInteger, AddableReal> (agent, subproblem.getAgents(), owners, domains, 
+						subproblem.getRandVars(), spaces, subproblem.getProbabilitySpacePerRandVar(), subproblem.getVarScopes(), 
+						subproblem.getDomClass(), subproblem.getUtilClass());
 
 				// Instantiate the heuristic
 				NextChildChoiceHeuristic heuristic = dfsHeuristic.getConstructor(DCOPProblemInterface.class, Element.class).newInstance(subProb, heuristicParams);
 
 				// Create the listener
-				queue.addIncomingMessagePolicy(new DFSgeneration<AddableInteger, AddableInteger> (subProb, heuristic));
+				queue.addIncomingMessagePolicy(new DFSgeneration<AddableInteger, AddableReal> (subProb, heuristic));
 				queue.addIncomingMessagePolicy(this);
 			}
 		}
@@ -388,13 +392,13 @@ public class DFSgenerationTest extends TestCase implements IncomingMsgPolicyInte
 		if (msgType.equals(this.getOutputMsgType()) || msgType.equals(DFSgeneration.STATS_MSG_TYPE)) {
 
 			@SuppressWarnings("unchecked")
-			DFSgeneration.MessageDFSoutput<AddableInteger, AddableInteger> msgCast = (DFSgeneration.MessageDFSoutput<AddableInteger, AddableInteger>) msg;
+			DFSgeneration.MessageDFSoutput<AddableInteger, AddableReal> msgCast = (DFSgeneration.MessageDFSoutput<AddableInteger, AddableReal>) msg;
 			String var = msgCast.getVar();
-			DFSview<AddableInteger, AddableInteger> view = msgCast.getNeighbors();
+			DFSview<AddableInteger, AddableReal> view = msgCast.getNeighbors();
 
 			// Store the result in the variable dfs
 			synchronized (dfs) {
-				DFSview<AddableInteger, AddableInteger> previousView = dfs.get(var);
+				DFSview<AddableInteger, AddableReal> previousView = dfs.get(var);
 				if (previousView != null) { // compare the DFSoutput message with the stats message
 					assertEquals (previousView, view);
 				} else 
@@ -515,7 +519,7 @@ public class DFSgenerationTest extends TestCase implements IncomingMsgPolicyInte
 	private void checkMostConnected() {
 		
 		// Go through the list of variables
-		for (DFSview<AddableInteger, AddableInteger> dfsView : this.dfs.values()) {
+		for (DFSview<AddableInteger, AddableReal> dfsView : this.dfs.values()) {
 			
 			// Compute the number of neighbors of the least connected child
 			List<String> children = dfsView.getChildren();

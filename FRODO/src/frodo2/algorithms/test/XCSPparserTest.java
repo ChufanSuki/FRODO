@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -55,6 +55,9 @@ import junit.framework.TestSuite;
  */
 public class XCSPparserTest extends TestCase {
 	
+	/** Whether to test on maximization problems */
+	private final boolean maximize;
+
 	/** Maximum number of variables in the random graph 
 	 * @note Must be at least 2. 
 	 */
@@ -70,16 +73,16 @@ public class XCSPparserTest extends TestCase {
 	protected RandGraphFactory.Graph graph;
 	
 	/** Random XCSP problem */
-	protected Document problem;
+	protected Document probDoc;
 	
-	/** The parser for integer utilities */
-	protected XCSPparser< AddableInteger, AddableInteger > parserInt;
+	/** The parser */
+	protected XCSPparser< AddableInteger, AddableReal > parser;
 
-	/** The parser for real utilities */
-	protected XCSPparser< AddableInteger, AddableReal > parserReal;
+	/** The parsed problem instance */
+	protected DCOPProblemInterface<AddableInteger, AddableReal> prob;
 
 	/** The list of solution spaces in the problem */
-	protected ArrayList< Hypercube<AddableInteger, AddableInteger> > solutionSpaces = new ArrayList< Hypercube<AddableInteger, AddableInteger> > ();
+	protected ArrayList< Hypercube<AddableInteger, AddableReal> > solutionSpaces = new ArrayList< Hypercube<AddableInteger, AddableReal> > ();
 	
 	/** The list of probability spaces in the problem */
 	protected ArrayList< Hypercube<AddableInteger, AddableReal> > probSpaces = new ArrayList< Hypercube<AddableInteger, AddableReal> > ();
@@ -113,20 +116,20 @@ public class XCSPparserTest extends TestCase {
 		tmp.addTest(new RepeatedTest (new XCSPparserTest ("testGetOwners"), 100));
 		suite.addTest(tmp);
 		
-		tmp = new TestSuite ("Tests for getNbrVars");
-		tmp.addTest(new RepeatedTest (new XCSPparserTest ("testGetNbrVars"), 100));
-		suite.addTest(tmp);
-		
-		tmp = new TestSuite ("Tests for getNbrVars that takes in the name of an agent");
-		tmp.addTest(new RepeatedTest (new XCSPparserTest ("testGetNbrVarsString"), 100));
-		suite.addTest(tmp);
-		
 		tmp = new TestSuite ("Tests for getVariables");
 		tmp.addTest(new RepeatedTest (new XCSPparserTest ("testGetVariables"), 100));
 		suite.addTest(tmp);
 		
+		tmp = new TestSuite ("Tests for getNbrVars");
+		tmp.addTest(new RepeatedTest (new XCSPparserTest ("testGetNbrVars"), 100));
+		suite.addTest(tmp);
+		
 		tmp = new TestSuite ("Tests for getVariables for an input agent");
 		tmp.addTest(new RepeatedTest (new XCSPparserTest ("testGetVariablesString"), 100));
+		suite.addTest(tmp);
+		
+		tmp = new TestSuite ("Tests for getNbrVars that takes in the name of an agent");
+		tmp.addTest(new RepeatedTest (new XCSPparserTest ("testGetNbrVarsString"), 100));
 		suite.addTest(tmp);
 		
 		tmp = new TestSuite ("Tests for getExtVars");
@@ -193,6 +196,12 @@ public class XCSPparserTest extends TestCase {
 		tmp.addTest(new RepeatedTest (new XCSPparserTest ("testGetSubProblem", false, true), 100));
 		suite.addTest(tmp);
 		
+		tmp = new TestSuite ("Tests for maximize");
+		tmp.addTest(new XCSPparserTest ("testMaximize", true));
+		tmp.addTest(new XCSPparserTest ("testMaximize", false));
+		suite.addTest(tmp);
+		
+
 		tmp = new TestSuite ("Tests for isRandom");
 		tmp.addTest(new RepeatedTest (new XCSPparserTest ("testIsRandom"), 100));
 		suite.addTest(tmp);
@@ -232,7 +241,16 @@ public class XCSPparserTest extends TestCase {
 	 * @param name 	name of the method
 	 */
 	public XCSPparserTest(String name) {
+		this(name, false);
+	}
+
+	/** Generates a test using the specified method
+	 * @param name 		name of the method
+	 * @param maximize 	whether to test on maximization problems
+	 */
+	public XCSPparserTest(String name, boolean maximize) {
 		super(name);
+		this.maximize = maximize;
 	}
 
 	/** Generates a test using the specified method
@@ -241,7 +259,7 @@ public class XCSPparserTest extends TestCase {
 	 * @param publicAgents 					Whether each agent knows the identities of all agents
 	 */
 	public XCSPparserTest(String name, boolean extendedRandNeighborhoods, boolean publicAgents) {
-		super(name);
+		this(name, false);
 		this.extendedRandNeighborhoods = extendedRandNeighborhoods;
 		this.publicAgents = publicAgents;
 	}
@@ -249,22 +267,21 @@ public class XCSPparserTest extends TestCase {
 	/** @see junit.framework.TestCase#setUp() */
 	protected void setUp() {
 		graph = RandGraphFactory.getRandGraph(maxNbrVars, maxNbrEdges, maxNbrAgents);
-		solutionSpaces = new ArrayList< Hypercube<AddableInteger, AddableInteger> > ();
+		solutionSpaces = new ArrayList< Hypercube<AddableInteger, AddableReal> > ();
 		probSpaces = new ArrayList< Hypercube<AddableInteger, AddableReal> > ();
-		problem = AllTests.generateProblem(graph, graph.nodes.size(), solutionSpaces, probSpaces, true);
-		parserInt = new XCSPparser<AddableInteger, AddableInteger> (problem, false, this.extendedRandNeighborhoods, this.publicAgents);
-		parserInt.setUtilClass(AddableInteger.class);
-		parserReal = new XCSPparser<AddableInteger, AddableReal> (problem, false, this.extendedRandNeighborhoods, this.publicAgents);
-		parserReal.setUtilClass(AddableReal.class);
+		probDoc = AllTests.generateProblem(graph, graph.nodes.size(), solutionSpaces, probSpaces, this.maximize, AddableReal.class);
+		parser = new XCSPparser<AddableInteger, AddableReal> (probDoc, false, this.extendedRandNeighborhoods, this.publicAgents);
+		parser.setUtilClass(AddableReal.class);
+		this.prob = this.parser.parse();
 	}
 
 	/** @see junit.framework.TestCase#tearDown() */
 	protected void tearDown() throws Exception {
 		super.tearDown();
 		graph = null;
-		problem = null;
-		parserInt = null;
-		parserReal = null;
+		probDoc = null;
+		parser = null;
+		this.prob = null;
 		this.solutionSpaces = null;
 		this.probSpaces = null;
 	}
@@ -272,15 +289,8 @@ public class XCSPparserTest extends TestCase {
 	/** Test method for getZeroUtility() */
 	public void testGetZeroUtility() {
 
-		// Test with AddableIntegers
-		AddableInteger integer = new AddableInteger (1);
-		AddableInteger zeroInt = parserInt.getZeroUtility();
-		assertTrue (integer.equals(integer.add(zeroInt)));
-		assertTrue (integer.equals(zeroInt.add(integer)));
-
-		// Test with AddableReals
 		AddableReal real = new AddableReal (1.0);
-		AddableReal zeroReal = parserReal.getZeroUtility();
+		AddableReal zeroReal = prob.getZeroUtility();
 		assertTrue (real.equals(real.add(zeroReal)));
 		assertTrue (real.equals(zeroReal.add(real)));
 	}
@@ -288,15 +298,8 @@ public class XCSPparserTest extends TestCase {
 	/** Test method for getPlusInfUtility() */
 	public void testGetPlusInfUtility() {
 
-		// Test with AddableIntegers
-		AddableInteger integer = new AddableInteger (1);
-		AddableInteger intPlusInf = parserInt.getPlusInfUtility();
-		assertTrue (intPlusInf.equals(integer.add(intPlusInf)));
-		assertTrue (intPlusInf.equals(intPlusInf.add(integer)));
-
-		// Test with AddableReals
 		AddableReal real = new AddableReal (1.0);
-		AddableReal realPlusInf = parserReal.getPlusInfUtility();
+		AddableReal realPlusInf = prob.getPlusInfUtility();
 		assertTrue (realPlusInf.equals(real.add(realPlusInf)));
 		assertTrue (realPlusInf.equals(realPlusInf.add(real)));
 	}
@@ -304,15 +307,8 @@ public class XCSPparserTest extends TestCase {
 	/** Test method for getMinInfUtility() */
 	public void testGetMinInfUtility() {
 
-		// Test with AddableIntegers
-		AddableInteger integer = new AddableInteger (1);
-		AddableInteger intMinInf = parserInt.getMinInfUtility();
-		assertTrue (intMinInf.equals(integer.add(intMinInf)));
-		assertTrue (intMinInf.equals(intMinInf.add(integer)));
-
-		// Test with AddableReals
 		AddableReal real = new AddableReal (1.0);
-		AddableReal realMinInf = parserReal.getMinInfUtility();
+		AddableReal realMinInf = prob.getMinInfUtility();
 		assertTrue (realMinInf.equals(real.add(realMinInf)));
 		assertTrue (realMinInf.equals(realMinInf.add(real)));
 	}
@@ -320,20 +316,20 @@ public class XCSPparserTest extends TestCase {
 	/** Test method for XCSPparser#getAgents() */
 	public void testGetAgents() {
 		
-		Set<String> agents = parserInt.getAgents();
+		Set<String> agents = new HashSet<String> (prob.getAgents());
 		
 		// Remove all cluster IDs from the list of agents
 		for (String agent : graph.clusters.keySet()) 
-			assertTrue (agents.remove(agent));
+			assertTrue (agent + " not found in " + agents + " = all agents in\n" + this.prob, agents.remove(agent));
 		
-		assertTrue (agents.isEmpty());
+		assertTrue ("Remaining agents: " + agents, agents.isEmpty());
 	}
 
 	/** Test method for XCSPparser#getOwner(java.lang.String) */
 	public void testGetOwner() {
 		
 		for (String var : graph.nodes) 
-			assertEquals (graph.clusterOf.get(var).toString(), parserInt.getOwner(var));
+			assertEquals (graph.clusterOf.get(var).toString(), prob.getOwner(var));
 	}
 	
 	/** Computes the correct neighborhoods
@@ -342,8 +338,8 @@ public class XCSPparserTest extends TestCase {
 	 */
 	protected Map< String, ? extends Collection<String> > getNeighborhoods(final boolean withAnonymVars) {
 
-		Set<String> allVars = this.parserInt.getVariables();
-		allVars.addAll(this.parserInt.getVariables(null));
+		Set<String> allVars = this.prob.getVariables();
+		allVars.addAll(this.prob.getVariables(null));
 		HashMap< String, HashSet<String> > out = new HashMap< String, HashSet<String> > (allVars.size());
 		for (String var : allVars) {
 			HashSet<String> neighbors = new HashSet<String> ();
@@ -353,18 +349,18 @@ public class XCSPparserTest extends TestCase {
 
 				// Go through all spaces, looking for direct neighbors and neighbors of the variable's extended random neighborhood
 				HashSet<String> randVars = this.getExtendedRandNeighbors(var);
-				for (Hypercube<AddableInteger, AddableInteger> space : this.solutionSpaces) 
+				for (Hypercube<AddableInteger, AddableReal> space : this.solutionSpaces) 
 					if (space.getDomain(var) != null || ! Collections.disjoint(randVars, Arrays.asList(space.getVariables()))) 
 						for (String var2 : space.getVariables()) 
-							if (withAnonymVars || ! this.parserInt.isRandom(var2)) 
+							if (withAnonymVars || ! this.prob.isRandom(var2)) 
 								neighbors.add(var2);
 
 			} else { // without extendedRandNeighborhoods
 
-				for (Hypercube<AddableInteger, AddableInteger> space : this.solutionSpaces) 
+				for (Hypercube<AddableInteger, AddableReal> space : this.solutionSpaces) 
 					if (space.getDomain(var) != null) 
 						for (String var2 : space.getVariables()) 
-							if (withAnonymVars || ! this.parserInt.isRandom(var2)) 
+							if (withAnonymVars || ! this.prob.isRandom(var2)) 
 								neighbors.add(var2);
 			}
 
@@ -389,10 +385,10 @@ public class XCSPparserTest extends TestCase {
 			more = false; // will be set to true if a variable is added to randVars
 			
 			// Go through all spaces, looking for those that involve a variable in randVars
-			for (Hypercube<AddableInteger, AddableInteger> space : this.solutionSpaces) 
+			for (Hypercube<AddableInteger, AddableReal> space : this.solutionSpaces) 
 				if (! Collections.disjoint(randVars, Arrays.asList(space.getVariables()))) 
 					for (String var2 : space.getVariables()) // go through all random variables in that space
-						if (this.parserInt.isRandom(var2)) 
+						if (this.prob.isRandom(var2)) 
 							more = more || randVars.add(var2);
 		} while (more);
 		
@@ -406,8 +402,8 @@ public class XCSPparserTest extends TestCase {
 	public void testGetOwners() {
 		
 		// First test on the overall problem
-		Map<String, String> owners = parserInt.getOwners();
-		assertEquals (graph.nodes.size(), owners.size());
+		Map<String, String> owners = prob.getOwners();
+		assertEquals (graph.nodes + ".size() != " + owners + ".size();", graph.nodes.size(), owners.size());
 		
 		for (Map.Entry<String, String> entry : owners.entrySet())
 			assertEquals (graph.clusterOf.get(entry.getKey()).toString(), entry.getValue());
@@ -416,13 +412,13 @@ public class XCSPparserTest extends TestCase {
 		for (Map.Entry<String, List<String>> entry : graph.clusters.entrySet()) {
 			String agent = entry.getKey();
 			
-			DCOPProblemInterface<AddableInteger, AddableInteger> subProb = parserInt.getSubProblem(agent);
+			DCOPProblemInterface<AddableInteger, AddableReal> subProb = prob.getSubProblem(agent);
 			owners = subProb.getOwners();
 			
 			// Go through all variables owned by the current agent, and examine their neighbors
 			for (String var : entry.getValue()) {
 				
-				assertEquals (agent, owners.get(var));
+				assertEquals ("Wrong owner for " + var + "; ", agent, owners.get(var));
 				
 				// Go through all neighbors of the current variable
 				for (String neigh : graph.neighborhoods.get(var)) 
@@ -435,7 +431,7 @@ public class XCSPparserTest extends TestCase {
 	public void testGetNbrVars() {
 		
 		// Test for the overall problem
-		assertEquals (graph.nodes.size(), parserInt.getNbrVars());
+		assertEquals (graph.nodes.size(), prob.getNbrVars());
 		
 		// Test for each agent's subproblem
 		for (Map.Entry<String, List<String>> entry : graph.clusters.entrySet()) {
@@ -447,7 +443,7 @@ public class XCSPparserTest extends TestCase {
 				allVars.addAll(graph.neighborhoods.get(intVar));
 			allVars.addAll(intVars);
 			
-			assertEquals (allVars.size(), parserInt.getSubProblem(entry.getKey()).getNbrVars());
+			assertEquals (allVars.size(), prob.getSubProblem(entry.getKey()).getNbrVars());
 		}
 	}
 
@@ -456,14 +452,14 @@ public class XCSPparserTest extends TestCase {
 		
 		// Test for each agent
 		for (Map.Entry<String, List<String>> entry : graph.clusters.entrySet())
-			assertEquals (entry.getValue().size(), parserInt.getNbrVars(entry.getKey()));
+			assertEquals (entry.getValue().size(), prob.getNbrVars(entry.getKey()));
 	}
 
 	/** Test method for XCSPparser#getVariables() */
 	public void testGetVariables() {
 
 		// First test for the overall problem
-		Collection<String> vars = parserInt.getVariables();
+		Collection<String> vars = prob.getVariables();
 		for (String var : graph.nodes) 
 			assertTrue (vars.remove(var));
 		assertTrue (vars.isEmpty());
@@ -478,10 +474,10 @@ public class XCSPparserTest extends TestCase {
 				allVars.addAll(graph.neighborhoods.get(intVar));
 			allVars.addAll(intVars);
 			
-			vars = parserInt.getSubProblem(entry.getKey()).getVariables();
+			vars = prob.getSubProblem(entry.getKey()).getVariables();
 			for (String var : allVars) 
 				assertTrue (vars.remove(var));
-			assertTrue (vars.isEmpty());
+			assertTrue (entry.getKey() + " should not know " + vars, vars.isEmpty());
 		}
 		
 	}
@@ -492,7 +488,7 @@ public class XCSPparserTest extends TestCase {
 		// Test for each agent
 		for (Map.Entry<String, List<String>> entry : graph.clusters.entrySet()) {
 			
-			Collection<String> vars = parserInt.getVariables(entry.getKey());
+			Collection<String> vars = prob.getVariables(entry.getKey());
 			for (String var : entry.getValue()) 
 				assertTrue (vars.remove(var));
 			
@@ -500,9 +496,10 @@ public class XCSPparserTest extends TestCase {
 		}
 		
 		// Test for anonymous variables
-		Collection<String> vars = parserInt.getVariables(null);
+		Collection<String> vars = prob.getVariables(null);
 		for (Hypercube<AddableInteger, AddableReal> probSpace : this.probSpaces) 
-			assertTrue (vars.remove(probSpace.getVariable(0)));
+			assertTrue (probSpace.getVariable(0) + " not found in " + vars + " = all anonymous variables in\n" + this.prob, 
+					vars.remove(probSpace.getVariable(0)));
 		assertTrue (vars.isEmpty());
 	}
 	
@@ -512,12 +509,12 @@ public class XCSPparserTest extends TestCase {
 		// Test for each agent
 		for (String agent : graph.clusters.keySet()) {
 			
-			DCOPProblemInterface<AddableInteger, AddableInteger> subProb = parserInt.getSubProblem(agent);
+			DCOPProblemInterface<AddableInteger, AddableReal> subProb = prob.getSubProblem(agent);
 			Set<String> extVars = subProb.getExtVars();
 			
 			for (Map.Entry<String, String> entry : subProb.getOwners().entrySet()) 
 				if (! entry.getValue().equals(agent)) 
-					assertTrue (extVars.remove(entry.getKey()));
+					assertTrue (entry.getKey() + " not found in " + extVars + " = ext vars in\n" + subProb, extVars.remove(entry.getKey()));
 			
 			assertTrue (extVars.isEmpty());
 		}
@@ -541,9 +538,9 @@ public class XCSPparserTest extends TestCase {
 		// Test for each variable
 		for (Map.Entry< String, ? extends Collection<String> > neighborhood : getNeighborhoods(withAnonymVars).entrySet()) {
 			
-			Collection<String> neighbors = parserInt.getNeighborVars(neighborhood.getKey(), withAnonymVars);
+			Collection<String> neighbors = prob.getNeighborVars(neighborhood.getKey(), withAnonymVars);
 			for (String neighbor : neighborhood.getValue()) 
-				if (! this.parserInt.isRandom(neighbor) || withAnonymVars) 
+				if (! this.prob.isRandom(neighbor) || withAnonymVars) 
 					assertTrue (neighbor + " should be a neighbor of " + neighborhood.getKey(), neighbors.remove(neighbor));
 			
 			assertTrue ("The following variables should not be neighbors of " + neighborhood.getKey() + ": " + neighbors, neighbors.isEmpty());
@@ -559,10 +556,11 @@ public class XCSPparserTest extends TestCase {
 			// First remove the anonym vars
 			Collection<String> neighbors = neighborhood.getValue();
 			for (Iterator<String> iter = neighbors.iterator(); iter.hasNext(); ) 
-				if (this.parserInt.isRandom(iter.next())) 
+				if (this.prob.isRandom(iter.next())) 
 					iter.remove();
 			
-			assertEquals (neighbors.size(), parserInt.getNbrNeighbors(neighborhood.getKey()));
+			assertEquals ("Wrong number of neighbors for var `" + neighborhood.getKey() + "';", 
+					neighbors.size(), prob.getNbrNeighbors(neighborhood.getKey()));
 		}
 	}
 
@@ -582,12 +580,12 @@ public class XCSPparserTest extends TestCase {
 	private void testGetNeighborhoods(final boolean onlyAnonymVars) {
 		
 		// Test for the overall problem
-		Map< String, HashSet<String> > neighborhoods = (onlyAnonymVars ? parserInt.getAnonymNeighborhoods() : parserInt.getNeighborhoods());
+		Map< String, Set<String> > neighborhoods = (onlyAnonymVars ? prob.getAnonymNeighborhoods() : prob.getNeighborhoods());
 		for (Map.Entry< String, ? extends Collection<String> > neighborhood : getNeighborhoods(false).entrySet()) {
 			String var = neighborhood.getKey();
 
 			// Skip random variables
-			if (this.parserInt.isRandom(var)) 
+			if (this.prob.isRandom(var)) 
 				continue;
 
 			Collection<String> neighbors = neighborhoods.remove(var);
@@ -603,29 +601,29 @@ public class XCSPparserTest extends TestCase {
 				neighLoop: for (String neighbor : neighbors) {
 					
 					// Check that the neighbor is anonymous
-					assertTrue (neighbor + " is not anonymous ", parserInt.isRandom(neighbor));
+					assertTrue (neighbor + " is not anonymous ", prob.isRandom(neighbor));
 					
 					// Check that we can actually find a space that contains both variables
-					for (Hypercube<AddableInteger, AddableInteger> space : this.solutionSpaces) 
+					for (Hypercube<AddableInteger, AddableReal> space : this.solutionSpaces) 
 						if (space.getDomain(var) != null && space.getDomain(neighbor) != null) // find a space
 							continue neighLoop;
 					fail (var + " and " + neighbor + " are not neighbors");
 				}
 			}
 		}
-		assertTrue (neighborhoods.isEmpty());
+		assertTrue ("Remaining neighborhoods: " + neighborhoods + ";", neighborhoods.isEmpty());
 		
 		// Test for each agent
 		for (String agent : graph.clusters.keySet()) {
 			
-			neighborhoods = (onlyAnonymVars ? parserInt.getAnonymNeighborhoods(agent) : parserInt.getNeighborhoods(agent));
+			neighborhoods = (onlyAnonymVars ? prob.getAnonymNeighborhoods(agent) : prob.getNeighborhoods(agent));
 			
 			// Go through the list of correct neighborhoods for this agent
 			for (Map.Entry< String, ? extends Collection<String> > neighborhood : getNeighborhoods(onlyAnonymVars).entrySet()) {
 				String var = neighborhood.getKey();
 
 				// Skip random variables
-				if (this.parserInt.isRandom(var)) 
+				if (this.prob.isRandom(var)) 
 					continue;
 
 				if (graph.clusterOf.get(var).equals(agent)) {
@@ -643,10 +641,10 @@ public class XCSPparserTest extends TestCase {
 						neighLoop: for (String neighbor : neighbors) {
 							
 							// Check that the neighbor is anonymous
-							assertTrue (neighbor + " is not anonymous ", parserInt.isRandom(neighbor));
+							assertTrue (neighbor + " is not anonymous ", prob.isRandom(neighbor));
 							
 							// Check that we can actually find a space that contains both variables
-							for (Hypercube<AddableInteger, AddableInteger> space : this.solutionSpaces) 
+							for (Hypercube<AddableInteger, AddableReal> space : this.solutionSpaces) 
 								if (space.getDomain(var) != null && space.getDomain(neighbor) != null) // find a space
 									continue neighLoop;
 							fail (var + " and " + neighbor + " are not neighbors");
@@ -662,12 +660,12 @@ public class XCSPparserTest extends TestCase {
 	public void testGetNeighborhoodSizes() {
 		
 		// Test for the overall problem
-		Map<String, Integer> sizes = parserInt.getNeighborhoodSizes();
+		Map<String, Integer> sizes = prob.getNeighborhoodSizes();
 		for (Map.Entry< String, ? extends Collection<String> > neighborhood : getNeighborhoods(false).entrySet()) {
 			
 			// Skip random variables
 			String var = neighborhood.getKey();
-			if (this.parserInt.isRandom(var)) 
+			if (this.prob.isRandom(var)) 
 				continue;
 			
 			assertEquals (neighborhood.getValue().size(), (int) sizes.remove(var));
@@ -677,14 +675,14 @@ public class XCSPparserTest extends TestCase {
 		// Test for each agent
 		for (String agent : graph.clusters.keySet()) {
 
-			sizes = parserInt.getNeighborhoodSizes(agent);
+			sizes = prob.getNeighborhoodSizes(agent);
 
 			// Go through the list of correct neighborhoods for this agent
 			for (Map.Entry< String, ? extends Collection<String> > neighborhood : getNeighborhoods(false).entrySet()) {
 				String var = neighborhood.getKey();
 
 				// Skip random variables
-				if (this.parserInt.isRandom(var)) 
+				if (this.prob.isRandom(var)) 
 					continue;
 
 				if (graph.clusterOf.get(var).equals(agent)) 
@@ -701,13 +699,13 @@ public class XCSPparserTest extends TestCase {
 		Map< String, ? extends Collection<String> > trueNeighborhoods = this.getNeighborhoods(false);
 		
 		// Test for the overall problem
-		Map< String, Collection<String> > agentNeighborhoods = parserInt.getAgentNeighborhoods();
+		Map< String, Set<String> > agentNeighborhoods = prob.getAgentNeighborhoods();
 		
 		for (Map.Entry< String, ? extends Collection<String> > entry : trueNeighborhoods.entrySet()) {
 			String var = entry.getKey();
 			
 			// Skip random variables
-			if (this.parserInt.isRandom(var)) 
+			if (this.prob.isRandom(var)) 
 				continue;
 			
 			// Compute the correct set of agent neighborhoods
@@ -720,21 +718,21 @@ public class XCSPparserTest extends TestCase {
 			Collection<String> neighbors = agentNeighborhoods.remove(var);
 			for (String agent : agents) 
 				assertTrue (neighbors.remove(agent));
-			assertTrue (neighbors.isEmpty());
+			assertTrue ("Unexpected agent neighbors of " + var + ": " + neighbors + ";", neighbors.isEmpty());
 		}
 		assertTrue (agentNeighborhoods.isEmpty());
 		
 		// Test for each agent
 		for (String agent : graph.clusters.keySet()) {
 
-			Map< String, Collection<String> > neighborhoods = parserInt.getAgentNeighborhoods(agent);
+			Map< String, Set<String> > neighborhoods = prob.getAgentNeighborhoods(agent);
 			
 			// Go through the list of correct neighborhoods for this agent
 			for (Map.Entry< String, ? extends Collection<String> > neighborhood : trueNeighborhoods.entrySet()) {
 				String var = neighborhood.getKey();
 
 				// Skip random variables
-				if (this.parserInt.isRandom(var)) 
+				if (this.prob.isRandom(var)) 
 					continue;
 
 				if (graph.clusterOf.get(var).equals(agent)) {
@@ -760,19 +758,19 @@ public class XCSPparserTest extends TestCase {
 	public void testGetDomainSize() {
 		
 		// Test for overall problem
-		ArrayList<String> allVars = new ArrayList<String> (this.parserInt.getVariables());
-		allVars.addAll(this.parserInt.getVariables(null)); // test also the variables with no specified owner 
+		ArrayList<String> allVars = new ArrayList<String> (this.prob.getVariables());
+		allVars.addAll(this.prob.getVariables(null)); // test also the variables with no specified owner 
 		for (String var : allVars) 
-			assertEquals (this.parserInt.getDomain(var).length, this.parserInt.getDomainSize(var));
+			assertEquals (this.prob.getDomain(var).length, this.prob.getDomainSize(var));
 		
 		// Test for each agent's subproblem
 		for (String agent : this.graph.clusters.keySet()) {
-			XCSPparser<AddableInteger, AddableInteger> subProb = parserInt.getSubProblem(agent);
+			DCOPProblemInterface<AddableInteger, AddableReal> subProb = prob.getSubProblem(agent);
 			
 			allVars = new ArrayList<String> (subProb.getVariables());
 			allVars.addAll(subProb.getVariables(null)); // test also the variables with no specified owner 
 			for (String var : allVars) 
-				assertEquals (this.parserInt.getDomain(var).length, subProb.getDomainSize(var));
+				assertEquals (this.prob.getDomain(var).length, subProb.getDomainSize(var));
 		}
 	}
 
@@ -783,7 +781,7 @@ public class XCSPparserTest extends TestCase {
 		
 		// Parse all the correct domains
 		HashMap< String, AddableInteger[] > doms = new HashMap< String, AddableInteger[] > ();
-		for (Element domElmt : (List<Element>) problem.getRootElement().getChild("domains").getChildren()) {
+		for (Element domElmt : (List<Element>) probDoc.getRootElement().getChild("domains").getChildren()) {
 			
 			AddableInteger[] dom = new AddableInteger [Integer.parseInt(domElmt.getAttributeValue("nbValues"))];
 			doms.put(domElmt.getAttributeValue("name"), dom);
@@ -806,24 +804,24 @@ public class XCSPparserTest extends TestCase {
 		}
 		
 		// Go through the list of variables in the overall problem
-		for (Element varElmt : (List<Element>) problem.getRootElement().getChild("variables").getChildren()) 
-			assertEquals (Arrays.asList(doms.get(varElmt.getAttributeValue("domain"))), Arrays.asList(parserInt.getDomain(varElmt.getAttributeValue("name"))));
+		for (Element varElmt : (List<Element>) probDoc.getRootElement().getChild("variables").getChildren()) 
+			assertEquals (Arrays.asList(doms.get(varElmt.getAttributeValue("domain"))), Arrays.asList(prob.getDomain(varElmt.getAttributeValue("name"))));
 		
 		// Also check each agent's subproblem
 		for (String agent : graph.clusters.keySet()) {
-			XCSPparser<AddableInteger, AddableInteger> subProb = parserInt.getSubProblem(agent);
+			DCOPProblemInterface<AddableInteger, AddableReal> subProb = prob.getSubProblem(agent);
 			for (String var : subProb.getVariables()) 
-				assertEquals (Arrays.asList(parserInt.getDomain(var)), Arrays.asList(subProb.getDomain(var)));
+				assertEquals (Arrays.asList(prob.getDomain(var)), Arrays.asList(subProb.getDomain(var)));
 			for (String var : subProb.getVariables(null)) // also check anonymous variables
-				assertEquals (Arrays.asList(parserInt.getDomain(var)), Arrays.asList(subProb.getDomain(var)));
+				assertEquals (Arrays.asList(prob.getDomain(var)), Arrays.asList(subProb.getDomain(var)));
 		}
 	}
 	
 	/** Tests the setDomain() method */
 	public void testSetDomain () {
 		
-		ArrayList<String> allVars = new ArrayList<String> (this.parserReal.getVariables());
-		allVars.addAll(this.parserReal.getVariables(null)); // test also the variables with no specified owner 
+		ArrayList<String> allVars = new ArrayList<String> (this.prob.getVariables());
+		allVars.addAll(this.prob.getVariables(null)); // test also the variables with no specified owner 
 		for (String var : allVars) {
 			
 			// Generate a new random domain, possibly with redundant values
@@ -841,13 +839,13 @@ public class XCSPparserTest extends TestCase {
 			ArrayList<AddableInteger> domReduced = new ArrayList<AddableInteger> (domReducedSet);
 			
 			// Check that the domain is properly set to the reduced domain 
-			this.parserReal.setDomain(var, dom);
-			assertEquals (domReduced, Arrays.asList(this.parserReal.getDomain(var)));
+			this.prob.setDomain(var, dom);
+			assertEquals (domReduced, Arrays.asList(this.prob.getDomain(var)));
 			
 			// If var is a random variable, check that its probability law has been properly updated
-			if (this.parserReal.isRandom(var)) {
+			if (this.prob.isRandom(var)) {
 				
-				List< ? extends UtilitySolutionSpace<AddableInteger, AddableReal> > probLaws = this.parserReal.getProbabilitySpaces(var);
+				List< ? extends UtilitySolutionSpace<AddableInteger, AddableReal> > probLaws = this.prob.getProbabilitySpaces(var);
 				UtilitySolutionSpace<AddableInteger, AddableReal> probLaw = probLaws.get(0);
 
 				// Check that each value frequency is correct
@@ -874,26 +872,26 @@ public class XCSPparserTest extends TestCase {
 	/** Test method for XCSPparser#getSubProblem(String). */
 	public void testGetSubProblem() {
 		
-		List< ? extends UtilitySolutionSpace<AddableInteger, AddableReal> > allHypercubes = parserReal.getSolutionSpaces(true);
-		List< ? extends UtilitySolutionSpace<AddableInteger, AddableReal> > allProbs = parserReal.getProbabilitySpaces();
+		List< ? extends UtilitySolutionSpace<AddableInteger, AddableReal> > allHypercubes = prob.getSolutionSpaces(true);
+		List< ? extends UtilitySolutionSpace<AddableInteger, AddableReal> > allProbs = prob.getProbabilitySpaces();
 
 		// Test for each agent
 		for (String agent : graph.clusters.keySet()) {
 			
-			DCOPProblemInterface< AddableInteger, AddableReal > subproblem = parserReal.getSubProblem(agent);
+			DCOPProblemInterface< AddableInteger, AddableReal > subproblem = prob.getSubProblem(agent);
 			
 			// Check the subproblem contains all constraints involving the agent's variables
 			List< ? extends UtilitySolutionSpace<AddableInteger, AddableReal> > spaces = subproblem.getSolutionSpaces(true);
-			Collection<String> vars = parserReal.getVariables(agent);
+			Set<String> vars = prob.getVariables(agent);
 			HashSet<String> randVars = new HashSet<String> ();
 			for (UtilitySolutionSpace<AddableInteger, AddableReal> hypercube : allHypercubes) {
 				for (String var : hypercube.getVariables()) {
 					if (vars.contains(var)) {
-						assertTrue (spaces.remove(hypercube));
+						assertTrue (hypercube + "\nnot found in\n" + spaces, spaces.remove(hypercube));
 						
 						// Record all random variables mentioned in this constraint
 						for (String var2 : hypercube.getVariables()) 
-							if (parserReal.isRandom(var2)) 
+							if (prob.isRandom(var2)) 
 								randVars.add(var2);
 						break;
 					}
@@ -932,7 +930,7 @@ public class XCSPparserTest extends TestCase {
 			
 			// If required, check that the agent knows all other agents
 			if (this.publicAgents) 
-				assertEquals (parserReal.getAgents(), subproblem.getAgents());
+				assertEquals (prob.getAgents(), subproblem.getAgents());
 		}
 	}
 
@@ -942,50 +940,50 @@ public class XCSPparserTest extends TestCase {
 	public void testIsRandom () throws JDOMException {
 		
 		// For each variable
-		for (Element varElmt : (List<Element>) problem.getRootElement().getChild("variables").getChildren()) {
+		for (Element varElmt : (List<Element>) probDoc.getRootElement().getChild("variables").getChildren()) {
 			String isRand = varElmt.getAttributeValue("type");
-			assertEquals (isRand != null && isRand.equals("random"), parserInt.isRandom(varElmt.getAttributeValue("name")));
+			assertEquals (isRand != null && isRand.equals("random"), prob.isRandom(varElmt.getAttributeValue("name")));
 		}
 	}
 	
 	/** Test method for getSolutionSpaces() with random variables */
 	public void testGetSolutionSpacesWithRandVars() {
-		this.testGetSolutionSpaces(this.parserInt, this.solutionSpaces, null, true);
+		this.testGetSolutionSpaces(this.prob, this.solutionSpaces, null, true);
 	}
 
 	/** Test method for getSolutionSpaces() ignoring random variables */
 	public void testGetSolutionSpaces() {
 
 		// Remove from the list of solution spaces the ones that involve random variables
-		for (java.util.Iterator<Hypercube<AddableInteger, AddableInteger>> iter = this.solutionSpaces.iterator(); iter.hasNext(); ) {
+		for (java.util.Iterator<Hypercube<AddableInteger, AddableReal>> iter = this.solutionSpaces.iterator(); iter.hasNext(); ) {
 			for (String var : iter.next().getVariables()) {
-				if (parserInt.isRandom(var)) {
+				if (prob.isRandom(var)) {
 					iter.remove();
 					break;
 				}
 			}
 		}
 
-		this.testGetSolutionSpaces(this.parserInt, this.solutionSpaces, null, false);
+		this.testGetSolutionSpaces(this.prob, this.solutionSpaces, null, false);
 	}
 	
 	/** Test method for getSolutionSpaces(String, boolean) 
-	 * @param parser 		the parser
+	 * @param problem 		the problem
 	 * @param refSpaces 	the reference spaces
 	 * @param var 			the variable 
 	 * @param withRandVars 	if \c true, also considers random variables
 	 * @todo Test with default cost
 	 */
-	protected void testGetSolutionSpaces(XCSPparser<AddableInteger, AddableInteger> parser, 
-			List< ? extends UtilitySolutionSpace<AddableInteger, AddableInteger> > refSpaces, String var, final boolean withRandVars) {
+	protected void testGetSolutionSpaces(DCOPProblemInterface<AddableInteger, AddableReal> problem, 
+			List< ? extends UtilitySolutionSpace<AddableInteger, AddableReal> > refSpaces, String var, final boolean withRandVars) {
 		
 		// Parse all the solution spaces involving the variable 
-		List< ? extends UtilitySolutionSpace<AddableInteger, AddableInteger> > solutionSpaces2 = parser.getSolutionSpaces(var, withRandVars);
+		List< ? extends UtilitySolutionSpace<AddableInteger, AddableReal> > solutionSpaces2 = problem.getSolutionSpaces(var, withRandVars);
 		
 		// Check that the list indeed contains all spaces involving this variable and nothing else
-		for (UtilitySolutionSpace<AddableInteger, AddableInteger> space : refSpaces) 
+		for (UtilitySolutionSpace<AddableInteger, AddableReal> space : refSpaces) 
 			if (var == null || space.getDomain(var) != null) 
-				assertTrue (solutionSpaces2.remove(space));
+				assertTrue (space + " not in " + solutionSpaces2, solutionSpaces2.remove(space));
 		assertTrue (solutionSpaces2.isEmpty());
 	}
 
@@ -993,7 +991,7 @@ public class XCSPparserTest extends TestCase {
 	public void testGetProbabilitySpaces() {
 		
 		// Parse all the probability spaces in the problem
-		List< ? extends UtilitySolutionSpace<AddableInteger, AddableReal> > probSpaces2 = parserReal.getProbabilitySpaces();
+		List< ? extends UtilitySolutionSpace<AddableInteger, AddableReal> > probSpaces2 = prob.getProbabilitySpaces();
 
 		// Check that all probability spaces were properly read
 		assertEquals (probSpaces.size(), probSpaces2.size());
@@ -1010,9 +1008,9 @@ public class XCSPparserTest extends TestCase {
 	public void testGetSolutionSpacesForVar() {
 		
 		// Remove from the list of solution spaces the ones that involve random variables
-		for (java.util.Iterator<Hypercube<AddableInteger, AddableInteger>> iter = this.solutionSpaces.iterator(); iter.hasNext(); ) {
+		for (java.util.Iterator<Hypercube<AddableInteger, AddableReal>> iter = this.solutionSpaces.iterator(); iter.hasNext(); ) {
 			for (String var : iter.next().getVariables()) {
-				if (parserInt.isRandom(var)) {
+				if (prob.isRandom(var)) {
 					iter.remove();
 					break;
 				}
@@ -1030,19 +1028,19 @@ public class XCSPparserTest extends TestCase {
 	private void testGetSolutionSpacesForVar(final boolean withRandVars) {
 		
 		// Test it on each variable in the overall problem
-		HashSet<String> allVars = new HashSet<String> (parserInt.getVariables());
+		HashSet<String> allVars = new HashSet<String> (prob.getVariables());
 		if (withRandVars) 
-			allVars.addAll(parserInt.getVariables(null)); // add variables with no specified owner
+			allVars.addAll(prob.getVariables(null)); // add variables with no specified owner
 		for (String var : allVars) 
-			this.testGetSolutionSpaces(this.parserInt, new ArrayList< UtilitySolutionSpace<AddableInteger, AddableInteger> > (this.solutionSpaces), var, withRandVars);
+			this.testGetSolutionSpaces(this.prob, new ArrayList< UtilitySolutionSpace<AddableInteger, AddableReal> > (this.solutionSpaces), var, withRandVars);
 		
 		// Also test for each agent's subproblem
 		for (String agent : graph.clusters.keySet()) {
-			XCSPparser<AddableInteger, AddableInteger> subProb = parserInt.getSubProblem(agent);
+			DCOPProblemInterface<AddableInteger, AddableReal> subProb = prob.getSubProblem(agent);
 			
 			// Filter out the spaces that don't involve any internal variable
-			ArrayList< UtilitySolutionSpace<AddableInteger, AddableInteger> > mySolutionSpaces = new ArrayList< UtilitySolutionSpace<AddableInteger, AddableInteger> > ();
-			ext: for (UtilitySolutionSpace<AddableInteger, AddableInteger> space : this.solutionSpaces) {
+			ArrayList< UtilitySolutionSpace<AddableInteger, AddableReal> > mySolutionSpaces = new ArrayList< UtilitySolutionSpace<AddableInteger, AddableReal> > ();
+			ext: for (UtilitySolutionSpace<AddableInteger, AddableReal> space : this.solutionSpaces) {
 				for (String var : space.getVariables()) {
 					if (agent.equals(graph.clusterOf.get(var))) { // internal variable
 						mySolutionSpaces.add(space);
@@ -1055,7 +1053,7 @@ public class XCSPparserTest extends TestCase {
 			if (withRandVars) 
 				allVars.addAll(subProb.getVariables(null)); // add variables with no specified owner
 			for (String var : allVars) 
-				this.testGetSolutionSpaces(subProb, new ArrayList< UtilitySolutionSpace<AddableInteger, AddableInteger> > (mySolutionSpaces), var, withRandVars);
+				this.testGetSolutionSpaces(subProb, new ArrayList< UtilitySolutionSpace<AddableInteger, AddableReal> > (mySolutionSpaces), var, withRandVars);
 		}
 	}
 
@@ -1063,12 +1061,13 @@ public class XCSPparserTest extends TestCase {
 	public void testGetProbabilitySpacesForVar() {
 		
 		// Test it on each variable of the overall problem
-		HashSet<String> allVars = new HashSet<String> (parserReal.getVariables());
-		allVars.addAll(parserReal.getVariables(null)); // add variables with no specified owner
+		HashSet<String> allVars = new HashSet<String> (prob.getVariables());
+		allVars.addAll(prob.getVariables(null)); // add variables with no specified owner
 		for (String var : allVars) {
 			
 			// Parse all the probability spaces involving this variable
-			List< ? extends UtilitySolutionSpace<AddableInteger, AddableReal> > probSpaces2 = parserReal.getProbabilitySpaces(var);
+			ArrayList< UtilitySolutionSpace<AddableInteger, AddableReal> > probSpaces2 = 
+					new ArrayList< UtilitySolutionSpace<AddableInteger, AddableReal> > (prob.getProbabilitySpaces(var));
 
 			// Check that the list indeed contains all probability spaces involving this variable and nothing else
 			for (Hypercube<AddableInteger, AddableReal> space : this.probSpaces) 
@@ -1080,14 +1079,15 @@ public class XCSPparserTest extends TestCase {
 		
 		// Also check each agent's subproblem
 		for (String agent : graph.clusters.keySet()) {
-			XCSPparser<AddableInteger, AddableReal> subProb = parserReal.getSubProblem(agent);
+			DCOPProblemInterface<AddableInteger, AddableReal> subProb = prob.getSubProblem(agent);
 			
 			allVars = new HashSet<String> (subProb.getVariables());
 			allVars.addAll(subProb.getVariables(null)); // add variables with no specified owner
 			for (String var : allVars) {
 				
 				// Parse all the probability spaces involving this variable
-				List< ? extends UtilitySolutionSpace<AddableInteger, AddableReal> > probSpaces2 = subProb.getProbabilitySpaces(var);
+				List< ? extends UtilitySolutionSpace<AddableInteger, AddableReal> > probSpaces2 = 
+						new ArrayList< UtilitySolutionSpace<AddableInteger, AddableReal> > (subProb.getProbabilitySpaces(var));
 
 				// Check that the list indeed contains all probability spaces involving this variable and an internal variable, and nothing else
 				for (Hypercube<AddableInteger, AddableReal> space : this.probSpaces) 
@@ -1103,23 +1103,23 @@ public class XCSPparserTest extends TestCase {
 	public void testGetUtility () {
 		
 		// Choose a random assignment to all variables
-		int nbrVars = parserInt.getNbrVars();
-		String[] vars = parserInt.getVariables().toArray(new String [nbrVars]);
+		int nbrVars = prob.getNbrVars();
+		String[] vars = prob.getVariables().toArray(new String [nbrVars]);
 		AddableInteger[] vals = new AddableInteger [nbrVars];
 		HashMap<String, AddableInteger> assignments = new HashMap<String, AddableInteger> ();
 		for (int i = 0; i < nbrVars; i++) {
 			String var = vars[i];
-			AddableInteger[] domain = parserInt.getDomain(var);
+			AddableInteger[] domain = prob.getDomain(var);
 			AddableInteger val = domain[ (int) (domain.length * Math.random()) ];
 			vals[i] = val;
 			assignments.put(var, val);
 		}
 		
-		AddableInteger util = parserInt.getUtility(assignments).getUtility(0);
+		AddableReal util = prob.getUtility(assignments).getUtility(0);
 		
 		// Compute the true utility
-		AddableInteger trueUtil = new AddableInteger (0);
-		ext: for (UtilitySolutionSpace<AddableInteger, AddableInteger> space : this.solutionSpaces) {
+		AddableReal trueUtil = new AddableReal (0);
+		ext: for (UtilitySolutionSpace<AddableInteger, AddableReal> space : this.solutionSpaces) {
 			
 			// Skip this space if it contains a random variable
 			for (String var : space.getVariables()) 
@@ -1130,6 +1130,18 @@ public class XCSPparserTest extends TestCase {
 		}
 		
 		assertEquals (trueUtil, util);
+	}
+	
+	/** Test for the method maximize() */
+	public void testMaximize () {
+		
+		// Test for the overall problem
+		assertEquals (this.maximize, this.prob.maximize());
+		
+		// Test for the subproblems
+		for (String agent : this.parser.getAgents()) 
+			assertEquals (this.maximize, this.prob.getSubProblem(agent).maximize());
+		
 	}
 	
 }

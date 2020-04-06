@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -314,7 +314,7 @@ public class VisualizerControls extends JFrame implements ActionListener, TreeEx
 	 * @param type 	the message type
 	 * @return the node in the tree for this message type (newly created if not yet existent)
 	 */
-	private MsgTypeSetting getTreeNode(MessageType type) {
+	synchronized private MsgTypeSetting getTreeNode(MessageType type) {
 		
 		MsgTypeSetting node = this.nodes.get(type);
 		

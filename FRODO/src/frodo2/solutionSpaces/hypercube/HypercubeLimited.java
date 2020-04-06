@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -60,6 +60,19 @@ extends BasicHypercube<V, UL> implements UtilitySolutionSpaceLimited<V, U, UL> {
 	 */
 	public HypercubeLimited(String[] variablesOrder, V[][] variablesDomains, UL[] utilityValues, UL infeasibleUtil) {
 		super (variablesOrder, variablesDomains, utilityValues, infeasibleUtil);
+	}
+	
+	/** Constructor
+	 * @param name 				the name of this HypercubeLimited
+	 * @param variablesOrder 	the array containing the variables names ordered according to their order in the hypercube
+	 * @param variablesDomains 	the domains of the variables contained in the variables_order array and ordered in the same order.
+	 * @param utilityValues 	the utility values contained in a one-dimensional array. there should be a utility value for each 
+	 * 							possible combination of values that the variables may take.
+	 * @param infeasibleUtil 	-INF if we are maximizing, +INF if we are minimizing
+	 */
+	public HypercubeLimited(String name, String[] variablesOrder, V[][] variablesDomains, UL[] utilityValues, UL infeasibleUtil) {
+		super (variablesOrder, variablesDomains, utilityValues, infeasibleUtil);
+		super.name = name;
 	}
 	
 	/** Constructor
@@ -183,14 +196,15 @@ extends BasicHypercube<V, UL> implements UtilitySolutionSpaceLimited<V, U, UL> {
 			
 			outputDomains[i] = dom.clone();
 
-			assert Math.log((double) nbrOutputUtils) + Math.log((double) dom.length) < Math.log(Integer.MAX_VALUE) : 
-				"Size of utility array too big for an int";
+			if (Math.log((double) nbrOutputUtils) + Math.log((double) dom.length) >= Math.log(Integer.MAX_VALUE)) 
+				throw new OutOfMemoryError ("Size of utility array too big for an int");
 			nbrOutputUtils *= dom.length;
 		}
 		
 		// Instantiate the output, with an empty utility array
 		UL[] outputUtils = (UL[]) Array.newInstance(this.getClassOfU(), nbrOutputUtils);
-		UtilitySolutionSpaceLimited<V, U, UL> out = this.newInstance( (String[])outputVars.clone(), outputDomains, outputUtils, this.infeasibleUtil );
+		UtilitySolutionSpaceLimited<V, U, UL> out = 
+				this.newInstance( this.name + "_joined", (String[])outputVars.clone(), outputDomains, outputUtils, this.infeasibleUtil );
 		
 		if (! minNCCCs) {
 			
@@ -289,7 +303,8 @@ extends BasicHypercube<V, UL> implements UtilitySolutionSpaceLimited<V, U, UL> {
 				V[] dom = this.domains[j];
 				domsKept[i] = dom;
 				varOrder[i++] = var;
-				assert Math.log(nbrUtilsKept) + Math.log(dom.length) < Math.log(Long.MAX_VALUE) : "Too many solutions to fit in a long";
+				if (Math.log(nbrUtilsKept) + Math.log(dom.length) >= Math.log(Long.MAX_VALUE)) 
+					throw new OutOfMemoryError ("Number of solutions in a space too large for a long");
 				nbrUtilsKept *= dom.length;
 			}
 		}
@@ -303,7 +318,8 @@ extends BasicHypercube<V, UL> implements UtilitySolutionSpaceLimited<V, U, UL> {
 		System.arraycopy(varOrder, 0, varsKept, 0, nbrVarsKept);
 
 		// Initialize the output array of utilities
-		assert nbrUtilsKept < Integer.MAX_VALUE : "A Hypercube can only contain up to 2^31-1 solutions, but log_2(" + nbrUtilsKept + ") = " + Math.log(nbrUtilsKept) / Math.log(2);
+		if (nbrUtilsKept >= Integer.MAX_VALUE) 
+			throw new OutOfMemoryError ("A Hypercube can only contain up to 2^31-1 solutions, but log_2(" + nbrUtilsKept + ") = " + Math.log(nbrUtilsKept) / Math.log(2));
 		UL[] optUtils = (UL[]) Array.newInstance(this.getClassOfU(), (int) nbrUtilsKept);
 		
 		// Iterate over the solutions in the space
@@ -323,7 +339,7 @@ extends BasicHypercube<V, UL> implements UtilitySolutionSpaceLimited<V, U, UL> {
 			optUtils[i] = optUtil;
 		}
 		
-		return this.newInstance(varsKept, domsKept, optUtils, this.infeasibleUtil);
+		return this.newInstance(this.name + "_blind_projected", varsKept, domsKept, optUtils, this.infeasibleUtil);
 	}
 
 	/** @see UtilitySolutionSpaceLimited#blindProjectAll(boolean) */
@@ -353,10 +369,10 @@ extends BasicHypercube<V, UL> implements UtilitySolutionSpaceLimited<V, U, UL> {
 		return this.blindProject(variable, true);
 	}
 	
-	/** @see BasicHypercube#newInstance(String[], V[][], Serializable[], Serializable) */
+	/** @see BasicHypercube#newInstance(String, String[], V[][], Serializable[], Serializable) */
 	@Override
-	protected HypercubeLimited<V, U, UL> newInstance(String[] new_variables, V[][] new_domains, UL[] new_values, UL infeasibleUtil) {
-		return new HypercubeLimited<V, U, UL> ( new_variables, new_domains, new_values, infeasibleUtil );
+	protected HypercubeLimited<V, U, UL> newInstance(String name, String[] new_variables, V[][] new_domains, UL[] new_values, UL infeasibleUtil) {
+		return new HypercubeLimited<V, U, UL> ( name, new_variables, new_domains, new_values, infeasibleUtil );
 	}
 
 	/** @see BasicHypercube#scalarHypercube(Serializable) */

@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -989,6 +989,8 @@ public class AFB < V extends Addable<V>, U extends Addable<U> > implements Stats
 			else
 			{
 				info.cpa.c = info.prevCost;
+				assert ! this.problem.getMinInfUtility().equals(info.cpa.c) && ! this.problem.getPlusInfUtility().equals(info.cpa.c) : "CPA has infinite cost";
+
 				info.cpa.assignments[clusterIndex]=null;
 				info.cpa.index = clusterIndex - 1;
 			}
@@ -1001,6 +1003,7 @@ public class AFB < V extends Addable<V>, U extends Addable<U> > implements Stats
 			// iterate over the domain of the cluster to find next solution that is better than the current bound
 			U bound = (clusterIndex == 0? compInfo.B : compInfo.B.subtract(info.cpa.c));
 			U next = info.iterator.nextUtility(bound, true);
+			assert ! this.problem.getMinInfUtility().equals(next) && ! this.problem.getPlusInfUtility().equals(next) : "Solution has infinite cost";
 
 			if (next == null) // we ran out of values
 				backtrack(compID, compInfo, info, clusterIndex);
@@ -1013,6 +1016,7 @@ public class AFB < V extends Addable<V>, U extends Addable<U> > implements Stats
 				U total = add;
 				total = add.add(info.cpa.c);
 				info.cpa.c = total;
+				assert ! this.problem.getMinInfUtility().equals(info.cpa.c) && ! this.problem.getPlusInfUtility().equals(info.cpa.c) : "CPA has infinite cost";
 				assert compInfo.B.compareTo(total) > 0 : compInfo.B + " > " + total;
 				
 				info.assignmentCounter ++;

@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -30,6 +30,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeSet;
 
 import org.jdom2.Element;
@@ -133,9 +134,9 @@ public class FactorGraphGen < V extends Addable<V>, U extends Addable<U> > imple
 			out.append("\t\tlabel = " + agent + ";\n");
 			
 			// Print the agent's variable nodes
-			Map< String, Collection<String> > agentNeighborhoods = this.problem.getAgentNeighborhoods();
+			Map< String, Set<String> > agentNeighborhoods = this.problem.getAgentNeighborhoods();
 			ArrayList<String> myVars = new ArrayList<String> ();
-			for (Map.Entry< String, Collection<String> > entry : agentNeighborhoods.entrySet()) {
+			for (Map.Entry< String, Set<String> > entry : agentNeighborhoods.entrySet()) {
 				String var = entry.getKey();
 				String owner = this.problem.getOwner(var);
 				if (agent.equals(owner) || owner == null && agent.equals(new TreeSet<String> (entry.getValue()).iterator().next())) {
@@ -188,11 +189,11 @@ public class FactorGraphGen < V extends Addable<V>, U extends Addable<U> > imple
 	public void notifyIn(Message msg) {
 		
 		// Look for this agent's internal and neighboring variable nodes
-		Map< String, Collection<String> > agentNeighborhoods = this.problem.getAgentNeighborhoods(null);
+		Map< String, Set<String> > agentNeighborhoods = this.problem.getAgentNeighborhoods(null);
 		HashMap< String, VariableNode<V, U> > variables = new HashMap< String, VariableNode<V, U> > (agentNeighborhoods.size());
 		final String myName = this.problem.getAgent();
 		Map< String, TreeSet<String> > sharedVarsScopes = new HashMap< String, TreeSet<String> > ();
-		for (Map.Entry< String, Collection<String> > entry : agentNeighborhoods.entrySet()) {
+		for (Map.Entry< String, Set<String> > entry : agentNeighborhoods.entrySet()) {
 			String var = entry.getKey();
 			String owner = this.problem.getOwner(var);
 			if (owner == null) { // shared variable

@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -70,7 +70,7 @@ public class MessageType implements Serializable, Comparable<MessageType> {
 			return false;
 		
 		try {
-			return Arrays.deepEquals(this.path, ((MessageType) o).path);
+			return Arrays.equals(this.path, ((MessageType) o).path);
 		} catch (ClassCastException e) {
 			return false;
 		}
@@ -197,8 +197,12 @@ public class MessageType implements Serializable, Comparable<MessageType> {
 				return out; 
 		}
 		
-		// this is a parent of o 
-		return -1;
+		// The arrays are equal up to index this.path.length - 1
+		if (o.path.length > this.path.length) 
+			return -1; // this is a parent of o 
+		
+		// Else, the two arrays are exactly equal 
+		return 0;
 	}
 
 }

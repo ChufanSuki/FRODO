@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -230,7 +230,7 @@ public class LinearOrdering < V extends Addable<V>, U extends Addable<U> > imple
 	private Heuristic<IntIntStringTuple> heuristic;
 
 	/** For each internal variable, its list of agent neighbors */
-	private Map< String, Collection<String> > agentNeighborhoods;
+	private Map< String, Set<String> > agentNeighborhoods;
 
 	/** The owner of each variable I know */
 	private Map<String, String> owners;

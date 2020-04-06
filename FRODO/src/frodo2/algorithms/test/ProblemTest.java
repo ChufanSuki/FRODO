@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -33,11 +33,11 @@ import junit.framework.TestSuite;
 
 import org.jdom2.Document;
 
-import frodo2.algorithms.Problem;
 import frodo2.algorithms.RandGraphFactory;
 import frodo2.algorithms.XCSPparser;
 import frodo2.algorithms.RandGraphFactory.Graph;
 import frodo2.solutionSpaces.AddableInteger;
+import frodo2.solutionSpaces.AddableReal;
 import frodo2.solutionSpaces.DCOPProblemInterface;
 import frodo2.solutionSpaces.UtilitySolutionSpace;
 
@@ -64,13 +64,13 @@ public class ProblemTest extends TestCase {
 	private Graph graph;
 	
 	/** The parser */
-	private XCSPparser<AddableInteger, AddableInteger> parser;
+	private XCSPparser<AddableInteger, AddableReal> parser;
 
 	/** For each agent, its correct subproblem */
-	private HashMap<String, DCOPProblemInterface<AddableInteger, AddableInteger>> trueSubProbs;
+	private HashMap<String, XCSPparser<AddableInteger, AddableReal>> trueSubProbs;
 
 	/** For each agent, its computed subproblem */
-	private HashMap<String, DCOPProblemInterface<AddableInteger, AddableInteger>> subProbs;
+	private HashMap<String, DCOPProblemInterface<AddableInteger, AddableReal>> subProbs;
 
 	/** @return the test suite for this test */
 	public static TestSuite suite () {
@@ -191,24 +191,19 @@ public class ProblemTest extends TestCase {
 	protected void setUp() {
 		graph = RandGraphFactory.getRandGraph(maxNbrVars, maxNbrEdges, maxNbrAgents);
 		problem = AllTests.generateProblem(graph, graph.nodes.size(), false);
-		parser = new XCSPparser<AddableInteger, AddableInteger> (problem);
-		trueSubProbs = new HashMap<String, DCOPProblemInterface<AddableInteger, AddableInteger>> ();
-		subProbs = new HashMap<String, DCOPProblemInterface<AddableInteger, AddableInteger>> ();
+		parser = new XCSPparser<AddableInteger, AddableReal> (problem);
+		parser.setUtilClass(AddableReal.class);
+		trueSubProbs = new HashMap<String, XCSPparser<AddableInteger, AddableReal>> ();
+		subProbs = new HashMap<String, DCOPProblemInterface<AddableInteger, AddableReal>> ();
 		for (String agent : parser.getAgents()) {
 
 			// Skip this agent if it owns no variable
 			if (this.parser.getVariables(agent).isEmpty()) 
 				continue;
 			
-			DCOPProblemInterface<AddableInteger, AddableInteger> subproblem = (DCOPProblemInterface<AddableInteger, AddableInteger>)parser.getSubProblem(agent);
+			XCSPparser<AddableInteger, AddableReal> subproblem = parser.getSubProblem(agent);
 			trueSubProbs.put(agent, subproblem);
-			List< ? extends UtilitySolutionSpace<AddableInteger, AddableInteger> > spaces = subproblem.getSolutionSpaces(true);
-			HashMap<String, AddableInteger[]> domains = new HashMap<String, AddableInteger[]> ();
-			for (String var : subproblem.getVariables()) 
-				domains.put(var, subproblem.getDomain(var));
-			for (String var : subproblem.getAnonymVars()) 
-				domains.put(var, subproblem.getDomain(var));
-			subProbs.put(agent, new Problem<AddableInteger, AddableInteger> (agent, subproblem.getOwners(), domains, spaces));
+			subProbs.put(agent, subproblem.parse());
 		}
 	}
 
@@ -225,58 +220,58 @@ public class ProblemTest extends TestCase {
 	/** Test method for Problem#getAgent(). */
 	public void testGetAgent() {
 		
-		for (Map.Entry<String, DCOPProblemInterface<AddableInteger, AddableInteger>> entry : subProbs.entrySet()) 
+		for (Map.Entry<String, DCOPProblemInterface<AddableInteger, AddableReal>> entry : subProbs.entrySet()) 
 			assertEquals (entry.getKey(), entry.getValue().getAgent());
 	}
 
 	/** Test method for Problem#getAgents(). */
 	public void testGetAgents() {
 		
-		for (Map.Entry<String, DCOPProblemInterface<AddableInteger, AddableInteger>> entry : trueSubProbs.entrySet()) 
+		for (Map.Entry<String, XCSPparser<AddableInteger, AddableReal>> entry : trueSubProbs.entrySet()) 
 			assertEquals (entry.getValue().getAgents(), subProbs.get(entry.getKey()).getAgents());
 	}
 
 	/** Test method for Problem#getVariables(). */
 	public void testGetVariables() {
 		
-		for (Map.Entry<String, DCOPProblemInterface<AddableInteger, AddableInteger>> entry : trueSubProbs.entrySet()) 
+		for (Map.Entry<String, XCSPparser<AddableInteger, AddableReal>> entry : trueSubProbs.entrySet()) 
 			assertEquals (entry.getValue().getVariables(), subProbs.get(entry.getKey()).getVariables());
 	}
 
 	/** Test method for Problem#getAnonymVars(). */
 	public void testGetAnonymVars() {
 		
-		for (Map.Entry<String, DCOPProblemInterface<AddableInteger, AddableInteger>> entry : this.trueSubProbs.entrySet()) 
+		for (Map.Entry<String, XCSPparser<AddableInteger, AddableReal>> entry : this.trueSubProbs.entrySet()) 
 			assertEquals (entry.getValue().getAnonymVars(), this.subProbs.get(entry.getKey()).getAnonymVars());
 	}
 
 	/** Test method for Problem#getExtVars(). */
 	public void testGetExtVars() {
 		
-		for (Map.Entry<String, DCOPProblemInterface<AddableInteger, AddableInteger>> entry : this.trueSubProbs.entrySet()) 
+		for (Map.Entry<String, XCSPparser<AddableInteger, AddableReal>> entry : this.trueSubProbs.entrySet()) 
 			assertEquals (entry.getValue().getExtVars(), this.subProbs.get(entry.getKey()).getExtVars());
 	}
 
 	/** Test method for Problem#getMyVars(). */
 	public void testGetMyVars() {
 		
-		for (Map.Entry<String, DCOPProblemInterface<AddableInteger, AddableInteger>> entry : trueSubProbs.entrySet()) 
+		for (Map.Entry<String, XCSPparser<AddableInteger, AddableReal>> entry : trueSubProbs.entrySet()) 
 			assertEquals (entry.getValue().getMyVars(), subProbs.get(entry.getKey()).getMyVars());
 	}
 
 	/** Test method for Problem#getNbrIntVars(). */
 	public void testGetNbrIntVars() {
 		
-		for (Map.Entry<String, DCOPProblemInterface<AddableInteger, AddableInteger>> entry : this.trueSubProbs.entrySet()) 
+		for (Map.Entry<String, XCSPparser<AddableInteger, AddableReal>> entry : this.trueSubProbs.entrySet()) 
 			assertEquals (entry.getValue().getNbrIntVars(), this.subProbs.get(entry.getKey()).getNbrIntVars());
 	}
 
 	/** Test method for Problem#getOwner(java.lang.String). */
 	public void testGetOwner() {
 		
-		for (Map.Entry<String, DCOPProblemInterface<AddableInteger, AddableInteger>> entry : trueSubProbs.entrySet()) {
-			DCOPProblemInterface<AddableInteger, AddableInteger> trueSubProb = entry.getValue();
-			DCOPProblemInterface<AddableInteger, AddableInteger> subproblem = subProbs.get(entry.getKey());
+		for (Map.Entry<String, XCSPparser<AddableInteger, AddableReal>> entry : trueSubProbs.entrySet()) {
+			XCSPparser<AddableInteger, AddableReal> trueSubProb = entry.getValue();
+			DCOPProblemInterface<AddableInteger, AddableReal> subproblem = subProbs.get(entry.getKey());
 			
 			for (String var : trueSubProb.getVariables()) {
 				String trueOwner = trueSubProb.getOwner(var);
@@ -292,7 +287,7 @@ public class ProblemTest extends TestCase {
 	/** Test method for Problem#getOwners(). */
 	public void testGetOwners() {
 		
-		for (Map.Entry<String, DCOPProblemInterface<AddableInteger, AddableInteger>> entry : this.trueSubProbs.entrySet()) 
+		for (Map.Entry<String, XCSPparser<AddableInteger, AddableReal>> entry : this.trueSubProbs.entrySet()) 
 			assertEquals (entry.getValue().getOwners(), this.subProbs.get(entry.getKey()).getOwners());
 	}
 
@@ -304,9 +299,9 @@ public class ProblemTest extends TestCase {
 	/** Test method for Problem#getDomain(java.lang.String). */
 	public void testGetDomain() {
 		
-		for (Map.Entry<String, DCOPProblemInterface<AddableInteger, AddableInteger>> entry : this.trueSubProbs.entrySet()) {
-			DCOPProblemInterface<AddableInteger, AddableInteger> trueSubProb = entry.getValue();
-			DCOPProblemInterface<AddableInteger, AddableInteger> subProb = this.subProbs.get(entry.getKey());
+		for (Map.Entry<String, XCSPparser<AddableInteger, AddableReal>> entry : this.trueSubProbs.entrySet()) {
+			XCSPparser<AddableInteger, AddableReal> trueSubProb = entry.getValue();
+			DCOPProblemInterface<AddableInteger, AddableReal> subProb = this.subProbs.get(entry.getKey());
 			for (String var : trueSubProb.getAllVars()) 
 				assertEquals (Arrays.asList(trueSubProb.getDomain(var)), Arrays.asList(subProb.getDomain(var)));
 		}
@@ -315,9 +310,9 @@ public class ProblemTest extends TestCase {
 	/** Test method for Problem#getDomainSize(java.lang.String). */
 	public void testGetDomainSize() {
 		
-		for (Map.Entry<String, DCOPProblemInterface<AddableInteger, AddableInteger>> entry : this.trueSubProbs.entrySet()) {
-			DCOPProblemInterface<AddableInteger, AddableInteger> trueSubProb = entry.getValue();
-			DCOPProblemInterface<AddableInteger, AddableInteger> subProb = this.subProbs.get(entry.getKey());
+		for (Map.Entry<String, XCSPparser<AddableInteger, AddableReal>> entry : this.trueSubProbs.entrySet()) {
+			XCSPparser<AddableInteger, AddableReal> trueSubProb = entry.getValue();
+			DCOPProblemInterface<AddableInteger, AddableReal> subProb = this.subProbs.get(entry.getKey());
 			for (String var : trueSubProb.getAllVars()) 
 				assertEquals (trueSubProb.getDomainSize(var), subProb.getDomainSize(var));
 		}
@@ -331,7 +326,7 @@ public class ProblemTest extends TestCase {
 	/** Test method for Problem#getNeighborhoods(). */
 	public void testGetNeighborhoods() {
 		
-		for (Map.Entry<String, DCOPProblemInterface<AddableInteger, AddableInteger>> entry : trueSubProbs.entrySet()) 
+		for (Map.Entry<String, XCSPparser<AddableInteger, AddableReal>> entry : trueSubProbs.entrySet()) 
 			assertEquals (entry.getValue().getNeighborhoods(), subProbs.get(entry.getKey()).getNeighborhoods());
 	}
 
@@ -343,23 +338,23 @@ public class ProblemTest extends TestCase {
 	/** Test method for Problem#getAgentNeighborhoods(). */
 	public void testGetAgentNeighborhoods() {
 		
-		for (Map.Entry<String, DCOPProblemInterface<AddableInteger, AddableInteger>> entry : trueSubProbs.entrySet()) 
+		for (Map.Entry<String, XCSPparser<AddableInteger, AddableReal>> entry : trueSubProbs.entrySet()) 
 			assertEquals (entry.getValue().getAgentNeighborhoods(), subProbs.get(entry.getKey()).getAgentNeighborhoods());
 	}
 
 	/** Test method for Problem#getNeighborhoodSizes(). */
 	public void testGetNeighborhoodSizes() {
 		
-		for (Map.Entry<String, DCOPProblemInterface<AddableInteger, AddableInteger>> entry : this.trueSubProbs.entrySet()) 
+		for (Map.Entry<String, XCSPparser<AddableInteger, AddableReal>> entry : this.trueSubProbs.entrySet()) 
 			assertEquals (entry.getValue().getNeighborhoodSizes(), this.subProbs.get(entry.getKey()).getNeighborhoodSizes());
 	}
 
 	/** Test method for Problem#getNbrNeighbors(java.lang.String). */
 	public void testGetNbrNeighbors() {
 		
-		for (Map.Entry<String, DCOPProblemInterface<AddableInteger, AddableInteger>> entry : this.trueSubProbs.entrySet()) {
-			DCOPProblemInterface<AddableInteger, AddableInteger> trueSubProb = entry.getValue();
-			DCOPProblemInterface<AddableInteger, AddableInteger> subProb = this.subProbs.get(entry.getKey());
+		for (Map.Entry<String, XCSPparser<AddableInteger, AddableReal>> entry : this.trueSubProbs.entrySet()) {
+			XCSPparser<AddableInteger, AddableReal> trueSubProb = entry.getValue();
+			DCOPProblemInterface<AddableInteger, AddableReal> subProb = this.subProbs.get(entry.getKey());
 			for (String var : trueSubProb.getMyVars()) 
 				assertEquals (trueSubProb.getNbrNeighbors(var), subProb.getNbrNeighbors(var));
 		}
@@ -368,12 +363,12 @@ public class ProblemTest extends TestCase {
 	/** Test method for Problem#getSolutionSpaces(boolean). */
 	public void testGetSolutionSpaces() {
 		
-		for (Map.Entry<String, DCOPProblemInterface<AddableInteger, AddableInteger>> entry : this.trueSubProbs.entrySet()) {
-			DCOPProblemInterface<AddableInteger, AddableInteger> trueSubProb = entry.getValue();
-			DCOPProblemInterface<AddableInteger, AddableInteger> subProb = this.subProbs.get(entry.getKey());
+		for (Map.Entry<String, XCSPparser<AddableInteger, AddableReal>> entry : this.trueSubProbs.entrySet()) {
+			XCSPparser<AddableInteger, AddableReal> trueSubProb = entry.getValue();
+			DCOPProblemInterface<AddableInteger, AddableReal> subProb = this.subProbs.get(entry.getKey());
 			
-			List< ? extends UtilitySolutionSpace<AddableInteger, AddableInteger> > trueSpaces = trueSubProb.getSolutionSpaces(true);
-			List< ? extends UtilitySolutionSpace<AddableInteger, AddableInteger> > spaces = subProb.getSolutionSpaces(true);
+			List< ? extends UtilitySolutionSpace<AddableInteger, AddableReal> > trueSpaces = trueSubProb.getSolutionSpaces(true);
+			List< ? extends UtilitySolutionSpace<AddableInteger, AddableReal> > spaces = subProb.getSolutionSpaces(true);
 			assertEquals (trueSpaces, spaces);
 
 			trueSpaces = trueSubProb.getSolutionSpaces(false);

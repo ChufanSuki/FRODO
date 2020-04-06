@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -51,11 +51,20 @@ public interface DCOPProblemInterface < V extends Addable<V>, U extends Addable<
 	/** @return the internal variables */
 	public Set<String> getMyVars ();
 	
+	/** @return the random variables */
+	public Set<String> getRandVars ();
+	
 	/** @return the number of internal variables */
 	public int getNbrIntVars ();
 	
-	/** @return the total number of variables */
+	/** @return the total number of variables with known owners */
 	public int getNbrVars ();
+	
+	/** Returns the number of variables owned by the input agent
+	 * @param agent 	the agent
+	 * @return the number of variables owned by the input agent 
+	 */
+	public int getNbrVars (String agent);
 	
 	/** @return the variables that are owned by a different agent */
 	public Set<String> getExtVars ();
@@ -134,28 +143,45 @@ public interface DCOPProblemInterface < V extends Addable<V>, U extends Addable<
 	public boolean setOwner (String var, String owner);
 	
 	/** @return for each internal variable, the collection of neighboring agents */
-	public Map< String, Collection<String> > getAgentNeighborhoods ();
+	public Map< String, Set<String> > getAgentNeighborhoods ();
 	
 	/** Gets the agent neighborhoods
 	 * @param owner 	the owner agent, or null if we want all variables
 	 * @return for each variable owned by the input agent (or for each variable if the input is null), the collection of neighboring agents 
 	 */
-	public Map< String, Collection<String> > getAgentNeighborhoods (String owner);
+	public Map< String, Set<String> > getAgentNeighborhoods (String owner);
+	
+	/** @return for each anonymous variable, its neighboring agents */
+	public Map< String, Set<String> > getVarScopes ();
 	
 	/** Returns the neighborhood of each internal variable
 	 * @return for each of the agent's variables, its collection of neighbors 
 	 * @warning Ignores variables with no specified owner. 
 	 */
-	public Map< String, ? extends Collection<String> > getNeighborhoods ();
+	public Map< String, Set<String> > getNeighborhoods ();
+	
+	/** Returns the neighborhood of each variable owned by the input agent
+	 * @param agent 	the agent
+	 * @return for each of the agent's variables, its collection of neighbors 
+	 */
+	public Map< String, Set<String> > getNeighborhoods (String agent);
+	
+	/** Returns the neighborhood of each variable owned by the input agent
+	 * @param agent 			the agent
+	 * @param withAnonymVars 	if \c false, ignores variables with no specified owner
+	 * @param onlyAnonymVars 	if \c true, only considers variables with no specified owner (in which case this superseeds \a withAnonymVars)
+	 * @return for each of the agent's variables, its collection of neighbors 
+	 */
+	public Map< String, Set<String> > getNeighborhoods (String agent, final boolean withAnonymVars, final boolean onlyAnonymVars);
 	
 	/** @return for each internal variable, its collection of neighbors with no specified owner */
-	public Map< String, HashSet<String> > getAnonymNeighborhoods ();
+	public Map< String, Set<String> > getAnonymNeighborhoods ();
 	
 	/** For each variable owned by the input agent, return its collection of neighbors with no specified owner 
 	 * @param agent 	the agent
 	 * @return 			for each internal variable, its set of neighbors with no specified owner
 	 */
-	public Map< String, HashSet<String> > getAnonymNeighborhoods (String agent);
+	public Map< String, Set<String> > getAnonymNeighborhoods (String agent);
 	
 	/** Returns the number of neighboring variables of all internal variables
 	 * @return for each internal variable, its number of neighboring variables
@@ -163,9 +189,17 @@ public interface DCOPProblemInterface < V extends Addable<V>, U extends Addable<
 	 */
 	public Map<String, Integer> getNeighborhoodSizes ();
 	
+	/** Returns the number of neighboring variables of all variables owned by the input agent
+	 * @param agent 	name of the agent
+	 * @return for each variable owned by the input agent, its number of neighboring variables
+	 * @warning Ignores variables with no specified owner. 
+	 */
+	public Map<String, Integer> getNeighborhoodSizes (String agent);
+	
 	/** Returns the neighbors of the given variable
 	 * @param var 	the variable
 	 * @return 		the neighbors
+	 * @warning Ignores variables with no specified owner. 
 	 */
 	public Collection<String> getNeighborVars (String var);
 	
@@ -182,6 +216,13 @@ public interface DCOPProblemInterface < V extends Addable<V>, U extends Addable<
 	 * @warning Ignores variables with no specified owner. 
 	 */
 	public int getNbrNeighbors (String var);
+	
+	/** Extracts the number of neighbors of an input variable
+	 * @param var 				the variable
+	 * @param withAnonymVars 	if \c false, ignores variables with no specified owner
+	 * @return 		the number of neighbor variables of \a var
+	 */
+	public int getNbrNeighbors (String var, final boolean withAnonymVars);
 	
 	/** Returns the solution spaces in the problem
 	 * @return 			a list of spaces, or \c null if some information is missing
@@ -229,6 +270,11 @@ public interface DCOPProblemInterface < V extends Addable<V>, U extends Addable<
 	 * @return 		a list of spaces, or \c null if some information is missing
 	 */
 	public List< ? extends UtilitySolutionSpace<V, U> > getProbabilitySpaces ();
+	
+	/** Returns the probability space of each random variable in the problem
+	 * @return 		the probability space for each random variable
+	 */
+	public Map< String, ? extends UtilitySolutionSpace<V, U> > getProbabilitySpacePerRandVar ();
 	
 	/** Returns the probability spaces involving the input variable
 	 * @param var 	the variable of interest
@@ -308,5 +354,17 @@ public interface DCOPProblemInterface < V extends Addable<V>, U extends Addable<
 	
 	/** @see ProblemInterface#getSubProblem(java.lang.String) */
 	public DCOPProblemInterface<V, U> getSubProblem (String agent);
+	
+	/** Adds a constraint that enforces that var = val
+	 * @param var 	the variable
+	 * @param val 	the value
+	 */
+	public void ground (String var, V val);
+	
+	/** Adds an agent to the problem
+	 * @param agent 	the name of the agent
+	 * @return true if the agent has been added; false if it was already defined in the problem
+	 */
+	public boolean addAgent (String agent);
 	
 }

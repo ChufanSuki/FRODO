@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -50,6 +50,9 @@ public interface ProblemInterface <V extends Addable<V>, U extends Addable<U>> e
 	 * @param utilClass 	the class for utility values
 	 */
 	public void setUtilClass (Class<U> utilClass);
+	
+	/** @return the class used for utility values */
+	public Class<U> getUtilClass ();
 	
 	/** @return a utility of value 0 */
 	public U getZeroUtility ();

@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.lang.reflect.Constructor;
+import java.math.BigInteger;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -55,6 +56,7 @@ import frodo2.solutionSpaces.Addable;
 import frodo2.solutionSpaces.AddableLimited;
 import frodo2.solutionSpaces.DCOPProblemInterface;
 import frodo2.solutionSpaces.crypto.CryptoScheme;
+import frodo2.solutionSpaces.crypto.ElGamalScheme;
 import frodo2.solutionSpaces.crypto.CryptoScheme.PublicKeyShare;
 
 /** P2-DPOP's collaborative decryption module
@@ -353,6 +355,31 @@ implements StatsReporter {
 		for(String var : this.problem.getVariables()){
 			requestCount.put(var, 0);
 		}
+		
+		// Check that the number of bits of the ElGamal modulus > product of all variable domain sizes
+		assert ! Boolean.parseBoolean(parameters.getAttributeValue("checkModulusForP2DPOP")) 
+			|| this.checkModulus(parameters.getChild("cryptoScheme")) : 
+			"The number of bits of the ElGamal modulus is smaller than the product of all variable domain sizes";
+	}
+	
+	/** Checks that the ElGamal modulus has a number of bits greater than the product of all domain sizes
+	 * @param params 	the CryptoScheme params
+	 * @return whether the ElGamal modulus has a number of bits greater than the product of all domain sizes
+	 */
+	private boolean checkModulus (Element params) {
+		
+		// Skip if we are using the ElGamalScheme
+		assert params != null;
+		if (! ElGamalScheme.class.getName().equals(params.getAttributeValue("className"))) 
+			return true;
+		
+		BigInteger modulus = new BigInteger (params.getAttributeValue("modulus"));
+		
+		BigInteger powerOf2 = BigInteger.valueOf(2L);
+		for (String var : this.problem.getVariables()) 
+			powerOf2 = powerOf2.pow(this.problem.getDomainSize(var));
+		
+		return powerOf2.compareTo(modulus) < 0;
 	}
 	
 	/** @see IncomingMsgPolicyInterface#setQueue(Queue) */

@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -48,6 +48,7 @@ public class FunctionNode < V extends Addable<V>, U extends Addable<U> > {
 	 */
 	public FunctionNode (String name, UtilitySolutionSpace<V, U> space, String agent) {
 		this.name = name;
+		assert this.name != null && this.name.length() > 0 : "Function node without a name";
 		this.space = space;
 		this.agent = agent;
 	}

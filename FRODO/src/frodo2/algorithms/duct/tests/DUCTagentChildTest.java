@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -481,18 +481,18 @@ public class DUCTagentChildTest extends DUCTagentTest{
 		// Instantiate the parser/subsolver
 		Constructor< ? extends XCSPparser<AddableInteger, AddableReal> > constructor = this.parserClass.getConstructor(Document.class, Boolean.class);
 		XCSPparser<AddableInteger, AddableReal> parser = constructor.newInstance(problemDoc, false);
-		this.problem = parser;
 		parser.setDomClass(AddableInteger.class);
 		parser.setUtilClass(AddableReal.class);
+		this.problem = parser.parse();
 		
 //		normModule = new Normalize<AddableInteger> (null, parser);
 //		normModule.setSilent(true);
 //		normModule.getStatsFromQueue(queue);
-		samplingModule = new Sampling<AddableInteger> (null, parser);
+		samplingModule = new Sampling<AddableInteger> (null, problem);
 		samplingModule.setSilent(true);
 		samplingModule.getStatsFromQueue(queue);
 		
-		DFSgeneration<AddableInteger, AddableReal> module = new DFSgeneration<AddableInteger, AddableReal> (null, parser);
+		DFSgeneration<AddableInteger, AddableReal> module = new DFSgeneration<AddableInteger, AddableReal> (null, problem);
 		module.setSilent(true);
 		module.getStatsFromQueue(queue);
 	}

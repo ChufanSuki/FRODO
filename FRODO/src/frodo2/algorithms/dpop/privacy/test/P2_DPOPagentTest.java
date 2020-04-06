@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -65,35 +65,35 @@ public class P2_DPOPagentTest < V extends Addable<V>, E extends AddableLimited<A
 	/**
 	 * The maximum number of variables in this problem
 	 */
-	private int maxVar = 5;
+	protected int maxVar = 5;
 	
 	/**
 	 * The maximum number of agents in this problem
 	 */
-	private int maxAgent = 5;
+	protected int maxAgent = 5;
 	
 	/**
 	 * The maximum number of constraints in this problem
 	 */
-	private int maxEdge = 10;
+	protected int maxEdge = 10;
 	
 	/** The class of the CryptoScheme */
-	private Class< ? extends CryptoScheme<AddableInteger, E, ?> > schemeClass;
+	protected Class< ? extends CryptoScheme<AddableInteger, E, ?> > schemeClass;
 	
 	/** The class used for variable values */
-	private Class<V> domClass;
+	protected Class<V> domClass;
 	
 	/** The class used for encrypted values */
 	private Class<E> classOfE;
 	
 	/** Whether to enable the merging of back-edges */
-	private final boolean mergeBack;
+	protected final boolean mergeBack;
 
 	/** Whether to minimize the NCCC */
-	private final boolean minNCCCs;
+	protected final boolean minNCCCs;
 	
 	/** Whether to use TCP pipes */
-	private final boolean useTCP;
+	protected final boolean useTCP;
 	
 	/** Whether to test on a maximization or a minimization problem */
 	private final boolean maximize;
@@ -114,7 +114,7 @@ public class P2_DPOPagentTest < V extends Addable<V>, E extends AddableLimited<A
 	 */
 	public P2_DPOPagentTest(Class<V> domClass, Class< ? extends CryptoScheme<AddableInteger, E, ?> > schemeClass, Class<E> classOfE, 
 			boolean mergeBack, boolean minNCCCs, boolean useTCP, boolean maximize, int sign) {
-		super("testP2DPOPvsDPOP");
+		super("test");
 		this.domClass = domClass;
 		this.schemeClass = schemeClass;
 		this.classOfE = classOfE;
@@ -195,7 +195,7 @@ public class P2_DPOPagentTest < V extends Addable<V>, E extends AddableLimited<A
 	 * @throws IOException is thrown if an I/O exception occur when accessing to the description of P-DPOP or DPOP algorithm
 	 * @throws JDOMException is thrown if a parsing error occurs
 	 */
-	public void testP2DPOPvsDPOP () throws JDOMException, IOException {
+	public void test () throws JDOMException, IOException {
 		
 		//Create new random problem
 		Document problem = AllTests.createRandProblem(maxVar, maxEdge, maxAgent, maximize, sign, 0.5);
@@ -220,11 +220,10 @@ public class P2_DPOPagentTest < V extends Addable<V>, E extends AddableLimited<A
 				schemeElmt.setAttribute("className", this.schemeClass.getName());
 				
 				// Use small numbers of bits for the modulus and the generator to speed up the tests
-				schemeElmt.setAttribute("modulus", "57475322849086478933");
-				schemeElmt.setAttribute("generator", "5526868997990728076");
+				schemeElmt.setAttribute("modulus", "61272046783800409379218364945907567892494750598955698739969101617534816469");
+				schemeElmt.setAttribute("generator", "37421239534774957986040723704663663606878818098456204995838993564782981244");
 				
 				schemeElmt.setAttribute("infinity", Integer.toString(1000 + shift));
-				break;
 				
 			} else if (className.equals(EncryptedUTIL.class.getName())) {
 				module.setAttribute("mergeBack", Boolean.toString(this.mergeBack));
@@ -239,12 +238,12 @@ public class P2_DPOPagentTest < V extends Addable<V>, E extends AddableLimited<A
 		
 		//Compute both solutions
 		Solution<V, AddableInteger> p2dpopSolution = new P2_DPOPsolver<V, AddableInteger>(agentDesc, this.domClass, AddableInteger.class, this.classOfE, this.useTCP)
-			.solve(problem, parser.getNbrVars(), 240000L);
+			.solve(problem, parser.getNbrVars(), 300000L);
 		Solution<V, AddableInteger> dpopSolution = new DPOPsolver<V, AddableInteger>(this.domClass, AddableInteger.class).solve(problem, parser.getNbrVars());
 		
 		assertNotNull ("P2-DPOP timed out", p2dpopSolution);
 				
-		//Verify the utilities of the solutions found by P-DPOP and DPOP
+		//Verify the utilities of the solutions found by P2-DPOP and DPOP
 		assertEquals("P2-DPOP's and DPOP's utilities are different", dpopSolution.getUtility(), p2dpopSolution.getUtility());
 		
 		// Verify that P2DPOP's chosen assignments indeed have the correct utility

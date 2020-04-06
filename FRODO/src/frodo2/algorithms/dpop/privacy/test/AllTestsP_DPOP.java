@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -41,11 +41,14 @@ public class AllTestsP_DPOP {
 		suite.addTest(VariableObfuscationTest.suite());
 		suite.addTest(P_DPOPagentTest.suite());
 		
-		// P2-DPOP
+		// P3/2-DPOP
 		suite.addTest(SecureCircularRoutingTest.suite());
 		suite.addTest(SecureRerootingTest.suite());
 		suite.addTest(FakeCryptoSchemeTest.suite());
 		suite.addTest(ElGamalSchemeTest.suite());
+		suite.addTest(P3halves_DPOPagentTest.suite());
+		
+		// P2-DPOP
 		suite.addTest(P2_DPOPagentTest.suite());
 		
 		//$JUnit-END$

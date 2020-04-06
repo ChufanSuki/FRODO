@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -58,6 +58,7 @@ import frodo2.communication.Queue;
 import frodo2.communication.QueueOutputPipeInterface;
 import frodo2.communication.sharedMemory.QueueIOPipe;
 import frodo2.solutionSpaces.AddableInteger;
+import frodo2.solutionSpaces.DCOPProblemInterface;
 import junit.extensions.RepeatedTest;
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
@@ -153,6 +154,7 @@ public class SecureRerootingTest extends TestCase implements IncomingMsgPolicyIn
 		//Create new random problem
 		graph = RandGraphFactory.getRandGraph(maxVar, maxEdge, maxAgent);
 		parser = new XCSPparser<AddableInteger, AddableInteger> (AllTests.generateProblem(graph, true));
+		DCOPProblemInterface<AddableInteger, AddableInteger> problem = this.parser.parse();
 		for(String var : graph.nodes) {
 			rounds.put(var, -1);
 		}
@@ -183,10 +185,10 @@ public class SecureRerootingTest extends TestCase implements IncomingMsgPolicyIn
 			queue.addOutputPipe(AgentInterface.STATS_MONITOR, myPipe);
 		}
 		DFSgeneration.ROOT_VAR_MSG_TYPE = SecureRerooting.OUTPUT;
-		DFSgeneration<AddableInteger, AddableInteger> dfsModule = new DFSgeneration<AddableInteger, AddableInteger> (null, this.parser);
+		DFSgeneration<AddableInteger, AddableInteger> dfsModule = new DFSgeneration<AddableInteger, AddableInteger> (null, problem);
 		dfsModule.setSilent(true); // set to false to see the DFS
 		dfsModule.getStatsFromQueue(myQueue);
-		SecureCircularRouting routingModule = new SecureCircularRouting (null, this.parser);
+		SecureCircularRouting routingModule = new SecureCircularRouting (null, problem);
 		routingModule.setSilent(true); // set to false to see the linear ordering
 		routingModule.getStatsFromQueue(myQueue);
 		
@@ -200,7 +202,7 @@ public class SecureRerootingTest extends TestCase implements IncomingMsgPolicyIn
 			String agent = entry.getKey();
 	
 			// Extract the subproblem for that agent
-			XCSPparser<AddableInteger, AddableInteger> subProb = this.parser.getSubProblem(agent);
+			DCOPProblemInterface<AddableInteger, AddableInteger> subProb = problem.getSubProblem(agent);
 			queue.setProblem(subProb);
 			
 			// Instantiate modules

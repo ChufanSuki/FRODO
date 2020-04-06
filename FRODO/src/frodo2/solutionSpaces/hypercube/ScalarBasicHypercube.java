@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -67,6 +67,7 @@ public class ScalarBasicHypercube<V extends Addable<V>, U extends Serializable>
 		out.writeObject(this.infeasibleUtil);
 		out.writeUTF(this.name);
 		out.writeObject(this.utility);
+		this.incrNCCCs(1);
 	}
 
 	/** @see java.io.Externalizable#readExternal(java.io.ObjectInput) */
@@ -103,6 +104,7 @@ public class ScalarBasicHypercube<V extends Addable<V>, U extends Serializable>
 	 */
 	@Override
 	public U getUtility(V[] variables_values) {
+		this.incrNCCCs(1);
 		return utility;
 	}
 
@@ -114,6 +116,7 @@ public class ScalarBasicHypercube<V extends Addable<V>, U extends Serializable>
 	 */
 	@Override
 	public U getUtility(String[] variables_names, V[] variables_values) {
+		this.incrNCCCs(1);
 		return utility;
 	}
 
@@ -124,6 +127,7 @@ public class ScalarBasicHypercube<V extends Addable<V>, U extends Serializable>
 	 */
 	@Override
 	public U getUtility(long index) {
+		this.incrNCCCs(1);
 		return utility;
 	}
 
@@ -296,6 +300,7 @@ public class ScalarBasicHypercube<V extends Addable<V>, U extends Serializable>
 	/** @see BasicHypercube#iterator() */
 	@Override
 	public Iterator<V, U> iterator() {
+		this.incrNCCCs(1);
 		return new ScalarBasicSpaceIter<V, U> (this.utility, this.infeasibleUtil, null);
 	}
 
@@ -303,18 +308,21 @@ public class ScalarBasicHypercube<V extends Addable<V>, U extends Serializable>
 	@Override
 	public Iterator<V, U> iterator(String[] variables) {
 		assert variables.length == 0;
+		this.incrNCCCs(1);
 		return new ScalarBasicSpaceIter<V, U> (this.utility, this.infeasibleUtil, null);
 	}
 
 	/** @see BasicHypercube#iterator(String[], V[][]) */
 	@Override
 	public Iterator<V, U> iterator(String[] variables, V[][] domains, V[] assignment) {
+		this.incrNCCCs(1);
 		return new ScalarBasicSpaceIter<V, U> (this.utility, variables, domains, assignment, this.infeasibleUtil, null);
 	}
 
 	/** @see BasicHypercube#sparseIter() */
 	@Override
 	public SparseIterator<V, U> sparseIter() {
+		this.incrNCCCs(1);
 		return new ScalarBasicSpaceIter<V, U> (this.utility, this.infeasibleUtil, this.infeasibleUtil);
 	}
 
@@ -322,12 +330,14 @@ public class ScalarBasicHypercube<V extends Addable<V>, U extends Serializable>
 	@Override
 	public SparseIterator<V, U> sparseIter(String[] variables) {
 		assert variables.length == 0;
+		this.incrNCCCs(1);
 		return new ScalarBasicSpaceIter<V, U> (this.utility, this.infeasibleUtil, this.infeasibleUtil);
 	}
 
 	/** @see BasicHypercube#sparseIter(String[], V[][]) */
 	@Override
 	public SparseIterator<V, U> sparseIter(String[] variables, V[][] domains, V[] assignment) {
+		this.incrNCCCs(1);
 		return new ScalarBasicSpaceIter<V, U> (this.utility, variables, domains, assignment, this.infeasibleUtil, this.infeasibleUtil);
 	}
 
@@ -430,8 +440,9 @@ public class ScalarBasicHypercube<V extends Addable<V>, U extends Serializable>
 			return this.clone();
 		
 		U[] utilities = (U[]) Array.newInstance(substCast.values.getClass().getComponentType(), substCast.number_of_utility_values);
+		this.incrNCCCs(1);
 		Arrays.fill(utilities, this.utility);
-		return this.newInstance(substCast.variables.clone(), substCast.domains.clone(), utilities, this.infeasibleUtil);
+		return this.newInstance(this.name + "_composed", substCast.variables.clone(), substCast.domains.clone(), utilities, this.infeasibleUtil);
 	}
 	
 	/** @see BasicHypercube#equals(java.lang.Object) */
@@ -445,6 +456,7 @@ public class ScalarBasicHypercube<V extends Addable<V>, U extends Serializable>
 		if (o instanceof ScalarBasicHypercube) {
 
 			ScalarBasicHypercube<V, U> compareTo = (ScalarBasicHypercube<V, U>) o;
+			this.incrNCCCs(1);
 			return compareTo.getUtility(0).equals(utility);
 		}
 
@@ -454,6 +466,7 @@ public class ScalarBasicHypercube<V extends Addable<V>, U extends Serializable>
 	/**@see BasicHypercube#clone() */
 	@Override
 	public ScalarBasicHypercube< V, U > clone () {
+		this.incrNCCCs(1);
 		return new ScalarBasicHypercube< V, U > (this.utility, this.infeasibleUtil);
 	}
 	

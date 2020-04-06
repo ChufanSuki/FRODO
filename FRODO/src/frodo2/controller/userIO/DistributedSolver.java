@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -87,7 +87,7 @@ public class DistributedSolver < V extends Addable<V>, U extends Addable<U>, S e
 		
 		// Parse the problem and pass it to the solver
 		try {
-			this.solver.setProblem(new XCSPparser<V, U> (XCSPparser.parse(pathToXCSP)));
+			this.solver.setProblem(new XCSPparser<V, U> (XCSPparser.parse(pathToXCSP)).parse());
 		} catch (Exception e) {
 			System.err.println("Failed to parse the problem file");
 			e.printStackTrace();

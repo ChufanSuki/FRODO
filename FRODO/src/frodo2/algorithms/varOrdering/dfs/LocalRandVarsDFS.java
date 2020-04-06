@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -31,6 +31,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 
 import org.jdom2.Element;
@@ -89,10 +90,10 @@ public class LocalRandVarsDFS < V extends Addable<V>, U extends Addable<U> > ext
 	public static final MessageType RAND_VARS_MSG_TYPE = new MessageType ("VarOrdering", "LocalRandVarsDFS", "RandVars");
 	
 	/** For each of this agent's variables, its set of neighbor random variables */
-	private Map< String, HashSet<String> > randNeighborhoods;
+	private Map< String, Set<String> > randNeighborhoods;
 	
 	/** For each variable owned by this agent, the set of agents that own a variable connected to this variable */
-	private Map< String, Collection<String> > neighborAgents;
+	private Map< String, Set<String> > neighborAgents;
 	
 	/** Default constructor */
 	public LocalRandVarsDFS () {
@@ -136,7 +137,7 @@ public class LocalRandVarsDFS < V extends Addable<V>, U extends Addable<U> > ext
 		this.neighborAgents = problem.getAgentNeighborhoods();
 		
 		// Go through the list of my own variables
-		for (Map.Entry< String, Collection<String> > entry : this.neighborAgents.entrySet()) {
+		for (Map.Entry< String, Set<String> > entry : this.neighborAgents.entrySet()) {
 			String var = entry.getKey();
 
 			// Send the set of neighboring random variables of this variable to its neighboring agents
@@ -173,7 +174,7 @@ public class LocalRandVarsDFS < V extends Addable<V>, U extends Addable<U> > ext
 			String var = msgCast.getVar();
 			
 			// Add the random variables in the message to the set of random variables for this variable
-			HashSet<String> set = this.randNeighborhoods.get(var);
+			Set<String> set = this.randNeighborhoods.get(var);
 			if (set == null) {
 				set = new HashSet<String> (msgCast.getRandVars());
 				this.randNeighborhoods.put(var, set);
@@ -221,7 +222,7 @@ public class LocalRandVarsDFS < V extends Addable<V>, U extends Addable<U> > ext
 			return false;
 
 		String child = this.popNextChild(var, myDFSview, openList);
-		HashSet<String> randVars = this.randNeighborhoods.get(var);
+		Set<String> randVars = this.randNeighborhoods.get(var);
 		
 		if (child == null || randVars == null) { // we cannot compute the next child yet; delay this decision
 			queue.sendMessageToSelf(msg);
@@ -263,7 +264,7 @@ public class LocalRandVarsDFS < V extends Addable<V>, U extends Addable<U> > ext
 		// breaking ties by choosing the child with the smallest number of new random variables
 		TreeMap< ScorePair<Integer, Integer>, List<String> > classification = new TreeMap< ScorePair<Integer, Integer>, List<String> > ();
 		for (String openNeighbor : openNeighbors) {
-			HashSet<String> yourRandVars = this.randNeighborhoods.get(openNeighbor);
+			Set<String> yourRandVars = this.randNeighborhoods.get(openNeighbor);
 			if (yourRandVars == null) // we don't know the random variables for this open neighbor yet
 				return null;
 			

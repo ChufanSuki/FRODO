@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -183,7 +183,7 @@ public class CentralLinearOrderingTest extends TestCase implements IncomingMsgPo
 		for (String agent : parser.getAgents()) {
 			Queue queue = queues.get(agent);
 			
-			XCSPparser<AddableInteger, AddableInteger> subProb = parser.getSubProblem(agent);
+			DCOPProblemInterface<AddableInteger, AddableInteger> subProb = parser.getSubProblem(agent).parse();
 			queue.setProblem(subProb);
 			
 			Constructor<?> constructor = CentralLinearOrdering.MaxWidthMinDom.class.getConstructor(DCOPProblemInterface.class, Element.class);

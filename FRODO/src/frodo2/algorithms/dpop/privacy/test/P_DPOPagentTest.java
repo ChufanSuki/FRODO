@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -132,7 +132,7 @@ public class P_DPOPagentTest <V extends Addable<V> > extends TestCase {
 		Solution<V, AddableBigInteger> p_dpopSolution = new P_DPOPsolver<V>(this.domClass, this.useTCP).solve(problem, nbrVars);
 		
 		//Verify the utilities of the solutions found by P-DPOP and DPOP
-		assertNotNull ("timeout", p_dpopSolution);
+		assertNotNull ("P-DPOP timed out", p_dpopSolution);
 		assertEquals("P-DPOP's and DPOP's utilities are different", dpopSolution.getUtility(), p_dpopSolution.getUtility());
 		
 		// Verify that P-DPOP's chosen assignments indeed have the correct utility
@@ -145,8 +145,8 @@ public class P_DPOPagentTest <V extends Addable<V> > extends TestCase {
 			if (module.getAttributeValue("className").equals(DFSgenerationWithOrder.class.getName())) 
 				module.setAttribute("minIncr", "2");
 		p_dpopSolution = new P3halves_DPOPsolver<V>(agentDesc, this.domClass, this.useTCP).solve(problem, nbrVars, 60000L);
-		assertNotNull ("timeout", p_dpopSolution);
-		assertEquals("P-DPOP's and DPOP's utilities are different", dpopSolution.getUtility(), p_dpopSolution.getUtility());
+		assertNotNull ("P3/2-DPOP timed out", p_dpopSolution);
+		assertEquals("P3/2-DPOP's and DPOP's utilities are different", dpopSolution.getUtility(), p_dpopSolution.getUtility());
 		assertEquals("The chosen assignments' utility differs from the reported utility", p_dpopSolution.getUtility(), p_dpopSolution.getReportedUtil());
 	}
 

@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -683,7 +683,7 @@ public class VehicleRoutingSpace < U extends Addable<U> > implements UtilitySolu
 	private final int minSplit;
 
 	/** The problem to be notified of constraint checks */
-	protected ProblemInterface<AddableInteger, U> problem;
+	protected ProblemInterface<AddableInteger, ?> problem;
 
 	/** The owner of this space */
 	private String owner;
@@ -718,7 +718,7 @@ public class VehicleRoutingSpace < U extends Addable<U> > implements UtilitySolu
 	public VehicleRoutingSpace(int nbrVehicles, float maxDist, int maxLoad,
 			float depotX, float depotY, String[] vars, HashMap<String, AddableInteger[]> domsHashMap, 
 			HashMap<String, Customer> customers, HashSet<Customer> selectedCustomers, HashMap<String, Customer> uncertainties, 
-			String name, String owner, U infeasibleUtil, final int minSplit, ProblemInterface<AddableInteger, U> problem) {
+			String name, String owner, U infeasibleUtil, final int minSplit, ProblemInterface<AddableInteger, ?> problem) {
 		this.nbrVehicles = nbrVehicles;
 		this.maxDist = maxDist;
 		this.maxLoad = maxLoad;
@@ -839,7 +839,7 @@ public class VehicleRoutingSpace < U extends Addable<U> > implements UtilitySolu
 	protected VehicleRoutingSpace<U> newInstance (int nbrVehicles, float maxDist, int maxLoad,
 			float depotX, float depotY, String[] vars, HashMap<String, AddableInteger[]> domsHashMap, 
 			HashMap<String, Customer> customers, HashSet<Customer> selectedCustomers, HashMap<String, Customer> uncertainties, 
-			String name, U infeasibleUtil, final int minSplit, ProblemInterface<AddableInteger, U> problem) {
+			String name, U infeasibleUtil, final int minSplit, ProblemInterface<AddableInteger, ?> problem) {
 		return new VehicleRoutingSpace<U> (nbrVehicles, maxDist, maxLoad, depotX, depotY, vars, domsHashMap, customers, selectedCustomers, uncertainties, name, null, infeasibleUtil, minSplit, problem);
 	}
 	
@@ -893,9 +893,25 @@ public class VehicleRoutingSpace < U extends Addable<U> > implements UtilitySolu
 	/** @see java.lang.Object#clone() */
 	@Override
 	public VehicleRoutingSpace<U> clone () {
-		/// @todo Auto-generated method stub
-		assert false : "Not yet implemented";
-		return null;
+		
+		HashMap<String, AddableInteger[]> domsHashMap = new HashMap<String, AddableInteger[]> (this.doms.length);
+		for (int i = vars.length - 1; i >= 0; i--) 
+			domsHashMap.put(this.vars[i], doms[i].clone());
+		
+		HashMap<String, Customer> customers2 = new HashMap<String, Customer> (this.customers.size());
+		for (Map.Entry<String, Customer> entry : this.customers.entrySet()) 
+			customers2.put(entry.getKey(), entry.getValue().clone());
+		
+		HashSet<Customer> selectedCustomers2 = new HashSet<Customer> (this.selectedCustomers.size());
+		for (Customer cust : this.selectedCustomers) 
+			selectedCustomers2.add(cust.clone());
+		
+		HashMap<String, Customer> uncertainties2 = new HashMap<String, Customer> (this.uncertainties.size());
+		for (Map.Entry<String, Customer> entry : this.uncertainties.entrySet()) 
+			uncertainties2.put(entry.getKey(), entry.getValue().clone());
+		
+		return new VehicleRoutingSpace<U> (nbrVehicles, maxDist, maxLoad, depotX, depotY, vars.clone(), domsHashMap, customers2, selectedCustomers2, 
+				uncertainties2, name, owner, infeasibleUtil, minSplit, problem);
 	}
 
 	/** @see frodo2.solutionSpaces.UtilitySolutionSpace#compose(java.lang.String[], frodo2.solutionSpaces.BasicUtilitySolutionSpace) */
@@ -1027,8 +1043,8 @@ public class VehicleRoutingSpace < U extends Addable<U> > implements UtilitySolu
 							"Incorrect domain " + Arrays.toString(dom) + " for variable " + var;
 			}
 
-			assert Math.log((double) nbrOutputUtils) + Math.log((double) dom.length) < Math.log(Integer.MAX_VALUE) : 
-				"Number of solutions too big for an int";
+			if (Math.log((double) nbrOutputUtils) + Math.log((double) dom.length) >= Math.log(Integer.MAX_VALUE)) 
+				throw new OutOfMemoryError ("Number of solutions too big for an int");
 			nbrOutputUtils *= dom.length;
 		}
 		
@@ -1644,8 +1660,14 @@ public class VehicleRoutingSpace < U extends Addable<U> > implements UtilitySolu
 	}
 
 	/** @see UtilitySolutionSpace#setProblem(ProblemInterface) */
-	public void setProblem(ProblemInterface<AddableInteger, U> problem) {
+	public void setProblem(ProblemInterface<AddableInteger, ?> problem) {
 		this.problem = problem;
+	}
+
+	/** @see UtilitySolutionSpace#countsCCs() */
+	@Override
+	public boolean countsCCs () {
+		return this.problem != null;
 	}
 
 	/** @see BasicUtilitySolutionSpace#getUtility(long) */
@@ -1783,7 +1805,8 @@ public class VehicleRoutingSpace < U extends Addable<U> > implements UtilitySolu
 
 		long out = 1;
 		for (AddableInteger[] dom : this.doms) {
-			assert Math.log(out) + Math.log(dom.length) < Math.log(Long.MAX_VALUE) : "Too many solutions in a VehicleRoutinSpace";
+			if (Math.log(out) + Math.log(dom.length) >= Math.log(Long.MAX_VALUE)) 
+				throw new OutOfMemoryError ("Too many solutions in a VehicleRoutinSpace");
 			out *= dom.length;
 		}
 		

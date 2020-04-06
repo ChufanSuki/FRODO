@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -122,7 +122,8 @@ implements Iterator<V, U> {
 		valIndexes[nbrVars - 1] = -1;
 		
 		for (int i = 0; i < nbrVars; i++) {
-			assert Math.log(this.nbrSolLeft) + Math.log(domains[i].length) < Math.log(Long.MAX_VALUE) : "Too many solutions";
+			if (Math.log(this.nbrSolLeft) + Math.log(domains[i].length) >= Math.log(Long.MAX_VALUE)) 
+				throw new OutOfMemoryError ("Number of solutions in a space too large for a long");
 			nbrSolLeft *= domains[i].length;
 		}
 		

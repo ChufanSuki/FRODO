@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -118,10 +118,10 @@ public class SamplingPhase < V extends Addable<V>, U extends Addable<U> > extend
 	private String dotRendererClass;
 
 	/** For each variable, the random variables it is linked to (only used in stats gatherer mode) */
-	private HashMap< String, HashSet<String> > randVars;
+	private HashMap< String, Set<String> > randVars;
 		
 	/** For each variable, the random variables it must project out (only used in stats gatherer mode) */
-	private HashMap< String, HashSet<String> > randVarsProj;
+	private HashMap< String, Set<String> > randVarsProj;
 	
 	/** Where the random variables should be projected out */
 	protected enum WhereToProject {
@@ -188,8 +188,8 @@ public class SamplingPhase < V extends Addable<V>, U extends Addable<U> > extend
 		// Only used in stats gatherer mode
 		this.nbrStatsMsgs = 2 * problem.getVariables().size(); // one DFS message and one RandVarsProjMsg message
 		relationships = new HashMap< String, DFSview<V, ?> > ();
-		this.randVarsProj = new HashMap< String, HashSet<String> > ();
-		this.randVars = new HashMap< String, HashSet<String> > ();
+		this.randVarsProj = new HashMap< String, Set<String> > ();
+		this.randVars = new HashMap< String, Set<String> > ();
 		for (String agent : problem.getAgents()) 
 			this.randVars.putAll(problem.getAnonymNeighborhoods(agent));
 	}
@@ -205,10 +205,10 @@ public class SamplingPhase < V extends Addable<V>, U extends Addable<U> > extend
 		this.nbrStatsMsgs = 2 * problem.getNbrVars(); // one DFS message and one RandVarsProjMsg message
 		
 		relationships = new HashMap< String, DFSview<V, ?> > ();
-		this.randVarsProj = new HashMap< String, HashSet<String> > ();
+		this.randVarsProj = new HashMap< String, Set<String> > ();
 		
 		// Record which variable is linked to which random variable
-		this.randVars = new HashMap< String, HashSet<String> > ();
+		this.randVars = new HashMap< String, Set<String> > ();
 		for (String agent : problem.getAgents()) 
 			this.randVars.putAll(problem.getAnonymNeighborhoods(agent));
 		
@@ -919,7 +919,7 @@ public class SamplingPhase < V extends Addable<V>, U extends Addable<U> > extend
 	 * @return a DOT-formated representation of the DFS, including random variables
 	 */
 	public static String dfsToString (Map< String, ? extends DFSview<?, ?> > dfs, 
-			HashMap< String, HashSet<String> > randVars, HashMap< String, HashSet<String> > randVarsProj, final boolean projAtLeaves) {
+			Map< String, Set<String> > randVars, Map< String, Set<String> > randVarsProj, final boolean projAtLeaves) {
 		StringBuilder out = new StringBuilder ("digraph {\n\tnode [shape = \"circle\"];\n\n");
 		
 		// For each variable:
@@ -928,7 +928,7 @@ public class SamplingPhase < V extends Addable<V>, U extends Addable<U> > extend
 			DFSview<?, ?> relationships = entry.getValue();
 						
 			// First print the variable
-			HashSet<String> myRandVarsProj = randVarsProj.get(var);
+			Set<String> myRandVarsProj = randVarsProj.get(var);
 			if (myRandVarsProj.isEmpty()) {
 				out.append("\t" + var + " [label = \"" + var + "\" style=\"filled\"];\n");
 			} else {

@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -26,11 +26,10 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.locks.Condition;
 
-import org.jacop.core.IntVar;
-import org.jacop.core.Store;
+import org.jacop.core.IntVarCloneable;
+import org.jacop.core.StoreCloneable;
 import org.jacop.search.DepthFirstSearch;
 import org.jacop.search.IndomainMin;
-import org.jacop.search.InputOrderSelect;
 import org.jacop.search.MostConstrainedDynamic;
 import org.jacop.search.Search;
 import org.jacop.search.SelectChoicePoint;
@@ -38,26 +37,31 @@ import org.jacop.search.SimpleSelect;
 import org.jacop.search.SimpleSolutionListener;
 import org.jacop.search.SmallestDomain;
 
+import frodo2.solutionSpaces.Addable;
 
 /** This solution listener is a part of the JaCoPutilSpace iterator that allows us to simulate a JaCoP master/slave search combination
  * where the slave is an optimization search while the master is not.
  * 
  * @author Arnaud Jutzeler, Thomas Leaute
+ * @param <U> The class of utility values
  *
  */
-public class IterSolutionListener extends SimpleSolutionListener<IntVar> {
+public class IterSolutionListener < U extends Addable<U> > extends SimpleSolutionListener<IntVarCloneable> {
 
 	/** The master search */
-	private JaCoPiterSearch search;
+	private JaCoPiterSearch<U> search;
 
 	/** The JaCoP store */
-	private Store store;
+	private StoreCloneable store;
 
 	/** The JaCoP variables whose projection has been requested */
-	private IntVar[] projectedVars;
+	private IntVarCloneable[] projectedVars;
 
 	/** The utility variable */
-	private IntVar utilVar;
+	private IntVarCloneable utilVar;
+	
+	/** The infeasible utility */
+	private final U infeasibleUtil;
 
 	/** The condition used to signal this thread to continue the search until a next solution is found */
 	private Condition nextAsked;
@@ -72,29 +76,31 @@ public class IterSolutionListener extends SimpleSolutionListener<IntVar> {
 	 * @param utilVar			The utility variable
 	 * @param nextAsked			The condition used to signal the search to continue the search
 	 * @param nextDelivered		The condition used to signal the iterator thread that a new solution has been found
+	 * @param infeasibleUtil 	The infeasible utility
 	 */
-	public IterSolutionListener(JaCoPiterSearch search, Store store, IntVar[] projectedVars, IntVar utilVar, Condition nextAsked, Condition nextDelivered){
+	public IterSolutionListener(JaCoPiterSearch<U> search, StoreCloneable store, IntVarCloneable[] projectedVars, IntVarCloneable utilVar, Condition nextAsked, Condition nextDelivered, 
+			U infeasibleUtil){
 		this.search = search;
 		this.store = store;
 		this.projectedVars = projectedVars;
 		this.utilVar = utilVar;
 		this.nextAsked = nextAsked;
 		this.nextDelivered = nextDelivered;
+		this.infeasibleUtil = infeasibleUtil;
 	}
 	
 	/**
 	 * @see org.jacop.search.SimpleSolutionListener#executeAfterSolution(org.jacop.search.Search, org.jacop.search.SelectChoicePoint)
 	 */
 	@Override
-	public boolean executeAfterSolution(Search<IntVar> search,
-			SelectChoicePoint<IntVar> select) {
+	public boolean executeAfterSolution(Search<IntVarCloneable> search, SelectChoicePoint<IntVarCloneable> select) {
 		
 		boolean returnCode = super.executeAfterSolution(search, select);
 		
-		Map<IntVar, Integer> position = select.getVariablesMapping();
-		IntVar[] vars = new IntVar[position.size()];
-		for (Iterator<IntVar> itr = position.keySet().iterator(); itr.hasNext();) {
-			IntVar current = itr.next();	
+		Map<IntVarCloneable, Integer> position = select.getVariablesMapping();
+		IntVarCloneable[] vars = new IntVarCloneable[position.size()];
+		for (Iterator<IntVarCloneable> itr = position.keySet().iterator(); itr.hasNext();) {
+			IntVarCloneable current = itr.next();	
 			vars[position.get(current)] = current;
 		}
 		
@@ -104,41 +110,58 @@ public class IterSolutionListener extends SimpleSolutionListener<IntVar> {
 		int level = store.level;
 		store.setLevel(level+1);
 		
-		Search<IntVar> slaveSearch = new DepthFirstSearch<IntVar> ();
-		slaveSearch.setSolutionListener(new SimpleSolutionListener<IntVar>());
+		Search<IntVarCloneable> slaveSearch = new DepthFirstSearch<IntVarCloneable> ();
+		slaveSearch.setSolutionListener(new SimpleSolutionListener<IntVarCloneable>());
 		slaveSearch.getSolutionListener().recordSolutions(false);
 		slaveSearch.getSolutionListener().searchAll(false);
 		slaveSearch.setAssignSolution(true);
 		slaveSearch.setPrintInfo(false);
 		
 		// We need to project some variables
+		boolean feasible = false;
 		if(projectedVars.length != 0){
 			
-			slaveSearch.labeling(store, new SimpleSelect<IntVar> (this.projectedVars, 
-					new SmallestDomain<IntVar>(), new MostConstrainedDynamic<IntVar>(), new IndomainMin<IntVar>()), utilVar);	
+			feasible = slaveSearch.labeling(store, new SimpleSelect<IntVarCloneable> (this.projectedVars, 
+					new SmallestDomain<IntVarCloneable>(), new MostConstrainedDynamic<IntVarCloneable>(), new IndomainMin<IntVarCloneable>()), utilVar);
+			
+			if (feasible && ! utilVar.singleton()) // the util var is not yet grounded
+				feasible = slaveSearch.labeling(store, 
+						new SimpleSelect<IntVarCloneable> (new IntVarCloneable[] { utilVar }, new SmallestDomain<IntVarCloneable>(), new IndomainMin<IntVarCloneable>()), 
+						utilVar);
 			
 		// There is no delayed projection to perform
-		}else{
-			
-			/// @todo If there are no variables to project, then using a slave search is an overkill. The utilVar should already have been grounded by the master search. 
-			
-			IntVar[] utilVars = {utilVar};
-			slaveSearch.labeling(store, new InputOrderSelect<IntVar> (store, utilVars, new IndomainMin<IntVar>()), utilVar);
-		}		
-		
-		assert utilVar.singleton(): "The utility variable is not grounded in the solution";
-		
+		} else 
+			feasible = slaveSearch.labeling(store, 
+					new SimpleSelect<IntVarCloneable> (new IntVarCloneable[] { utilVar }, new SmallestDomain<IntVarCloneable>(), new IndomainMin<IntVarCloneable>()), 
+					utilVar);
+				
 		// Record the current solution, and inform the main thread
-		assert utilVar.dom().min() < this.search.getCurrentBound() : utilVar.dom().min() + " < " + this.search.getCurrentBound();
-		int[] currentSolution = new int[vars.length];
+		if (feasible) {
+			assert utilVar.dom().min() < this.search.getCurrentBound() : utilVar.dom().min() + " < " + this.search.getCurrentBound();
+			int[] currentSolution = new int[vars.length];
 
-		for (int i = 0; i < vars.length; i++) {
-			assert vars[i].singleton(): "Variable " + vars[i].id + " is not grounded in the solution";
-			currentSolution[i] = vars[i].min();
+			for (int i = 0; i < vars.length; i++) {
+				assert ! feasible || vars[i].singleton(): "Variable " + vars[i].id + " is not grounded in the solution";
+				currentSolution[i] = vars[i].min();
+			}
+
+			// Give the next solution to the iterator
+			assert ! feasible || utilVar.singleton(): "The utility variable is not grounded in the solution";
+			this.search.setSolution(currentSolution, this.infeasibleUtil.fromInt(utilVar.dom().min()));
 		}
-
-		// Give the next solution to the iterator
-		this.search.setSolution(currentSolution, utilVar.dom().min());
+		else { // infeasible
+			
+			// Restore the store level to before the slave search
+			for(int k = store.level; k > level; k--){
+				store.removeLevel(k);
+			}
+			store.setLevel(level);
+			
+			// Increment the cost value, which will otherwise incorrectly be decremented by the DepthFirstSearch 
+			((DepthFirstSearch<IntVarCloneable>) search).costValue++;
+			
+			return false;
+		}
 
 		// Wake up the iterator
 		this.nextDelivered.signal();

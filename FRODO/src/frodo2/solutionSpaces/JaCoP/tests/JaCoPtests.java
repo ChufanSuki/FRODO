@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -26,6 +26,7 @@ package frodo2.solutionSpaces.JaCoP.tests;
 
 import java.io.File;
 import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -39,13 +40,14 @@ import junit.framework.TestSuite;
 
 import org.jdom2.Document;
 import org.jdom2.Element;
-
-import org.jacop.core.IntVar;
-import org.jacop.core.Store;
+import org.jacop.core.IntVarCloneable;
+import org.jacop.core.StoreCloneable;
 import org.jacop.search.DepthFirstSearch;
 import org.jacop.search.IndomainMin;
-import org.jacop.search.InputOrderSelect;
 import org.jacop.search.Search;
+import org.jacop.search.SimpleSelect;
+import org.jacop.search.SmallestDomain;
+
 import frodo2.algorithms.AbstractDCOPsolver;
 import frodo2.algorithms.Solution;
 import frodo2.algorithms.XCSPparser;
@@ -430,7 +432,7 @@ public class JaCoPtests < U extends Addable<U> > extends TestCase {
 			}
 		// Complete solver	
 		}else{
-			assertEquals (dpopSol.getUtility(), jaCoPSol.getUtility());
+			assertEquals (dpopSol + "\n!=\n" + jaCoPSol, dpopSol.getUtility(), jaCoPSol.getUtility());
 			// If the two solutions have the same utility but are different we test that the solution obtained with the agents using JaCoP is valid
 			if(!dpopSol.getAssignments().equals(jaCoPSol.getAssignments())) 
 				assertEquals(jaCoPSol.getUtility(), parser.getUtility(jaCoPSol.getAssignments()).getUtility(0));
@@ -458,7 +460,7 @@ public class JaCoPtests < U extends Addable<U> > extends TestCase {
 		case P2_DPOP:
 			parser = new XCSPparser<AddableInteger, U> (problemDoc);
 			parser.setUtilClass(this.classOfU);
-			jacopDCOPsol = ((P2_DPOPsolver<AddableInteger, U>) jacopDCOPsolver).solve(problemDoc, 300000L, 1);
+			jacopDCOPsol = ((P2_DPOPsolver<AddableInteger, U>) jacopDCOPsolver).solve(problemDoc, 500000L, 1);
 			break;
 		default:
 			jacopDCOPsol = jacopDCOPsolver.solve(problemDoc, 300000L);
@@ -525,10 +527,9 @@ public class JaCoPtests < U extends Addable<U> > extends TestCase {
 	 * @throws NoSuchMethodException thrown when failing to create a utility instance
 	 * @throws InvocationTargetException thrown when failing to create a utility instance
 	 */
+	@SuppressWarnings({ "unchecked" })
 	private U solveCentralizedProblem(Document problemDoc) 
 			throws InstantiationException, IllegalAccessException, NoSuchMethodException, InvocationTargetException {
-
-		Store store = new Store();
 
 		Element params = new Element("parser");
 		params.setAttribute("parserClass", "frodo2.solutionSpaces.JaCoP.JaCoPxcspParser");
@@ -575,39 +576,46 @@ public class JaCoPtests < U extends Addable<U> > extends TestCase {
 			}
 		}
 
-		// We only create a JaCoPutilSpace containing the whole problem to call createStore()
-		JaCoPutilSpace<U> centralized = new JaCoPutilSpace<U> ("centralized", constraints, references, varsSet, 
-				varsSet.keySet().toArray(new String[varsSet.size()]), new String[0], new String[0], this.maximize, infeasibleUtil.getZero(), infeasibleUtil);
-
-
-		store = centralized.createStore();
-
-		if(!store.consistency()){
+		// Parse all the constraints
+		ArrayList< JaCoPutilSpace<U> > spaces = new ArrayList< JaCoPutilSpace<U> > ();
+		HashSet<String> forbiddenVars = new HashSet<String> ();
+		for (Element constraint : constraints.values()) 
+			parser.parseConstraint(spaces, constraint, varsSet, references.get(constraint.getAttributeValue("reference")), vars, 
+					false, false, infeasibleUtil, forbiddenVars);
+		
+		// Join all the constraints and impose them 
+		JaCoPutilSpace<U> join = spaces.remove(0);
+		if (! spaces.isEmpty()) 
+			join = (JaCoPutilSpace<U>) join.join(spaces.toArray(new JaCoPutilSpace [spaces.size()]));
+		if (! join.imposeConstraints()) 
 			return infeasibleUtil;
-		}
-
-		IntVar[] jacopVars = new IntVar[vars.size()];
+		
+		StoreCloneable store = join.getStore();
+		
+		IntVarCloneable[] jacopVars = new IntVarCloneable[vars.size()];
 		int n = 0;
 		for(String var: vars){
 			// Find the JaCoP variable
-			jacopVars[n] = (IntVar) store.findVariable(var);
+			jacopVars[n] = (IntVarCloneable) store.findVariable(var);
 			assert jacopVars[n] != null: "Variable " + var + " not found in the store!";
 			n++;
 
 		}
 
-		IntVar utilVar = (IntVar) store.findVariable("util_total");
+		IntVarCloneable utilVar = (IntVarCloneable) store.findVariable("util_total");
 		assert utilVar != null: "Variable " + "util_total" + " not found in the store!";
 
 		// Optimization search
-		Search<IntVar> search = new DepthFirstSearch<IntVar> ();
+		Search<IntVarCloneable> search = new DepthFirstSearch<IntVarCloneable> ();
 		search.getSolutionListener().recordSolutions(true);
 		search.setAssignSolution(false);
 
 		// Debug information
 		search.setPrintInfo(false);
 
-		boolean result = search.labeling(store, new InputOrderSelect<IntVar> (store, jacopVars, new IndomainMin<IntVar>()), utilVar);
+		boolean result = search.labeling(store, 
+				new SimpleSelect<IntVarCloneable> (jacopVars, new SmallestDomain<IntVarCloneable>(), new IndomainMin<IntVarCloneable>()), 
+				utilVar);
 
 		U costValue;
 
@@ -640,9 +648,9 @@ public class JaCoPtests < U extends Addable<U> > extends TestCase {
 	 * @throws NoSuchMethodException thrown when failing to create a utility instance
 	 * @throws InvocationTargetException thrown when failing to create a utility instance
 	 */
+	@SuppressWarnings("unchecked")
 	private boolean checkSolutionCentralizedProblem(Map<String, AddableInteger> assignment, Document problemDoc) 
 			throws InstantiationException, IllegalAccessException, NoSuchMethodException, InvocationTargetException {
-		Store store = new Store();
 
 		Element params = new Element("parser");
 		params.setAttribute("parserClass", "frodo2.solutionSpaces.JaCoP.JaCoPxcspParser");
@@ -690,39 +698,44 @@ public class JaCoPtests < U extends Addable<U> > extends TestCase {
 			}
 		}
 		
-		// We only create a JaCoPutilSpace containing the whole problem to call createStore()
-		JaCoPutilSpace<U> centralized = new JaCoPutilSpace<U> ("centralized", constraints, references, varsSet, 
-				varsSet.keySet().toArray(new String[varsSet.size()]), new String[0], new String[0], this.maximize, infeasibleUtil.getZero(), infeasibleUtil);
-
-
-		store = centralized.createStore();
-
-		if(!store.consistency()){
+		// Parse all the constraints
+		ArrayList< JaCoPutilSpace<U> > spaces = new ArrayList< JaCoPutilSpace<U> > ();
+		HashSet<String> forbiddenVars = new HashSet<String> ();
+		for (Element constraint : constraints.values()) 
+			parser.parseConstraint(spaces, constraint, varsSet, references.get(constraint.getAttributeValue("reference")), vars, 
+					false, false, infeasibleUtil, forbiddenVars);
+		
+		// Join all the constraints and impose them 
+		JaCoPutilSpace<U> join = spaces.remove(0);
+		if (! spaces.isEmpty()) 
+			join = (JaCoPutilSpace<U>) join.join(spaces.toArray(new JaCoPutilSpace [spaces.size()]));
+		if (! join.imposeConstraints()) 
 			return false;
-		}
-
-		IntVar[] jacopVars = new IntVar[vars.size()];
+		
+		StoreCloneable store = join.getStore();
+		
+		IntVarCloneable[] jacopVars = new IntVarCloneable[vars.size()];
 		int n = 0;
 		for(String var: vars){
 			// Find the JaCoP variable
-			jacopVars[n] = (IntVar) store.findVariable(var);
+			jacopVars[n] = (IntVarCloneable) store.findVariable(var);
 			assert jacopVars[n] != null: "Variable " + var + " not found in the store!";
 			n++;
 
 		}
 
-		IntVar utilVar = (IntVar) store.findVariable("util_total");
+		IntVarCloneable utilVar = (IntVarCloneable) store.findVariable("util_total");
 		assert utilVar != null: "Variable " + "util_total" + " not found in the store!";
 
 		// Optimization search
-		Search<IntVar> search = new DepthFirstSearch<IntVar> ();
+		Search<IntVarCloneable> search = new DepthFirstSearch<IntVarCloneable> ();
 		search.getSolutionListener().recordSolutions(true);
 		search.setAssignSolution(false);
 
 		// Debug information
 		search.setPrintInfo(false);
 
-		boolean result = search.labeling(store, new InputOrderSelect<IntVar> (store, jacopVars, new IndomainMin<IntVar>()));
+		boolean result = search.labeling(store, new SimpleSelect<IntVarCloneable> (jacopVars, new SmallestDomain<IntVarCloneable>(), new IndomainMin<IntVarCloneable>()));
 
 		return result;
 	}
@@ -777,7 +790,6 @@ public class JaCoPtests < U extends Addable<U> > extends TestCase {
 		switch(algorithm)
 		{
 		    case DPOP:
-		    	allIntProblems.remove("series-sat.xml");
 		    	allIntProblems.remove("queenAttacking-3.xml");
 		    	allIntProblems.remove("queenAttacking-4.xml");
 		    	allIntProblems.remove("cc-5-5-2.xml");
@@ -977,9 +989,9 @@ public class JaCoPtests < U extends Addable<U> > extends TestCase {
 		    case AFB:
 		    	allIntProblems.remove("queenAttacking-3.xml");
 		    	allIntProblems.remove("queenAttacking-4.xml");
+		    	allIntProblems.remove("cc-5-5-2.xml");
 		    	allIntProblems.remove("cc-6-6-2.xml");
 		    	allIntProblems.remove("cc-7-7-2.xml");
-		    	allIntProblems.remove("cc-7-7-3.xml");
 		    	allIntProblems.remove("cc-8-8-2.xml");
 		    	allIntProblems.remove("cc-8-8-3.xml");
 		    	
@@ -1024,6 +1036,7 @@ public class JaCoPtests < U extends Addable<U> > extends TestCase {
 		    	allGlbProblems.remove("glb1.xml");
 		    	allGlbProblems.remove("glb2.xml");
 		    	allGlbProblems.remove("glb3.xml");
+		    	allGlbProblems.remove("glb4.xml");
 		    	
 		    	break;
 		    case ASODPOP:

@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -154,7 +154,7 @@ public class UTILpropagationTest < V extends Addable<V>, U extends Addable<U> > 
 		parser = new XCSPparser<V, U> (problem);
 		parser.setDomClass(domClass);
 		this.parser.setUtilClass(this.utilClass);
-		dfs = frodo2.algorithms.dpop.test.UTILpropagationTest.computeDFS(graph, parser);
+		dfs = frodo2.algorithms.dpop.test.UTILpropagationTest.computeDFS(graph, parser.parse());
 		
 		solver = new DPOPsolver<V, U> (this.domClass, this.utilClass);
 		
@@ -239,6 +239,7 @@ public class UTILpropagationTest < V extends Addable<V>, U extends Addable<U> > 
 		XCSPparser<V, U> parser = new XCSPparser<V, U> (problem);
 		parser.setDomClass(domClass);
 		parser.setUtilClass(this.utilClass);
+		DCOPProblemInterface<V, U> problem = parser.parse();
 		
 		for (String agent : parser.getAgents()) {
 			Queue queue = queues.get(agent);
@@ -246,7 +247,7 @@ public class UTILpropagationTest < V extends Addable<V>, U extends Addable<U> > 
 			if (useXML) { // use the XML-based constructor
 
 				// Instantiate the listener using reflection
-				XCSPparser<V, U> subprob = parser.getSubProblem(agent);
+				DCOPProblemInterface<V, U> subprob = problem.getSubProblem(agent);
 				queue.setProblem(subprob);
 				Class<?> parTypes[] = new Class[2];
 				parTypes = new Class[2];
@@ -261,12 +262,14 @@ public class UTILpropagationTest < V extends Addable<V>, U extends Addable<U> > 
 			} else { // use the alternative constructor 
 				
 				// Create the subproblem
-				DCOPProblemInterface<V, U> subprobTmp = parser.getSubProblem(agent);
+				DCOPProblemInterface<V, U> subprobTmp = problem.getSubProblem(agent);
 				Map<String, V[]> domains = new HashMap<String, V[]> ();
 				for (String var : subprobTmp.getVariables()) 
 					domains.put(var, subprobTmp.getDomain(var));
 				List< ? extends UtilitySolutionSpace<V, U> > spaces = subprobTmp.getSolutionSpaces();
-				Problem<V, U> subprob = new Problem<V, U> (agent, subprobTmp.getOwners(), domains, spaces, parser.maximize());
+				Problem<V, U> subprob = new Problem<V, U> (agent, subprobTmp.getAgents(), subprobTmp.getOwners(), domains, subprobTmp.getRandVars(), spaces, 
+						subprobTmp.getProbabilitySpacePerRandVar(), subprobTmp.getVarScopes(), subprobTmp.getDomClass(), subprobTmp.getUtilClass(), 
+						parser.maximize());
 
 				queue.addIncomingMessagePolicy(new UTILpropagation<V, U> (subprob));
 

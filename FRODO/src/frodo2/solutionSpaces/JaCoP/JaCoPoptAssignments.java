@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -27,8 +27,8 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.jacop.core.IntVar;
-import org.jacop.core.Store;
+import org.jacop.core.IntVarCloneable;
+import org.jacop.core.StoreCloneable;
 import org.jacop.search.DepthFirstSearch;
 import org.jacop.search.IndomainMin;
 import org.jacop.search.MostConstrainedDynamic;
@@ -39,6 +39,7 @@ import org.jacop.search.SmallestDomain;
 import frodo2.solutionSpaces.Addable;
 import frodo2.solutionSpaces.AddableInteger;
 import frodo2.solutionSpaces.BasicUtilitySolutionSpace;
+import frodo2.solutionSpaces.ProblemInterface;
 import frodo2.solutionSpaces.SolutionSpace;
 import frodo2.solutionSpaces.hypercube.BasicHypercube;
 import frodo2.solutionSpaces.hypercube.ScalarBasicHypercube;
@@ -55,39 +56,33 @@ public class JaCoPoptAssignments implements BasicUtilitySolutionSpace< AddableIn
 	/** The space from which variables were projected out */
 	private final JaCoPutilSpace<?> space;
 	
-	/** The names of the variables in the separator */
-	private final String[] varNames;
+	/** The variables in the separator */
+	private final IntVarCloneable[] vars;
 	
-	/** The names of the projected variables for which we want to search the values given an assignment */
-	private final String[] projectedVarNames;
-	
-	/** The JaCoP store*/
-	private Store store;
-	
-	/** The consistency of the JaCoP Store */
-	private boolean isConsistent;
+	/** The projected variables for which we want to search the values given an assignment */
+	private final IntVarCloneable[] projectedVars;
 	
 	/** The variable names, including the projected out and sliced out variables, but excluding the utility variable */
-	HashMap<String, AddableInteger[]> allVars;
+	HashMap<String, AddableInteger[]> allDoms;
 
 	/** Constructor 
 	 * @param space 	The space from which variables were projected out
-	 * @param varNames 	The names of the variables in the separator
+	 * @param vars 		The variables in the separator
 	 * @param varsOut 	The variables that were projected
 	 */
-	JaCoPoptAssignments (JaCoPutilSpace<?> space, String[] varNames, String[] varsOut) {
+	JaCoPoptAssignments (JaCoPutilSpace<?> space, IntVarCloneable[] vars, IntVarCloneable[] varsOut) {
 		this.space = space;
-		this.varNames = varNames;
-		this.projectedVarNames = varsOut;
-		this.allVars = space.allVars;
+		this.vars = vars;
+		this.projectedVars = varsOut;
+		this.allDoms = space.allDoms;
 	}
 	
 	/** @see java.lang.Object#toString() */
 	@Override
 	public String toString () {
 		return "JaCoPoptAssignments" +
-				"\n\t vars: " + Arrays.toString(this.varNames) +
-				"\n\t proj: " + Arrays.toString(this.projectedVarNames) +
+				"\n\t vars: " + Arrays.toString(this.vars) +
+				"\n\t proj: " + Arrays.toString(this.projectedVars) +
 				"\n\t space: " + this.space;
 	}
 
@@ -147,30 +142,30 @@ public class JaCoPoptAssignments implements BasicUtilitySolutionSpace< AddableIn
 
 	/** @see BasicUtilitySolutionSpace#getUtility(Addable[]) */
 	public ArrayList<AddableInteger> getUtility(AddableInteger[] variablesValues) {
+		
 		// The input does not specify a value for each variable
-		if(varNames.length != 0 && variablesValues.length < varNames.length){ ///@todo the condition varNames.length != 0 is necessary as we do not use explicit ScalarHypercube
+		if(vars.length != 0 && variablesValues.length < vars.length){ ///@todo the condition vars.length != 0 is necessary as we do not use explicit ScalarHypercube
 			return null;
 		}
 		
 		ArrayList<AddableInteger> out = new ArrayList<AddableInteger>();
-
-		// If the store does not exist yet, we create it
-		if(this.store == null){
-			this.store = space.createStore();
-			isConsistent = store.consistency();
-		}
+		
+		// If the constraints haven't been imposed yet, do it now
+		if (this.space.isConsistent == null) 
+			this.space.imposeConstraints();
 		
 		// The problem is infeasible, we just choose any assignment to each projected variable
-		if(!isConsistent){
-
+		StoreCloneable store = this.space.store;
+		if(!this.space.isConsistent){
+			
 			AddableInteger[] dom;
-			for(int i = 0; i < projectedVarNames.length; i++){
+			for(int i = 0; i < projectedVars.length; i++){
 				// We take the first value of the domain
-				dom = space.getDomain(projectedVarNames[i]);
+				dom = space.getDomain(projectedVars[i].id());
 				if(dom != null){
-					out.add(this.space.getDomain(projectedVarNames[i])[0]);
+					out.add(this.space.getDomain(projectedVars[i].id())[0]);
 				}else{
-					out.add(this.space.getProjVarDomain(projectedVarNames[i])[0]);
+					out.add(this.space.getProjVarDomain(projectedVars[i].id())[0]);
 				}
 			}
 			
@@ -180,17 +175,17 @@ public class JaCoPoptAssignments implements BasicUtilitySolutionSpace< AddableIn
 
 		int lvlReminder = store.level;
 		
-		// Change the store level to be able to ground variables in an reversible manner
+		// Change the store level to be able to ground variables in a reversible manner
 		store.setLevel(lvlReminder+1);
 		
-		for(int i = 0; i < varNames.length; i++){
-			// Find the variable in the store
-			IntVar var = (IntVar)store.findVariable(varNames[i]);
-			assert var != null: "Variable " + varNames[i] + " not found in the store!";
+		for(int i = 0; i < vars.length; i++){
+			IntVarCloneable var = (IntVarCloneable) store.findVariable(this.vars[i].id);
+			assert var != null: "Variable " + this.vars[i].id + " not found in the store!";
 			
 			// We ground the variables in the separator
 			try{
 				var.domain.in(store.level, var, variablesValues[i].intValue(), variablesValues[i].intValue());
+				
 			}catch (org.jacop.core.FailException e){
 				
 				for(int k = store.level; k > lvlReminder; k--){
@@ -202,13 +197,13 @@ public class JaCoPoptAssignments implements BasicUtilitySolutionSpace< AddableIn
 				// The problem is infeasible, we just choose any assignment to each projected variable
 				
 				AddableInteger[] dom;
-				for(int j = 0; j < projectedVarNames.length; j++){
+				for(int j = 0; j < projectedVars.length; j++){
 					// We take the first value of the domain
-					dom = space.getDomain(projectedVarNames[j]);
+					dom = space.getDomain(projectedVars[j].id());
 					if(dom != null){
-						out.add(this.space.getDomain(projectedVarNames[j])[0]);
+						out.add(this.space.getDomain(projectedVars[j].id())[0]);
 					}else{
-						out.add(this.space.getProjVarDomain(projectedVarNames[j])[0]);
+						out.add(this.space.getProjVarDomain(projectedVars[j].id())[0]);
 					}
 				}
 				
@@ -216,57 +211,62 @@ public class JaCoPoptAssignments implements BasicUtilitySolutionSpace< AddableIn
 			}
 		}
 		
-		IntVar[] searchedVars = new IntVar[projectedVarNames.length + space.getProjectedVars().length];
+		// Search over the projected variables 
+		IntVarCloneable[] searchedVars = new IntVarCloneable[projectedVars.length + space.getProjectedVars().length];
 		int n = 0;
-		for(String var : projectedVarNames){
+		for(IntVarCloneable var : projectedVars){
 			// Find the JaCoP variable
-			searchedVars[n] = (IntVar) store.findVariable(var);
-			assert searchedVars[n] != null: "Variable " + var + " not found in the store!";
+			searchedVars[n] = (IntVarCloneable) store.findVariable(var.id());
+			assert searchedVars[n] != null: "Variable " + var.id() + " not found in the store!";
 			n++;
 		}
 		
-		for(String var : space.getProjectedVars()){
+		for(IntVarCloneable var : space.getProjectedVars()) {
 			// Find the JaCoP variable
-			searchedVars[n] = (IntVar) store.findVariable(var);
-			assert searchedVars[n] != null: "Variable " + var + " not found in the store!";
+			searchedVars[n] = (IntVarCloneable) store.findVariable(var.id());
+			assert searchedVars[n] != null: "Variable " + var.id() + " not found in the store!";
 			n++;
 		}
 
-		IntVar utilVar = (IntVar) store.findVariable("util_total");
+		IntVarCloneable utilVar = (IntVarCloneable) store.findVariable("util_total");
 		assert utilVar != null: "Variable " + "util_total" + " not found in the store!";
 
 				
 		// Optimization search
-		Search<IntVar> search = new DepthFirstSearch<IntVar> ();
+		Search<IntVarCloneable> search = new DepthFirstSearch<IntVarCloneable> ();
 		search.getSolutionListener().recordSolutions(true);
 			
 		// Debug information
 		search.setPrintInfo(false);
 			
-		boolean result = search.labeling(store, new SimpleSelect<IntVar> (searchedVars, 
-				new SmallestDomain<IntVar>(), new MostConstrainedDynamic<IntVar>(), new IndomainMin<IntVar>()), utilVar);	
+		boolean result = search.labeling(store, new SimpleSelect<IntVarCloneable> (searchedVars, 
+				new SmallestDomain<IntVarCloneable>(), new MostConstrainedDynamic<IntVarCloneable>(), new IndomainMin<IntVarCloneable>()), utilVar);	
 			
 		if(!result){
 			// The problem is infeasible, we can choose any assignment to each projected variable
 			
 			AddableInteger[] dom;
-			for(int i = 0; i < projectedVarNames.length; i++){
+			for(int i = 0; i < projectedVars.length; i++){
 				// We take the first value of the domain
-				dom = space.getDomain(projectedVarNames[i]);
+				dom = space.getDomain(projectedVars[i].id());
 				if(dom != null){
-					out.add(this.space.getDomain(projectedVarNames[i])[0]);
+					out.add(this.space.getDomain(projectedVars[i].id())[0]);
 				}else{
-					out.add(this.space.getProjVarDomain(projectedVarNames[i])[0]);
+					out.add(this.space.getProjVarDomain(projectedVars[i].id())[0]);
 				}
 			}
 			
+			// Revert the store level
+			for(int k = store.level; k > lvlReminder; k--){
+				store.removeLevel(k);
+			}
+			store.setLevel(lvlReminder);
+
 			return out;
 			
 		}
-			
-		//search.getSolution();
 		
-		for (int j=0; j < (projectedVarNames.length); j++){
+		for (int j=0; j < (projectedVars.length); j++){
 			assert search.getSolution()[j].singleton(): "In a solution, all the variables must be grounded";
 			out.add(new AddableInteger(search.getSolution()[j].valueEnumeration().nextElement()));
 		}
@@ -289,24 +289,24 @@ public class JaCoPoptAssignments implements BasicUtilitySolutionSpace< AddableIn
 		
 		AddableInteger[] assignment = null;
 		
-		if(varNames.length == 0){
+		if(vars.length == 0){
 			return getUtility(assignment);
 		}
 		
-		assert variablesNames.length >= this.varNames.length;
+		assert variablesNames.length >= this.vars.length;
 		assert variablesNames.length == variablesValues.length;
 		
 		//Note: "variables_names" and "variables_values" may contain variables that are not present in this hypercube but must 
 		//provide a value for each variable of this space otherwise a null is returned.
 
-		assignment = new AddableInteger[varNames.length];
+		assignment = new AddableInteger[vars.length];
 		final int variables_size = variablesNames.length;
-		final int variables_size2 = varNames.length;
+		final int variables_size2 = vars.length;
 
 		// loop over all the variables present in the array "variablesNames"
 		String var;
 		ext: for(int i = 0; i < variables_size2; i++){
-			var = this.varNames[i];
+			var = this.vars[i].id();
 			for(int j = 0; j < variables_size; j++){
 				if( var.equals(variablesNames[j])) {
 					assignment[i] = variablesValues[j];
@@ -333,13 +333,13 @@ public class JaCoPoptAssignments implements BasicUtilitySolutionSpace< AddableIn
 	public ArrayList<AddableInteger> getUtility(long index) {
 
 		// obtain the correct values array that corresponds to the index
-		AddableInteger[] values = new AddableInteger[varNames.length];
+		AddableInteger[] values = new AddableInteger[vars.length];
 		AddableInteger[] domain;
 		long location = this.getNumberOfSolutions();
 		int indice;
-		for(int i = 0; i < varNames.length; i++){
+		for(int i = 0; i < vars.length; i++){
 
-			domain = allVars.get(varNames[i]);
+			domain = allDoms.get(vars[i].id());
 			location = location/domain.length;
 
 			assert index/location < Integer.MAX_VALUE : "Integer overflow";
@@ -436,7 +436,7 @@ public class JaCoPoptAssignments implements BasicUtilitySolutionSpace< AddableIn
 	@Override
 	public BasicUtilitySolutionSpace< AddableInteger, ArrayList<AddableInteger> > resolve(boolean unused) {
 		
-		if (this.varNames.length == 0) 
+		if (this.vars.length == 0) 
 			return new ScalarBasicHypercube< AddableInteger, ArrayList<AddableInteger> > (this.getUtility(0), null);
 		
 		// Compute the utilities for all combinations of assignments to the variables
@@ -550,10 +550,10 @@ public class JaCoPoptAssignments implements BasicUtilitySolutionSpace< AddableIn
 	/** @see SolutionSpace#getDomains() */
 	public AddableInteger[][] getDomains() {
 		
-		AddableInteger[][] doms = new AddableInteger [this.varNames.length][];
+		AddableInteger[][] doms = new AddableInteger [this.vars.length][];
 		
-		for (int i = this.varNames.length - 1; i >= 0; i--) 
-			doms[i] = this.allVars.get(this.varNames[i]);
+		for (int i = this.vars.length - 1; i >= 0; i--) 
+			doms[i] = this.allDoms.get(this.vars[i].id());
 		
 		return doms;
 	}
@@ -576,16 +576,17 @@ public class JaCoPoptAssignments implements BasicUtilitySolutionSpace< AddableIn
 	public long getNumberOfSolutions() {
 		long nbrUtils = 1;
 
-		for(String var: this.varNames){
-			assert Math.log(nbrUtils) + Math.log(allVars.get(var).length) < Math.log(Long.MAX_VALUE) : "Long overflow: too many solutions in an explicit space";
-			nbrUtils *= allVars.get(var).length;
+		for(IntVarCloneable var: this.vars){
+			if (Math.log(nbrUtils) + Math.log(allDoms.get(var.id()).length) >= Math.log(Long.MAX_VALUE)) 
+				throw new OutOfMemoryError ("Long overflow: too many solutions in an explicit space");
+			nbrUtils *= allDoms.get(var.id()).length;
 		}
 		return nbrUtils;
 	}
 
 	/** @see SolutionSpace#getNumberOfVariables() */
 	public int getNumberOfVariables() {
-		return this.varNames.length;
+		return this.vars.length;
 	}
 
 	/** @see SolutionSpace#getVariable(int) */
@@ -597,7 +598,12 @@ public class JaCoPoptAssignments implements BasicUtilitySolutionSpace< AddableIn
 
 	/** @see SolutionSpace#getVariables() */
 	public String[] getVariables() {
-		return this.varNames;
+		
+		String[] out = new String [this.vars.length];
+		for (int i = this.vars.length - 1; i >= 0; i--) 
+			out[i] = this.vars[i].id();
+		
+		return out;
 	}
 
 	/** @see BasicUtilitySolutionSpace#iterator(java.lang.String[]) */
@@ -701,6 +707,16 @@ public class JaCoPoptAssignments implements BasicUtilitySolutionSpace< AddableIn
 		/// @todo Auto-generated method stub
 		assert false : "Not yet implemented";
 		
+	}
+
+	/** @see SolutionSpace#setProblem(ProblemInterface) */
+	@Override
+	public void setProblem(ProblemInterface<AddableInteger, ?> problem) { }
+
+	/** @see SolutionSpace#countsCCs() */
+	@Override
+	public boolean countsCCs() {
+		return false;
 	}
 
 }

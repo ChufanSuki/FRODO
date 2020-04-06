@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -894,7 +894,7 @@ public class ExpectationOutput < V extends Addable<V>, U extends Addable<U> > ex
 	}
 
 	/** @see frodo2.solutionSpaces.UtilitySolutionSpace#setProblem(frodo2.solutionSpaces.ProblemInterface) */
-	public void setProblem(ProblemInterface<V, U> problem) {
+	public void setProblem(ProblemInterface<V, ?> problem) {
 		/// @todo Auto-generated method stub
 		assert false : "Not yet implemented";
 

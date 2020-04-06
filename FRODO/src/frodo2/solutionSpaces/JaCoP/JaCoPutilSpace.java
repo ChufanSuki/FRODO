@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -26,31 +26,35 @@ import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.io.ObjectStreamException;
 import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 
-import org.jdom2.Element;
-
+import org.jacop.constraints.ConstraintCloneableInterface;
+import org.jacop.constraints.Constraint;
+import org.jacop.constraints.DecomposedConstraint;
 import org.jacop.constraints.SumInt;
+import org.jacop.constraints.XmulCeqZCloneable;
 import org.jacop.constraints.XplusYeqC;
+import org.jacop.core.CloneableInto;
+import org.jacop.core.FailException;
 import org.jacop.core.IntDomain;
-import org.jacop.core.IntVar;
+import org.jacop.core.IntVarCloneable;
 import org.jacop.core.IntervalDomain;
-import org.jacop.core.Store;
+import org.jacop.core.StoreCloneable;
 import org.jacop.search.DepthFirstSearch;
 import org.jacop.search.IndomainMin;
-import org.jacop.search.InputOrderSelect;
 import org.jacop.search.MostConstrainedDynamic;
 import org.jacop.search.Search;
 import org.jacop.search.SimpleSelect;
 import org.jacop.search.SmallestDomain;
 
-import frodo2.algorithms.XCSPparser;
 import frodo2.solutionSpaces.Addable;
 import frodo2.solutionSpaces.AddableInteger;
 import frodo2.solutionSpaces.BasicUtilitySolutionSpace;
@@ -60,40 +64,47 @@ import frodo2.solutionSpaces.UtilitySolutionSpace;
 import frodo2.solutionSpaces.hypercube.BasicHypercube;
 import frodo2.solutionSpaces.hypercube.Hypercube;
 import frodo2.solutionSpaces.hypercube.ScalarHypercube;
+import frodo2.solutionSpaces.hypercube.ScalarSpaceIter;
+import frodo2.solutionSpaces.hypercube.Hypercube.NullHypercube;
 
 /** A UtilitySolutionSpace based on JaCoP as a local solver
  * @author Thomas Leaute, Radoslaw Szymanek
  * @param <U> the type used for utility values
- * @todo Performance improvement: don't go through XCSP but rather work directly on JaCoP's data structures. 
  */
 public class JaCoPutilSpace < U extends Addable<U> > implements UtilitySolutionSpace<AddableInteger, U>, Externalizable {
 
 	/** For now (and maybe forever) we will assume that all variables are projected in the same way (all minimized or all maximized) */
 	private boolean maximize;
 
-	/** The XCSP constraints in this space */
-	private HashMap<String, Element> constraints;
+	/** The list of JaCoP Constraints */
+	private ArrayList<Constraint> constraints;
+	
+	/** The list of JaCoP DecomposedConstraints */
+	private ArrayList< DecomposedConstraint<Constraint> > decompConstraints;
+
+	/** The list of utility variables from the constraints */
+	private ArrayList<IntVarCloneable> utilVars;
+
+	/** The total utility variable */
+	private IntVarCloneable utilVar;
 
 	/** The JaCoP Store */
-	private Store store;
+	StoreCloneable store;
 
 	/** The consistency of the JaCoP Store */
-	private boolean isConsistent;
+	Boolean isConsistent;
 
-	/** The XCSP relations in this space */
-	private HashMap<String, Element> relations;
-
-	/** The ordered names of the variables of the space*/
-	private String[] vars;
+	/** The ordered variables of the space*/
+	private IntVarCloneable[] vars;
 	
-	/** The ordered names of the variables whose projection has been requested */
-	private String[] projectedVars;
+	/** The ordered variables whose projection has been requested */
+	private IntVarCloneable[] projectedVars;
 	
-	/** The names of the variables that have been grounded by a slice operation */
-	private String[] slicedVars;
+	/** The variables that have been grounded by a slice operation */
+	private IntVarCloneable[] slicedVars;
 
-	/** The variable names, including the projected out and sliced out variables, but excluding the utility variable */
-	HashMap<String, AddableInteger[]> allVars;
+	/** The variable names and domains, including the projected out and sliced out variables, but excluding the utility variable */
+	HashMap<String, AddableInteger[]> allDoms;
 
 	/** The types of spaces that we know how to handle */
 	private static HashSet< Class<?> > knownSpaces;
@@ -116,110 +127,49 @@ public class JaCoPutilSpace < U extends Addable<U> > implements UtilitySolutionS
 	/** The owner of this space */
 	private String owner;
 
-	/** Constructor				construct an explicit JaCoPutilSpace that owns only one constraint
+	/** Constructor				constructs an explicit JaCoPutilSpace
 	 * @param name				the name of the JaCoPutilSpace corresponds to the name of its XCSP constraint
 	 * @param owner 			the owner
-	 * @param constraint 		a jdom element that contains the specification of the constraint
-	 * @param relation 			a jdom element that contains the specification of the relation or predicate, can be null in presence of a global constraint
-	 * @param varNames 			the names of the variables
+	 * @param constraints 		a list of Constraints
+	 * @param decompCons 		a list of DecomposedConstraints
+	 * @param utilVars 			a list of utility variables
+	 * @param vars 				the variables
 	 * @param domains 			the domains of the variables
 	 * @param maximize	 		whether we should maximize the utility or minimize the cost
 	 * @param infeasibleUtil 	the infeasible utility
 	 */
-	JaCoPutilSpace (String name, String owner, Element constraint, Element relation, String[] varNames, AddableInteger[][] domains, boolean maximize, U infeasibleUtil) {
+	JaCoPutilSpace (String name, String owner, List<Constraint> constraints, List< DecomposedConstraint<Constraint> > decompCons, 
+			List<IntVarCloneable> utilVars, IntVarCloneable[] vars, AddableInteger[][] domains, boolean maximize, U infeasibleUtil) {
 		this.name = name;
 		this.owner = owner;
 
 		this.infeasibleUtil = infeasibleUtil;
 		this.defaultUtil = this.infeasibleUtil.getZero();
 
-		this.constraints = new HashMap<String, Element> (1);
-		this.constraints.put(constraint.getAttributeValue("name"), constraint);
-
-		this.relations = new HashMap<String, Element> (0);
-		if(relation != null){
-			this.relations.put(relation.getAttributeValue("name"), relation);
-		}
-
 		this.maximize = maximize;
 
-		this.allVars = new HashMap<String, AddableInteger[]>(varNames.length);
+		this.allDoms = new HashMap<String, AddableInteger[]>(vars.length);
 
 		// Construct the array of variables
-		assert varNames.length == domains.length;
-		for(int i = varNames.length - 1; i >= 0; i--) 
-			allVars.put(varNames[i], domains[i]);
+		assert vars.length == domains.length;
+		for(int i = vars.length - 1; i >= 0; i--) 
+			allDoms.put(vars[i].id(), domains[i]);
 
-		this.vars = varNames;
-		this.projectedVars = new String[0];
-		this.slicedVars = new String[0];
-		this.store = null;
-
+		// Create the store (without imposing the constraints) and clone the input JaCoP objects into it
+		this.initStore(constraints, decompCons, utilVars, vars, new IntVarCloneable [0], new IntVarCloneable [0]);
+		
+		if (this.isConsistent != null && ! this.isConsistent) 
+			this.defaultUtil = this.infeasibleUtil;
 	}
 
 	/** Empty constructor that does nothing */
 	public JaCoPutilSpace() { }
 
-	/** Constructor				construct an explicit scalar JaCoPutilSpace
-	 * @param name				the name of the JaCoPutilSpace corresponds to the name of its XCSP constraint
-	 * @param maximize	 		whether we should maximize the utility or minimize the cost
-	 * @param defaultUtil 		the utility of the scalar space
-	 * @param infeasibleUtil 	the infeasible utility
-	 */
-	JaCoPutilSpace (String name, boolean maximize, U defaultUtil, U infeasibleUtil) {
-		this.name = name;
-
-		this.infeasibleUtil = infeasibleUtil;
-		this.defaultUtil = defaultUtil;
-
-		this.constraints = new HashMap<String, Element> (0);
-		this.relations = new HashMap<String, Element> (0);
-
-		this.allVars = new HashMap<String, AddableInteger[]>(0);
-
-		this.maximize = maximize;
-
-		this.vars = allVars.keySet().toArray(new String[this.allVars.size()]);
-		this.projectedVars = new String[0];
-		this.slicedVars = new String[0];
-		this.store = null;
-	}
-
-
-	/** Constructor				construct an explicit JaCoPutilSpace
-	 * @param name				the name of the JaCoPutilSpace
-	 * @param vars				the variables
-	 * @param constraint 		a jdom element that contains the specification of the constraint
-	 * @param relation 			a jdom element that contains the specification of the relation or predicate, can be null in presence of a global constraint 
-	 * @param maximize	 		whether we should maximize the utility or minimize the cost
-	 * @param infeasibleUtil 	The infeasible utility
-	 */
-	private JaCoPutilSpace (String name, HashMap<String, AddableInteger[]> vars, Element constraint, Element relation, boolean maximize, U infeasibleUtil) {
-
-		this.name = name;
-		this.infeasibleUtil = infeasibleUtil;
-		this.defaultUtil = infeasibleUtil.getZero();
-
-		this.constraints = new HashMap<String, Element> (1);
-		this.constraints.put(constraint.getAttributeValue("name"), constraint);
-
-		this.relations =new HashMap<String, Element> (0);
-		if(relation != null){
-			this.relations.put(relation.getAttributeValue("name"), relation);
-		}
-
-		this.maximize = maximize;
-		this.allVars = new HashMap<String, AddableInteger[]>(vars);
-		this.vars = allVars.keySet().toArray(new String[this.allVars.size()]);
-		this.projectedVars = new String[0];
-		this.slicedVars = new String[0];
-		this.store = null;
-	}
-
 	/** Constructor				construct an implicit JaCoPutilSpace
 	 * @param name				the name of the JaCoPutilSpace
-	 * @param constraints 		a collection of XCSP elements that describe a constraint
-	 * @param relations 		a collection of XCSP elements that describe a relation
+	 * @param constraints 		a list of JaCoP Constraints
+	 * @param decompCons 		a list of JaCoP DecomposedConstraints
+	 * @param utilVars 			a list of utility variables
 	 * @param allVars			all the variables of the space including the projected out and sliced out variables
 	 * @param vars				the variables
 	 * @param projectedVars		the variables whose projection has been requested
@@ -228,29 +178,113 @@ public class JaCoPutilSpace < U extends Addable<U> > implements UtilitySolutionS
 	 * @param defaultUtil		The default utility
 	 * @param infeasibleUtil 	The infeasible utility
 	 */
-	public JaCoPutilSpace (String name, Map<String, Element> constraints, Map<String, Element> relations, HashMap<String, AddableInteger[]> allVars, 
-			String[] vars, String[] projectedVars, String[] slicedVars, boolean maximize, U defaultUtil, U infeasibleUtil) {
+	public JaCoPutilSpace (String name, List<Constraint> constraints, List< DecomposedConstraint<Constraint> > decompCons, List<IntVarCloneable> utilVars, 
+			HashMap<String, AddableInteger[]> allVars, IntVarCloneable[] vars, IntVarCloneable[] projectedVars, IntVarCloneable[] slicedVars, 
+			boolean maximize, U defaultUtil, U infeasibleUtil) {
 
 		this.name = name;
-		this.constraints = new HashMap<String, Element>(constraints);
-		this.relations = new HashMap<String, Element>(relations);
 		this.maximize = maximize;
 		this.infeasibleUtil = infeasibleUtil;
 		this.defaultUtil = defaultUtil;
-		this.allVars = new HashMap<String, AddableInteger[]>(allVars);
-		this.vars = vars;
-		this.projectedVars = projectedVars;
-		this.slicedVars = slicedVars;
-		this.store = null;
+		this.allDoms = new HashMap<String, AddableInteger[]>(allVars);
+		
+		// Create the store (without imposing the constraints) and clone the input JaCoP objects into it
+		this.initStore(constraints, decompCons, utilVars, vars, projectedVars, slicedVars);
 	}
 
-	/**
-	 * @return a ScalarHypercube if there is no variable left, or the current object
+	/** Creates the store and clones the inputs into it
+	 * @param constraints2 		the Constraints
+	 * @param decompCons 		the DecomposedConstraints
+	 * @param utilVars2 		the utility variables
+	 * @param vars2 			this space's variables
+	 * @param projectedVars2 	the variables to be projected out
+	 * @param slicedVars2 		the variables to be sliced out
 	 */
-	public Object readResolve(){
-		if(this.allVars.size() == 0){
-			return new ScalarHypercube<AddableInteger, U>(this.defaultUtil, this.infeasibleUtil, new AddableInteger [0].getClass());
+	@SuppressWarnings("unchecked")
+	private void initStore(List<Constraint> constraints2, List< DecomposedConstraint<Constraint> > decompCons, 
+			List<IntVarCloneable> utilVars2, IntVarCloneable[] vars2, IntVarCloneable[] projectedVars2, IntVarCloneable[] slicedVars2) {
+		
+		// Create the JaCoP Store
+		this.store = new StoreCloneable();
+		
+		// Clone the utility variables
+		this.utilVars = new ArrayList<IntVarCloneable> (utilVars2.size());
+		for (IntVarCloneable utilVar : utilVars2) 
+			this.utilVars.add(this.store.findOrCloneInto(utilVar));
+		
+		// Clone the space's variables
+		this.vars = new IntVarCloneable [vars2.length];
+		for (int i = vars2.length - 1; i >= 0; i--) 
+			this.vars[i] = this.store.findOrCloneInto(vars2[i]);
+		
+		// Clone the projected variables
+		this.projectedVars = new IntVarCloneable [projectedVars2.length];
+		for (int i = projectedVars2.length - 1; i >= 0; i--) 
+			this.projectedVars[i] = this.store.findOrCloneInto(projectedVars2[i]);
+		
+		// Clone the sliced vars
+		this.slicedVars = new IntVarCloneable [slicedVars2.length];
+		for (int i = slicedVars2.length - 1; i >= 0; i--) 
+			this.slicedVars[i] = this.store.findOrCloneInto(slicedVars2[i]);
+		
+		// Slice the variables' domains
+		IntVarCloneable var;
+		IntervalDomain dom;
+		for (Map.Entry< String, AddableInteger[] > entry : this.allDoms.entrySet()) {
+			
+			// Look up the variable in the store
+			if( (var = (IntVarCloneable) this.store.findVariable(entry.getKey())) == null) 
+				continue;
+			
+			// Convert the AddableInteger[] domain to an IntervalDomain
+			dom = new IntervalDomain ();
+			for (AddableInteger val : entry.getValue()) 
+				dom.addDom(new IntervalDomain (val.intValue(), val.intValue()));
+			
+			// Compute the intersection of the domains
+			var.domain.intersectAdapt(dom);
 		}
+
+		this.constraints = new ArrayList<Constraint> (constraints2.size());
+		this.decompConstraints = new ArrayList< DecomposedConstraint<Constraint> > (decompCons.size());
+
+		// Clone the Constraints
+		for (Constraint cons : constraints2) {
+			try {
+				Constraint clone = ((ConstraintCloneableInterface<Constraint>)cons).cloneInto(this.store);
+				if (clone != null) 
+					this.constraints.add(clone);
+			} catch (CloneNotSupportedException e) {
+				e.printStackTrace();
+			} catch (FailException e) {
+				this.isConsistent = false;
+				return;
+			}
+		}
+
+		// Clone the DecomposedConstraints
+		for (DecomposedConstraint<Constraint> cons : decompCons) {
+			try {
+				DecomposedConstraint<Constraint> clone = ((ConstraintCloneableInterface< DecomposedConstraint<Constraint> >)cons).cloneInto(this.store);
+				if (clone != null) 
+					this.decompConstraints.add(clone);
+			} catch (CloneNotSupportedException e) {
+				e.printStackTrace();
+			} catch (FailException e) {
+				this.isConsistent = false;
+				return;
+			}
+		}
+	}
+
+	/** 
+	 * @return a ScalarHypercube if there is no variable left, or the current object 
+	 * @throws ObjectStreamException should never be thrown
+	 */
+	private Object readResolve() throws ObjectStreamException {
+		
+		if (this.allDoms.size() == 0)
+			return new ScalarHypercube<AddableInteger, U>(this.defaultUtil, this.infeasibleUtil, new AddableInteger [0].getClass());
 		
 		return this;
 	}
@@ -264,7 +298,6 @@ public class JaCoPutilSpace < U extends Addable<U> > implements UtilitySolutionS
 		// Write the name of the space and relation
 		String newName = "explicit" + new Object().hashCode();
 		out.writeObject(newName);
-		out.writeObject("r_" + newName); /// @bug Write the name of the underlying relation (if any), else null
 
 		// Write the type of optimization
 		out.writeBoolean(maximize);
@@ -273,14 +306,14 @@ public class JaCoPutilSpace < U extends Addable<U> > implements UtilitySolutionS
 		assert this.vars.length < Short.MAX_VALUE : "Too many variables to fit in a short";
 		out.writeShort(this.vars.length);
 		for (int i = 0; i < this.vars.length; i++) 
-			out.writeObject(this.vars[i]);
+			out.writeObject(this.vars[i].id());
 
-		/// @todo Write less data by taking advantage of the fact that we know we are using AddableIntegers
+		/// @todo Write less data by taking advantage of the fact that we know we are using AddableIntegers?
 
 		// Write the domains
 		assert this.vars.length < Short.MAX_VALUE : "Too many domains to fit in a short";
 		out.writeShort(this.vars.length); // number of domains
-		AddableInteger[] dom = this.allVars.get(vars[0]);
+		AddableInteger[] dom = this.allDoms.get(vars[0].id());
 		assert dom.length < Short.MAX_VALUE : "Too many values to fit in a short";
 		out.writeShort(dom.length); // size of first domain
 		out.writeObject(dom[0]); // first value of first domain
@@ -292,7 +325,7 @@ public class JaCoPutilSpace < U extends Addable<U> > implements UtilitySolutionS
 				out.writeObject(dom[i]);
 		}
 		for (int i = 1; i < this.vars.length; i++) { // remaining domains
-			dom = this.allVars.get(vars[i]);
+			dom = this.allDoms.get(vars[i].id());
 			assert dom.length < Short.MAX_VALUE : "Too many values to fit in a short";
 			out.writeShort(dom.length); // size of domain
 			for (int j = 0; j < dom.length; j++) { // each value in the domain
@@ -305,9 +338,7 @@ public class JaCoPutilSpace < U extends Addable<U> > implements UtilitySolutionS
 
 		out.writeObject(this.infeasibleUtil);
 
-		long nbrSol = this.getNumberOfSolutions();
-		assert nbrSol < Integer.MAX_VALUE : "Cannot extensionalize a space containing more than " + Integer.MAX_VALUE + " solutions";
-		out.writeInt((int)nbrSol); // number of utilities
+		assert this.getNumberOfSolutions() < Integer.MAX_VALUE : "Cannot extensionalize a space containing more than " + Integer.MAX_VALUE + " solutions";
 		for(Iterator<AddableInteger, U> iter = this.iterator(); iter.hasNext(); ) 
 			out.writeObject(iter.nextUtility()); // each utility
 	}
@@ -318,22 +349,20 @@ public class JaCoPutilSpace < U extends Addable<U> > implements UtilitySolutionS
 	ClassNotFoundException {
 		// Construct the data structures that are special to JaCoPutilSpace
 
-		this.allVars = new HashMap<String, AddableInteger[]>();
-		this.constraints = new HashMap<String, Element>(1);
-		this.relations = new HashMap<String, Element>(1);
-		this.projectedVars = new String[0];
-		this.slicedVars = new String[0];
+		this.store = new StoreCloneable();
+		this.allDoms = new HashMap<String, AddableInteger[]>();
+		this.projectedVars = new IntVarCloneable[0];
+		this.slicedVars = new IntVarCloneable[0];
 
 		this.name = (String) in.readObject();
-		String relationName = (String) in.readObject();
 
 		// Read the type of optimization
 		this.maximize = in.readBoolean();
 
 		// Read the variables
-		this.vars = new String[in.readShort()];
+		this.vars = new IntVarCloneable[in.readShort()];
 		for (int i = 0; i < this.vars.length; i++) 
-			this.vars[i] = (String) in.readObject();
+			this.vars[i] = new IntVarCloneable (this.store, (String) in.readObject());
 
 		// Read the domains
 		final int nbrDoms = in.readShort(); // number of domains
@@ -341,132 +370,204 @@ public class JaCoPutilSpace < U extends Addable<U> > implements UtilitySolutionS
 		AddableInteger val = (AddableInteger) in.readObject(); // first value of first domain
 		final boolean externalize = val.externalize();
 		AddableInteger[] dom = (AddableInteger[]) Array.newInstance(val.getClass(), domSize);
+		IntervalDomain jacopDom = new IntervalDomain (domSize);
 		dom[0] = val;
+		jacopDom.addDom(new IntervalDomain (val.intValue(), val.intValue()));
 		for (int i = 1; i < domSize; i++) { // read the remaining values in the first domain
 			if (externalize) {
 				val = val.getZero();
 				val.readExternal(in);
-				dom[i] = (AddableInteger) val.readResolve();
+				val = dom[i] = (AddableInteger) val.readResolve();
 			} else 
-				dom[i] = (AddableInteger) in.readObject();
+				val = dom[i] = (AddableInteger) in.readObject();
+			jacopDom.addDom(new IntervalDomain (val.intValue(), val.intValue()));
 		}
-		this.allVars.put(vars[0], dom);
+		this.allDoms.put(vars[0].id(), dom);
+		this.vars[0].setDomain(jacopDom);
+		
 		for (int i = 1; i < nbrDoms; i++) { // read the remaining domains
 			domSize = in.readShort(); // domain size
 			dom = (AddableInteger[]) Array.newInstance(val.getClass(), domSize);
+			jacopDom = new IntervalDomain (domSize);
 			for (int j = 0; j < domSize; j++) { // each value in the domain
 				if (externalize) {
 					val = val.getZero();
 					val.readExternal(in);
-					dom[j] = (AddableInteger) val.readResolve();
+					val = dom[j] = (AddableInteger) val.readResolve();
 				} else 
-					dom[j] = (AddableInteger) in.readObject();
+					val = dom[j] = (AddableInteger) in.readObject();
+				jacopDom.addDom(new IntervalDomain (val.intValue(), val.intValue()));
 			}
-			this.allVars.put(vars[i], dom);
+			this.allDoms.put(vars[i].id(), dom);
+			this.vars[i].setDomain(jacopDom);
 		}
 		this.infeasibleUtil = (U) in.readObject();
 		this.defaultUtil = this.infeasibleUtil.getZero();
-
-		//@todo The following code is highly redundant with the code in resolve()
-
-		// Add the constraint
-		this.constraints.put("c_" + name, XCSPparser.getConstraint(this, "c_" + name, relationName));
-
-		// Create the relation
-		Element rel = new Element("relation");
-		rel.setAttribute("name", relationName);
-		rel.setAttribute("arity", Integer.toString(vars.length));
-		rel.setAttribute("semantics", "soft");
-		// Read the utilities
-		final int nbrSol = in.readInt();
-
-		rel.setAttribute("nbTuples", Integer.toString(nbrSol));
 		
-		// Flag the relation as one that should be parsed into an hypercube-based constraint
-		rel.setAttribute("hypercube", "true");
-
-		StringBuilder builder = new StringBuilder ("\n");
-
-		int[] indexes = new int[vars.length];
-		Arrays.fill(indexes, 0);
-
-		boolean hasIncr;
-		for (int i = 0; i < nbrSol; i++){
-			hasIncr = false;
-			// Read the utility
-			builder.append((U) in.readObject()); /// @todo externalize if possible
-			builder.append(":");
-
-			AddableInteger[] domain;
-			// Add the tuples of the relation
-			for (int j = 0; j < vars.length; j++){
-				domain = allVars.get(vars[j]);
-				builder.append(domain[indexes[j]] + " ");
+		// Iterate through all of this space's solutions and read each solution's utility
+		ScalarSpaceIter<AddableInteger, U> iter = 
+				new ScalarSpaceIter<AddableInteger, U> (null, this.getVariables(), this.getDomains(), this.infeasibleUtil, null);
+		
+		// allVars contains this space's variables, plus its utility variable
+		final int nbrVars = this.getNumberOfVariables();
+		final int nbrAllVars = nbrVars + 1;
+		IntVarCloneable[] allVars = Arrays.copyOf(this.vars, nbrAllVars);
+		IntVarCloneable utilVar = allVars[this.getNumberOfVariables()] = new IntVarCloneable (this.store, "util_" + this.name);
+		(this.utilVars = new ArrayList<IntVarCloneable> (1)).add(utilVar);
+		HashSet<Integer> utilDom = new HashSet<Integer> ();
+		
+		// For each feasible solution, the variable assignments (including the utility variable)
+		ArrayList< int[] > solutions = new ArrayList< int[] > ();
+		
+		U util;
+		int intUtil, i;
+		int[] sol;
+		AddableInteger[] assignment;
+		while (iter.hasNext()) {
+			assignment = iter.nextSolution();
+			
+			if (! this.infeasibleUtil.equals(util = (U) in.readObject())) { /// @todo externalize if possible
+				
+				// Record the utility value as part of utilVar's domain
+				utilDom.add(intUtil = util.intValue());
+				
+				solutions.add(sol = new int [nbrAllVars]);
+				for (i = 0; i < nbrVars; i++) 
+					sol[i] = assignment[i].intValue();
+				sol[nbrVars] = intUtil;
 			}
-
-			// Get the correct values of the variables for the next tuple
-			for (int j = vars.length-1; j >= 0; j--){
-				domain = allVars.get(vars[j]);
-				if(!hasIncr){
-					if(indexes[j] == domain.length-1){
-						indexes[j] = 0;
-					}else{
-						indexes[j]++;
-						hasIncr = true;
-					}
-				}
-			}	
-
-			if(i == nbrSol-1) break;
-
-			builder.append("|");
 		}
-		rel.addContent(builder.toString());
-
-		// Add the relation
-		this.relations.put(relationName, rel);
+		
+		/// @bug Treat separately the case when no feasible solution exists
+		
+		// Set utilVar's domain
+		IntervalDomain utilVarDom = new IntervalDomain (utilDom.size());
+		for (Integer utilVal : utilDom) 
+			utilVarDom.addDom(new IntervalDomain (intUtil = utilVal.intValue(), intUtil));
+		utilVar.setDomain(utilVarDom);
+		
+		(this.constraints = new ArrayList<Constraint> (1)).add(
+//				new ExtensionalSupportSTR (allVars, solutions.toArray(new int[solutions.size()][this.getNumberOfVariables()+1])));
+				new ExtensionalSupportHypercube (store, allVars, solutions.toArray(new int [solutions.size()][nbrAllVars])));
+		this.decompConstraints = new ArrayList< DecomposedConstraint<Constraint> > (0);
 	}
 
 	/** @see java.lang.Object#toString() */
 	public String toString () {
 		StringBuilder builder = new StringBuilder ("JaCoPutilSpace \n");
-		builder.append("\t variables:         " + Arrays.toString(this.vars) + "\n");
-		builder.append("\t projectedVars:     " + Arrays.toString(this.projectedVars) + "\n");
-		builder.append("\t slicedVars:     " + Arrays.toString(this.slicedVars) + "\n");
+		builder.append("\t variables:\t" + Arrays.toString(this.vars) + "\n");
+		if (this.projectedVars.length > 0) 
+			builder.append("\t projectedVars:\t" + Arrays.toString(this.projectedVars) + "\n");
+		if (this.slicedVars.length > 0) 
+			builder.append("\t slicedVars:\t" + Arrays.toString(this.slicedVars) + "\n");
+		if (! this.utilVars.isEmpty()) 
+			builder.append("\t utilVars:\t").append(this.utilVars).append("\n");
 		
-		builder.append("\t constraints:       ");
-		for(Element cons: this.constraints.values()){
-			builder.append(cons.getAttributeValue("name") + " ");
+		if (! this.constraints.isEmpty()) {
+			builder.append("\t constraints:\t");
+			for(Constraint cons: this.constraints){
+				builder.append(cons + " ");
+			}
+			builder.append("\n");
 		}
-		builder.append("\n");
 		
-//		builder.append("\t relations:\n");
-//		for(Element rel: this.relations.values()){
-//			builder.append("\t\t" + XCSPparser.toString(rel) + "\n");
-//		}
-
-		builder.append("\t maximize:          " + this.maximize + "\n");
-		builder.append("\t baseUtil:    " + this.defaultUtil + "\n");
-		builder.append("\t infeasibleUtil:    " + this.infeasibleUtil);
+		if (! this.decompConstraints.isEmpty()) {
+			builder.append("\t decomposed constraints:\t");
+			for(DecomposedConstraint<Constraint> cons: this.decompConstraints){
+				builder.append(cons + " ");
+			}
+			builder.append("\n");
+		}
+		
+		builder.append("\t maximize:\t" + this.maximize + "\n");
+		builder.append("\t baseUtil:\t" + this.defaultUtil + "\n");
+		builder.append("\t infeasibleUtil:\t" + this.infeasibleUtil);
 		return builder.toString();
 	}
 
 	/** @see UtilitySolutionSpace#changeVariablesOrder(java.lang.String[]) */
 	public UtilitySolutionSpace<AddableInteger, U> changeVariablesOrder(
-			String[] variablesOrder) {
+			final String[] variablesOrder) {
+		
+		/// @todo Perform some input checking
 
-		JaCoPutilSpace<U> out = new JaCoPutilSpace<U> (this.name + "_reordered", this.constraints, this.relations, this.allVars, this.vars, this.projectedVars, this.slicedVars, this.maximize, this.defaultUtil, this.infeasibleUtil);
-		out.vars = variablesOrder;
+		JaCoPutilSpace<U> out = new JaCoPutilSpace<U> (this.name + "_reordered", this.constraints, this.decompConstraints, this.utilVars, 
+				this.allDoms, this.vars, this.projectedVars, this.slicedVars, this.maximize, this.defaultUtil, this.infeasibleUtil);
+		
+		final int nbrVars = variablesOrder.length;
+		for (int i = 0; i < nbrVars; i++) 
+			out.vars[i] = (IntVarCloneable) this.store.findVariable(variablesOrder[i]);
 
 		return out;
 
 	}
 
 	/** @see Object#clone() */
+	@SuppressWarnings("unchecked")
 	public UtilitySolutionSpace<AddableInteger, U> clone() {
-		/// @todo Auto-generated method stub
-		assert false : "Not yet implemented";
-	return null;
+		
+		JaCoPutilSpace<U> out = new JaCoPutilSpace<U> ();
+		
+		out.allDoms = new HashMap<String, AddableInteger[]> (this.allDoms);
+		out.defaultUtil = this.defaultUtil;
+		out.infeasibleUtil = this.infeasibleUtil;
+		out.maximize = this.maximize;
+		out.name = this.name;
+		out.owner = this.owner;
+		out.utilVars = new ArrayList<IntVarCloneable> (this.utilVars);
+		
+		// Create a new store and clone the variables into it
+		out.store = new StoreCloneable ();
+		
+		// Clone the variables in this space (utility variables will be re-created by the constraints)
+		final int nbrVars = this.vars.length;
+		out.vars = new IntVarCloneable [nbrVars];
+		for (int i = 0; i < nbrVars; i++) 
+			out.vars[i] = ((CloneableInto<IntVarCloneable>)this.vars[i]).cloneInto(out.store);
+		
+		// Also clone the projected variables
+		final int nbrProjVars = this.projectedVars.length;
+		out.projectedVars = new IntVarCloneable [nbrProjVars];
+		for (int i = 0; i < nbrProjVars; i++) 
+			out.projectedVars[i] = ((CloneableInto<IntVarCloneable>)this.projectedVars[i]).cloneInto(out.store);
+		
+		// Also clone the sliced variables
+		final int nbrSlicedVars = this.slicedVars.length;
+		out.slicedVars = new IntVarCloneable [nbrSlicedVars];
+		for (int i = 0; i < nbrSlicedVars; i++) 
+			out.slicedVars[i] = ((CloneableInto<IntVarCloneable>)this.slicedVars[i]).cloneInto(out.store);
+		
+		// Clone the Constraints
+		out.constraints = new ArrayList<Constraint> (this.constraints.size());
+		for (Constraint cons : this.constraints) {
+			try {
+				Constraint clone = ((ConstraintCloneableInterface<Constraint>)cons).cloneInto(out.store);
+				if (clone != null) 
+					out.constraints.add(clone);
+			} catch (CloneNotSupportedException e) {
+				e.printStackTrace();
+			} catch (FailException e) {
+				return NullHypercube.NULL;
+			}
+		}
+		
+		// Clone the DecomposedConstraints
+		out.decompConstraints = new ArrayList< DecomposedConstraint<Constraint> > (this.decompConstraints.size());
+		for (DecomposedConstraint<Constraint> cons : this.decompConstraints) {
+			try {
+				DecomposedConstraint<Constraint> clone = ((ConstraintCloneableInterface< DecomposedConstraint<Constraint> >)cons).cloneInto(out.store);
+				if (clone != null) 
+					out.decompConstraints.add(clone);
+			} catch (CloneNotSupportedException e) {
+				e.printStackTrace();
+			} catch (FailException e) {
+				return NullHypercube.NULL;
+			}
+		}
+		
+		out.imposeConstraints();
+
+		return out;
 	}
 
 	/** @see UtilitySolutionSpace#compose(java.lang.String[], BasicUtilitySolutionSpace) */
@@ -538,8 +639,14 @@ public class JaCoPutilSpace < U extends Addable<U> > implements UtilitySolutionS
 	/** @see UtilitySolutionSpace#iteratorBestFirst(boolean) */
 	public UtilitySolutionSpace.IteratorBestFirst<AddableInteger, U> iteratorBestFirst(
 			boolean maximize) {
+		
+		// Clone myself
+		UtilitySolutionSpace<AddableInteger, U> clone = this.clone();
+		
+		if (NullHypercube.NULL.equals(clone)) 
+			return new ScalarHypercube<AddableInteger, U> (this.infeasibleUtil, this.infeasibleUtil, AddableInteger[].class).iteratorBestFirst(maximize);
 
-		return new JaCoPutilSpaceIterBestFirst<U> (this, maximize);
+		return new JaCoPutilSpaceIterBestFirst<U> ((JaCoPutilSpace<U>) clone, maximize);
 	}
 
 	/** @see UtilitySolutionSpace#join(UtilitySolutionSpace, java.lang.String[]) */
@@ -564,25 +671,35 @@ public class JaCoPutilSpace < U extends Addable<U> > implements UtilitySolutionS
 
 
 		// Build the lists of constraints, utility variables, and projected variables
-		HashMap<String, Element> newConst = new HashMap<String, Element> ();
-		HashMap<String, Element> newRel = new HashMap<String, Element> ();
-		HashMap<String, AddableInteger[]> newAllVars = new HashMap<String, AddableInteger[]> (this.allVars);
-		HashSet<String> newVars = new HashSet<String>();
-		HashSet<String> newProjectedVars = new HashSet<String>();
-		HashSet<String> newSlicedVars = new HashSet<String>();
+		ArrayList<Constraint> newConst = new ArrayList<Constraint> ();
+		ArrayList< DecomposedConstraint<Constraint> > newDecomp = new ArrayList< DecomposedConstraint<Constraint> > ();
+		ArrayList<IntVarCloneable> newUtilVars = new ArrayList<IntVarCloneable> ();
+		HashMap<String, AddableInteger[]> newAllVars = new HashMap<String, AddableInteger[]> (this.allDoms);
+		HashSet<IntVarCloneable> newVars = new HashSet<IntVarCloneable>();
+		HashSet<IntVarCloneable> newProjectedVars = new HashSet<IntVarCloneable>();
+		HashSet<IntVarCloneable> newSlicedVars = new HashSet<IntVarCloneable>();
 
 		// Go through all spaces
 		ArrayList< UtilitySolutionSpace<AddableInteger, U> > allSpaces = new ArrayList< UtilitySolutionSpace<AddableInteger, U> > (spaces.length + 1);
 		allSpaces.add(this);
 		allSpaces.addAll(Arrays.asList(spaces));
-		U newDefaultUtil = this.defaultUtil;
+		U newDefaultUtil = this.defaultUtil.getZero();
 		for (UtilitySolutionSpace<AddableInteger, U> space : allSpaces) {
 
 			if(space instanceof ScalarHypercube<?,?>) 
-				newDefaultUtil.add(((ScalarHypercube<AddableInteger,U>)space).getUtility(0));
-			else if (space instanceof Hypercube<?, ?>) 
-				return this.toHypercube().join(spaces); /// @todo Could it be more efficient to convert the space to a JaCoP extensional support space instead?
-			else{
+				newDefaultUtil = newDefaultUtil.add(((ScalarHypercube<AddableInteger,U>)space).getUtility(0));
+			
+			else if (space instanceof Hypercube<?, ?>) {
+				return this.toHypercube().join(spaces);
+				
+				// The following is less efficient in practice
+//				JaCoPutilSpace<U> spaceCast = new JaCoPutilSpace<U> ((Hypercube<AddableInteger, U>) space, this.maximize, this.infeasibleUtil);
+//				newConst.addAll(spaceCast.constraints);
+//				newUtilVars.addAll(spaceCast.utilVars);
+//				newAllVars.putAll(spaceCast.allDoms);
+//				newVars.addAll(Arrays.asList(spaceCast.vars));
+			
+			} else { // must be a JaCoPutilSpace
 
 				// First cast the space to a JaCoPutilSpace
 				assert space instanceof JaCoPutilSpace<?> : "Unsupported space type: " + space.getClass().getName();
@@ -595,10 +712,11 @@ public class JaCoPutilSpace < U extends Addable<U> > implements UtilitySolutionS
 				/// it must do so before the join is performed, by calling resolve(). This should normally never happen, though. 
 				assert Collections.disjoint(Arrays.asList(this.projectedVars), Arrays.asList(spaceCast.vars));
 				
-				newDefaultUtil.add(spaceCast.defaultUtil);
-				newConst.putAll(spaceCast.constraints);
-				newRel.putAll(spaceCast.relations);
-				newAllVars.putAll(spaceCast.allVars);
+				newDefaultUtil = newDefaultUtil.add(spaceCast.defaultUtil);
+				newConst.addAll(spaceCast.constraints);
+				newDecomp.addAll(spaceCast.decompConstraints);
+				newUtilVars.addAll(spaceCast.utilVars);
+				newAllVars.putAll(spaceCast.allDoms);
 				newVars.addAll(Arrays.asList(spaceCast.vars));
 				newProjectedVars.addAll(Arrays.asList(spaceCast.projectedVars));
 				newSlicedVars.addAll(Arrays.asList(spaceCast.slicedVars));
@@ -607,17 +725,13 @@ public class JaCoPutilSpace < U extends Addable<U> > implements UtilitySolutionS
 		
 		assert Collections.disjoint(newProjectedVars, newVars);
 
-		UtilitySolutionSpace<AddableInteger, U> out;
-		
 		// Joining only ScalarHypercube results in a ScalarHypercube
-		if(newAllVars.size() == 0){
-			out = new ScalarHypercube<AddableInteger, U>(newDefaultUtil, this.infeasibleUtil, new AddableInteger [0].getClass());
-		}else{
-			out = new JaCoPutilSpace<U> ("joined" + new Object().hashCode(), newConst, newRel, newAllVars,
-					newVars.toArray(new String[newVars.size()]), newProjectedVars.toArray(new String[newProjectedVars.size()]),
-					newSlicedVars.toArray(new String[newSlicedVars.size()]), this.maximize, newDefaultUtil, this.infeasibleUtil);
-		}
-		return out;
+		if(newAllVars.size() == 0) 
+			return new ScalarHypercube<AddableInteger, U>(newDefaultUtil, this.infeasibleUtil, new AddableInteger [0].getClass());
+		 else 
+			return new JaCoPutilSpace<U> ("joined" + new Object().hashCode(), newConst, newDecomp, newUtilVars, newAllVars,
+					newVars.toArray(new IntVarCloneable[newVars.size()]), newProjectedVars.toArray(new IntVarCloneable[newProjectedVars.size()]),
+					newSlicedVars.toArray(new IntVarCloneable[newSlicedVars.size()]), this.maximize, newDefaultUtil, this.infeasibleUtil);
 	}
 
 	/** @see UtilitySolutionSpace#joinMinNCCCs(UtilitySolutionSpace) */
@@ -664,28 +778,32 @@ public class JaCoPutilSpace < U extends Addable<U> > implements UtilitySolutionS
 	/** @see UtilitySolutionSpace#project(java.lang.String[], boolean) */
 	public UtilitySolutionSpace.ProjOutput<AddableInteger, U> project(String[] vars, boolean maximum) {
 
-		HashMap<String, AddableInteger[]> newAllVars = new HashMap<String, AddableInteger[]> (this.allVars);
-		String newVars[] = new String[this.vars.length - vars.length];
-		String newProjectedVars[] = Arrays.copyOf(this.projectedVars, this.projectedVars.length + vars.length);
-		String newSlicedVars[] = this.slicedVars;
+		HashMap<String, AddableInteger[]> newAllVars = new HashMap<String, AddableInteger[]> (this.allDoms);
+		IntVarCloneable[] newVars = new IntVarCloneable[this.vars.length - vars.length];
+		IntVarCloneable[] newProjectedVars = Arrays.copyOf(this.projectedVars, this.projectedVars.length + vars.length);
+		IntVarCloneable[] newSlicedVars = this.slicedVars;
 
 		// move the projected vars from vars to projectedVars
 		int i = 0;
 		HashSet<String> inVars = new HashSet<String> (Arrays.asList(vars));
-		for(String v: this.vars){
-			if(inVars.contains(v))
+		for(IntVarCloneable v: this.vars){
+			if(inVars.contains(v.id()))
 				continue;
 			newVars[i] = v;
 			i++;
 		}
-		System.arraycopy(vars, 0, newProjectedVars, this.projectedVars.length, vars.length);
+		final int nbrVarsOut = vars.length;
+		IntVarCloneable[] varsOut = new IntVarCloneable [nbrVarsOut];
+		for (i = 0; i < nbrVarsOut; i++) 
+			varsOut[i] = (IntVarCloneable) this.store.findVariable(vars[i]);
+		System.arraycopy(varsOut, 0, newProjectedVars, this.projectedVars.length, vars.length);
 		
 		// For now (and maybe forever) we will assume that all variables are projected in the same way (all minimized or all maximized)
 		assert (this.maximize == maximum) : "All variables must be projected the same way!";
 
-		JaCoPutilSpace<U> outSpace = new JaCoPutilSpace<U> (this.getName() + "projected", this.constraints, this.relations, newAllVars,
-				newVars, newProjectedVars, newSlicedVars, this.maximize, this.defaultUtil, this.infeasibleUtil);
-		JaCoPoptAssignments assignments = new JaCoPoptAssignments (this, outSpace.vars, vars);
+		JaCoPutilSpace<U> outSpace = new JaCoPutilSpace<U> (this.getName() + "projected", this.constraints, this.decompConstraints, 
+				this.utilVars, newAllVars, newVars, newProjectedVars, newSlicedVars, this.maximize, this.defaultUtil, this.infeasibleUtil);
+		JaCoPoptAssignments assignments = new JaCoPoptAssignments (this, outSpace.vars, varsOut);
 
 		ProjOutput<AddableInteger, U> out = new ProjOutput<AddableInteger, U> (outSpace, vars, assignments);
 		
@@ -703,27 +821,28 @@ public class JaCoPutilSpace < U extends Addable<U> > implements UtilitySolutionS
 	/** @see UtilitySolutionSpace#project(java.lang.String, boolean) */
 	public ProjOutput<AddableInteger, U> project(String variableName, boolean maximum) {
 
-		HashMap<String, AddableInteger[]> newAllVars = new HashMap<String, AddableInteger[]> (this.allVars);
-		String newVars[] = new String[this.vars.length-1];
-		String newProjectedVars[] = Arrays.copyOf(this.projectedVars, this.projectedVars.length + 1);
-		String newSlicedVars[] = this.slicedVars;
+		HashMap<String, AddableInteger[]> newAllVars = new HashMap<String, AddableInteger[]> (this.allDoms);
+		IntVarCloneable[] newVars = new IntVarCloneable[this.vars.length-1];
+		IntVarCloneable[] newProjectedVars = Arrays.copyOf(this.projectedVars, this.projectedVars.length + 1);
+		IntVarCloneable[] newSlicedVars = this.slicedVars;
 
 		// move the projected var from vars to projectedVars
 		int i = 0;
-		for(String v: this.vars){
-			if(v.equals(variableName))
+		for(IntVarCloneable v: this.vars){
+			if(v.id().equals(variableName))
 				continue;
 			newVars[i] = v;
 			i++;
 		}
-		newProjectedVars[this.projectedVars.length] = variableName;
+		IntVarCloneable varOut = (IntVarCloneable) this.store.findVariable(variableName);
+		newProjectedVars[this.projectedVars.length] = varOut;
 		
 		// For now (and maybe forever) we will assume that all variables are projected in the same way (all minimized or all maximized)
 		assert (this.maximize == maximum) : "All variables must be projected the same way!";
 
-		JaCoPutilSpace<U> outSpace = new JaCoPutilSpace<U> (this.getName() + "projected", this.constraints, this.relations, newAllVars,
-				newVars, newProjectedVars, newSlicedVars, this.maximize, this.defaultUtil, this.infeasibleUtil);
-		JaCoPoptAssignments assignments = new JaCoPoptAssignments (this, outSpace.vars, new String[] {variableName});
+		JaCoPutilSpace<U> outSpace = new JaCoPutilSpace<U> (this.getName() + "projected", this.constraints, this.decompConstraints, 
+				this.utilVars, newAllVars, newVars, newProjectedVars, newSlicedVars, this.maximize, this.defaultUtil, this.infeasibleUtil);
+		JaCoPoptAssignments assignments = new JaCoPoptAssignments (this, outSpace.vars, new IntVarCloneable[] {varOut});
 
 		ProjOutput<AddableInteger, U> out = new ProjOutput<AddableInteger, U> (outSpace, 
 				new String[] {variableName}, 
@@ -735,22 +854,20 @@ public class JaCoPutilSpace < U extends Addable<U> > implements UtilitySolutionS
 	/** @see UtilitySolutionSpace#projectAll(boolean) */
 	public UtilitySolutionSpace.ProjOutput<AddableInteger, U> projectAll(boolean maximum) {
 
-		HashMap<String, AddableInteger[]> newAllVars = new HashMap<String, AddableInteger[]> (this.allVars);
-		String newVars[] = new String[0];
-		String newProjectedVars[] = Arrays.copyOf(this.projectedVars, this.projectedVars.length + this.vars.length);
-		String newSlicedVars[] = this.slicedVars;
+		HashMap<String, AddableInteger[]> newAllVars = new HashMap<String, AddableInteger[]> (this.allDoms);
+		IntVarCloneable[] newVars = new IntVarCloneable[0];
+		IntVarCloneable[] newProjectedVars = Arrays.copyOf(this.projectedVars, this.projectedVars.length + this.vars.length);
+		IntVarCloneable[] newSlicedVars = this.slicedVars;
 
 		// move all variables from vars to projectedVars
-		int i = this.projectedVars.length;
-		for (String var : this.getVariables()) 
-			newProjectedVars[i++] = var;
+		System.arraycopy(this.vars, 0, newProjectedVars, this.projectedVars.length, this.vars.length);
 
 		// For now (and maybe forever) we will assume that all variables are projected in the same way (all minimized or all maximized)
 		assert (this.maximize == maximum) : "All variables must be projected the same way!";
 
-		JaCoPutilSpace<U> outSpace = new JaCoPutilSpace<U> (this.getName() + "projected", this.constraints, this.relations, newAllVars,
-				newVars, newProjectedVars, newSlicedVars, this.maximize, this.defaultUtil, this.infeasibleUtil);
-		JaCoPoptAssignments assignments = new JaCoPoptAssignments (this, outSpace.vars, this.getVariables());
+		JaCoPutilSpace<U> outSpace = new JaCoPutilSpace<U> (this.getName() + "projected", this.constraints, this.decompConstraints, 
+				this.utilVars, newAllVars, newVars, newProjectedVars, newSlicedVars, this.maximize, this.defaultUtil, this.infeasibleUtil);
+		JaCoPoptAssignments assignments = new JaCoPoptAssignments (this, outSpace.vars, this.vars);
 
 		ProjOutput<AddableInteger, U> out = new ProjOutput<AddableInteger, U> (outSpace, 
 				this.getVariables(), 
@@ -762,9 +879,43 @@ public class JaCoPutilSpace < U extends Addable<U> > implements UtilitySolutionS
 	/** @see UtilitySolutionSpace#projectAll(boolean, java.lang.String[]) */
 	public UtilitySolutionSpace.ProjOutput<AddableInteger, U> projectAll(
 			boolean maximum, String[] order) {
-		/// @todo Auto-generated method stub
-		assert false : "Not yet implemented";
-	return null;
+
+		HashMap<String, AddableInteger[]> newAllVars = new HashMap<String, AddableInteger[]> (this.allDoms);
+		IntVarCloneable[] newVars = new IntVarCloneable[0];
+		IntVarCloneable[] newSlicedVars = this.slicedVars;
+
+		// Order the projected vars according to the input order
+		IntVarCloneable[] newProjectedVars = new IntVarCloneable [this.projectedVars.length + this.vars.length];
+		int i = 0;
+		for (String inputVarName : order) {
+			for (IntVarCloneable var : this.vars) { // search for the variable by its name
+				if (var.id.equals(inputVarName)) {
+					newProjectedVars[i++] = var;
+					break;
+				}
+				
+				assert false: "Input order includes unknown variable " + inputVarName;
+			}
+		}
+		
+		assert i == this.vars.length : "Input order does not include all variables";
+
+		// move all variables from vars to projectedVars
+		System.arraycopy(this.vars, 0, newProjectedVars, this.projectedVars.length, this.vars.length);
+
+		// For now (and maybe forever) we will assume that all variables are projected in the same way (all minimized or all maximized)
+		assert (this.maximize == maximum) : "All variables must be projected the same way!";
+		
+
+		JaCoPutilSpace<U> outSpace = new JaCoPutilSpace<U> (this.getName() + "projected", this.constraints, this.decompConstraints, 
+				this.utilVars, newAllVars, newVars, newProjectedVars, newSlicedVars, this.maximize, this.defaultUtil, this.infeasibleUtil);
+		JaCoPoptAssignments assignments = new JaCoPoptAssignments (this, newVars, newProjectedVars);
+
+		ProjOutput<AddableInteger, U> out = new ProjOutput<AddableInteger, U> (outSpace, 
+				order, 
+				assignments);
+
+		return out;
 	}
 
 	/** @see UtilitySolutionSpace#resolve() */
@@ -779,197 +930,120 @@ public class JaCoPutilSpace < U extends Addable<U> > implements UtilitySolutionS
 	
 		if(vars.length == 0){ // No variable, we construct a scalar hypercube
 			U cost = this.getUtility(0);
-			return new ScalarHypercube<AddableInteger, U>(cost, this.infeasibleUtil, new AddableInteger [0].getClass());
-		}
-
-		// The constraint and relation resulting from the projections
-		String newName = "explicit" + new Object().hashCode();
-		Element newCons = new Element ("constraint");
-		newCons.setAttribute("name", "c_" + newName);
-		newCons.setAttribute("arity", String.valueOf(vars.length));
-
-		// Generate the scope
-		String scope = "";
-		for (String var : vars) 
-			scope += var + " ";
-		newCons.setAttribute("scope", scope.trim());
-
-		newCons.setAttribute("reference", "r_" + newName);
-
-		// Create the relation
-		Element newRel = new Element("relation");
-		newRel.setAttribute("name", "r_" + newName);
-		newRel.setAttribute("arity", Integer.toString(vars.length));
-		newRel.setAttribute("semantics", "soft");
-		final U inf = this.infeasibleUtil;
-		newRel.setAttribute("defaultCost", inf.toString());
-		
-		// Flag the relation as one that should be parsed into an hypercube-based constraint
-		newRel.setAttribute("hypercube", "true");
-
-		// The variables
-		HashMap<String, AddableInteger[]> newVars = new HashMap<String, AddableInteger[]>();
-		for(String v: this.vars) 
-			newVars.put(v, this.allVars.get(v));
-
-		// If the store does not exist yet, we create it
-		if(this.store == null){
-			this.store = createStore();
-			this.isConsistent = store.consistency();
+			return new ScalarHypercube<AddableInteger, U>(cost, this.infeasibleUtil, AddableInteger[].class);
 		}
 		
-		if(!isConsistent){
-			newRel.setAttribute("nbTuples", "0");
-			return new JaCoPutilSpace<U> (newName, newVars,  newCons, newRel, this.maximize, this.infeasibleUtil);
-		}
-
-		// Iterate over the solutions
-		int nbSol = 0;
-		StringBuilder builder = new StringBuilder ("\n");
+		// Construct the output extensional space
+		ArrayList<Constraint> outConstraints = new ArrayList<Constraint> (1);
+		ArrayList<IntVarCloneable> outUtilVars = new ArrayList<IntVarCloneable> (1);
+		JaCoPutilSpace<U> out = new JaCoPutilSpace<U> (null, outConstraints, new ArrayList< DecomposedConstraint<Constraint> > (0), outUtilVars, 
+				this.allDoms, this.vars, new IntVarCloneable [0], new IntVarCloneable [0], this.maximize, this.defaultUtil, this.infeasibleUtil);
+		
+		// Initialize the domain of the output utility variable
+		IntervalDomain utilDom = new IntervalDomain ();
+		
+		// Iterate over the solutions in this space 
 		SparseIterator<AddableInteger, U> iter = sparse ? this.sparseIter() : this.iterator();
-		AddableInteger[] tuple = null;
-		final int nbrVarsMin1 = this.getNumberOfVariables() - 1;
-		int i;
+		AddableInteger[] sol;
+		ArrayList< int[] > tuples = new ArrayList< int[] > ();
+		int[] tuple;
+		final int nbrVars = this.vars.length;
+		int intVal;
+		final U inf = this.infeasibleUtil;
 		for (U util = iter.nextUtility(); util != null; util = iter.nextUtility()) {
-			
-//			System.out.println(nbSol + "/" + this.getNumberOfSolutions() + ": " + iter.getCurrentUtility());
 			
 			// Record the tuple for this solution
 			if (sparse || ! inf.equals(util)) { // checks if the solution is feasible
-				
-				// Add the separator if this is not the first solution
-				if (nbSol++ > 0) 
-					builder.append("|");
-				
-				// Write the utility
-				builder.append(this.defaultUtil.add(util)).append(":");
-				
-				// Write the tuple
-				tuple = iter.getCurrentSolution();
-				for (i = 0; i < nbrVarsMin1; i++) 
-					builder.append(tuple[i].toString()).append(" ");
-				builder.append(tuple[nbrVarsMin1]);
+
+				// Retrieve the tuple 
+				sol = iter.getCurrentSolution();
+				tuples.add(tuple = new int [nbrVars + 1]); // + 1 for the utility variable
+				for (int i = nbrVars - 1; i >= 0; i--) 
+					tuple[i] = sol[i].intValue();
+
+				// Record the value of the utility variable
+				utilDom.addDom(new IntervalDomain (tuple[nbrVars] = (intVal = util.intValue()), intVal));
 			}
 		}
 
-		newRel.setAttribute("nbTuples", String.valueOf(nbSol));
-		newRel.addContent(builder.toString());
+		// Construct the utility variable
+		IntVarCloneable utilVar = new IntVarCloneable (out.store, "util_" + out.store.id, utilDom);
+		out.utilVars.add(utilVar);
 		
-		return new JaCoPutilSpace<U> (newName, newVars, newCons, newRel, this.maximize, this.infeasibleUtil);
+		// Construct the extensional constraint
+		IntVarCloneable[] allVars = new IntVarCloneable [nbrVars + 1]; // + 1 for the utility variable
+		System.arraycopy(out.vars, 0, allVars, 0, nbrVars);
+		allVars[nbrVars] = utilVar;
+//		out.constraints.add(new ExtensionalSupportSTR (allVars, tuples.toArray(new int [tuples.size()][nbrVars + 1])));
+		out.constraints.add(new ExtensionalSupportHypercube (out.store, allVars, tuples.toArray(new int [tuples.size()][nbrVars + 1])));
+		
+		return out;
 	}
 
-	/**
-	 * This method constructs the store and creates all the JaCoP variables needed in it as well as all the JaCoP constraints.
-	 * This method is called only once, when we need the store and it has not been created yet. It's not located in the constructor because
-	 * constructing the whole store is costly, and we do not always need to perform operations on it.
-	 * 
-	 * @return the store in which we have created all the variables and imposed all the constraints.
+	/** Imposes the constraints and calls the consistency function 
+	 * @return whether the resulting space is consistent 
 	 */
-	public Store createStore() {
+	public boolean imposeConstraints () {
+		
+		try {
+			// Impose the Constraints
+			for (Constraint cons : this.constraints) 
+				this.store.impose(cons);
 
-		// Create the JaCoP Store
-		Store store = new Store();
-		store.setID("store" + new Object().hashCode());
-
-		AddableInteger[] dom;
-		IntervalDomain jacopDom;
-
-		// Create all the JaCoP variables in the store
-		IntVar[] vars = new IntVar[this.allVars.size()];
-		int n = 0;
-		for(String var: this.allVars.keySet()){
-
-			// Construct the domain
-			dom = this.allVars.get(var);
-			jacopDom = new IntervalDomain (dom.length);
-			for (AddableInteger val : dom){
-				assert val != null : "Domain for variable `" + var + "' contains null value: " + Arrays.toString(dom);
-				jacopDom.addDom(new IntervalDomain (val.intValue(), val.intValue()));
-			}
-			// Construct the JaCoP variable
-			vars[n] = new IntVar (store, var, jacopDom);
-
-			n++;
+			// Impose the DecomposedConstraints
+			for (DecomposedConstraint<Constraint> cons : this.decompConstraints) 
+				this.store.imposeDecomposition(cons);
+			
+		} catch (FailException e) {
+			return this.isConsistent = false;
 		}
-
-		ArrayList<IntVar> utilVars = new ArrayList<IntVar>();
-
-		// Parse and impose the constrains
-		for (Element constraint : this.constraints.values()){
-			int arity = Integer.valueOf(constraint.getAttributeValue("arity"));
-
-			String reference = constraint.getAttributeValue("reference");
-
-			// Global constraint
-			if(constraint.getAttributeValue("reference").startsWith("global:")){
-
-				JaCoPxcspParser.parseGlobalConstraint(constraint, store);
-
-			}else{
-
-				Element currentRelation = relations.get(reference);
-
-				assert (currentRelation != null): "relation/predicate referenced in the constraint not found!";
-
-				if(currentRelation.getName().equals("relation")){
-
-					assert (arity == Integer.valueOf(currentRelation.getAttributeValue("arity"))) : "The relation referenced by the constraint is not of the same arity!";
-					JaCoPxcspParser.parseRelation(constraint, currentRelation, store, utilVars);
-
-
-				}else if(currentRelation.getName().equals("predicate") || currentRelation.getName().equals("function")){
-
-
-					JaCoPxcspParser.parsePredicate(constraint, currentRelation, store, utilVars);
-
-
-				}else if(currentRelation.getName().equals("global constraint")){
-					assert false: "to implement";
-				}else{
-					assert false: "unknown XCSP contraint reference " + currentRelation.getName();
-				}
-
-			}
-
-
-		}
-
-		// First construct the domain for the sum variable
+		
+		/// @todo The construction of the "util_total" variable can be improved for performance
+		
+		// Construct the domain for the sum variable
 		/// @todo Properly compute the exact domain, not just a super-interval?
 		int min = 0, max = 0;
-		for (IntVar var : utilVars) {
+		for (IntVarCloneable var : utilVars) {
 			// It is possible that a relation cannot be satisfied. Hence the variable corresponding to its utility will have an empty domain
 			if(!var.dom().isEmpty()){
 				min += ((IntDomain)var.dom()).min();
 				max += ((IntDomain)var.dom()).max();
 			}
 		}
+				
+		// Clone the util variables
+		ArrayList<IntVarCloneable> clonedUtilVars = new ArrayList<IntVarCloneable> (this.utilVars.size());
+		for (IntVarCloneable utilVar : this.utilVars) 
+			if (! utilVar.dom().isEmpty()) // skip util variables with empty domains
+				clonedUtilVars.add(this.store.findOrCloneInto(utilVar));
 
 		IntervalDomain sumDom = new IntervalDomain (min, max);
-
 
 		// If it is a minimization problem, the total cost is simply the sum of the utility variables.
 		if(this.maximize == false){
 			// Construct the sum variable
-			IntVar utilVar = new IntVar (store, "util_total", sumDom);
-			store.impose(new SumInt (store, utilVars, "==", utilVar));
+			this.utilVar = new IntVarCloneable (store, "util_total", sumDom);
+			if (! clonedUtilVars.isEmpty()) 
+				store.impose(new SumInt (clonedUtilVars, "==", utilVar)); /// @todo Use more efficient constraints depending on clonedUnitVars.size()
+			
 			// If it is a maximization problem, we need to create the total utility variable (that is the negation of the total cost variable)
 			// to be able to convert the problem into a minimization one as JaCoP can only handle those.
 		}else{
 			// Construct the sum variable
-			IntVar utilVar = new IntVar (store, "cost_total", sumDom);
-			store.impose(new SumInt (store, utilVars, "==", utilVar));
+			IntVarCloneable costVar = new IntVarCloneable (store, "cost_total", sumDom);
+			if (! clonedUtilVars.isEmpty()) 
+				store.impose(new SumInt (clonedUtilVars, "==", costVar));
 
 			// @todo compute the exact opposite domain of sumDom
 			IntervalDomain oppDom = new IntervalDomain(IntDomain.MinInt,IntDomain.MaxInt);
 			if(min == 0 && max == 0){
 				oppDom = new IntervalDomain (0, 0);
 			}
-			IntVar utilNegation = new IntVar(store, "util_total", oppDom);
-			store.impose(new XplusYeqC(utilVar, utilNegation, 0));
+			this.utilVar = new IntVarCloneable(store, "util_total", oppDom);
+			store.impose(new XplusYeqC(costVar, this.utilVar, 0));
 		}
 
-		return store;
+		return this.isConsistent = this.store.consistency();
 	}
 
 	/** @see UtilitySolutionSpace#sample(int) */
@@ -991,27 +1065,25 @@ public class JaCoPutilSpace < U extends Addable<U> > implements UtilitySolutionS
 	public UtilitySolutionSpace<AddableInteger, U> slice(
 			String[] variablesNames, AddableInteger[] values) {
 		
-		HashMap<String, AddableInteger[]> newAllVars = new HashMap<String, AddableInteger[]>(this.allVars);
-		HashSet<String> newVars = new HashSet<String>(Arrays.asList(this.vars));
-		ArrayList<String> newSlicedVars = new ArrayList<String>(Arrays.asList(this.slicedVars));
+		HashMap<String, AddableInteger[]> newAllVars = new HashMap<String, AddableInteger[]>(this.allDoms);
+		HashSet<IntVarCloneable> newVars = new HashSet<IntVarCloneable>(Arrays.asList(this.vars));
+		ArrayList<IntVarCloneable> newSlicedVars = new ArrayList<IntVarCloneable>(Arrays.asList(this.slicedVars));
 		
 		AddableInteger[] domain;
-		boolean contains = false;
+		IntVarCloneable jacopVar;
 		for(int i = 0 ; i < variablesNames.length; i++){
-
-			contains = newVars.remove(variablesNames[i]);
-
-			if (contains) {
-				newSlicedVars.add(variablesNames[i]);
+			if ((jacopVar = (IntVarCloneable) this.store.findVariable(variablesNames[i])) != null 
+					&& newVars.remove(jacopVar)) {
+				newSlicedVars.add(jacopVar);
 				domain = new AddableInteger[1];
 				domain[0] = values[i];
 				newAllVars.put(variablesNames[i], domain);
 			}
 		}
 		
-		JaCoPutilSpace<U> out = new JaCoPutilSpace<U> ("sliced" + new Object().hashCode(), this.constraints, this.relations, newAllVars,
-				newVars.toArray(new String[newVars.size()]),Arrays.copyOf(this.projectedVars, this.projectedVars.length),
-				newSlicedVars.toArray(new String[newSlicedVars.size()]), this.maximize, this.defaultUtil, this.infeasibleUtil);
+		JaCoPutilSpace<U> out = new JaCoPutilSpace<U> ("sliced" + new Object().hashCode(), this.constraints, this.decompConstraints, 
+				this.utilVars, newAllVars, newVars.toArray(new IntVarCloneable[newVars.size()]),Arrays.copyOf(this.projectedVars, this.projectedVars.length),
+				newSlicedVars.toArray(new IntVarCloneable[newSlicedVars.size()]), this.maximize, this.defaultUtil, this.infeasibleUtil);
 		
 		return out;
 	}
@@ -1106,9 +1178,10 @@ public class JaCoPutilSpace < U extends Addable<U> > implements UtilitySolutionS
 	/** @see BasicUtilitySolutionSpace#getUtility(Addable[]) */
 	@SuppressWarnings("unchecked")
 	public U getUtility(AddableInteger[] variablesValues) {
+		
 		// The input does not specify a value for each variable
 		if(variablesValues.length < vars.length){
-			return this.infeasibleUtil.getZero();
+			return this.defaultUtil;
 		}
 		
 		if(this.defaultUtil.equals(this.infeasibleUtil)){
@@ -1116,15 +1189,14 @@ public class JaCoPutilSpace < U extends Addable<U> > implements UtilitySolutionS
 		}
 
 		// If this is a scalar space
-		if(this.allVars.size() == 0 || constraints.isEmpty()){
+		if(this.allDoms.size() == 0 // no variables
+				|| (constraints.isEmpty() && this.decompConstraints.isEmpty()) ) { // no constraints
 			return this.defaultUtil;
 		}
 
-		// If the store does not exist yet, we create it
-		if(this.store == null){
-			this.store = createStore();
-			isConsistent = store.consistency();
-		}
+		// If the constraints haven't been imposed yet, impose them now
+		if (this.isConsistent == null) 
+			this.imposeConstraints();
 		
 		if(!isConsistent){
 			return this.infeasibleUtil;
@@ -1132,18 +1204,21 @@ public class JaCoPutilSpace < U extends Addable<U> > implements UtilitySolutionS
 
 		int lvlReminder = store.level;
 
-		// Change the store level to be able to ground the variable in an reversible manner
+		// Change the store level to be able to ground the variable in a reversible manner
 		store.setLevel(lvlReminder+1);
-		IntVar vars[] = new IntVar[this.vars.length];
 		for(int i = 0; i < variablesValues.length; i++){
-			// Find the variable in the store
-			vars[i] = (IntVar)store.findVariable(this.vars[i]);
-			assert vars[i] != null: "Variable " + this.vars[i] + " not found in the store!";
+
 			assert variablesValues[i] != null : "null value passed for variable " + this.vars[i];
 
 			// We ground the variables in the separator
 			try{
-				vars[i].domain.in(lvlReminder+1, vars[i], variablesValues[i].intValue(), variablesValues[i].intValue());
+				IntVarCloneable var = (IntVarCloneable) store.findVariable(vars[i].id());
+				
+				// No need to ground the variable if it is already grounded to the desired value
+				if (var.singleton() && var.value() == variablesValues[i].intValue()) 
+					continue;
+				
+				var.domain.in(lvlReminder+1, var, variablesValues[i].intValue(), variablesValues[i].intValue());
 			}catch (org.jacop.core.FailException e){
 
 				for(int k = store.level; k > lvlReminder; k--){
@@ -1160,21 +1235,19 @@ public class JaCoPutilSpace < U extends Addable<U> > implements UtilitySolutionS
 
 		if(store.consistency()){
 			
-			IntVar utilVar = (IntVar) store.findVariable("util_total");
-			assert utilVar != null: "Variable " + "util_total" + " not found in the store!";
-
 			if(this.projectedVars.length == 0){
-				IntVar[] util = {utilVar};
 
 				// Optimization search
-				Search<IntVar> search = new DepthFirstSearch<IntVar> ();
+				Search<IntVarCloneable> search = new DepthFirstSearch<IntVarCloneable> ();
 				search.getSolutionListener().recordSolutions(true);
 				search.setAssignSolution(false);
 
 				// Debug information
 				search.setPrintInfo(false);
 
-				boolean result = search.labeling(store, new InputOrderSelect<IntVar> (store, util, new IndomainMin<IntVar>()));
+				boolean result = search.labeling(store, 
+						new SimpleSelect<IntVarCloneable> (new IntVarCloneable[] { this.utilVar }, 
+								new SmallestDomain<IntVarCloneable>(), new IndomainMin<IntVarCloneable>()));
 
 				if(!result){
 					// The solution given in argument is inconsistent!
@@ -1199,30 +1272,30 @@ public class JaCoPutilSpace < U extends Addable<U> > implements UtilitySolutionS
 
 			}else{
 				// Find the variables that were already projected (the ones whose solution values we want) in the store
-				IntVar projectedVars[] = new IntVar[this.projectedVars.length];
+				IntVarCloneable projectedVars[] = new IntVarCloneable[this.projectedVars.length];
 				int n = 0;
-				for(String var: this.projectedVars){
+				for(IntVarCloneable var: this.projectedVars){
 
 					// Find the JaCoP variable
-					projectedVars[n] = (IntVar) store.findVariable(var);
-					assert projectedVars[n] != null: "Variable " + var + " not found in the store!";
+					projectedVars[n] = (IntVarCloneable) store.findVariable(var.id());
+					assert projectedVars[n] != null: "Variable " + var.id() + " not found in the store!";
 					n++;
 
 				}
-
+				
 				// We add the utilVar to the list of searched variables, this is not mandatory but this will prevent JaCoP from crashing if there is no projected variable!
 				//searchedVars[this.projectedVars.size()] = utilVar;
 
 				// Optimization search
-				Search<IntVar> search = new DepthFirstSearch<IntVar> ();
+				Search<IntVarCloneable> search = new DepthFirstSearch<IntVarCloneable> ();
 				search.getSolutionListener().recordSolutions(false);
 				search.setAssignSolution(false);
 
 				// Debug information
 				search.setPrintInfo(false);
 				
-				boolean result = search.labeling(store, new SimpleSelect<IntVar> (projectedVars, 
-						new SmallestDomain<IntVar>(), new MostConstrainedDynamic<IntVar>(), new IndomainMin<IntVar>()), utilVar);	
+				boolean result = search.labeling(store, new SimpleSelect<IntVarCloneable> (projectedVars, 
+						new SmallestDomain<IntVarCloneable>(), new MostConstrainedDynamic<IntVarCloneable>(), new IndomainMin<IntVarCloneable>()), utilVar);	
 
 				if(!result){
 					// The solution given in argument is inconsistent!
@@ -1272,11 +1345,11 @@ public class JaCoPutilSpace < U extends Addable<U> > implements UtilitySolutionS
 		final int variables_size2 = vars.length;
 
 		// loop over all the variables present in the array "variablesNames"
-		String var;
+		IntVarCloneable var;
 		ext: for(int i = 0; i < variables_size2; i++){
 			var = this.vars[i];
 			for(int j = 0; j < variables_size; j++){
-				if( var.equals(variablesNames[j])) {
+				if( var.id().equals(variablesNames[j])) {
 					assignment[i] = variablesValues[j];
 					continue ext;
 				}
@@ -1295,7 +1368,7 @@ public class JaCoPutilSpace < U extends Addable<U> > implements UtilitySolutionS
 		// obtain the correct values array that corresponds to the index
 		AddableInteger[] values = new AddableInteger[vars.length];
 		for(int i = 0; i < vars.length; i++){
-			values[i] = assignments.get(vars[i]);
+			values[i] = assignments.get(vars[i].id());
 			if(values[i] == null) {
 				return this.infeasibleUtil.getZero();
 			}
@@ -1314,7 +1387,7 @@ public class JaCoPutilSpace < U extends Addable<U> > implements UtilitySolutionS
 		int indice;
 		for(int i = 0; i < vars.length; i++){
 
-			domain = allVars.get(vars[i]);
+			domain = allDoms.get(vars[i].id());
 			location = location/domain.length;
 
 			indice = (int) (index/location);
@@ -1322,6 +1395,7 @@ public class JaCoPutilSpace < U extends Addable<U> > implements UtilitySolutionS
 
 			values[i] = domain[indice];
 		}
+		
 		return getUtility(values);
 	}
 
@@ -1354,13 +1428,22 @@ public class JaCoPutilSpace < U extends Addable<U> > implements UtilitySolutionS
 		AddableInteger[][] variables_domain = new AddableInteger[vars.length][];
 
 		for(int i = 0; i < vars.length; i++){
-			variables_domain[i] = allVars.get(vars[i]);
+			variables_domain[i] = allDoms.get(vars[i].id());
 		}
-
-		if (sparse) 
-			return new JaCoPutilSpaceIter2<U> (this, this.vars, variables_domain);
+		
+		if (this.defaultUtil.equals(this.infeasibleUtil)) 
+			return new ScalarHypercube<AddableInteger, U> (this.infeasibleUtil, this.infeasibleUtil, AddableInteger[].class)
+					.iterator(this.getVariables(), variables_domain);
+		
+		// Clone myself
+		UtilitySolutionSpace<AddableInteger, U> clone = this.clone();
+		
+		if (NullHypercube.NULL.equals(clone)) 
+			return new ScalarHypercube<AddableInteger, U> (this.infeasibleUtil, this.infeasibleUtil, AddableInteger[].class).iterator();
+		else if (sparse) 
+			return new JaCoPutilSpaceIter2<U> ((JaCoPutilSpace<U>) clone, this.getVariables(), variables_domain);
 		else 
-			return new JaCoPutilSpaceIter<U> (this, this.vars, variables_domain);
+			return new JaCoPutilSpaceIter<U> ((JaCoPutilSpace<U>) clone, this.getVariables(), variables_domain);
 	}
 
 	/** @see UtilitySolutionSpace#iterator(java.lang.String[], Addable[][], Addable[]) */
@@ -1384,6 +1467,10 @@ public class JaCoPutilSpace < U extends Addable<U> > implements UtilitySolutionS
 	 */
 	private UtilitySolutionSpace.SparseIterator<AddableInteger, U> 
 	iterator(String[] variables, AddableInteger[][] domains, AddableInteger[] assignment, final boolean sparse) {
+		
+		if (this.defaultUtil.equals(this.infeasibleUtil)) 
+			return new ScalarHypercube<AddableInteger, U> (this.infeasibleUtil, this.infeasibleUtil, AddableInteger[].class)
+					.iterator(variables, domains, assignment);
 
 		// We want to allow the input list of variables not to contain all this space's variables
 		int nbrInputVars = variables.length;
@@ -1409,20 +1496,25 @@ public class JaCoPutilSpace < U extends Addable<U> > implements UtilitySolutionS
 		// Add the variables that are in this space and not in the input list
 		int myNbrVars = this.vars.length;
 		for (int i = 0; i < myNbrVars; i++) {
-			String var = this.vars[i];
+			String var = this.vars[i].id();
 			if (! vars.contains(var)) {
 				vars.add(var);
-				doms.add(this.allVars.get(var));
+				doms.add(this.allDoms.get(var));
 			}
 		}
 
 		int nbrVarsIter = vars.size();
 		
-		if (sparse) 
-			return new JaCoPutilSpaceIter2<U> (this, vars.toArray(new String [nbrVarsIter]), 
+		// Clone myself
+		UtilitySolutionSpace<AddableInteger, U> clone = this.clone();
+		
+		if (NullHypercube.NULL.equals(clone)) 
+			return new ScalarHypercube<AddableInteger, U> (this.infeasibleUtil, this.infeasibleUtil, AddableInteger[].class).iterator();
+		else if (sparse) 
+			return new JaCoPutilSpaceIter2<U> ((JaCoPutilSpace<U>) clone, vars.toArray(new String [nbrVarsIter]), 
 					doms.toArray((AddableInteger[][]) Array.newInstance(domains.getClass().getComponentType(), nbrVarsIter)));
 		else 
-			return new JaCoPutilSpaceIter<U> (this, vars.toArray(new String [nbrVarsIter]), 
+			return new JaCoPutilSpaceIter<U> ((JaCoPutilSpace<U>) clone, vars.toArray(new String [nbrVarsIter]), 
 					doms.toArray((AddableInteger[][]) Array.newInstance(domains.getClass().getComponentType(), nbrVarsIter)));
 	}
 
@@ -1447,38 +1539,9 @@ public class JaCoPutilSpace < U extends Addable<U> > implements UtilitySolutionS
 
 	/** @see BasicUtilitySolutionSpace#setUtility(Addable[], java.io.Serializable) */
 	public boolean setUtility(AddableInteger[] variablesValues, U utility) {
-		
-		// Create String and regex representations of the assignment
-		StringBuilder regex = new StringBuilder ("([\\+\\-])?\\d+\\s*:\\s*");
-		StringBuilder string = new StringBuilder (utility.toString() + ":");
-		for (AddableInteger val : variablesValues) {
-			regex.append(val + "\\s*");
-			string.append(val + " ");
-		}
-		String tuple = string.toString().trim();
-		String regexStr = regex.toString();
-		
-		// Look for this assignment in the list of tuples
-		assert this.constraints.size() == 1 : "Setting the utility of a compound space is currently unsupported";
-		Element relation = this.relations.get(this.constraints.values().iterator().next().getAttributeValue("reference"));
-		String tuples = relation.getText();
-		
-		if (tuples.matches(regexStr) || tuples.split(regexStr).length > 1) // the assignment was found in the list of tuples
-			relation.setText(tuples.replaceFirst(regexStr, tuple));
-		
-		else { // the assignment wasn't found; add it
-			
-			StringBuilder builder = new StringBuilder (tuples);
-			if (tuples.length() > 0) 
-				builder.append("|");
-			builder.append(tuple);
-			relation.setText(builder.toString());
-			
-			assert Integer.parseInt(relation.getAttributeValue("nbTuples")) != Integer.MAX_VALUE : "Too many tuples to fit in an int";
-			relation.setAttribute("nbTuples", Integer.toString(1 + Integer.parseInt(relation.getAttributeValue("nbTuples"))));
-		}
-		
-		return true;
+		/// @todo Not yet implemented
+		assert false : "Not yet implemented";
+		return false;
 	}
 
 	/** @see BasicUtilitySolutionSpace#setUtility(long, java.io.Serializable) */
@@ -1497,10 +1560,12 @@ public class JaCoPutilSpace < U extends Addable<U> > implements UtilitySolutionS
 
 	/** @see SolutionSpace#getDomain(java.lang.String) */
 	public AddableInteger[] getDomain(String variable) {
-		for(String v: this.vars){
-			if(v.equals(variable))
-				return allVars.get(variable);
-		}
+		
+		// Only return a domain if the input variable is actually part of this space (and hasn't been projected out or sliced)
+		for(IntVarCloneable v: this.vars) 
+			if(v.id().equals(variable))
+				return allDoms.get(variable);
+
 		return null;
 	}
 
@@ -1509,17 +1574,18 @@ public class JaCoPutilSpace < U extends Addable<U> > implements UtilitySolutionS
 	 * @param variable 		the name of the projected variable
 	 * @return  			the projected variable's domain
 	 */
-	public AddableInteger[] getProjVarDomain(String variable) {
-		for(String v: this.projectedVars){
-			if(v.equals(variable))
-				return allVars.get(variable);
-		}
+	AddableInteger[] getProjVarDomain(String variable) {
+		
+		for(IntVarCloneable v: this.projectedVars) 
+			if(v.id().equals(variable))
+				return allDoms.get(variable);
+		
 		return null;
 	}
 
 	/** @see SolutionSpace#getDomain(int) */
 	public AddableInteger[] getDomain(int index) {
-		return allVars.get(vars[index]);
+		return allDoms.get(vars[index].id());
 	}
 
 	/** @see SolutionSpace#getDomain(java.lang.String, int) */
@@ -1533,7 +1599,7 @@ public class JaCoPutilSpace < U extends Addable<U> > implements UtilitySolutionS
 	public AddableInteger[][] getDomains() {
 		AddableInteger[][] domains = new AddableInteger[vars.length][];
 		for(int i = 0; i < vars.length; i++){
-			domains[i] = allVars.get(vars[i]);
+			domains[i] = allDoms.get(vars[i].id());
 		}
 		return domains;
 	}
@@ -1541,7 +1607,7 @@ public class JaCoPutilSpace < U extends Addable<U> > implements UtilitySolutionS
 	/** @see SolutionSpace#getIndex(java.lang.String) */
 	public int getIndex(String variable) {
 		for (int i = this.vars.length - 1; i >= 0; i--) 
-			if (this.vars[i].equals(variable)) 
+			if (this.vars[i].id().equals(variable)) 
 				return i;
 		return -1;
 	}
@@ -1565,9 +1631,10 @@ public class JaCoPutilSpace < U extends Addable<U> > implements UtilitySolutionS
 	public long getNumberOfSolutions() {
 		long nbrUtils = 1;
 
-		for(String var: this.vars){
-			assert Math.log(nbrUtils) + Math.log(allVars.get(var).length) < Math.log(Long.MAX_VALUE) : "Long overflow: too many solutions in an explicit space";
-			nbrUtils *= allVars.get(var).length;
+		for(IntVarCloneable var: this.vars){
+			if (Math.log(nbrUtils) + Math.log(allDoms.get(var.id()).length) >= Math.log(Long.MAX_VALUE)) 
+				throw new OutOfMemoryError ("Long overflow: too many solutions in an explicit space");
+			nbrUtils *= allDoms.get(var.id()).length;
 		}
 		return nbrUtils;
 	}
@@ -1579,12 +1646,18 @@ public class JaCoPutilSpace < U extends Addable<U> > implements UtilitySolutionS
 
 	/** @see SolutionSpace#getVariable(int) */
 	public String getVariable(int index) {
-		return vars[index];
+		return vars[index].id();
 	}
 
 	/** @see SolutionSpace#getVariables() */
 	public String[] getVariables() {
-		return vars;
+		
+		/// @todo Consider storing this in the space to avoid recomputing it every time
+		String[] outVars = new String [this.vars.length];
+		for (int i = this.vars.length - 1; i >= 0; i--) 
+			outVars[i] = this.vars[i].id();
+		
+		return outVars;
 	}
 
 	/** @see UtilitySolutionSpace#iterator(java.lang.String[]) */
@@ -1609,13 +1682,16 @@ public class JaCoPutilSpace < U extends Addable<U> > implements UtilitySolutionS
 
 		AddableInteger[][] variables_domain = new AddableInteger[vars.length][];
 		for(int i = 0; i < vars.length; i++){
-			variables_domain[i] = allVars.get(order[i]);
+			variables_domain[i] = allDoms.get(order[i]);
 		}
 
-		if (sparse) 
-			return this.sparseIter(order, variables_domain);
+		if (this.defaultUtil.equals(this.infeasibleUtil)) 
+			return new ScalarHypercube<AddableInteger, U> (this.infeasibleUtil, this.infeasibleUtil, AddableInteger[].class)
+					.iterator(order, variables_domain);
+		else if (sparse) 
+			return this.clone().sparseIter(order, variables_domain);
 		else 
-			return this.iterator(order, variables_domain);
+			return this.clone().iterator(order, variables_domain);
 	}
 
 	/** @see SolutionSpace#join(SolutionSpace, java.lang.String[]) */
@@ -1677,41 +1753,43 @@ public class JaCoPutilSpace < U extends Addable<U> > implements UtilitySolutionS
 	/** @see UtilitySolutionSpace#blindProject(java.lang.String, boolean) */
 	public UtilitySolutionSpace<AddableInteger, U> blindProject(String varOut, boolean maximize) {
 		
-		HashMap<String, AddableInteger[]> newAllVars = new HashMap<String, AddableInteger[]> (this.allVars);
-		HashSet<String> newVars = new HashSet<String>(Arrays.asList(this.vars));
-		ArrayList<String> newProjectedVars = new ArrayList<String>(Arrays.asList(this.projectedVars));
-		String newSlicedVars[] = this.slicedVars;
+		HashMap<String, AddableInteger[]> newAllVars = new HashMap<String, AddableInteger[]> (this.allDoms);
+		HashSet<IntVarCloneable> newVars = new HashSet<IntVarCloneable>(Arrays.asList(this.vars));
+		ArrayList<IntVarCloneable> newProjectedVars = new ArrayList<IntVarCloneable>(Arrays.asList(this.projectedVars));
+		IntVarCloneable newSlicedVars[] = this.slicedVars;
 
 		// move the projected vars from vars to projectedVars
-		if (newVars.remove(varOut)) 
-			newProjectedVars.add(varOut);
+		IntVarCloneable jacopVarOut = (IntVarCloneable) this.store.findVariable(varOut);
+		if (jacopVarOut != null && newVars.remove(jacopVarOut)) 
+			newProjectedVars.add(jacopVarOut);
 
 		// For now (and maybe forever) we will assume that all variables are projected in the same way (all minimized or all maximized)
 		assert (this.maximize == maximize) : "All variables must be projected the same way!";
 
-		return new JaCoPutilSpace<U> (this.getName() + "projected", this.constraints, this.relations, newAllVars,
-				newVars.toArray(new String[newVars.size()]), newProjectedVars.toArray(new String[newProjectedVars.size()]),
+		return new JaCoPutilSpace<U> (this.getName() + "projected", this.constraints, this.decompConstraints, this.utilVars, newAllVars,
+				newVars.toArray(new IntVarCloneable[newVars.size()]), newProjectedVars.toArray(new IntVarCloneable[newProjectedVars.size()]),
 				newSlicedVars, this.maximize, this.defaultUtil, this.infeasibleUtil);
 	}
 
 	/** @see UtilitySolutionSpace#blindProject(java.lang.String[], boolean) */
 	public UtilitySolutionSpace<AddableInteger, U> blindProject(String[] varsOut, boolean maximize) {
 		
-		HashMap<String, AddableInteger[]> newAllVars = new HashMap<String, AddableInteger[]> (this.allVars);
-		HashSet<String> newVars = new HashSet<String>(Arrays.asList(this.vars));
-		ArrayList<String> newProjectedVars = new ArrayList<String>(Arrays.asList(this.projectedVars));
-		String newSlicedVars[] = this.slicedVars;
+		HashMap<String, AddableInteger[]> newAllVars = new HashMap<String, AddableInteger[]> (this.allDoms);
+		HashSet<IntVarCloneable> newVars = new HashSet<IntVarCloneable>(Arrays.asList(this.vars));
+		ArrayList<IntVarCloneable> newProjectedVars = new ArrayList<IntVarCloneable>(Arrays.asList(this.projectedVars));
+		IntVarCloneable newSlicedVars[] = this.slicedVars;
 
 		// move the projected vars from vars to projectedVars
+		IntVarCloneable jacopVarOut;
 		for(int i = varsOut.length - 1; i >= 0; i--) 
-			if (newVars.remove(varsOut[i])) 
-				newProjectedVars.add(varsOut[i]);
+			if ((jacopVarOut = (IntVarCloneable) this.store.findVariable(varsOut[i])) != null && newVars.remove(jacopVarOut)) 
+				newProjectedVars.add(jacopVarOut);
 
 		// For now (and maybe forever) we will assume that all variables are projected in the same way (all minimized or all maximized)
 		assert (this.maximize == maximize) : "All variables must be projected the same way!";
 
-		return new JaCoPutilSpace<U> (this.getName() + "projected", this.constraints, this.relations, newAllVars,
-				newVars.toArray(new String[newVars.size()]), newProjectedVars.toArray(new String[newProjectedVars.size()]),
+		return new JaCoPutilSpace<U> (this.getName() + "projected", this.constraints, this.decompConstraints, this.utilVars, newAllVars,
+				newVars.toArray(new IntVarCloneable[newVars.size()]), newProjectedVars.toArray(new IntVarCloneable[newProjectedVars.size()]),
 				newSlicedVars, this.maximize, this.defaultUtil, this.infeasibleUtil);
 	}
 
@@ -1766,46 +1844,43 @@ public class JaCoPutilSpace < U extends Addable<U> > implements UtilitySolutionS
 
 	}
 
-	/** @see frodo2.solutionSpaces.UtilitySolutionSpace#projExpectMonotone(java.lang.String, java.util.Map, boolean) */
-	public frodo2.solutionSpaces.UtilitySolutionSpace.ProjOutput<AddableInteger, U> projExpectMonotone(String varOut, Map< String, UtilitySolutionSpace<AddableInteger, U> > distributions, boolean maximum) {
+	/** @see UtilitySolutionSpace#projExpectMonotone(java.lang.String, java.util.Map, boolean) */
+	public UtilitySolutionSpace.ProjOutput<AddableInteger, U> projExpectMonotone(String varOut, Map< String, UtilitySolutionSpace<AddableInteger, U> > distributions, boolean maximum) {
 		/// @todo Auto-generated method stub
 		assert false : "Not yet implemented";
 	return null;
 	}
 
 	/** @see UtilitySolutionSpace#setProblem(ProblemInterface) */
-	public void setProblem(ProblemInterface<AddableInteger, U> problem) {
+	public void setProblem(ProblemInterface<AddableInteger, ?> problem) {
 		/// @todo Auto-generated method stub
 		assert false : "Not yet implemented";
 
 	}
 
+	/** @see UtilitySolutionSpace#countsCCs() */
+	@Override
+	public boolean countsCCs () {
+		return false;
+	}
+
 	/**
 	 * @return the store associated to this solution space
 	 */
-	public Store getStore() {
+	public StoreCloneable getStore() {
 		return store;
-	}
-
-	/**
-	 * @return all the constraints contained in this solution space
-	 */
-	public HashMap<String, Element> getConstraints() {
-		return constraints;
-	}
-
-	/**
-	 * @return all the relations/predicates contained in this solution space
-	 */
-	public HashMap<String, Element> getRelations() {
-		return relations;
 	}
 
 	/**
 	 * @return all the variables of this solution space whose projection has been requested
 	 */
-	public String[] getProjectedVars() {
+	IntVarCloneable[] getProjectedVars() {
 		return projectedVars;
+	}
+	
+	/** @return the sliced variables */
+	IntVarCloneable[] getSlicedVars() {
+		return this.slicedVars;
 	}
 
 	/** 
@@ -1815,10 +1890,7 @@ public class JaCoPutilSpace < U extends Addable<U> > implements UtilitySolutionS
 		return maximize;
 	}
 
-	/**
-	 * @return an hypercube corresponding to this utility space
-	 * @todo test this method, there are bugs!
-	 */
+	/** @return a hypercube corresponding to this utility space */
 	public Hypercube<AddableInteger, U> toHypercube(){
 		// ScalarHypercube
 		if(this.vars.length == 0){
@@ -1832,10 +1904,10 @@ public class JaCoPutilSpace < U extends Addable<U> > implements UtilitySolutionS
 
 			int n = 0;
 			AddableInteger[] dom;
-			for(String var: this.vars){
-				outVars[n] = var;
-				dom = allVars.get(var);
-				assert Math.log(nbrUtils) + Math.log(dom.length) < Math.log(Integer.MAX_VALUE) : "Integer overflow: too many solutions in an explicit space";
+			for(IntVarCloneable var: this.vars){
+				dom = allDoms.get(outVars[n] = var.id());
+				if (Math.log(nbrUtils) + Math.log(dom.length) >= Math.log(Integer.MAX_VALUE)) 
+					throw new OutOfMemoryError ("Integer overflow: too many solutions in an explicit space");
 				nbrUtils *= dom.length;
 				doms[n] = dom;
 				n++;
@@ -1843,17 +1915,26 @@ public class JaCoPutilSpace < U extends Addable<U> > implements UtilitySolutionS
 
 			@SuppressWarnings("unchecked")
 			U[] utils = (U[]) Array.newInstance(this.defaultUtil.getClass(), nbrUtils);
-			Arrays.fill(utils, this.infeasibleUtil.getZero());
+			Arrays.fill(utils, this.infeasibleUtil);
 
 			Hypercube<AddableInteger, U> out = new Hypercube<AddableInteger, U> (outVars, doms, utils, this.infeasibleUtil);
 
-			long nbrSol = this.getNumberOfSolutions();
+			final long nbrSol = this.getNumberOfSolutions();
 			assert nbrSol < Integer.MAX_VALUE : "A hypercube can only contain up to " + Integer.MAX_VALUE + " solutions";
 
 			Iterator<AddableInteger, U> iter = this.iterator(outVars, doms);
-			for (int i = 0; i < (int)nbrSol; i++){
+			for (long i = 0; i < nbrSol; i++){
 				out.setUtility(i, iter.nextUtility());
 			}
+
+			/// @todo Improve performance by using a sparse iterator? 
+//			assert this.getNumberOfSolutions() < Integer.MAX_VALUE : "A hypercube can only contain up to " + Integer.MAX_VALUE + " solutions";
+//
+//			SparseIterator<AddableInteger, U> iter = this.sparseIter(outVars, doms);
+//			U util = null;
+//			while ((util = iter.nextUtility()) != null) 
+//				out.setUtility(iter.getCurrentSolution(), util);
+
 			return out;
 		}
 	}
@@ -1870,13 +1951,69 @@ public class JaCoPutilSpace < U extends Addable<U> > implements UtilitySolutionS
 		return this.sparseIter(variables, domains, (AddableInteger[]) Array.newInstance(AddableInteger.class, variables.length));
 	}
 	
-	/** 
-	 * @see frodo2.solutionSpaces.UtilitySolutionSpace#rescale(frodo2.solutionSpaces.Addable, frodo2.solutionSpaces.Addable)
-	 */
+	/** @see UtilitySolutionSpace#rescale(Addable, Addable) */
 	@Override
 	public UtilitySolutionSpace<AddableInteger, U> rescale(U add, U multiply) {
-		// TODO Auto-generated method stub
-		assert false : "Not yet implemented";
-		return null;
+		
+		// Clone myself
+		UtilitySolutionSpace<AddableInteger, U> clone = this.clone();
+		if (NullHypercube.NULL.equals(clone)) 
+			return new ScalarHypercube<AddableInteger, U> (this.infeasibleUtil, this.infeasibleUtil, AddableInteger[].class);
+		
+		JaCoPutilSpace<U> out = (JaCoPutilSpace<U>) clone;
+		out.defaultUtil = out.defaultUtil.multiply(multiply).add(add);
+		out.infeasibleUtil = out.infeasibleUtil.multiply(multiply).add(add);
+		
+		// No need to multiply by 1 = 1 * 1
+		if (! multiply.equals(multiply.getZero()) 
+				&& multiply.multiply(multiply).equals(multiply)) 
+			return out;
+		
+		if (! multiply.abs().equals(multiply)) // multiplying by a negative number
+			out.maximize = ! out.maximize;
+		
+		// Sum up the utility variables, then multiply by multiply
+		switch (this.utilVars.size()) {
+		
+		case 0:
+			break;
+			
+		case 1: // X * multiply = Z
+			IntVarCloneable util = out.store.findOrCloneInto(this.utilVars.get(0));
+			
+			// Rescale the domain
+			int min2, max2 = 0;
+			if (multiply.abs().equals(multiply)) { // multiplying by a positive number
+				min2 = util.min() * multiply.intValue();
+				max2 = util.max() * multiply.intValue();
+			} else {
+				max2 = util.min() * multiply.intValue();
+				min2 = util.max() * multiply.intValue();
+			}
+			
+			IntVarCloneable util2 = new IntVarCloneable (out.store, util.id() + "_rescaled", min2, max2);
+			out.utilVars.set(0, util2);
+			
+			// Add the constraint util * multiply = util2
+			out.constraints.add(new XmulCeqZCloneable (util, multiply.intValue(), util2));
+			break;
+			
+		case 2: // ((X + Y) * multiply)
+			/// @todo Not implemented
+			assert false : "TBC";
+			break;
+			
+		case 3: // ((X + Y + Q) * multiply)
+			/// @todo Not implemented
+			assert false : "TBC";
+			break;
+			
+		default: // (Sum(Xi) * multiply)
+			/// @todo Not implemented
+			assert false : "TBC";
+			break;			
+		}
+		
+		return out;
 	}
 }

@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -28,6 +28,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -274,7 +275,7 @@ public class SingleQueueAgent < Val extends Addable<Val> > implements AgentInter
 	public void connect() {
 
 		// Parse the list of neighbors
-		this.neighbours = this.problem.getAgents();
+		this.neighbours = new HashSet<String> (this.problem.getAgents());
 		this.neighbours.remove(this.agentID);
 		this.neighboursConnected = 0;
 		

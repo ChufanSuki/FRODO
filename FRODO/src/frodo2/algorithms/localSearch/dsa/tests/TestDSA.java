@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -247,7 +247,7 @@ public class TestDSA < U extends Addable<U> > extends TestCase {
 		parameters.setAttribute("p", Double.toString(Math.random()));
 		parameters.setAttribute("convergence", Boolean.toString(true));
 		parameters.setAttribute("strategy", strategy);
-		module = new DSA<AddableInteger, U> (subProblem, parameters);
+		module = new DSA<AddableInteger, U> (subProblem.parse(), parameters);
 		
 		module.setQueue(q);
 		

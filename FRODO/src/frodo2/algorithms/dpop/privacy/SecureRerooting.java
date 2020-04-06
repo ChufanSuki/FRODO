@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -152,24 +152,21 @@ implements IncomingMsgPolicyInterface<MessageType>, OutgoingMsgPolicyInterface<M
 		 * @param declaredOrder 	the order for this variable that it declared to the following variable
 		 * @param size				the size of the component  
 		 */
-		public void createVector(int order, int declaredOrder, int size){
+		public void createVector(final int order, final int declaredOrder, final int size){
 			
-			// Create the vector
 			this.vector = new ArrayList<E> (size);
-			for (int i = 0; i < size; i++) 
-				this.vector.add(null);
 			
 			// Fill in the vector
 			for (int i = 0; i < order; i++) 
-				this.vector.set(i, this.cs.encrypt(notRootElement, fakeElement));
+				this.vector.add(this.cs.encrypt(notRootElement, fakeElement));
 			
-			this.vector.set(order, cs.encrypt(rootElement, fakeElement));
+			this.vector.add(this.cs.encrypt(rootElement, fakeElement));
 			
 			for (int i = order + 1; i <= declaredOrder; i++) 
-				this.vector.set(i, this.cs.encrypt(fakeElement, fakeElement));
+				this.vector.add(this.cs.encrypt(fakeElement, fakeElement));
 			
 			for (int i = declaredOrder + 1; i < size; i++) 
-				this.vector.set(i, this.cs.encrypt(notRootElement, fakeElement));
+				this.vector.add(this.cs.encrypt(notRootElement, fakeElement));
 		}
 		
 		/** @return remove and return the head element of this variable's vector */

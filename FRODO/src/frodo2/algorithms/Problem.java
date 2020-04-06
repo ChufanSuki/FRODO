@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -23,21 +23,19 @@ How to contact the authors:
 package frodo2.algorithms;
 
 import java.lang.reflect.Array;
-import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.Set;
 
 import frodo2.solutionSpaces.Addable;
 import frodo2.solutionSpaces.AddableInteger;
+import frodo2.solutionSpaces.AddableReal;
 import frodo2.solutionSpaces.BasicUtilitySolutionSpace;
 import frodo2.solutionSpaces.DCOPProblemInterface;
 import frodo2.solutionSpaces.ProblemInterface;
@@ -51,95 +49,83 @@ import frodo2.solutionSpaces.hypercube.ScalarHypercube;
  * @param <U> the class used for utility values
  * @todo Add support for NCCCs
  */
-public class Problem < V extends Addable<V>, U extends Addable<U> > implements DCOPProblemInterface <V, U> {
+public class Problem < V extends Addable<V>, U extends Addable<U> > extends AbstractProblem <V, U> {
 	
 	/** Used for serialization */
 	private static final long serialVersionUID = -7670751554969143041L;
 
-	/** For each variable, the name of its owner agent */
-	private Map<String, String> owners;
-	
-	/** The list of solution spaces */
-	private List< UtilitySolutionSpace<V, U> > spaces;
-
-	/** The name of the agent owning this subproblem */
-	private String agentName;
-
-	/** The domain of each variable */
-	private Map<String, V[]> domains;
-	
-	/** The class used for utility values */
-	@SuppressWarnings("unchecked")
-	private Class<U> utilClass = (Class<U>) AddableInteger.class;
-	
-	/** Whether this is a maximization or a minimization problem */
-	private boolean maximize;
-	
-	/** Whether each agent knows the identities of all agents */
-	private final boolean publicAgents;
-	
 	/** The NCCC count */
 	private long ncccCount;
+	
+	/** For each random variable, its probability space */
+	private HashMap< String, UtilitySolutionSpace<V, U> > probSpaces = new HashMap< String, UtilitySolutionSpace<V, U> > ();
+
+	/** The class of variable values */
+	@SuppressWarnings("unchecked")
+	private Class<V> domClass = (Class<V>) AddableInteger.class;
 
 	/** Constructor
 	 * @param maximize 	Whether this is a maximization or a minimization problem
 	 */
 	public Problem (boolean maximize) {
-		this(maximize, false);
+		this(maximize, false, false, false);
 	}
 	
 	/** Constructor
-	 * @param maximize 		Whether this is a maximization or a minimization problem
-	 * @param publicAgents 	Whether each agent knows the identities of all agents
+	 * @param maximize 						Whether this is a maximization or a minimization problem
+	 * @param publicAgents 					Whether each agent knows the identities of all agents
+	 * @param mpc 							Whether to behave in MPC mode (each agent knows the identities of all agents and knows all variables)
+	 * @param extendedRandNeighborhoods 	Whether neighborhood relationships between decision variables are extended through random variables
 	 */
-	public Problem (boolean maximize, boolean publicAgents) {
-		this.spaces = new ArrayList< UtilitySolutionSpace<V, U> > ();
-		this.domains = new HashMap<String, V[]> ();
-		this.owners = new HashMap<String, String> ();
-		this.maximize = maximize;
-		this.publicAgents = publicAgents;
+	public Problem (boolean maximize, boolean publicAgents, boolean mpc, boolean extendedRandNeighborhoods) {
+		super(maximize, publicAgents, mpc, extendedRandNeighborhoods);
 	}
 	
 	/** Constructor for a minimization problem
 	 * @param agentName 	the name of the agent owning this subproblem
+	 * @param agents 		the agents
 	 * @param owners 		for each variable, the name of its owner agent
 	 * @param domains 		the domain of each variable
+	 * @param randVars 		the random variables
 	 * @param spaces 		the list of solution spaces
+	 * @param probSpaces 	the probability space for each random variable
+	 * @param varScopes 	the variable scopes
+	 * @param domClass 		tbe class of variable values
+	 * @param utilClass 	the utility class
 	 */
-	public Problem (String agentName, Map<String, String> owners, Map<String, V[]> domains, List< ? extends UtilitySolutionSpace<V, U> > spaces) {
-		this(agentName, owners, domains, spaces, false);
+	public Problem (String agentName, Set<String> agents, Map<String, String> owners, Map<String, V[]> domains, Set<String> randVars, 
+			List< ? extends UtilitySolutionSpace<V, U> > spaces, Map< String, ? extends UtilitySolutionSpace<V, U> > probSpaces, 
+			Map<String, Set<String>> varScopes, Class<V> domClass, Class<U> utilClass) {
+		this(agentName, agents, owners, domains, randVars, spaces, probSpaces, varScopes, domClass, utilClass, false);
 	}
 	
 	/** Constructor 
 	 * @param agentName 	the name of the agent owning this subproblem
+	 * @param agents 		the agents
 	 * @param owners 		for each variable, the name of its owner agent
 	 * @param domains 		the domain of each variable
+	 * @param randVars 		the random variables
 	 * @param spaces 		the list of solution spaces
+	 * @param probSpaces 	the probability space for each random variable
+	 * @param varScopes 	the variable scopes
+	 * @param domClass 		tbe class of variable values
+	 * @param utilClass 	the utility class
 	 * @param maximize 		whether this is a maximization or a minimization problem
 	 */
-	public Problem (String agentName, Map<String, String> owners, Map<String, V[]> domains, List< ? extends UtilitySolutionSpace<V, U> > spaces, boolean maximize) {
-		this.reset(agentName, owners, domains, spaces, maximize);
-		this.publicAgents = false;
+	public Problem (String agentName, Set<String> agents, Map<String, String> owners, Map<String, V[]> domains, Set<String> randVars, 
+			List< ? extends UtilitySolutionSpace<V, U> > spaces, Map< String, ? extends UtilitySolutionSpace<V, U> > probSpaces, 
+			Map<String, Set<String>> varScopes, Class<V> domClass, Class<U> utilClass, boolean maximize) {
+		this(maximize);
+		this.reset(agentName, agents, owners, domains, randVars, spaces, probSpaces, varScopes, domClass, utilClass, maximize);
 	}
 	
-	/** @see java.lang.Object#toString() */
+	/** @see AbstractProblem#toString() */
 	@Override
-	public String toString () {
+	public String toString() {
 		
-		StringBuilder builder = new StringBuilder ("Problem");
+		StringBuilder builder = new StringBuilder(super.toString());
 		
-		if (this.agentName != null) 
-			builder.append("\n\t agent: " + this.agentName);
-		
-		builder.append("\n\t maximize = " + this.maximize);
-		
-		for (Map.Entry<String, String> entry : this.owners.entrySet()) 
-			builder.append("\n\t " + entry.getKey() + "\t is owned by \t" + entry.getValue());
-		
-		for (Map.Entry<String, V[]> entry : this.domains.entrySet()) 
-			builder.append("\n\t " + entry.getKey() + "\t" + Arrays.toString(entry.getValue()));
-		
-		builder.append("\n\t " + this.spaces);
+		builder.append("\n\t probSpaces = ").append(this.probSpaces);
 		
 		return builder.toString();
 	}
@@ -150,22 +136,8 @@ public class Problem < V extends Addable<V>, U extends Addable<U> > implements D
 		if (newProblem instanceof Problem) {
 			
 			Problem<V, U> prob = (Problem<V, U>) newProblem;
-			this.reset(prob.agentName, prob.owners, prob.domains, prob.spaces, prob.maximize);
-			
-		} else if (newProblem instanceof XCSPparser) {
-			
-			XCSPparser<V, U> prob = (XCSPparser<V, U>) newProblem;
-			
-			// Parse the domains
-			HashMap<String, V[]> newDomains = new HashMap<String, V[]> ();
-			for (String var : prob.getVariables()) 
-				newDomains.put(var, prob.getDomain(var));
-			
-			this.reset(prob.getAgent(), prob.getOwners(), newDomains, prob.getSolutionSpaces(), prob.maximize());
-			
-			if (prob.isCountingNCCCs()) 
-				for (UtilitySolutionSpace<V, U> space : this.spaces) 
-					space.setProblem(this);
+			this.reset(prob.agentName, prob.agents, prob.owners, prob.domains, prob.randVars, prob.spaces, prob.probSpaces, 
+					prob.varScopes, prob.domClass, prob.utilClass, prob.maximize);
 			
 		} else 
 			System.err.println("Unknown problem class: " + newProblem.getClass());
@@ -174,75 +146,50 @@ public class Problem < V extends Addable<V>, U extends Addable<U> > implements D
 	
 	/** Resets the problem 
 	 * @param agentName 	the name of the agent owning this subproblem
+	 * @param agents 		the agents
 	 * @param owners 		for each variable, the name of its owner agent
 	 * @param domains 		the domain of each variable
+	 * @param randVars 		the random variables
 	 * @param spaces 		the list of solution spaces
+	 * @param probSpaces 	the probability space for each random variable
+	 * @param varScopes 	the variable scopes
+	 * @param domClass 		tbe class of variable values
+	 * @param utilClass 	the utility class
 	 * @param maximize 		whether this is a maximization or a minimization problem
 	 */
-	public void reset (String agentName, Map<String, String> owners, Map<String, V[]> domains, List< ? extends UtilitySolutionSpace<V, U> > spaces, boolean maximize) {
+	public void reset (String agentName, Set<String> agents, Map<String, String> owners, Map<String, V[]> domains, Set<String> randVars, 
+			List< ? extends UtilitySolutionSpace<V, U> > spaces, Map< String, ? extends UtilitySolutionSpace<V, U> > probSpaces, 
+			Map<String, Set<String>> varScopes, Class<V> domClass, Class<U> utilClass, boolean maximize) {
 		this.agentName = agentName;
-		this.owners = owners;
-		this.domains = domains;
+		this.agents = new HashSet<String> (agents);
+		this.owners = new HashMap<String, String> (owners);
+		
+		this.domains = new HashMap<String, V[]> (domains.size());
+		for (Map.Entry<String, V[]> entry : domains.entrySet()) 
+			this.domains.put(entry.getKey(), entry.getValue().clone());
+		
+		this.randVars = new HashSet<String> (randVars);
 		this.spaces = new ArrayList< UtilitySolutionSpace<V, U> > (spaces);
+		this.probSpaces = new HashMap< String, UtilitySolutionSpace<V, U> > (probSpaces);
+		
+		this.varScopes = new HashMap< String, Set<String> > (varScopes.size());
+		for (Map.Entry< String, Set<String> > entry : varScopes.entrySet()) 
+			this.varScopes.put(entry.getKey(), new HashSet<String> (entry.getValue()));
+		
+		this.domClass = domClass;
+		this.utilClass = utilClass;
 		this.maximize = maximize;
 	}
 	
 	/** @see ProblemInterface#setDomClass(java.lang.Class) */
 	public void setDomClass(Class<V> domClass) {
-		assert domClass == AddableInteger.class : "Unsupported domain class: " + domClass;
+		this.domClass = domClass;
 	}
 	
 	/** @see ProblemInterface#getDomClass() */
-	@SuppressWarnings("unchecked")
 	@Override
 	public Class<V> getDomClass() {
-		return (Class<V>) AddableInteger.class;
-	}
-	
-	/** @see DCOPProblemInterface#setUtilClass(java.lang.Class) */
-	public void setUtilClass (Class<U> utilClass) {
-		this.utilClass = utilClass;
-	}
-
-	/** @see DCOPProblemInterface#getZeroUtility() */
-	public U getZeroUtility() {
-		try {
-			return (U) utilClass.getConstructor().newInstance().getZero();
-			
-		} catch (InvocationTargetException | NoSuchMethodException | InstantiationException | IllegalAccessException e) {
-			System.err.println("Failed calling the nullary constructor for the class " + utilClass.getName() + " used for utility values");
-			e.printStackTrace();
-			return null;
-		}
-	}
-
-	/** @see DCOPProblemInterface#getMinInfUtility() */
-	public U getMinInfUtility() {
-		try {
-			return (U) utilClass.getConstructor().newInstance().getMinInfinity();
-			
-		} catch (InvocationTargetException | NoSuchMethodException | InstantiationException | IllegalAccessException e) {
-			System.err.println("Failed calling the nullary constructor for the class " + utilClass.getName() + " used for utility values");
-			e.printStackTrace();
-			return null;
-		}
-	}
-
-	/** @see DCOPProblemInterface#getPlusInfUtility() */
-	public U getPlusInfUtility() {
-		try {
-			return (U) utilClass.getConstructor().newInstance().getPlusInfinity();
-			
-		} catch (InvocationTargetException | NoSuchMethodException | InstantiationException | IllegalAccessException e) {
-			System.err.println("Failed calling the nullary constructor for the class " + utilClass.getName() + " used for utility values");
-			e.printStackTrace();
-			return null;
-		}
-	}
-
-	/** @see DCOPProblemInterface#getAgent() */
-	public String getAgent() {
-		return this.agentName;
+		return this.domClass;
 	}
 	
 	/** Sets the name of the agent
@@ -250,58 +197,6 @@ public class Problem < V extends Addable<V>, U extends Addable<U> > implements D
 	 */
 	public void setAgent (String agent) {
 		this.agentName = agent;
-	}
-
-	/** @see DCOPProblemInterface#getAgents() */
-	public Set<String> getAgents() {
-		
-		return new HashSet<String> (this.owners.values());
-	}
-
-	/** @see DCOPProblemInterface#getAllVars() */
-	public Set<String> getAllVars() {
-		HashSet<String> out = new HashSet<String> (this.getVariables());
-		out.addAll(this.getAnonymVars());
-		return out;
-	}
-
-	/** @see DCOPProblemInterface#getVariables() */
-	public Set<String> getVariables() {
-		
-		HashSet<String> vars = new HashSet<String> (this.owners.size());
-
-		for (Map.Entry<String, String> entry : this.owners.entrySet()) 
-			if (entry.getValue() != null) 
-				vars.add(entry.getKey());
-		
-		return vars;
-	}
-	
-	/** @see DCOPProblemInterface#getVariables(java.lang.String) */
-	public Set<String> getVariables (final String owner) {
-		
-		HashSet<String> vars = new HashSet<String> (this.owners.size());
-		
-		for (Map.Entry<String, String> entry : this.owners.entrySet()) 
-			if ((owner == null && entry.getValue() == null) 
-					|| (owner != null && owner.equals(entry.getValue())))
-				vars.add(entry.getKey());
-		
-		return vars;
-	}
-	
-	/** @see DCOPProblemInterface#getAnonymVars() */
-	public Set<String> getAnonymVars() {
-		
-		HashSet<String> out = new HashSet<String> ();
-		
-		// Go through all variables in all spaces
-		for (UtilitySolutionSpace<V, U> space : this.spaces) 
-			for (String var : space.getVariables()) 
-				if (this.owners.get(var) == null) 
-					out.add(var);
-		
-		return out;
 	}
 
 	/** @see DCOPProblemInterface#getExtVars() */
@@ -321,21 +216,6 @@ public class Problem < V extends Addable<V>, U extends Addable<U> > implements D
 		return out;
 	}
 
-	/** @see DCOPProblemInterface#getMyVars() */
-	public Set<String> getMyVars() {
-		
-		Set<String> myVars = new HashSet<String> ();
-		
-		if (this.agentName == null) 
-			return myVars;
-		
-		for (Map.Entry<String, String> entry : this.owners.entrySet()) 
-			if (this.agentName.equals(entry.getValue()))
-				myVars.add(entry.getKey());
-		
-		return myVars;
-	}
-
 	/** @see DCOPProblemInterface#addVariable(java.lang.String, java.lang.String, java.lang.String) */
 	public boolean addVariable(String name, String owner, String domain) {
 		/// @todo Auto-generated method stub
@@ -347,268 +227,147 @@ public class Problem < V extends Addable<V>, U extends Addable<U> > implements D
 	public boolean addVariable(String name, String owner, V[] domain) {
 		
 		// Check if a variable with the same name already exists
-		if (this.owners.containsKey(name)) 
+		if (this.domains.containsKey(name)) 
 			return false;
 		
 		this.owners.put(name, owner);
-		this.domains.put(name, domain);
+		if (owner != null) 
+			this.agents.add(owner);
+		this.domains.put(name, domain.clone());
 		
 		return true;
 	}
-
-	/** @see DCOPProblemInterface#getNbrIntVars() */
-	public int getNbrIntVars() {
-		return this.getMyVars().size();
-	}
-
-	/** @see DCOPProblemInterface#getNbrVars() */
-	public int getNbrVars() {
-		return this.getVariables().size();
-	}
 	
-	/** @see DCOPProblemInterface#getOwner(java.lang.String) */
-	public String getOwner(String var) {
-		return this.owners.get(var);
+	/** Adds a random variable
+	 * @param name 		the name of the variable
+	 * @param domain 	the domain of the variable
+	 * @return true if the variable was added; false if it already exists
+	 */
+	public boolean addRandomVar (String name, V[] domain) {
+		
+		if (this.randVars.contains(name)) 
+			return false; 
+		
+		this.randVars.add(name);
+		this.domains.put(name, domain.clone());
+		
+		return true;
 	}
 
 	/** @see DCOPProblemInterface#setOwner(java.lang.String, java.lang.String) */
 	public boolean setOwner(String var, String owner) {
 		
 		if (! this.owners.containsKey(var)) 
-			return false;
+			return false; // unknown variable
 		
 		this.owners.put(var, owner);
+		if (owner != null) 
+			this.agents.add(owner);
 		return true;
 	}
 	
-	/** @see DCOPProblemInterface#getOwners() */
-	public Map<String, String> getOwners() {
-		return this.owners;
-	}
-
-	/** @see DCOPProblemInterface#isRandom(java.lang.String) */
-	public boolean isRandom(String var) {
-		/// @todo Auto-generated method stub
-		assert false : "not implemented!";
-		return false;
-	}
-
-	/** @see DCOPProblemInterface#getDomain(java.lang.String) */
-	public V[] getDomain(String var) {
-		return this.domains.get(var);
-	}
-
-	/** @see DCOPProblemInterface#getDomainSize(java.lang.String) */
-	public int getDomainSize(String var) {
-		
-		V[] dom = this.getDomain(var);
-		if (dom == null) 
-			return -1;
-		else 
-			return dom.length;
-	}
-
 	/** @see DCOPProblemInterface#setDomain(java.lang.String, V[]) */
 	public void setDomain(String var, V[] dom) {
-		/// @todo Auto-generated method stub
-		assert false : "not implemented!";
-	}
 
-	/** @see DCOPProblemInterface#getNeighborhoods() */
-	public Map<String, ? extends Collection<String>> getNeighborhoods() {
-		
-		// Initialize the output
-		Map< String, Set<String> > out = new HashMap< String, Set<String> > ();
-		for (Map.Entry<String, String> entry : this.owners.entrySet()) 
-			if (this.agentName == null || this.agentName.equals(entry.getValue())) // internal variable
-				out.put(entry.getKey(), new HashSet<String> ());
-		
-		// Go through all spaces
-		for (UtilitySolutionSpace<V, U> space : this.spaces) {
-			
-			// Go through the list of internal variables in the scope of this space
-			for (String intVar : space.getVariables()) {
-				if (this.agentName != null && ! this.agentName.equals(this.owners.get(intVar))) 
-					continue; 
-				
-				// Add to the list of neighbors all variables in the scope of this space that are owned by a known agent
-				Set<String> neighbors = out.get(intVar);
-				for (String var : space.getVariables()) 
-					if (this.getOwner(var) != null) 
-						neighbors.add(var);
-				
-				// Remove the variable itself
-				neighbors.remove(intVar);
+		// Return immediately if no samples are provided
+		if (dom.length == 0) 
+			return;
+
+		// If dom contains several times the same value, it must be reduced.
+		ArrayList<V> domReduced = new ArrayList<V> (dom.length);
+		HashMap<V, Double> weights = new HashMap<V, Double> ();
+		double weightIncr = 1.0 / dom.length;
+		for (V val : dom) {
+			Double w = weights.get(val);
+			if (w != null) { // redundant value
+				weights.put(val, w + weightIncr);
+			} else { // first time we see this value
+				weights.put(val, weightIncr);
+				domReduced.add(val);
 			}
 		}
 		
-		return out;
+		this.setDomain(var, domReduced, weights);
 	}
 
-	/** @see DCOPProblemInterface#getAnonymNeighborhoods() */
-	public Map<String, HashSet<String>> getAnonymNeighborhoods() {
-		/// @todo Auto-generated method stub
-		assert false : "not implemented!";
-		return null;
-	}
+	/** Sets the domain of a variable
+	 * @param var 		the variable
+	 * @param domain 	its new domain
+	 * @param weights 	normalized weights for each value in the new domain (used only if the variable is random)
+	 */
+	@SuppressWarnings("unchecked")
+	private void setDomain(String var, ArrayList<V> domain, Map<V, Double> weights) {
 
-	/** @see DCOPProblemInterface#getAnonymNeighborhoods(String) */
-	public Map<String, HashSet<String>> getAnonymNeighborhoods(String agent) {
-		/// @todo Auto-generated method stub
-		assert false : "not implemented!";
-		return null;
-	}
+		int nbrVals = domain.size();
+		V[] dom = domain.toArray((V[]) Array.newInstance(domain.get(0).getClass(), nbrVals));
+		Arrays.sort(dom);
 
-	/** @see DCOPProblemInterface#getAgentNeighborhoods() */
-	public Map< String, Collection<String> > getAgentNeighborhoods() {
-		
-		// Initialize the output
-		Map< String, Collection<String> > out = new HashMap< String, Collection<String> > ();
-		for (Map.Entry<String, String> entry : this.owners.entrySet()) 
-			if (this.agentName == null || this.agentName.equals(entry.getValue())) // internal variable
-				out.put(entry.getKey(), new HashSet<String> ());
-		
-		// Go through the list of variables in all spaces owned by this agent
-		for (UtilitySolutionSpace<V, U> space : this.spaces) {
-			for (String var : space.getVariables()) {
-				if (this.agentName != null && ! this.agentName.equals(this.getOwner(var))) 
-					continue;
-				
-				// Add to this variable's set of neighboring agents the owners of the other variables in this space
-				Collection<String> agents = out.get(var);
-				for (String var2 : space.getVariables()) {
-					String agent2 = this.owners.get(var2);
-					if (this.agentName == null || (agent2 != null && ! agent2.equals(this.agentName))) 
-						agents.add(agent2);
-				}
-			}
+		// If the variable is unknown, add it to the problem, treating it as a random variable
+		boolean isRandom;
+		if (! super.domains.containsKey(var)) {
+			this.randVars.add(var);
+			isRandom = true;
+		} else 
+			isRandom = this.randVars.contains(var);
+
+		// If var is a random variable, its probability law must be updated accordingly. 
+		if (isRandom) {
+
+			// Create a new probability space
+			String[] vars = new String[] { var };
+
+			V[][] doms = (V[][]) Array.newInstance(dom.getClass(), 1);
+			doms[0] = dom;
+
+			AddableReal[] utils = new AddableReal [nbrVals];
+			for (int i = 0; i < nbrVals; i++) 
+				utils[i] = new AddableReal (weights.get(dom[i]));
+
+			this.probSpaces.put(var, new Hypercube<V, U> (vars, doms, utils, null));
 		}
 		
-		return out;
-	}
-
-	/** @see DCOPProblemInterface#getNeighborhoodSizes() */
-	public Map<String, Integer> getNeighborhoodSizes() {
-		
-		HashMap<String, Integer> out = new HashMap<String, Integer> ();
-		
-		for (Map.Entry< String, ? extends Collection<String> > entry : this.getNeighborhoods().entrySet()) 
-			out.put(entry.getKey(), entry.getValue().size());
-		
-		return out;
-	}
-
-	/** @see DCOPProblemInterface#getNeighborVars(java.lang.String) */
-	public Collection<String> getNeighborVars(String var) {
-		
-		HashSet<String> out = new HashSet<String> (); 
-		
-		// Go through the list of spaces
-		for (UtilitySolutionSpace<V, U> space : this.spaces) 
-			if (space.getDomain(var) != null) // this space contains the desired variable; add all the space's variables to the output
-				for (String neigh : space.getVariables()) 
-					out.add(neigh);
-		
-		// Remove the variable itself from its list of neighbors
-		out.remove(var);
-		
-		return out;
-	}
-	
-	/** @see DCOPProblemInterface#getNeighborVars(java.lang.String, boolean) */
-	public HashSet<String> getNeighborVars(String var, boolean withAnonymVars) {
-		/// @todo Auto-generated method stub
-		assert false : "Not yet implemented";
-		return null;
-	}
-	
-	/** @see DCOPProblemInterface#getNbrNeighbors(java.lang.String) */
-	public int getNbrNeighbors(String var) {
-		return this.getNeighborhoodSizes().get(var);
-	}
-	
-	/** @see DCOPProblemInterface#getSolutionSpaces() */
-	public List< ? extends UtilitySolutionSpace<V, U> > getSolutionSpaces() {
-		return this.getSolutionSpaces(false);
-	}
-
-	/** @see DCOPProblemInterface#getSolutionSpaces(boolean) */
-	public List< ? extends UtilitySolutionSpace<V, U> > getSolutionSpaces(boolean withAnonymVars) {
-		return this.getSolutionSpaces((String) null, withAnonymVars, null);
-	}
-
-	/** @see DCOPProblemInterface#getSolutionSpaces(String, boolean) */
-	public List< ? extends UtilitySolutionSpace<V, U> > getSolutionSpaces(String var, boolean withAnonymVars) {
-		return this.getSolutionSpaces(var, withAnonymVars, null);
-	}
-	
-	/** @see DCOPProblemInterface#getSolutionSpaces(java.lang.String, java.util.Set) */
-	public List<? extends UtilitySolutionSpace<V, U>> getSolutionSpaces(String var, Set<String> forbiddenVars) {
-		return this.getSolutionSpaces(var, false, forbiddenVars);
-	}
-
-	/** @see DCOPProblemInterface#getSolutionSpaces(java.lang.String, boolean, java.util.Set) */
-	public List<? extends UtilitySolutionSpace<V, U>> getSolutionSpaces(String var, final boolean withAnonymVars, Set<String> forbiddenVars) {
-		
-		HashSet<String> vars = null;
-		if(var != null) {
-			vars = new HashSet<String>();
-			vars.add(var);
-		}
-		return this.getSolutionSpaces(vars, withAnonymVars, forbiddenVars);
-	}
-	
-	/** @see DCOPProblemInterface#getSolutionSpaces(java.util.Set, boolean, java.util.Set) */
-	public List<? extends UtilitySolutionSpace<V, U>> getSolutionSpaces(Set<String> vars, boolean withAnonymVars, Set<String> forbiddenVars) {
-		
-		// Return null if not all domains are known yet
-		for (V[] dom : this.domains.values()) 
-			if (dom == null) 
-				return null;
-		
-		// Get rid of all undesired spaces
-		List< UtilitySolutionSpace<V, U> > out = new ArrayList< UtilitySolutionSpace<V, U> > ();
-		spaceLoop: for (UtilitySolutionSpace<V, U> space : this.spaces) {
-			
-			// Skip this space if it does not include any of the input variables
-			if (vars != null && Collections.disjoint(vars, Arrays.asList(space.getVariables()))) 
-				continue;
-			
-			// Skip this space if it involves a variable with unknown owner and if we don't want such variables
-			if (! withAnonymVars) 
-				for (String var2 : space.getVariables()) 
-					if (this.owners.get(var2) == null) 
-						continue spaceLoop;
-			
-			// Skip this space if it involves any of the forbidden variables
-			if (forbiddenVars != null) 
-				for (String var2: space.getVariables()) 
-					if (forbiddenVars.contains(var2)) 
-						continue spaceLoop;
-			
-			out.add(space);
-		}		
-		return out;
+		this.domains.put(var, dom);
 	}
 	
 	/** @see DCOPProblemInterface#getProbabilitySpaces() */
-	public List<Hypercube<V, U> > getProbabilitySpaces() {
-		/// @todo Auto-generated method stub
-		assert false : "not implemented!";
-		return null;
+	public List< UtilitySolutionSpace<V, U> > getProbabilitySpaces() {
+		return new ArrayList< UtilitySolutionSpace<V, U> > (this.probSpaces.values());
+	}
+
+	/** @see DCOPProblemInterface#getProbabilitySpacePerRandVar() */
+	@Override
+	public Map< String, ? extends UtilitySolutionSpace<V, U> > getProbabilitySpacePerRandVar() {
+		return Collections.unmodifiableMap(this.probSpaces);
 	}
 
 	/** @see DCOPProblemInterface#getProbabilitySpaces(java.lang.String) */
-	public List< Hypercube<V, U> > getProbabilitySpaces(String var) {
-		/// @todo Auto-generated method stub
-		assert false : "not implemented!";
-		return null;
+	public List< UtilitySolutionSpace<V, U> > getProbabilitySpaces(String var) {
+		
+		UtilitySolutionSpace<V, U> prob = this.probSpaces.get(var);
+		
+		if (prob != null) 
+			return Arrays.asList(prob);
+		else 
+			return new ArrayList< UtilitySolutionSpace<V, U> > ();
 	}
 	
 	/** @see DCOPProblemInterface#setProbSpace(java.lang.String, java.util.Map) */
 	public void setProbSpace(String var, Map<V, Double> prob) {
-		/// @todo Auto-generated method stub
-		assert false : "not implemented!";
+
+		// Extract the variable's domain while computing the sum of the weights
+		ArrayList<V> domain = new ArrayList<V> (prob.size());
+		Double norm = 0.0;
+		for (Map.Entry<V, Double> entry : prob.entrySet()) {
+			domain.add(entry.getKey());
+			norm += entry.getValue();
+		}
+
+		// Renormalize the weights
+		for (Map.Entry<V, Double> entry : prob.entrySet()) {
+			entry.setValue(entry.getValue() / norm);
+		}
+
+		this.setDomain(var, domain, prob);
 	}
 
 	/** @see DCOPProblemInterface#removeSpace(java.lang.String) */
@@ -631,6 +390,14 @@ public class Problem < V extends Addable<V>, U extends Addable<U> > implements D
 		this.spaces.add(space);
 		return true;
 	}
+	
+	/** Adds a probability space for a given variable
+	 * @param randVar 	the name of the random variable
+	 * @param prob 		the probabiliy space
+	 */
+	public void addProbabilitySpace (String randVar, UtilitySolutionSpace<V, U> prob) {
+		this.probSpaces.put(randVar, (UtilitySolutionSpace<V, U>) prob);
+	}
 
 	/** @see DCOPProblemInterface#incrNCCCs(long) */
 	public void incrNCCCs (long incr) {
@@ -647,23 +414,6 @@ public class Problem < V extends Addable<V>, U extends Addable<U> > implements D
 		return this.ncccCount;
 	}
 	
-	/** @see DCOPProblemInterface#maximize() */
-	public boolean maximize() {
-		return this.maximize;
-	}
-
-	/** @see DCOPProblemInterface#setMaximize(boolean) */
-	public void setMaximize(final boolean maximize) {
-		
-		if (this.maximize != maximize) {
-			final U inf = (maximize ? this.getMinInfUtility() : this.getPlusInfUtility());
-			for (UtilitySolutionSpace<V, U> space : this.spaces) 
-				space.setInfeasibleUtility(inf);
-		}
-		
-		this.maximize = maximize;
-	}
-
 	/** @see DCOPProblemInterface#rescale(Addable, Addable) */
 	public void rescale(U multiply, U add) {
 		
@@ -673,21 +423,13 @@ public class Problem < V extends Addable<V>, U extends Addable<U> > implements D
 	}
 	
 	/** 
-	 * @see frodo2.solutionSpaces.DCOPProblemInterface#getUtility(java.util.Map) 
-	 * @todo Test this method. 
-	 */
-	public UtilitySolutionSpace<V, U> getUtility (Map<String, V> assignments) {
-		return this.getUtility(assignments, false);
-	}
-	
-	/** 
 	 * @see DCOPProblemInterface#getUtility(Map, boolean) 
 	 * @todo Test this method 
 	 */
 	@SuppressWarnings("unchecked")
 	public UtilitySolutionSpace<V, U> getUtility(Map<String, V> assignments, boolean withAnonymVars) {
 		
-		Class<? extends V[]> classOfDom = (Class<? extends V[]>) Array.newInstance(assignments.values().iterator().next().getClass(), 0).getClass();
+		Class<? extends V[]> classOfDom = (Class<? extends V[]>) Array.newInstance(this.domClass, 0).getClass();
 		U zero = this.getZeroUtility();
 		UtilitySolutionSpace<V, U> output = new ScalarHypercube<V, U> (zero, this.getInfeasibleUtil(), classOfDom);
 		
@@ -715,21 +457,21 @@ public class Problem < V extends Addable<V>, U extends Addable<U> > implements D
 		return output;
 	}
 	
-	/** @return -INF if we are maximizing, +INF if we are minimizing */
-	private U getInfeasibleUtil () {
-		
-		// Check whether we are minimizing or maximizing
-		if (maximize) 
-			return this.getMinInfUtility();
-		else 
-			return this.getPlusInfUtility();
-	}
-
 	/** @see DCOPProblemInterface#getExpectedUtility(Map) */
 	public UtilitySolutionSpace<V, U> getExpectedUtility(Map<String, V> assignments) {
-		/// @todo Auto-generated method stub
-		assert false : "not implemented!";
-		return null;
+
+		// Compute the utility, as a function of the random variables
+		UtilitySolutionSpace<V, U> util = (UtilitySolutionSpace<V, U>) this.getUtility(assignments, true);
+
+		// Compute the expectation over the random variables 
+		HashMap< String, UtilitySolutionSpace<V, U> > distributions = 
+			new HashMap< String, UtilitySolutionSpace<V, U> > ();
+		for (UtilitySolutionSpace<V, U> probSpace : this.getProbabilitySpaces()) 
+			distributions.put(probSpace.getVariable(0), probSpace);
+		if (! distributions.isEmpty()) 
+			util = util.expectation(distributions);
+		
+		return util;
 	}
 
 	/** 
@@ -758,83 +500,195 @@ public class Problem < V extends Addable<V>, U extends Addable<U> > implements D
 		return output;
 	}
 
-	/** @see DCOPProblemInterface#getNumberOfCoordinationConstraints() */
-	public int getNumberOfCoordinationConstraints() {
-		
-		int count = 0;
-		
-		spaceLoop: for (UtilitySolutionSpace<V, U> space : this.spaces) {
-			
-			String[] vars = space.getVariables();
-			
-			if (vars.length <= 1) 
-				continue;
-			
-			String firstAgent = null;
-			for (String var : vars) {
-				String agent = this.owners.get(var);
-				
-				if (agent == null) 
-					continue;
-				else if (firstAgent == null) 
-					firstAgent = agent;
-				else if (! firstAgent.equals(agent)) {
-					count++;
-					continue spaceLoop;
-				}
-			}
-		}
-		
-		return count;
-	}
-
 	/** 
 	 * @see ProblemInterface#getSubProblem(java.lang.String) 
 	 * @todo Test this method. 
 	 */
-	@SuppressWarnings("unchecked")
 	public Problem<V, U> getSubProblem(String agent) {
 		
-		Problem<V, U> out = new Problem<V, U> (this.maximize);
-		out.setAgent(agent);
-		out.setUtilClass(this.utilClass);
+		Problem<V, U> out = new Problem<V, U> (this.maximize, publicAgents, mpc, extendedRandNeighborhoods);
+		out.setDomClass(domClass);
+		out.setUtilClass(utilClass);
 
-		// Look up the agent's variables
-		HashSet<String> vars = new HashSet<String> (this.owners.size());
-		for (Map.Entry<String, String> entry : this.owners.entrySet()) 
-			if (agent.equals(entry.getValue())) 
-				vars.add(entry.getKey());
-		
-		// Compile the list of spaces involving one of the agent's variables
-		ArrayList< UtilitySolutionSpace<V, U> > newSpaces = new ArrayList< UtilitySolutionSpace<V, U> > (this.spaces.size());
-		for (UtilitySolutionSpace<V, U> space : this.spaces) {
-			if (! Collections.disjoint(vars, Arrays.asList(space.getVariables()))) {
-				UtilitySolutionSpace<V, U> clone = space.clone();
-				clone.setProblem(out);
-				newSpaces.add(clone);
-				out.addSolutionSpace(clone);
+		// Get the set of variables owned by the agent
+		HashSet<String> vars = new HashSet<String> (this.getVariables(agent)); // will eventually contain internal variables and relevant external variables	
+
+		// Create the list of agents
+		out.setAgent(agent);
+		HashSet<String> knownAgents = new HashSet<String> ();
+		knownAgents.add(agent);
+		if (this.mpc || this.publicAgents) // the agent is supposed to know all the agents
+			knownAgents.addAll(this.getAgents());
+
+		// In MPC mode, all variables are public
+		if (this.mpc) 
+			vars.addAll(this.getVariables());
+
+		// Gather the constraints and probability spaces
+		HashSet< UtilitySolutionSpace<V, U> > outSpaces = new HashSet< UtilitySolutionSpace<V, U> > ();
+		HashSet< UtilitySolutionSpace<V, U> > outProbs = new HashSet< UtilitySolutionSpace<V, U> > ();
+
+		// Go through the list of constraints several times until we are sure we have identified all variables that should be known to this agent
+		HashMap< String, HashSet<String> > varScopes = new HashMap< String, HashSet<String> > ();
+		int nbrVars;
+		do {
+			nbrVars = vars.size();
+
+			// Go through the list of all constraints in the overall problem
+			for (UtilitySolutionSpace<V, U>  space : super.spaces) {
+
+				// Skip this constraint if it has already been added
+				if (outSpaces.contains(space)) 
+					continue;
+
+				// Get the list of variables in the scope of the constraint
+				HashSet<String> scope = new HashSet<String> (Arrays.asList(space.getVariables()));
+
+				// Check if the agent is not supposed to know the constraint
+				String constOwner = space.getOwner();
+				if (! "PUBLIC".equals(constOwner) && constOwner != null && ! constOwner.equals(agent)) {
+					
+					if (! this.mpc) { // record the variable scopes
+						for (String var : scope) {
+							HashSet<String> varScope = varScopes.get(var);
+							if (varScope == null) {
+								varScope = new HashSet<String> ();
+								varScopes.put(var, varScope);
+							}
+							varScope.add(constOwner);
+						}
+					}
+					
+					continue;
+				}
+
+				// If any of the variables in the scope is owned by this agent, add the constraint to the list of constraints
+				final boolean knownConst = "PUBLIC".equals(constOwner) || agent.equals(constOwner);
+				for (String var : scope) {
+					if (knownConst || vars.contains(var)) {
+
+						// Skip this variable if it is apparently not necessary for the agent to know this constraint
+						if (!this.extendedRandNeighborhoods && this.isRandom(var))
+							continue;
+						outSpaces.add(space);
+						UtilitySolutionSpace<V, U> clone = space.clone();
+						if (space.countsCCs()) 
+							clone.setProblem(out);
+						out.addSolutionSpace(clone);
+
+						// Add all variables in the scope to the list of variables known to this agent
+						for (String var2 : space.getVariables()) {
+							String owner2 = this.getOwner(var2);
+							out.addVariable(var2, owner2, space.getDomain(var2));
+							if (owner2 == null) 
+								vars.add(var2);
+						}
+
+						break;
+					}
+				}
 			}
-		}
-		
-		// Add the neighboring variables
-		for (UtilitySolutionSpace<V, U> space : newSpaces) 
-			vars.addAll(Arrays.asList(space.getVariables()));
-		
-		// Add the variables to the output subproblem
-		for (String var : vars) 
-			out.addVariable(var, this.owners.get(var), this.domains.get(var));
-		
-		if (this.publicAgents) { // Add foo variables for missing agents
+
+			// Go through the list of all probability spaces in the overall problem
+			for (UtilitySolutionSpace<V, U> space : this.probSpaces.values()) {
+
+				// Skip this probability space if it has already been added
+				if (outProbs.contains(space)) 
+					continue;
+
+				// Get the list of variables in the scope of the probability space
+				HashSet<String> scope = new HashSet<String> (Arrays.asList(space.getVariables()));
+
+				// Check if the agent is not supposed to know the probability space
+				String constOwner = space.getOwner();
+				if (! "PUBLIC".equals(constOwner) && constOwner != null && ! constOwner.equals(agent)) {
+					
+					if (! this.mpc) { // record the variable scopes
+						for (String var : scope) {
+							HashSet<String> varScope = varScopes.get(var);
+							if (varScope == null) {
+								varScope = new HashSet<String> ();
+								varScopes.put(var, varScope);
+							}
+							varScope.add(constOwner);
+						}
+					}
+					
+					continue;
+				}
+
+				// If any of the variables in the scope is owned by this agent or the constraint is a probability law that must be known to the agent, 
+				// add the probability space to the list of probability spaces
+				final boolean knownConst = "PUBLIC".equals(constOwner) || agent.equals(constOwner);
+				for (String var : scope) {
+					if (knownConst || vars.contains(var)) {
+
+						// Skip this variable if it is apparently not necessary for the agent to know this probability space
+						if (! this.isRandom(var)) 
+							continue;
+						outProbs.add(space);
+						out.probSpaces.put(var, space.clone());
+
+						// Add all variables in the scope to the list of variables known to this agent
+						for (String var2 : space.getVariables()) {
+							String owner2 = this.getOwner(var2);
+							out.addVariable(var2, owner2, space.getDomain(var2));
+							if (owner2 == null) 
+								vars.add(var2);
+						}
+
+						break;
+					}
+				}
+			}
 			
-			Set<String> missingAgents = this.getAgents();
-			missingAgents.removeAll(out.getAgents());
-			if (! missingAgents.isEmpty()) {
-				Random rand = new Random ();
-				for (String missing : missingAgents) 
-					out.addVariable("foo_agent_" + missing + "_" + rand.nextInt(Integer.MAX_VALUE), missing, (V[]) new AddableInteger [0]);
+		} while (nbrVars != vars.size()); // loop as long as another variable has been added to the list of known variables
+
+		// Add the agents that own constraints over shared variables and my own variables
+		for (UtilitySolutionSpace<V, U> space : super.spaces) {
+			
+			// Get the list of variables in the scope of the constraint
+			HashSet<String> scope = new HashSet<String> (Arrays.asList(space.getVariables()));
+			
+			// Check whether the constraint owner should be known to the agent because the constraint scope involves a variable they share
+			String constOwner = space.getOwner();
+			if (! "PUBLIC".equals(constOwner) && constOwner != null && ! constOwner.equals(agent)) {
+				for (String var : scope) {
+					if (! this.isRandom(var) && vars.contains(var)) { // skip random variables and unknown variables
+						String varOwner = this.getOwner(var);
+						if (varOwner == null || varOwner.equals(agent)) { // the variable is shared or owned by this agent
+							knownAgents.add(constOwner);
+							break;
+						}
+					}
+				}
+			}
+		}
+
+		// Add all variables known to this agent
+		for (String var : vars) {
+			
+			if (this.isRandom(var)) {
+				out.addRandomVar(var, this.getDomain(var));
+				continue;
+			}
+			
+			String owner = this.getOwner(var);
+			out.addVariable(var, owner, this.getDomain(var));
+			
+			// Check the owner of this variable
+			if (owner != null) 
+				knownAgents.add(owner);
+			else { // shared variable; set its agent scope
+				HashSet<String> varScope = varScopes.get(var);
+				if (varScope != null) 
+					out.varScopes.put(var, new HashSet<String> (varScope));
 			}
 		}
 		
+		// Fill in the list of agents
+		out.agents.addAll(knownAgents);
+
 		return out;
 	}
 
@@ -845,28 +699,32 @@ public class Problem < V extends Addable<V>, U extends Addable<U> > implements D
 		return false;
 	}
 
-	/** @see frodo2.solutionSpaces.DCOPProblemInterface#getAgentNeighborhoods(java.lang.String) */
+	/** @see DCOPProblemInterface#ground(java.lang.String, Addable) */
+	@SuppressWarnings("unchecked")
 	@Override
-	public Map<String, Collection<String>> getAgentNeighborhoods(String owner) {
-		/// @todo Auto-generated method stub
-		assert false : "Not yet implemented";
-		return null;
-	}
-
-	/** @see DCOPProblemInterface#addUnarySpace(String, String, Addable[], Addable[]) */
-	@Override
-	public UtilitySolutionSpace<V, U> addUnarySpace(String name, String var, V[] dom, U[] utils) {
+	public void ground(String var, V val) {
 		
-		@SuppressWarnings("unchecked")
+		// Construct the domains
+		V[] dom = this.getDomain(var);
 		V[][] doms = (V[][]) Array.newInstance(dom.getClass(), 1);
 		doms[0] = dom;
-		
-		Hypercube<V, U> out = new Hypercube<V, U> (new String[] {var}, doms, utils, this.getInfeasibleUtil());
-		out.setName(name);
-		
-		this.addSolutionSpace(out);
-		
-		return out;
+
+		// Construct the utilities
+		U zero = this.getZeroUtility();
+		U[] utils = (U[]) Array.newInstance(zero.getClass(), dom.length);
+		U inf = (this.maximize() ? this.getMinInfUtility() : this.getPlusInfUtility());
+		Arrays.fill(utils, inf);
+		for (int i = dom.length - 1; i >= 0; i--) {
+			if (dom[i].equals(val)) {
+				utils[i] = zero;
+				break;
+			}
+		}
+
+		// Add the constraint
+		Hypercube<V, U> equality = new Hypercube<V, U> (new String[] {var}, doms, utils, inf, this);
+		equality.setName(var + "=" + val);
+		this.addSolutionSpace(equality);
 	}
 	
 }

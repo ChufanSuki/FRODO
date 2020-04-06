@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -407,15 +407,12 @@ public class Solution<V, U> {
 		builder.append("\n\t- assignments: " + this.assignments);
 		builder.append("\n\t- reported utility: \t" + this.reportedUtil);
 		builder.append("\n\t- true utility: \t" + this.trueUtil);
-		builder.append("\n");
 		
 		if (this.nbrMsgs > 0) {
 			builder.append("\n\t- msgNbrs: \t" + this.msgNbrs);
 			builder.append("\n\t- nbrMsgs: \t" + formatter.format(this.nbrMsgs));
-			builder.append("\n");
 			builder.append("\n\t- msgSizes: \t" + this.msgSizes);
 			builder.append("\n\t- totalMsgSize:\t" + formatter.format(this.totalMsgSize));
-			builder.append("\n");
 			builder.append("\n\t- maxMsgSizes: \t" + this.maxMsgSizes);
 			builder.append("\n\t- maxMsgSize:\t" + formatter.format(this.maxMsgSize));
 		}
@@ -424,22 +421,18 @@ public class Solution<V, U> {
 			builder.append("\n\t- maxUTILdim: \t" + this.treeWidth);
 		
 		if (this.ncccCount > 0) {
-			builder.append("\n");
 			builder.append("\n\t- ncccCount: \t" + formatter.format(this.ncccCount));
 		}
 		
 		if (this.timeNeeded > 0) {
-			builder.append("\n");
 			builder.append("\n\t- timeNeeded: \t" + formatter.format(this.timeNeeded));
 		}
 		
 		if (this.cumulativeTime > 0) {
-			builder.append("\n");
 			builder.append("\n\t- cumulative time: \t" + this.cumulativeTime);
 		}
 		
 		if (this.moduleEndTimes != null) {
-			builder.append("\n");
 			builder.append("\n\t- moduleEndTimes: \t" + this.moduleEndTimes);
 		}
 		

@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -25,38 +25,44 @@ package frodo2.solutionSpaces.JaCoP;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 
-import org.jacop.core.IntVar;
-import org.jacop.core.Store;
+import org.jacop.core.IntVarCloneable;
+import org.jacop.core.StoreCloneable;
 import org.jacop.search.DepthFirstSearch;
 import org.jacop.search.IndomainMin;
 import org.jacop.search.MostConstrainedDynamic;
 import org.jacop.search.SimpleSelect;
 import org.jacop.search.SmallestDomain;
 
+import frodo2.solutionSpaces.Addable;
+
 /** A wrapper around a JaCoP DepthFirstSearch that is used to run this search in a new thread
  * 
  * @author Arnaud Jutzeler, Thomas Leaute
+ * @param <U> The class used for utility values
  *
  */
-public class JaCoPiterSearch implements Runnable {
+public class JaCoPiterSearch < U extends Addable<U> > implements Runnable {
 
 	/** The JaCoP store */
-	private Store store;
+	private StoreCloneable store;
 	
 	/** The JaCoP variables */
-	private IntVar[] vars;
+	private IntVarCloneable[] vars;
 	
 	/** The JaCoP variables whose projection has been requested */
-	private IntVar[] projectedVars;
+	private IntVarCloneable[] projectedVars;
 	
 	/** The utility variable */
-	private IntVar utilVar;
+	private IntVarCloneable utilVar;
 	
 	/** The last solution found */
 	private int[] solution;
 	
 	/** The utility of the last solution found */
-	private int utility;
+	private U utility;
+	
+	/** The infeasible utility */
+	final private U infeasibleUtil;
 	
 	/** The current bound */
 	private int currentBound;
@@ -71,7 +77,7 @@ public class JaCoPiterSearch implements Runnable {
 	private Condition nextDelivered;
 	
 	/** JaCoP's search strategy */
-	DepthFirstSearch<IntVar> search;
+	DepthFirstSearch<IntVarCloneable> search;
 
 
 	/**	Constructor
@@ -82,8 +88,10 @@ public class JaCoPiterSearch implements Runnable {
 	 * @param lock				The lock that guarantees the mutual exclusion in the execution of the search thread and the iterator thread
 	 * @param nextAsked			The condition used to signal the search to continue the search
 	 * @param nextDelivered		The condition used to signal the iterator thread that a new solution has been found
+	 * @param infeasibleUtil 	The infeasible utility
 	 */
-	public JaCoPiterSearch(Store store, IntVar[] vars, IntVar[] projectedVars, IntVar utilVar, Lock lock, Condition nextAsked, Condition nextDelivered){
+	public JaCoPiterSearch(StoreCloneable store, IntVarCloneable[] vars, IntVarCloneable[] projectedVars, IntVarCloneable utilVar, Lock lock, Condition nextAsked, Condition nextDelivered, 
+			U infeasibleUtil){
 		this.store = store;
 		this.vars = vars;
 		this.projectedVars = projectedVars;
@@ -93,16 +101,17 @@ public class JaCoPiterSearch implements Runnable {
 		this.nextDelivered = nextDelivered;
 		this.currentBound = Integer.MAX_VALUE;
 		this.solution = null;
-		this.utility = 0;
+		this.infeasibleUtil = infeasibleUtil;
 	}
 	
 	/** @see java.lang.Runnable#run() */
 	public void run() {
-		IterSolutionListener solListener = new IterSolutionListener(this, store, projectedVars, utilVar, nextAsked, nextDelivered);
+		IterSolutionListener<U> solListener = new IterSolutionListener<U> (this, store, projectedVars, utilVar, nextAsked, nextDelivered, this.infeasibleUtil);
 		
 		// Search for all solutions strictly better than the bound
-		search = new DepthFirstSearch<IntVar> ();
+		search = new DepthFirstSearch<IntVarCloneable> ();
 		search.setSolutionListener(solListener);
+		search.respectSolutionListenerAdvice = true;
 		search.getSolutionListener().recordSolutions(false);
 		search.getSolutionListener().searchAll(true);
 		search.setAssignSolution(false);
@@ -114,12 +123,12 @@ public class JaCoPiterSearch implements Runnable {
 		try{
 			
 			// Start the depth first search
-			search.labeling(store, new SimpleSelect<IntVar> (this.vars, 
-					new SmallestDomain<IntVar>(), new MostConstrainedDynamic<IntVar>(), new IndomainMin<IntVar>()), utilVar);	
+			search.labeling(store, new SimpleSelect<IntVarCloneable> (this.vars, 
+					new SmallestDomain<IntVarCloneable>(), new MostConstrainedDynamic<IntVarCloneable>(), new IndomainMin<IntVarCloneable>()), utilVar);	
 			
 			// We set null as the current solution to inform that the search has finished
 			this.solution = null;
-			this.utility = 0;
+			this.utility = this.infeasibleUtil;
 			
 			// Wake up the iterator
 			this.nextDelivered.signal();
@@ -140,7 +149,7 @@ public class JaCoPiterSearch implements Runnable {
 	 * @param lastSolution	The last solution
 	 * @param lastUtility	The utility of the last solution
 	 */
-	public void setSolution(int[] lastSolution, int lastUtility){
+	public void setSolution(int[] lastSolution, U lastUtility){
 		this.solution = lastSolution;
 		this.utility = lastUtility;
 	}
@@ -152,10 +161,10 @@ public class JaCoPiterSearch implements Runnable {
 		return solution;
 	}
 	
-	/** The method used by the iterator to get the utiltiy of last solution found
+	/** The method used by the iterator to get the utility of last solution found
 	 * @return the utility of the last solution found
 	 */
-	public int getUtility() {
+	public U getUtility() {
 		return utility;
 	}
 	

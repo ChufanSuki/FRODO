@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -47,7 +47,7 @@ import frodo2.solutionSpaces.ProblemInterface;
  * @param <V> the type used for utility values
  */
 @SuppressWarnings("unchecked")
-public class MASparser <V extends Addable<V>, U extends Addable<U>> implements MASProblemInterface<V, U> {
+public class MASparser <V extends Addable<V>, U extends Addable<U>> implements MASProblemInterface<V, U>, ParserInterface<V, U> {
 
 	/** Used for serialization */
 	private static final long serialVersionUID = 5407324017599034300L;
@@ -332,6 +332,12 @@ public class MASparser <V extends Addable<V>, U extends Addable<U>> implements M
 		this.utilClass = utilClass;		
 	}
 	
+	/** @see ProblemInterface#getUtilClass() */
+	@Override
+	public Class<U> getUtilClass() {
+		return this.utilClass;
+	}
+
 	/** @see MASProblemInterface#utilInstance() */
 	public U utilInstance() {
 		try {
@@ -375,6 +381,12 @@ public class MASparser <V extends Addable<V>, U extends Addable<U>> implements M
 		builder.append("\n\t problem:\n").append(XCSPparser.toString(this.root));
 		
 		return builder.toString();
+	}
+
+	/** @see ParserInterface#parse() */
+	@Override
+	public MASparser<V, U> parse() {
+		return this;
 	}
 	
 }

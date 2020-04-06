@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -387,6 +387,7 @@ implements StatsReporter, OutgoingMsgPolicyInterface<MessageType> {
 		types.add(OptUtilMsg.COMP_OPT_UTIL_MSG_TYPE);
 		types.add(CODENAME_TYPE);
 		types.add(AgentInterface.AGENT_FINISHED);
+//		types.add(UTILpropagation.OPT_UTIL_MSG_TYPE); // for debugging purposes only, to check that the optimal utility doesn't change
 		
 		// Outgoing messages
 		types.add(SecureCircularRouting.PREVIOUS_MSG_TYPE);
@@ -666,7 +667,7 @@ implements StatsReporter, OutgoingMsgPolicyInterface<MessageType> {
 			if(min1IsMin) rangeSize = inner - info.lowerB + 1;
 			else rangeSize = info.upperB - inner;
 			
-			if(rangeSize == 1){ // range = 1 mean, we found the real min !
+			if(rangeSize <= 1){ // range <= 1 means we found the real min !
 				if(min1IsMin){
 					info.setOptimalValue(info.lowerB);
 					this.sendOutput(min1, info.value, info.self);
@@ -683,8 +684,8 @@ implements StatsReporter, OutgoingMsgPolicyInterface<MessageType> {
 				//new round of decryption. newInner is the new middle point
 				int newInner = (info.lowerB + info.upperB) / 2;
 				
-				E newMin1 = info.minFromTo(info.lowerB, newInner);
-				E newMin2 = info.minFromTo(newInner+1, info.upperB);
+				E newMin1 = info.cs.reencrypt(info.minFromTo(info.lowerB, newInner));
+				E newMin2 = info.cs.reencrypt(info.minFromTo(newInner+1, info.upperB));
 				this.queue.sendMessageToSelf(new DecryptRequest<U, E>(null, newMin1, null, newMin2, myVar));				
 			}	
 			
@@ -714,6 +715,15 @@ implements StatsReporter, OutgoingMsgPolicyInterface<MessageType> {
 			info.domain.put(sender, domain);
 			info.cns.put(sender, codeName);
 			info.reversetable.put(codeName, sender);
+			
+		} else if (msgType.equals(UTILpropagation.OPT_UTIL_MSG_TYPE)) {
+			
+			// Check that the optimal utility found is the same as in the previous iterations (if any) 
+			OptUtilMessage<U> msgCast = (OptUtilMessage<U>) msg;
+			String root = msgCast.getRoot();
+			VariableInfo info = this.infos.get(root);
+			
+			assert info.optUtil == null || info.optUtil.equals(msgCast.getUtility()) : info.optUtil + " != " + msgCast.getUtility();
 			
 		}
 	}
@@ -835,8 +845,10 @@ implements StatsReporter, OutgoingMsgPolicyInterface<MessageType> {
 		info.setFinalSpace(space); //store final space		
 		
 		int inner = (info.lowerB + info.upperB) / 2;
-		E min1 = info.minFromTo(info.lowerB, inner);
-		E min2 = info.minFromTo(inner+1, info.upperB);
+		E min1 = info.cs.reencrypt(info.minFromTo(info.lowerB, inner));
+		E min2 = inner+1 <= info.upperB 
+				? info.cs.reencrypt(info.minFromTo(inner+1, info.upperB))
+						: info.cs.reencrypt(min1); /// @todo No need to decrypt min1 twice
 		
 		//Send decryptionRequest
 		this.queue.sendMessageToSelf(new DecryptRequest<U,E>(null,min1,null,min2,info.self));

@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -60,6 +60,7 @@ import frodo2.communication.Queue;
 import frodo2.communication.QueueOutputPipeInterface;
 import frodo2.communication.sharedMemory.QueueIOPipe;
 import frodo2.solutionSpaces.AddableInteger;
+import frodo2.solutionSpaces.DCOPProblemInterface;
 
 /** Test case for the module SecureCircularRouting
  * @author Thomas Leaute
@@ -135,12 +136,12 @@ public class SecureCircularRoutingTest extends TestCase implements IncomingMsgPo
 		private Queue queue;
 		
 		/** The agent's subproblem */
-		private XCSPparser<AddableInteger, AddableInteger> subProb;
+		private DCOPProblemInterface<AddableInteger, AddableInteger> subProb;
 		
 		/** Constructor
 		 * @param subProb 	the agent's subproblem
 		 */
-		public Forwarder(XCSPparser<AddableInteger, AddableInteger> subProb) {
+		public Forwarder(DCOPProblemInterface<AddableInteger, AddableInteger> subProb) {
 			this.subProb = subProb;
 		}
 
@@ -286,6 +287,7 @@ public class SecureCircularRoutingTest extends TestCase implements IncomingMsgPo
 		this.graph = RandGraphFactory.getRandGraph(maxNbrVars, maxNbrEdges, maxNbrAgents);
 		dfs = new HashMap< String, DFSview<AddableInteger, AddableInteger> > ();
 		this.parser = new XCSPparser<AddableInteger, AddableInteger> (AllTests.generateProblem(graph, true));
+		DCOPProblemInterface<AddableInteger, AddableInteger> problem = this.parser.parse();
 		
 		// Instantiate and set up the queues
 		this.queues = new HashMap<String, Queue> ();
@@ -297,22 +299,25 @@ public class SecureCircularRoutingTest extends TestCase implements IncomingMsgPo
 		QueueIOPipe myPipe = new QueueIOPipe (myQueue);
 		for (Queue queue : this.queues.values()) 
 			queue.addOutputPipe(AgentInterface.STATS_MONITOR, myPipe);
-		DFSgeneration<AddableInteger, AddableInteger> statsGatherer = new DFSgeneration<AddableInteger, AddableInteger> (parser);
+		DFSgeneration<AddableInteger, AddableInteger> statsGatherer = new DFSgeneration<AddableInteger, AddableInteger> (problem);
 		statsGatherer.setSilent(true);
 		statsGatherer.getStatsFromQueue(myQueue);
 		
 		Element params = new Element ("module");
 		params.setAttribute("reportStats", "true");
-		SecureCircularRouting router = new SecureCircularRouting (params, parser);
+		SecureCircularRouting router = new SecureCircularRouting (params, problem);
 		router.setSilent(true);
 		router.getStatsFromQueue(myQueue);
+		
+		// Reset the DFS output message type to the default, in case a previous test overwrote it
+		SecureCircularRouting.DFS_OUTPUT_MSG_TYPE = DFSgeneration.OUTPUT_MSG_TYPE;
 		
 		// Create the listeners
 		for (String agent : parser.getAgents()) {
 			Queue queue = queues.get(agent);
 			
 			// Create the test listener
-			XCSPparser<AddableInteger, AddableInteger> subProb = parser.getSubProblem(agent);
+			DCOPProblemInterface<AddableInteger, AddableInteger> subProb = problem.getSubProblem(agent);
 			queue.setProblem(subProb);
 			queue.addIncomingMessagePolicy(new Forwarder (subProb));
 			

@@ -1,6 +1,6 @@
 /*
 FRODO: a FRamework for Open/Distributed Optimization
-Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
+Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek
 
 FRODO is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -192,7 +192,7 @@ public class AgentFactory < V extends Addable<V>, U extends Addable<U> > impleme
 	public static void main (String[] args) {
 
 		// The GNU GPL copyright notice
-		System.out.println("FRODO  Copyright (C) 2008-2019  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek");
+		System.out.println("FRODO  Copyright (C) 2008-2020  Thomas Leaute, Brammert Ottens & Radoslaw Szymanek");
 		System.out.println("This program comes with ABSOLUTELY NO WARRANTY.");
 		System.out.println("This is free software, and you are welcome to redistribute it");
 		System.out.println("under certain conditions. Use the option -license to display the license.\n");
@@ -720,11 +720,11 @@ public class AgentFactory < V extends Addable<V>, U extends Addable<U> > impleme
 		Element parserElmt = this.agentDesc.getRootElement().getChild("parser");
 		if (parserElmt != null) {
 			String parserClassName = parserElmt.getAttributeValue("parserClass");
-			Class<? extends ProblemInterface<V, U>> parserClass = (Class<? extends ProblemInterface<V, U>>) Class.forName(parserClassName);
-			Constructor<? extends ProblemInterface<V, U>> constructor = parserClass.getConstructor(Document.class, Element.class);
-			return constructor.newInstance(problemDesc, parserElmt);
+			Class<? extends ParserInterface<V, U>> parserClass = (Class<? extends ParserInterface<V, U>>) Class.forName(parserClassName);
+			Constructor<? extends ParserInterface<V, U>> constructor = parserClass.getConstructor(Document.class, Element.class);
+			return constructor.newInstance(problemDesc, parserElmt).parse();
 		} else 
-			return new XCSPparser (problemDesc);
+			return new XCSPparser (problemDesc).parse();
 	}
 
 	/** Waits for the algorithm to terminate */
