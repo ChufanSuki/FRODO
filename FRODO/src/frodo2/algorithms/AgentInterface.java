@@ -26,6 +26,7 @@ package frodo2.algorithms;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -67,7 +68,7 @@ public interface AgentInterface < V extends Addable<V> > {
 		public static final MessageType COM_STATS_MSG_TYPE = MessageType.SYSTEM.newChild("AgentInterface", "Communication statistics");
 		
 		/** The sender agent */
-		private Object sender;
+		private Serializable sender;
 		
 		/** The number of messages sent to each other agent */
 		private HashMap<Object, Integer> msgNbrsSent;
@@ -86,7 +87,7 @@ public interface AgentInterface < V extends Addable<V> > {
 		 * @param msgSizesSent 		the amount of information sent to each other agent, in bytes
 		 * @param maxMsgSizes 		for each message type, the size (in bytes) of the largest message of this type
 		 */
-		public ComStatsMessage(Object sender, HashMap<MessageType, Integer> msgNbrs, HashMap<Object, Integer> msgNbrsSent, 
+		public ComStatsMessage(Serializable sender, HashMap<MessageType, Integer> msgNbrs, HashMap<Object, Integer> msgNbrsSent, 
 				HashMap<MessageType, Long> msgSizes, HashMap<Object, Long> msgSizesSent, HashMap<MessageType, Long> maxMsgSizes) {
 			super(COM_STATS_MSG_TYPE, msgNbrs, msgSizes, maxMsgSizes);
 			this.sender = sender;
@@ -102,7 +103,7 @@ public interface AgentInterface < V extends Addable<V> > {
 		/** Sets the sender agent
 		 * @param sender 	the sender agent
 		 */
-		public void setSender(Object sender) {
+		public void setSender(Serializable sender) {
 			this.sender = sender;
 		}
 
@@ -160,7 +161,7 @@ public interface AgentInterface < V extends Addable<V> > {
 		public void readExternal(ObjectInput in) throws IOException,
 				ClassNotFoundException {
 			super.readExternal(in);
-			this.sender = in.readObject();
+			this.sender = (Serializable) in.readObject();
 			this.msgNbrsSent = (HashMap<Object, Integer>) in.readObject();
 			this.msgSizesSent = (HashMap<Object, Long>) in.readObject();
 		}
