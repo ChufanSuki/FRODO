@@ -806,7 +806,6 @@ public class JaCoPxcspParser < U extends Addable<U> > extends XCSPparser<Addable
 		ArrayList<Constraint> constraints = new ArrayList<Constraint> ();
 		ArrayList< DecomposedConstraint<Constraint> > decompCons = new ArrayList< DecomposedConstraint<Constraint> > ();
 		
-		/// @todo Add support for utility variables
 		parsePredicate(constraint, predicate, store, constraints, decompCons, utilVars);
 		
 		for (Constraint cons : constraints) 

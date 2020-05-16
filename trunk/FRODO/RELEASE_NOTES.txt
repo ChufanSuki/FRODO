@@ -1,3 +1,12 @@
+CHANGES IN VERSION 2.18.1 SINCE VERSION 2.18
+
+Major changes: n/a
+	
+Minor changes: 
+	- Fixed a bug in the support for intensional soft constraints, whose utility variables were ignored 
+	(reported by Gauthier Picard: https://sourceforge.net/p/frodo2/bugs/53/). 
+
+
 CHANGES IN VERSION 2.18 SINCE VERSION 2.17.1
 
 Major changes: 

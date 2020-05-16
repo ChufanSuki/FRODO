@@ -67,6 +67,7 @@ import org.jacop.constraints.XplusYeqCCloneable;
 import org.jacop.constraints.XplusYeqZCloneable;
 import org.jacop.constraints.XplusYlteqZCloneable;
 import org.jacop.core.FailException;
+import org.jacop.core.IntDomain;
 import org.jacop.core.IntVarCloneable;
 import org.jacop.core.IntervalDomain;
 import org.jacop.core.Store;
@@ -123,6 +124,7 @@ public class Predicate extends DecomposedConstraint<Constraint> implements Const
 		this.predicateParameters = predicateParameters;
 		this.description = description;
 
+		this.decompose(store);
 	}
 
 	/** @see java.lang.Object#toString() */
@@ -201,12 +203,12 @@ public class Predicate extends DecomposedConstraint<Constraint> implements Const
 			this.utilVar = (IntVarCloneable) token;
 		
 		else if (token instanceof Integer) // constant soft constraint
-			this.utilVar = new IntVarCloneable (this.store, (Integer) token, (Integer) token);
+			this.utilVar = getIntVarCloneable (this.store, token.toString(), null, (Integer) token, (Integer) token);
 		
 		else if ("true".equals(token)) { }
 		
 		else if ("false".equals(token)) 
-			this.store.impose(new XeqCCloneable(new IntVarCloneable(this.store, 0, 0), 1));
+			this.store.impose(new XeqCCloneable(getIntVarCloneable(this.store, "0", null, 0, 0), 1));
 		
 		else 
 			System.err.println("Unrecognized token: " + token);
@@ -267,6 +269,47 @@ public class Predicate extends DecomposedConstraint<Constraint> implements Const
 		return (PrimitiveConstraint) token; /// @bug Can't the token also be an IntVar or an Integer?...
 
 	}
+	
+	/** Looks up or creates a variable in the input store
+	 * @param store 	the store
+	 * @param name 		the name of the variable 
+	 * @param name2		another, synonymous name for the variable (if any)
+	 * @param minVal 	minimum variable value
+	 * @param maxVal 	maximum variable value
+	 * @return the variable
+	 * @throws FailException 	if the resulting variable domain is empty
+	 */
+	static private IntVarCloneable getIntVarCloneable (StoreCloneable store, String name, String name2, int minVal, int maxVal) throws FailException {
+		return getIntVarCloneable (store, name, name2, new IntervalDomain (minVal, maxVal));
+	}
+	
+	/** Looks up or creates a variable in the input store
+	 * @param store 	the store
+	 * @param name 		the name of the variable 
+	 * @param name2		another, synonymous name for the variable (if any)
+	 * @param dom 		the variable domain
+	 * @return the variable
+	 * @throws FailException 	if the resulting variable domain is empty
+	 */
+	static private IntVarCloneable getIntVarCloneable (StoreCloneable store, String name, String name2, IntDomain dom) throws FailException {
+		// First check for an existing variable with the same name (or synonymous name)
+		IntVarCloneable var = (IntVarCloneable) store.findVariable(name);
+		if (var == null && name2 != null) 
+			var = (IntVarCloneable) store.findVariable(name2);
+		
+		// If the variable is found, take the intersection of the domains
+		if (var != null) 
+			dom = dom.intersect(var.dom());
+
+		if (dom.isEmpty()) 
+			throw Store.failException;
+		
+		// Create a new variable if none was found
+		if (var == null) 
+			var = new IntVarCloneable (store, name, dom);
+		
+		return var;
+	}
 
 	/**
 	 * @param token 			the current token
@@ -313,8 +356,9 @@ public class Predicate extends DecomposedConstraint<Constraint> implements Const
 							if (v2.min() >= 0) 
 								return v2;
 							else {
-								IntVarCloneable auxilary = (v2.max() <= 0 ? new IntVarCloneable(store, -v2.max(), -v2.min())
-										: new IntVarCloneable(store, 0, Math.max(Math.abs(v2.min()), Math.abs(v2.max()))));
+								String auxName = "|" + v2.id + "|";
+								IntVarCloneable auxilary = (v2.max() <= 0 ? getIntVarCloneable(store, auxName, null, -v2.max(), -v2.min())
+										: new IntVarCloneable(store, auxName, 0, Math.max(Math.abs(v2.min()), Math.abs(v2.max()))));
 								auxilaryVariables.add(auxilary);
 								decompositionConstraints.add(new AbsXeqYCloneable(v2, auxilary));
 								return auxilary;
@@ -332,14 +376,15 @@ public class Predicate extends DecomposedConstraint<Constraint> implements Const
 							if (v1.min() >= 0) 
 								return v1;
 							else {
-								IntVarCloneable auxilary = (v1.max() <= 0 ? new IntVarCloneable(store, -v1.max(), -v1.min())
-										: new IntVarCloneable(store, 0, Math.max(Math.abs(v1.min()), Math.abs(v1.max()))));
+								String auxName = "|" + v1.id + "|";
+								IntVarCloneable auxilary = (v1.max() <= 0 ? getIntVarCloneable(store, auxName, null, -v1.max(), -v1.min())
+										: new IntVarCloneable(store, auxName, 0, Math.max(Math.abs(v1.min()), Math.abs(v1.max()))));
 								auxilaryVariables.add(auxilary);
 								decompositionConstraints.add(new AbsXeqYCloneable(v1, auxilary));
 								return auxilary;
 							}
 						}
-						v2 = new IntVarCloneable(store, i2, i2);
+						v2 = getIntVarCloneable(store, i2.toString(), null, i2, i2);
 					} else {
 						v1 = (IntVarCloneable) o1;
 						v2 = (IntVarCloneable) o2;
@@ -349,7 +394,7 @@ public class Predicate extends DecomposedConstraint<Constraint> implements Const
 						throw Store.failException;
 					
 					int auxMin = Math.max(0, Math.max(v1.min() - v2.max(), v2.min() - v1.max()));
-					IntVarCloneable aux = new IntVarCloneable(store, auxMin,
+					IntVarCloneable aux = getIntVarCloneable(store, "|(" + v1.id + ")-(" + v2.id + ")|", "|(" + v2.id + ")-(" + v1.id + ")|", auxMin,
 							Math.max(Math.abs(v1.min() - v2.max()), Math.abs(v1.max() - v2.min())));
 					auxilaryVariables.add(aux);
 					decompositionConstraints.add(new DistanceCloneable(v1, v2, aux));
@@ -371,8 +416,9 @@ public class Predicate extends DecomposedConstraint<Constraint> implements Const
 						if (v1.min() >= 0)
 							return v1;
 						else {
-							IntVarCloneable auxilary = (v1.max() <= 0 ? new IntVarCloneable(store, -v1.max(), -v1.min())
-									: new IntVarCloneable(store, 0, Math.max(Math.abs(v1.min()), Math.abs(v1.max()))));
+							String auxName = "|" + v1.id + "|";
+							IntVarCloneable auxilary = (v1.max() <= 0 ? getIntVarCloneable(store, auxName, null, -v1.max(), -v1.min())
+									: getIntVarCloneable(store, auxName, null, 0, Math.max(Math.abs(v1.min()), Math.abs(v1.max()))));
 							auxilaryVariables.add(auxilary);
 							decompositionConstraints.add(new AbsXeqYCloneable(v1, auxilary));
 							return auxilary;
@@ -397,7 +443,7 @@ public class Predicate extends DecomposedConstraint<Constraint> implements Const
 					if (v1.dom().isEmpty()) 
 						throw Store.failException;
 					
-					IntVarCloneable auxilary = new IntVarCloneable(store, -v1.max(), -v1.min());
+					IntVarCloneable auxilary = getIntVarCloneable(store, "-(" + v1.id + ")", null, -v1.max(), -v1.min());
 					auxilaryVariables.add(auxilary);
 					decompositionConstraints.add(new XmulCeqZCloneable(v1, -1, auxilary));
 					return auxilary;
@@ -419,7 +465,7 @@ public class Predicate extends DecomposedConstraint<Constraint> implements Const
 					if (v1.dom().isEmpty() || v2.dom().isEmpty()) 
 						throw Store.failException;
 					
-					IntVarCloneable auxilary = new IntVarCloneable(store, v1.min() - v2.max(), v1.max() - v2.min());
+					IntVarCloneable auxilary = getIntVarCloneable(store, "(" + v1.id + ")-(" + v2.id + ")", null, v1.min() - v2.max(), v1.max() - v2.min());
 					auxilaryVariables.add(auxilary);
 					decompositionConstraints.add(new XplusYeqZCloneable(v2, auxilary, v1));
 					return auxilary;
@@ -432,7 +478,7 @@ public class Predicate extends DecomposedConstraint<Constraint> implements Const
 					if (v1.dom().isEmpty()) 
 						throw Store.failException;
 					
-					IntVarCloneable auxilary = new IntVarCloneable(store, v1.min() - c2, v1.max() - c2);
+					IntVarCloneable auxilary = getIntVarCloneable(store, "(" + v1.id + ")-" + c2, null, v1.min() - c2, v1.max() - c2);
 					auxilaryVariables.add(auxilary);
 					decompositionConstraints.add(new XplusCeqZCloneable(auxilary, c2, v1));
 					return auxilary;
@@ -443,7 +489,7 @@ public class Predicate extends DecomposedConstraint<Constraint> implements Const
 					if (v2.dom().isEmpty()) 
 						throw Store.failException;
 					
-					IntVarCloneable auxilary = new IntVarCloneable(store, c1 - v2.max(), c1 - v2.min());
+					IntVarCloneable auxilary = getIntVarCloneable(store, c1 + "-(" + v2.id + ")", null, c1 - v2.max(), c1 - v2.min());
 					auxilaryVariables.add(auxilary);
 					decompositionConstraints.add(new XplusYeqCCloneable(v2, auxilary, c1));
 					return auxilary;
@@ -466,7 +512,8 @@ public class Predicate extends DecomposedConstraint<Constraint> implements Const
 					if (v1.dom().isEmpty() || v2.dom().isEmpty()) 
 						throw Store.failException;
 					
-					IntVarCloneable auxilary = new IntVarCloneable(store, v1.min() + v2.min(), v1.max() + v2.max());
+					IntVarCloneable auxilary = getIntVarCloneable(store, "(" + v1.id + ")+(" + v2.id + ")", "(" + v2.id + ")+(" + v1.id + ")", 
+							v1.min() + v2.min(), v1.max() + v2.max());
 					auxilaryVariables.add(auxilary);
 					decompositionConstraints.add(new XplusYeqZCloneable(v1, v2, auxilary));
 					return auxilary;
@@ -479,7 +526,8 @@ public class Predicate extends DecomposedConstraint<Constraint> implements Const
 					if (v1.dom().isEmpty()) 
 						throw Store.failException;
 					
-					IntVarCloneable auxilary = new IntVarCloneable(store, v1.min() + c2, v1.max() + c2);
+					IntVarCloneable auxilary = getIntVarCloneable(store, "(" + v1.id + ")+" + c2, c2 + "+(" + v1.id + ")", 
+							v1.min() + c2, v1.max() + c2);
 					auxilaryVariables.add(auxilary);
 					decompositionConstraints.add(new XplusCeqZCloneable(v1, c2, auxilary));
 					return auxilary;
@@ -492,7 +540,8 @@ public class Predicate extends DecomposedConstraint<Constraint> implements Const
 					if (v2.dom().isEmpty()) 
 						throw Store.failException;
 					
-					IntVarCloneable auxilary = new IntVarCloneable(store, c1 + v2.min(), c1 + v2.max());
+					IntVarCloneable auxilary = getIntVarCloneable(store, c1 + "+(" + v2.id + ")", "(" + v2.id + ")+" + c1, 
+							c1 + v2.min(), c1 + v2.max());
 					auxilaryVariables.add(auxilary);
 					decompositionConstraints.add(new XplusCeqZCloneable(v2, c1, auxilary));
 					return auxilary;
@@ -523,7 +572,7 @@ public class Predicate extends DecomposedConstraint<Constraint> implements Const
 						max = Math.max(max, tmp);
 					}
 					
-					IntVarCloneable auxilary = new IntVarCloneable(store, min, max);
+					IntVarCloneable auxilary = getIntVarCloneable(store, "(" + v1.id + ")*(" + v2.id + ")", "(" + v2.id + ")*(" + v1.id + ")", min, max);
 					auxilaryVariables.add(auxilary);
 					decompositionConstraints.add(new XmulYeqZCloneable(v1, v2, auxilary));
 					return auxilary;
@@ -544,7 +593,7 @@ public class Predicate extends DecomposedConstraint<Constraint> implements Const
 					min = Math.min(min, tmp);
 					max = Math.max(max, tmp);
 					
-					IntVarCloneable auxilary = new IntVarCloneable(store, min, max);
+					IntVarCloneable auxilary = getIntVarCloneable(store, "(" + v1.id + ")*" + c2, c2 + "*(" + v1.id + ")", min, max);
 					auxilaryVariables.add(auxilary);
 					decompositionConstraints.add(new XmulCeqZCloneable(v1, c2, auxilary));
 					return auxilary;
@@ -565,7 +614,7 @@ public class Predicate extends DecomposedConstraint<Constraint> implements Const
 					min = Math.min(min, tmp);
 					max = Math.max(max, tmp);
 					
-					IntVarCloneable auxilary = new IntVarCloneable(store, min, max);
+					IntVarCloneable auxilary = getIntVarCloneable(store, "(" + v2.id + ")*" + c1, c1 + "*(" + v2.id + ")", min, max);
 					auxilaryVariables.add(auxilary);
 					decompositionConstraints.add(new XmulCeqZCloneable(v2, c1, auxilary));
 					return auxilary;
@@ -599,7 +648,7 @@ public class Predicate extends DecomposedConstraint<Constraint> implements Const
 						min = Math.min(min, tmp);
 						max = Math.max(max, tmp);
 					}
-					IntVarCloneable aux = new IntVarCloneable(store, min, max);
+					IntVarCloneable aux = getIntVarCloneable(store, "(" + v1.id + ")/(" + v2.id + ")", null, min, max);
 
 					auxilaryVariables.add(aux);
 					decompositionConstraints.add(new XdivYeqZCloneable(v1, v2, aux));
@@ -621,10 +670,10 @@ public class Predicate extends DecomposedConstraint<Constraint> implements Const
 					int tmp = v1.max() / c2;
 					min = Math.min(min, tmp);
 					max = Math.max(max, tmp);
-					IntVarCloneable aux = new IntVarCloneable(store, min, max);
+					IntVarCloneable aux = getIntVarCloneable(store, "(" + v1.id + ")/" + c2, null, min, max);
 
 					auxilaryVariables.add(aux);
-					decompositionConstraints.add(new XdivYeqZCloneable(v1, new IntVarCloneable(store, c2, c2), aux));
+					decompositionConstraints.add(new XdivYeqZCloneable(v1, getIntVarCloneable(store, c2.toString(), null, c2, c2), aux));
 					
 					return aux;
 				} else if (o1 instanceof Integer && o2 instanceof IntVarCloneable) {
@@ -644,10 +693,10 @@ public class Predicate extends DecomposedConstraint<Constraint> implements Const
 					int tmp = c1 / max2;
 					min = Math.min(min, tmp);
 					max = Math.max(max, tmp);
-					IntVarCloneable aux = new IntVarCloneable(store, min, max);
+					IntVarCloneable aux = getIntVarCloneable(store, c1 + "/(" + v2.id + ")", null, min, max);
 
 					auxilaryVariables.add(aux);
-					decompositionConstraints.add(new XdivYeqZCloneable(new IntVarCloneable(store, c1, c1), v2, aux));
+					decompositionConstraints.add(new XdivYeqZCloneable(getIntVarCloneable(store, c1.toString(), null, c1, c1), v2, aux));
 					
 					return aux;
 				} else if (o1 instanceof Integer && o2 instanceof Integer) 
@@ -681,13 +730,14 @@ public class Predicate extends DecomposedConstraint<Constraint> implements Const
 					if (min2 > 0) 
 						T3 = v2;
 					else {
-						T3 = (v2.max() <= 0 ? new IntVarCloneable(store, -v2.max(), -v2.min())
-								: new IntVarCloneable(store, 0, Math.max(Math.abs(min2), Math.abs(max2))));
+						String t3Name = "|" + v2.id + "|";
+						T3 = (v2.max() <= 0 ? getIntVarCloneable(store, t3Name, null, -v2.max(), -v2.min())
+								: getIntVarCloneable(store, t3Name, null, 0, Math.max(Math.abs(min2), Math.abs(max2))));
 						auxilaryVariables.add(T3);
 						decompositionConstraints.add(new AbsXeqYCloneable(v2, T3));
 					}
 					
-					IntVarCloneable auxilary = new IntVarCloneable(store, 0, T3.max() - 1); // a < t3
+					IntVarCloneable auxilary = getIntVarCloneable(store, "(" + v1.id + ")mod(" + v2.id + ")", null, 0, T3.max() - 1); // a < t3
 					IntVarCloneable T2 = new IntVarCloneable(store, v1.min() - auxilary.max(), v1.max()); // t2 = v1 - a
 					
 					// Compute the bounds for t1 = t2 / v2
@@ -720,7 +770,7 @@ public class Predicate extends DecomposedConstraint<Constraint> implements Const
 					if (v1.min() >= 0 && v1.max() < c2) 
 						return v1;
 
-					IntVarCloneable auxilary = new IntVarCloneable(store, 0, Math.abs(c2) - 1); // a < |c2|
+					IntVarCloneable auxilary = getIntVarCloneable(store, "(" + v1.id + ")mod" + c2, null, 0, Math.abs(c2) - 1); // a < |c2|
 					IntVarCloneable T2 = new IntVarCloneable(store, v1.min() - auxilary.max(), v1.max()); // t2 = v1 - a
 					
 					// Compute the bounds for t1 = t2 / c2
@@ -760,13 +810,14 @@ public class Predicate extends DecomposedConstraint<Constraint> implements Const
 					if (min2 > 0) 
 						T3 = v2;
 					else {
-						T3 = (v2.max() <= 0 ? new IntVarCloneable(store, -v2.max(), -v2.min())
-								: new IntVarCloneable(store, 0, Math.max(Math.abs(min2), Math.abs(max2))));
+						String t3name = "|" + v2.id + "|";
+						T3 = (v2.max() <= 0 ? getIntVarCloneable(store, t3name, null, -v2.max(), -v2.min())
+								: getIntVarCloneable(store, t3name, null, 0, Math.max(Math.abs(min2), Math.abs(max2))));
 						auxilaryVariables.add(T3);
 						decompositionConstraints.add(new AbsXeqYCloneable(v2, T3));
 					}
 					
-					IntVarCloneable auxilary = new IntVarCloneable(store, 0, T3.max() - 1); // a < t3
+					IntVarCloneable auxilary = getIntVarCloneable(store, c1 + "mod(" + v2.id + ")", null, 0, T3.max() - 1); // a < t3
 					IntVarCloneable T2 = new IntVarCloneable(store, c1 - auxilary.max(), c1); // t2 = c1 - a
 					
 					// Compute the bounds for t1 = t2 / v2
@@ -803,14 +854,14 @@ public class Predicate extends DecomposedConstraint<Constraint> implements Const
 				if (o1 instanceof Integer) {
 					String val = String.valueOf(o1);
 					if (variableMaping.get(val) == null)
-						variableMaping.put(val, new IntVarCloneable(store, (Integer) o1, (Integer) o1));
+						variableMaping.put(val, getIntVarCloneable(store, val, null, (Integer) o1, (Integer) o1));
 					o1 = variableMaping.get(val);
 				}
 
 				if (o2 instanceof Integer) {
 					String val = String.valueOf(o2);
 					if (variableMaping.get(val) == null)
-						variableMaping.put(val, new IntVarCloneable(store, (Integer) o2, (Integer) o2));
+						variableMaping.put(val, getIntVarCloneable(store, val, null, (Integer) o2, (Integer) o2));
 					o2 = variableMaping.get(val);
 				}
 
@@ -828,23 +879,23 @@ public class Predicate extends DecomposedConstraint<Constraint> implements Const
 					if (v2.dom().isEmpty()) 
 						throw Store.failException;
 					
-					IntVarCloneable v3 = new IntVarCloneable(store, 2, 2); // v3 = 2
+					IntVarCloneable v3 = getIntVarCloneable(store, "2", null, 2, 2); // v3 = 2
 					auxilaryVariables.add(v3);
 					
-					IntVarCloneable reminder = new IntVarCloneable(store, 0, 1); // reminder = v2 mod 2
+					IntVarCloneable reminder = getIntVarCloneable(store, "(" + v2.id + ")mod2", null, 0, 1); // reminder = v2 mod 2
 					auxilaryVariables.add(reminder);
 					
-					IntVarCloneable abs1 = new IntVarCloneable(store, 0, Math.max(Math.abs(v1.min()), Math.abs(v1.max()))); // abs1 = |v1|
+					IntVarCloneable abs1 = getIntVarCloneable(store, "|" + v1.id + "|", null, 0, Math.max(Math.abs(v1.min()), Math.abs(v1.max()))); // abs1 = |v1|
 					auxilaryVariables.add(abs1);
 					
-					IntVarCloneable posPow = new IntVarCloneable(store, 0,
+					IntVarCloneable posPow = getIntVarCloneable(store, abs1.id + "^|" + v2.id + "|", null, 0,
 							(int) Math.pow(abs1.max(), Math.max(Math.abs(v2.min()), Math.abs(v2.max())))); // posPow = abs1 ^ |v2|
 					auxilaryVariables.add(posPow);
 					
-					auxilary = new IntVarCloneable(store, -posPow.max(), posPow.max()); // aux = +/- posPow
+					auxilary = getIntVarCloneable(store, "(" + v1.id + ")^(" + v2.id + ")", null, -posPow.max(), posPow.max()); // aux = +/- posPow
 					auxilaryVariables.add(auxilary);
 					
-					IntVarCloneable negPow = new IntVarCloneable(store, -posPow.max(), 0); // negPow = - posPow
+					IntVarCloneable negPow = getIntVarCloneable(store, "-(" + posPow.id + ")", null, -posPow.max(), 0); // negPow = - posPow
 					auxilaryVariables.add(negPow);
 					
 					decompositionConstraints.add(new AbsXeqYCloneable(v1, abs1));
@@ -855,7 +906,8 @@ public class Predicate extends DecomposedConstraint<Constraint> implements Const
 					
 					if(v2.min() < 0){
 						
-						IntVarCloneable abs2 = new IntVarCloneable(store, 0, Math.max(Math.abs(v2.min()), Math.abs(v2.max()))); // abs2 = |v2|
+						IntVarCloneable abs2 = getIntVarCloneable(store, "|" + v2.id + "|", null, 
+								0, Math.max(Math.abs(v2.min()), Math.abs(v2.max()))); // abs2 = |v2|
 						auxilaryVariables.add(abs2);
 						
 						IntVarCloneable result2 = new IntVarCloneable(store, -posPow.max(), posPow.max()); // result2 = posPow or result2  = negPow = - posPow
@@ -899,7 +951,7 @@ public class Predicate extends DecomposedConstraint<Constraint> implements Const
 						throw Store.failException;
 					
 					int maxAbs2 = Math.max(Math.abs(v2.min()), Math.abs(v2.max())); // abs2 = |v2|
-					auxilary = new IntVarCloneable(store, 0, (int) Math.pow(v1.max(), maxAbs2));
+					auxilary = getIntVarCloneable(store, "(" + v1.id + ")^(" + v2.id + ")", null, 0, (int) Math.pow(v1.max(), maxAbs2));
 					auxilaryVariables.add(auxilary);
 					
 					if(v2.min() < 0){
@@ -949,7 +1001,8 @@ public class Predicate extends DecomposedConstraint<Constraint> implements Const
 						return v1;
 					else if (v2.min() <= v1.min()) 
 						return v2;
-					IntVarCloneable auxilary = new IntVarCloneable(store, Math.min(v1.min(), v2.min()), Math.min(v1.max(), v2.max()));
+					IntVarCloneable auxilary = getIntVarCloneable(store, "min(" + v1.id + "," + v2.id + ")", "min(" + v2.id + "," + v1.id + ")", 
+							Math.min(v1.min(), v2.min()), Math.min(v1.max(), v2.max()));
 					auxilaryVariables.add(auxilary);
 					
 					IntVarCloneable[] listVars = {v1, v2};
@@ -968,10 +1021,11 @@ public class Predicate extends DecomposedConstraint<Constraint> implements Const
 						return v1;
 					else if (c2 <= v1.min()) 
 						return c2;
-					IntVarCloneable auxilary = new IntVarCloneable(store, Math.min(v1.min(), c2), Math.min(v1.max(), c2));
+					IntVarCloneable auxilary = getIntVarCloneable(store, "min(" + v1.id + "," + c2 + ")", "min(" + c2 + "," + v1.id + ")", 
+							Math.min(v1.min(), c2), Math.min(v1.max(), c2));
 					auxilaryVariables.add(auxilary);
 					
-					IntVarCloneable[] listVars = {v1, new IntVarCloneable(store, c2, c2)};
+					IntVarCloneable[] listVars = {v1, getIntVarCloneable(store, Integer.toString(c2), null, c2, c2)};
 					
 					decompositionConstraints.add(new MinCloneable(listVars, auxilary));
 							
@@ -987,10 +1041,11 @@ public class Predicate extends DecomposedConstraint<Constraint> implements Const
 						return c1;
 					else if (v2.min() <= c1) 
 						return v2;
-					IntVarCloneable auxilary = new IntVarCloneable(store, Math.min(c1, v2.min()), Math.min(c1, v2.max()));
+					IntVarCloneable auxilary = getIntVarCloneable(store, "min(" + c1 + "," + v2.id + ")", "min(" + v2.id + "," + c1 + ")", 
+							Math.min(c1, v2.min()), Math.min(c1, v2.max()));
 					auxilaryVariables.add(auxilary);
 					
-					IntVarCloneable[] listVars = {v2, new IntVarCloneable(store, c1, c1)};
+					IntVarCloneable[] listVars = {v2, getIntVarCloneable(store, Integer.toString(c1), null, c1, c1)};
 					
 					decompositionConstraints.add(new MinCloneable(listVars, auxilary));
 					
@@ -1018,7 +1073,8 @@ public class Predicate extends DecomposedConstraint<Constraint> implements Const
 						return v1;
 					else if (v2.min() >= v1.max()) 
 						return v2;
-					IntVarCloneable auxilary = new IntVarCloneable(store, Math.max(v1.min(), v2.min()), Math.max(v1.max(), v2.max()));
+					IntVarCloneable auxilary = getIntVarCloneable(store, "max(" + v1.id + "," + v2.id + ")", "max(" + v2.id + "," + v1.id + ")", 
+							Math.max(v1.min(), v2.min()), Math.max(v1.max(), v2.max()));
 					auxilaryVariables.add(auxilary);
 					
 					IntVarCloneable[] listVars = {v1, v2};
@@ -1037,10 +1093,11 @@ public class Predicate extends DecomposedConstraint<Constraint> implements Const
 						return v1;
 					else if (c2 >= v1.max()) 
 						return c2;
-					IntVarCloneable auxilary = new IntVarCloneable(store, Math.max(v1.min(), c2), Math.max(v1.max(), c2));
+					IntVarCloneable auxilary = getIntVarCloneable(store, "max(" + v1.id + "," + c2 + ")", "max(" + c2 + "," + v1.id + ")", 
+							Math.max(v1.min(), c2), Math.max(v1.max(), c2));
 					auxilaryVariables.add(auxilary);
 					
-					IntVarCloneable[] listVars = {v1, new IntVarCloneable(store, c2, c2)};
+					IntVarCloneable[] listVars = {v1, getIntVarCloneable(store, Integer.toString(c2), null, c2, c2)};
 					
 					decompositionConstraints.add(new MaxCloneable(listVars, auxilary));
 							
@@ -1056,10 +1113,11 @@ public class Predicate extends DecomposedConstraint<Constraint> implements Const
 						return c1;
 					else if (v2.min() >= c1) 
 						return v2;
-					IntVarCloneable auxilary = new IntVarCloneable(store, Math.max(c1, v2.min()), Math.max(c1, v2.max()));
+					IntVarCloneable auxilary = getIntVarCloneable(store, "max(" + c1 + "," + v2.id + ")", "max(" + v2.id + "," + c1 + ")", 
+							Math.max(c1, v2.min()), Math.max(c1, v2.max()));
 					auxilaryVariables.add(auxilary);
 					
-					IntVarCloneable[] listVars = {v2, new IntVarCloneable(store, c1, c1)};
+					IntVarCloneable[] listVars = {v2, getIntVarCloneable(store, Integer.toString(c1), null, c1, c1)};
 					
 					decompositionConstraints.add(new MaxCloneable(listVars, auxilary));
 					
@@ -1089,9 +1147,9 @@ public class Predicate extends DecomposedConstraint<Constraint> implements Const
 					if (v2.dom().isEmpty()) 
 						throw Store.failException;
 					
-					IntervalDomain auxDom = new IntervalDomain(v2.min(), v2.max());
+					IntDomain auxDom = v2.domain.cloneLight();
 					auxDom.addDom(v3.domain);
-					IntVarCloneable auxilary = new IntVarCloneable(store, auxDom);
+					IntVarCloneable auxilary = getIntVarCloneable(store, "if(" + o1.toString().replace(" ", "") + "," + v2.id + "," + v3.id + ")", null, auxDom);
 					auxilaryVariables.add(auxilary);
 					PrimitiveConstraint thenCons = new XeqYCloneable(auxilary, v2);
 					PrimitiveConstraint elseCons = new XeqYCloneable(auxilary, v3);
@@ -1106,7 +1164,7 @@ public class Predicate extends DecomposedConstraint<Constraint> implements Const
 					Integer c3 = (Integer) o3;
 					IntervalDomain auxDom = new IntervalDomain (c3, c3);
 					auxDom.addDom(v2.domain);
-					IntVarCloneable auxilary = new IntVarCloneable(store, auxDom);
+					IntVarCloneable auxilary = getIntVarCloneable(store, "if(" + o1.toString().replace(" ", "") + "," + v2.id + "," + c3 + ")", null, auxDom);
 					auxilaryVariables.add(auxilary);
 					
 					PrimitiveConstraint thenCons = new XeqYCloneable(auxilary, v2);
@@ -1122,7 +1180,7 @@ public class Predicate extends DecomposedConstraint<Constraint> implements Const
 					IntVarCloneable v3 = (IntVarCloneable) o3;
 					IntervalDomain auxDom = new IntervalDomain(c2, c2);
 					auxDom.addDom(v3.domain);
-					IntVarCloneable auxilary = new IntVarCloneable(store, auxDom);
+					IntVarCloneable auxilary = getIntVarCloneable(store, "if(" + o1.toString().replace(" ", "") + "," + c2 + "," + v3.id + ")", null, auxDom);
 					auxilaryVariables.add(auxilary);
 					
 					PrimitiveConstraint thenCons = new XeqCCloneable(auxilary, c2);
@@ -1138,7 +1196,7 @@ public class Predicate extends DecomposedConstraint<Constraint> implements Const
 					Integer c3 = (Integer) o3;
 					IntervalDomain auxDom = new IntervalDomain (c2, c2);
 					auxDom.addDom(new IntervalDomain (c3, c3));
-					IntVarCloneable auxilary = new IntVarCloneable(store, auxDom);
+					IntVarCloneable auxilary = getIntVarCloneable(store, "if(" + o1.toString().replace(" ", "") + "," + c2 + "," + c3 + ")", null, auxDom);
 					auxilaryVariables.add(auxilary);
 					
 					PrimitiveConstraint thenCons = new XeqCCloneable(auxilary, c2);
@@ -1172,21 +1230,21 @@ public class Predicate extends DecomposedConstraint<Constraint> implements Const
 						if (o1 instanceof Integer) {
 							String val = String.valueOf(o1);
 							if (variableMaping.get(val) == null)
-								variableMaping.put(val, new IntVarCloneable(store, (Integer) o1, (Integer) o1));
+								variableMaping.put(val, getIntVarCloneable(store, val, null, (Integer) o1, (Integer) o1));
 							o1 = variableMaping.get(val);
 						}
 
 						if (o2 instanceof Integer) {
 							String val = String.valueOf(o2);
 							if (variableMaping.get(val) == null)
-								variableMaping.put(val, new IntVarCloneable(store, (Integer) o2, (Integer) o2));
+								variableMaping.put(val, getIntVarCloneable(store, val, null, (Integer) o2, (Integer) o2));
 							o2 = variableMaping.get(val);
 						}
 
 						if (o3 instanceof Integer) {
 							String val = String.valueOf(o3);
 							if (variableMaping.get(val) == null)
-								variableMaping.put(val, new IntVarCloneable(store, (Integer) o3, (Integer) o3));
+								variableMaping.put(val, getIntVarCloneable(store, val, null, (Integer) o3, (Integer) o3));
 							o3 = variableMaping.get(val);
 						}
 
@@ -1205,7 +1263,7 @@ public class Predicate extends DecomposedConstraint<Constraint> implements Const
 						
 						} else if (o1 instanceof IntVarCloneable && o2 instanceof Integer) {
 							
-							IntVarCloneable auxilary = new IntVarCloneable(store, (Integer) o2, (Integer) o2);
+							IntVarCloneable auxilary = getIntVarCloneable(store, o2.toString(), null, (Integer) o2, (Integer) o2);
 							auxilaryVariables.add(auxilary);
 							
 							return new AbsXeqYCloneable((IntVarCloneable) o1, auxilary);
@@ -1458,7 +1516,7 @@ public class Predicate extends DecomposedConstraint<Constraint> implements Const
 
 						String val = String.valueOf(o3);
 						if (variableMaping.get(val) == null)
-							variableMaping.put(val, new IntVarCloneable(store, (Integer) o3, (Integer) o3));
+							variableMaping.put(val, getIntVarCloneable(store, val, null, (Integer) o3, (Integer) o3));
 						o3 = variableMaping.get(val);
 
 						return (new XplusYlteqZCloneable((IntVarCloneable) o1, (IntVarCloneable) o2, (IntVarCloneable) o3));
@@ -1697,7 +1755,7 @@ public class Predicate extends DecomposedConstraint<Constraint> implements Const
 				out.add(var);
 		}
 
-		if (this.utilVar != null) /// @bug The utilVar is only initialized after the parsing
+		if (this.utilVar != null) 
 			out.add(utilVar);
 
 		return out;
